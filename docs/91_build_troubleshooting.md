@@ -651,7 +651,7 @@ trailing foreach receipts own distinct cursors. Validate the boundary with:
 tests/self_hosted/parity/one_mir/one_mir_returned_array_foreach_projection.sh
 tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_foreach_array_int_projection.sh
 tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_graph_projection.sh
-tests/self_hosted_component_contract_smoke.sh
+tests/self_hosted/gates/self_hosted_component_contract_smoke.sh
 ```
 
 The first gate pins exact `30`, graph-only `[4,5]` exact `36`, routine-order
@@ -725,7 +725,7 @@ tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_for_break_exit_projection.sh
 tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_continue_backedge_projection.sh
 tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh
 tests/self_hosted/parity/public_route/public_nested_scalar_cfg_llvm_owner.sh
-tests/self_hosted_component_contract_smoke.sh
+tests/self_hosted/gates/self_hosted_component_contract_smoke.sh
 ```
 
 Do not repair the symptom with `block_count == 8`, a nested-loop emitter,
@@ -841,7 +841,7 @@ Use
 focused falsifier. It emits `let_log.pgy`, canonicalizes through the installed
 launcher, requires byte equality, canonicalizes the result again, and requires
 the second result to be the same fixpoint. Broaden to
-`tests/self_host_live_replacement_smoke.sh` only after this gate is green. For
+`tests/self_hosted/gates/self_host_live_replacement_smoke.sh` only after this gate is green. For
 memory evidence, record one final integration maximum; do not rerun a pressure
 probe after every local edit.
 
@@ -1128,10 +1128,10 @@ Platform contract drift found in the same CI run has three separate owners:
 
 - Language-word implementation counts are generated output. Run
   `scripts/render_language_keyword_registry.py ... --write` after all `.pgy`
-  edits, then run `tests/language_keyword_registry_smoke.sh`; never hand-edit
+  edits, then run `tests/registry/language_keyword_registry_smoke.sh`; never hand-edit
   the generated inventory.
 - Production header count changes belong in the self-host checker golden only
-  after `tests/production_header_size_smoke.sh` proves the actual census. The
+  after `tests/repo/production_header_size_smoke.sh` proves the actual census. The
   zone sync ABI header changed the clean count from 716 to 717 while leaving
   the 600-line cap intact.
 - A runtime failure-string gate must read the canonical ABI owner. Zone lock
@@ -3153,7 +3153,7 @@ they were stopped before the full-input oracle could grow further. This also
 exposed a GNU make diagnostic trap: `make -n` still executes a recipe line that
 contains `$(MAKE)`, because make treats it as a recursive invocation. Do not
 dry-run the full-fixpoint pressure target; use
-`tests/build_pressure_contract_smoke.sh` to verify its wiring.
+`tests/perf/build_pressure_contract_smoke.sh` to verify its wiring.
 
 So a stalled desktop is not automatically evidence of a compiler heap leak. If
 single `compiler` builds stay below a few hundred MB but broad smokes stall the
@@ -3443,8 +3443,8 @@ mingw32-make BUILD_DIR=/tmp/pgy-b-build BIN_DIR=/tmp/pgy-b-bin raw-escape-contra
 - `Makefile:704` — `clean` target
 - `Makefile:707` — `clean-objects` (object만 삭제, 디렉터리 유지)
 - `Makefile` — `rebuild` target (clean + all)
-- `tests/diagnostics_json_smoke.sh` — JSON 진단 회귀
-- `tests/compare_backends.sh` — C/LLVM parity 회귀
+- `tests/language/diagnostics_json_smoke.sh` — JSON 진단 회귀
+- `tests/backend/compare_backends.sh` — C/LLVM parity 회귀
 ## Self-host world에서 semantic 0/0 뒤 AIR authority evidence가 끊기는 경우
 
 증상은 semantic 진단이 `0 error(s), 0 warning(s)`인데 곧바로 다음 형태로
@@ -3656,7 +3656,7 @@ make self-host-mir-json-instruction-writer-parity-test-smoke
    negative를 실행한다.
 
 현재 owner는 `dir.domain_graph`, MIR은 carrier, C/LLVM frontier는 마지막 consumer다.
-`tests/domain_runtime_topology_smoke.sh`가 exact trace, count floor, 양 backend parity,
+`tests/ir/domain_runtime_topology_smoke.sh`가 exact trace, count floor, 양 backend parity,
 retired AST entrypoint 부재를 함께 고정한다. 전체 graph를 backend마다 재검증하거나
 `MIR row가 없으면 AST` fallback을 추가하면 과거의 중복 graph 비용과 dual SoT를
 동시에 되살린다.
@@ -4642,7 +4642,7 @@ GitHub run `30510118949`의 Windows와 macOS C-only job은 같은 두 SoT drift�
 키워드 실패는 문서 숫자를 수동으로 고치지 않는다.
 `render_language_keyword_registry.py --write`로 registry, self-host projection,
 TextMate grammar와 implementation inventory의 한 projection chain을 재생성한다.
-그 뒤 `tests/language_keyword_registry_smoke.sh`가 146 rows, 70 reserved rows,
+그 뒤 `tests/registry/language_keyword_registry_smoke.sh`가 146 rows, 70 reserved rows,
 76 parser selectors와 fixture를 함께 검증해야 한다.
 
 줄 상한도 CI 숫자를 올려 숨기지 않는다. Production/admitted fact 생성은 기존
@@ -4658,7 +4658,7 @@ artifact verdict: fact 534 + executable contract 70
 
 모든 direct consumer는 새 query owner를 명시적으로 import한다. Component gate는
 old fact owner에 query 함수가 돌아오는 것을 거부하고 각 새 owner의 exact cap을
-고정한다. `tests/test_inc_size_smoke.sh`, 관련 self-host semantic checks와 component
+고정한다. `tests/repo/test_inc_size_smoke.sh`, 관련 self-host semantic checks와 component
 contract를 함께 관측해야 이 CI 결함을 닫았다고 기록한다.
 
 ### self-checker가 중첩 typed fact 필드를 undefined symbol로 보는 경우
@@ -4702,7 +4702,7 @@ gate였다. Driver pipeline은 body bundle을 이미 만들고
 중간 reanalysis 호출 `GenerateCFromVerifiedSemanticArtifact`를 계속 요구했다. Gate는
 현재 Ready-fact call을 요구하고 옛 checked call의 재도입을 금지해야 한다. 구현을
 구식 gate에 맞춰 다시 reanalysis 경로로 되돌리는 것은 해결책이 아니다. 갱신된
-`tests/self_host_compiler_world_contract_smoke.sh`는 topology와 compiler-world source
+`tests/self_hosted/gates/self_host_compiler_world_contract_smoke.sh`는 topology와 compiler-world source
 shape를 모두 실행해 exit 0을 관측했다.
 
 ### 20GB 증상과 최신 5.1/5.3MB 부트스트랩 메모리 결과

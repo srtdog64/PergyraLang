@@ -2,7 +2,7 @@
 
 **Status:** *rung-2 DirWalk-owned* (2026-07-06). Enumerates production header
 paths through `DirWalk("src")`, filters the same six owner prefixes as
-`tests/production_header_size_smoke.sh`, reads each file, counts LF records
+`tests/repo/production_header_size_smoke.sh`, reads each file, counts LF records
 minus nonblank lexical comment-only records (including an unterminated final
 record), and
 asserts <= 600 LOC per the BDFL split-review threshold. Reports any over-cap
@@ -11,7 +11,7 @@ headers in `findings[]`.
 ## Intent
 
 The 600-LOC split-review threshold (`TODO.md Section 0 Core Rules`) is a beta-
-closure invariant. The shell-side `tests/production_header_size_smoke.sh`
+closure invariant. The shell-side `tests/repo/production_header_size_smoke.sh`
 already gates this for production `.h` owners, but only as a binary
 pass/fail. This tool is the *first* Pergyra-origin gate that emits a
 structured per-header verdict, so downstream tooling can sort violations
@@ -60,7 +60,7 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 The clean oracle is the committed expected JSON artifact
 `expected/clean.json`, compared through the shared ArtifactZone/TestHarness
 path. The C-side header cap remains enforced separately by
-`tests/production_header_size_smoke.sh`; this self-hosted parity rung must not
+`tests/repo/production_header_size_smoke.sh`; this self-hosted parity rung must not
 recompute clean header counts in shell.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:

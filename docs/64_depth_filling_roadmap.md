@@ -331,7 +331,7 @@ post-beta / follow-up:
 현재 근거:
 - world는 "문서상 예정" 상태가 아니라 이미 smoke/compare 근거를 가진다.
   - `llvm_smoke`의 world query/runtime 케이스:
-    - [tests/llvm_smoke.sh](../tests/llvm_smoke.sh)
+    - [tests/backend/llvm_smoke.sh](../tests/backend/llvm_smoke.sh)
   - world/zone query ABI 경로:
     - [tests/cases/abi_pipeline/world_zone_query_abi/main.pgy](../tests/cases/abi_pipeline/world_zone_query_abi/main.pgy)
   - C/LLVM backend compare 경로:

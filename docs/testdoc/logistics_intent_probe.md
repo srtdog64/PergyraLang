@@ -71,8 +71,8 @@ This was fixed in both backends. The probe keeps the runtime output shape simple
 
 - exact stdout: `examples/logistics_intent_probe/expected_stdout.txt`
 - exact report: `examples/logistics_intent_probe/expected_results.txt`
-- IR dump smoke: `tests/ir_pipeline_probe.sh`
-- example smoke registration: `tests/example_contract_smoke.sh`
+- IR dump smoke: `tests/ir/ir_pipeline_probe.sh`
+- example smoke registration: `tests/repo/example_contract_smoke.sh`
 
 ## Remaining Sharp Edge
 

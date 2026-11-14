@@ -115,7 +115,7 @@ this property.
 The repository's proof gate copies every `.v` into a fresh snapshot, compiles
 it with the pinned Rocq 9.3.0/Stdlib 9.2.0 toolchain, and rechecks it with
 `rocqchk` under the existing assumption budget. Run
-`tests/coq_kernel_check.sh` for that gate. A local compile with another Coq
+`tests/proof/coq_kernel_check.sh` for that gate. A local compile with another Coq
 version is only a syntax/proof development aid; it is not this gate.
 The [2026-11-05 run record](../../truth/evidence/2026-11-05_raw_pointer_ownership_rocq_feasibility.md)
 contains the pinned focused and full-corpus results for this proof source.

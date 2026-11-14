@@ -66,7 +66,7 @@ runtime materialization.
 | Review action | Repository owner |
 |---|---|
 | Precise value-capture coverage | `docs/146_sea_execution_lanes.md`, `src/compiler/air_evidence_mir.c`, future closure-capture producer |
-| AIR JSON lane matrix must use real source rows | `tests/sea_execution_lane_golden_smoke.sh` |
+| AIR JSON lane matrix must use real source rows | `tests/parallel/sea_execution_lane_golden_smoke.sh` |
 | Self-host M1/M2 split | `docs/160_m2_completeness_execution_plan.md`, `docs/self_hosted/` |
 | Guard amortization framing | `docs/142_evidence_driven_guard_amortization.md` |
 | Materialization visibility | AIR retain/summarize/erase/reject facts and future relation export |

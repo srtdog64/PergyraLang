@@ -53,7 +53,7 @@ worker, 복사 경로나 안전 조건 완화는 없다. fresh 추출에서 같�
 
 ## 관측한 검증과 남은 경계
 
-집중 `tests/ownership_teardown_redteam_smoke.sh` PASS:
+집중 `tests/ownership/ownership_teardown_redteam_smoke.sh` PASS:
 
 - fresh Rocq 9.3.0/rocqchk 3개 모듈, 가정 0, admit/unsafe 없음;
 - 98,304 field 갱신, 16,384 teardown, 16 parent 사례, 고유성 4개;

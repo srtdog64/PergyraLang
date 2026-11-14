@@ -50,8 +50,8 @@ current hash. Its original cause has not been established.
 Local activation examples (PowerShell):
 
 ```powershell
-wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh bash /mnt/d/PergyraLang/tests/coq_kernel_check.sh
-wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh bash /mnt/d/PergyraLang/tests/ownership_cleanup_smoke.sh
+wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh bash /mnt/d/PergyraLang/tests/proof/coq_kernel_check.sh
+wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh bash /mnt/d/PergyraLang/tests/ownership/ownership_cleanup_smoke.sh
 ```
 
 ## G1 extraction and cost boundary

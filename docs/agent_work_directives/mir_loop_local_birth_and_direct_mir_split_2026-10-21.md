@@ -28,7 +28,7 @@ and runs the gate before landing.
 | Fact owner | `src/compiler/mir_branch_collection_transitions.c` (MIR collection transitions); MIR lowering for the cleanup it expects |
 | Last consumer | MIR validation in the native pipeline (`--mir-json`, `--backend=c|llvm`) |
 | Forbidden | weakening the transition check so a live owned Array can be born over; editing the canonical source; deciding the two OPEN questions below |
-| Gate | the reproducers below, C and LLVM printing the same, plus `make test-mir` and `tests/string_result_control_ownership_smoke.sh` |
+| Gate | the reproducers below, C and LLVM printing the same, plus `make test-mir` and `tests/ownership/string_result_control_ownership_smoke.sh` |
 
 ## Task A: an `Array<String>` born `[]` inside a `while` body
 
@@ -98,7 +98,7 @@ change from the Claude lane.
 
 | Lane | May edit | Must not edit |
 |---|---|---|
-| GPT | `src/compiler/mir_*`, MIR lowering, `src/codegen/*`, `direct_mir_*` modules and their gates | `src/semantic/*`, `tests/function_param_flow_summary_smoke.sh`, `tests/cases/function_param_flow_summary/*`, `docs/truth/state/blocker.md` |
+| GPT | `src/compiler/mir_*`, MIR lowering, `src/codegen/*`, `direct_mir_*` modules and their gates | `src/semantic/*`, `tests/ir/function_param_flow_summary_smoke.sh`, `tests/cases/function_param_flow_summary/*`, `docs/truth/state/blocker.md` |
 | Claude | the files the GPT column forbids | the files the GPT column may edit |
 
 If a task needs a file on the other side, write it down and ask; do not

@@ -26,8 +26,8 @@
 // producer's refusal behaviour, so one truth has one pin home.
 //
 // Registration is pinned by src/self_hosted/OWNERS.md,
-// tests/self_hosted_component_contract_smoke.sh, and the standalone
-// tests/selfhost_spawn_lane_plan_smoke.sh gate.
+// tests/self_hosted/gates/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/parallel/selfhost_spawn_lane_plan_smoke.sh gate.
 
 import "lane_policy_owner.pgy";
 

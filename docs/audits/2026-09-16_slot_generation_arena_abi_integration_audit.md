@@ -107,16 +107,16 @@ native lexer/parser, self-host parser에서 해당 spelling/token selector 검�
 
 MSYS2 UCRT64 bash에서 아래 스크립트를 직접 실행해 **각 종료 코드 0과 출력**을
 관측했다. 다른 세션의 dirty 변경을 보존하기 위해 clean rebuild를 수행하는
-`tests/verify_arena_closure.sh`는 실행하지 않았다.
+`tests/proof/verify_arena_closure.sh`는 실행하지 않았다.
 
 | 게이트 | 관측 결과 | 증명하지 않는 것 |
 | --- | --- | --- |
-| `tests/arena_ledger_smoke.sh` | PASS: owner·consumer·release·copy·peak 필드 | 모든 pass의 pointer escape 부재, 전체 메모리 비용 |
+| `tests/ownership/arena_ledger_smoke.sh` | PASS: owner·consumer·release·copy·peak 필드 | 모든 pass의 pointer escape 부재, 전체 메모리 비용 |
 | `tests/abi_ownership_shape_smoke.sh` | PASS: Slot/Pin ABI 형상·cleanup source ratchet | 새 빌드의 전체 ABI 실행 파리티 |
 | `tests/slot_calculus_adequacy_smoke.sh` | PASS: 모델 명제/연산명 ↔ runtime API 구조 대응 | 이 실행에서 Rocq/Coq proof 재검사 또는 arbitrary CFG 안전성 |
 | `tests/security_portability_contract_smoke.sh` | PASS: ID/세대 소진·보안 계약 source ratchet | 이 실행에서 stale handle 동적 corpus 전체 재실행 |
-| `tests/region_arena_smoke.sh` | PASS: 성장·정렬·reset·concat·예산 거절, inline/extern 실행 일치 | 전체 allocation의 Region 채택 |
-| `tests/region_backend_wiring_smoke.sh` | PASS: native C/LLVM의 인증 경로와 비인증 heap 경로 구별 | 설치 self-host 전체 source 경로의 Region 치환 |
+| `tests/ownership/region_arena_smoke.sh` | PASS: 성장·정렬·reset·concat·예산 거절, inline/extern 실행 일치 | 전체 allocation의 Region 채택 |
+| `tests/ownership/region_backend_wiring_smoke.sh` | PASS: native C/LLVM의 인증 경로와 비인증 heap 경로 구별 | 설치 self-host 전체 source 경로의 Region 치환 |
 | `tests/runtime_abi_lifetime_smoke.sh` | PASS: borrowed export/result/file handle source contract | 전체 FFI ownership 또는 external target ABI |
 
 게시 HEAD의 30/30 full-CI 성공은

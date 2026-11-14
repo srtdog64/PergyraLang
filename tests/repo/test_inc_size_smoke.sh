@@ -1,0 +1,236 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+LIMIT="${TEST_CASE_INCLUDE_MAX_LINES:-699}"
+PRODUCTION_LIMIT="${PRODUCTION_OWNER_MAX_LINES:-699}"
+SELF_HOSTED_OWNER_LIMIT="${SELF_HOSTED_OWNER_MAX_LINES:-699}"
+SELF_HOSTED_OWNER_EXPLICIT=0
+[[ -z "${SELF_HOSTED_OWNER_MAX_LINES+x}" ]] || SELF_HOSTED_OWNER_EXPLICIT=1
+SELF_HOSTED_TOOL_LIMIT="${SELF_HOSTED_TOOL_MAX_LINES:-999}"
+SEMANTIC_DIAGNOSTIC_OWNER_CAP="$(awk -v root="$ROOT_DIR" -v mode=lookup \
+    -v owner=src/self_hosted/semantic/diagnostic_owner.pgy \
+    -f "$ROOT_DIR/tests/self_hosted/gates/self_hosted_owner_size_policy.awk")"
+SEMANTIC_DIAGNOSTIC_OWNER_LIMIT="${SEMANTIC_DIAGNOSTIC_OWNER_MAX_LINES:-$SEMANTIC_DIAGNOSTIC_OWNER_CAP}"
+HELPER_LIMIT="${HELPER_OWNER_MAX_LINES:-500}"
+
+bash "$ROOT_DIR/tests/self_hosted/gates/self_hosted_owner_size_policy_smoke.sh"
+
+inc_files="$(
+    cd "$ROOT_DIR"
+    find src -type f -name '*.inc' -print
+)"
+
+if [[ -n "$inc_files" ]]; then
+    echo "production .inc files are not allowed:" >&2
+    echo "$inc_files" >&2
+    exit 1
+fi
+
+implementation_headers="$(
+    cd "$ROOT_DIR"
+    grep -RIn --include='*.h' '_IMPLEMENTATION' src || true
+)"
+
+if [[ -n "$implementation_headers" ]]; then
+    echo "header-only _IMPLEMENTATION blocks are not allowed in production headers:" >&2
+    echo "$implementation_headers" >&2
+    exit 1
+fi
+
+semantic_header_body_violations="$(
+    cd "$ROOT_DIR"
+    find src/semantic -name '*.h' -print0 \
+        | xargs -0 awk '
+            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
+                print FILENAME ":" FNR ":" $0
+            }
+        '
+)"
+
+if [[ -n "$semantic_header_body_violations" ]]; then
+    echo "semantic headers must stay declaration-only; move bodies to .c owners:" >&2
+    echo "$semantic_header_body_violations" >&2
+    exit 1
+fi
+
+compiler_header_body_violations="$(
+    cd "$ROOT_DIR"
+    find src/compiler -name '*.h' -print0 \
+        | xargs -0 awk '
+            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
+                print FILENAME ":" FNR ":" $0
+            }
+        '
+)"
+
+if [[ -n "$compiler_header_body_violations" ]]; then
+    echo "compiler headers must stay declaration-only; move bodies to .c owners:" >&2
+    echo "$compiler_header_body_violations" >&2
+    exit 1
+fi
+
+frontend_header_body_violations="$(
+    cd "$ROOT_DIR"
+    find src/parser src/lexer -name '*.h' -print0 \
+        | xargs -0 awk '
+            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
+                print FILENAME ":" FNR ":" $0
+            }
+        '
+)"
+
+if [[ -n "$frontend_header_body_violations" ]]; then
+    echo "parser/lexer headers must stay declaration-only; move bodies to .c owners:" >&2
+    echo "$frontend_header_body_violations" >&2
+    exit 1
+fi
+
+codegen_header_body_violations="$(
+    cd "$ROOT_DIR"
+    find src/codegen -name '*.h' ! -name 'llvm_limits_internal.h' -print0 \
+        | xargs -0 awk '
+            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
+                print FILENAME ":" FNR ":" $0
+            }
+        '
+)"
+
+if [[ -n "$codegen_header_body_violations" ]]; then
+    echo "codegen headers must stay declaration-only; llvm_limits_internal.h is the only current macro-body exception:" >&2
+    echo "$codegen_header_body_violations" >&2
+    exit 1
+fi
+
+violations="$(
+    cd "$ROOT_DIR"
+    find src/tests -name '*.cases.h' -print0 \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
+        | awk -v limit="$LIMIT" '$2 != "total" && $1 > limit { print }'
+)"
+
+if [[ -n "$violations" ]]; then
+    echo "test case include size violations; limit is ${LIMIT} LOC:" >&2
+    echo "$violations" >&2
+    exit 1
+fi
+
+production_violations="$(
+    cd "$ROOT_DIR"
+    find src -type f \( -name '*.c' -o -name '*.h' \) \
+        ! -path 'src/tests/*' \
+        ! -name 'test_*.c' \
+        -print0 \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
+        | awk -v limit="$PRODUCTION_LIMIT" '$2 != "total" && $1 > limit { print }'
+)"
+
+if [[ -n "$production_violations" ]]; then
+    echo "production owner size violations; limit is ${PRODUCTION_LIMIT} LOC:" >&2
+    echo "$production_violations" >&2
+    exit 1
+fi
+
+# The same exact-path responsibility owner used by the component contract
+# supersedes the generic/semantic defaults. No local copy of its limits lives
+# here. Unregistered owners retain 699/599 and explicit narrower ceilings apply.
+(
+    cd "$ROOT_DIR"
+    find src/self_hosted -type f -name '*.pgy' \
+        ! -path '*/fixture/*' \
+        ! -path '*/fixtures/*' \
+        ! -path '*/expected/*' \
+        ! -path 'src/self_hosted/tools/*' \
+        -print0 \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
+        | awk -v root="$ROOT_DIR" -v mode=scan \
+            -v general_limit="$SELF_HOSTED_OWNER_LIMIT" -v semantic_limit=599 \
+            -v general_explicit="$SELF_HOSTED_OWNER_EXPLICIT" \
+            -f "$ROOT_DIR/tests/self_hosted/gates/self_hosted_owner_size_policy.awk"
+)
+
+self_hosted_tool_violations="$(
+    cd "$ROOT_DIR"
+    find src/self_hosted/tools -type f -name '*.pgy' -print0 \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
+        | awk -v limit="$SELF_HOSTED_TOOL_LIMIT" \
+            '$2 != "total" && $1 > limit { print }'
+)"
+
+if [[ -n "$self_hosted_tool_violations" ]]; then
+    echo "self-hosted tool owner size violations; limit is ${SELF_HOSTED_TOOL_LIMIT} LOC:" >&2
+    echo "$self_hosted_tool_violations" >&2
+    exit 1
+fi
+
+semantic_owner_violations="$(
+    cd "$ROOT_DIR"
+    find src/semantic -maxdepth 1 -type f \
+        \( -name '*.c' -o -name '*.h' \) -print0 \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
+        | awk '$2 != "total" && $1 > 599 { print }'
+)"
+
+if [[ -n "$semantic_owner_violations" ]]; then
+    echo "semantic owner size violations; limit is 599 LOC:" >&2
+    echo "$semantic_owner_violations" >&2
+    exit 1
+fi
+
+semantic_diagnostic_owner_lines="$(
+    python3 "$ROOT_DIR/scripts/source_size_count.py" \
+        "$ROOT_DIR/src/self_hosted/semantic/diagnostic_owner.pgy"
+)"
+if [[ "$semantic_diagnostic_owner_lines" -gt "$SEMANTIC_DIAGNOSTIC_OWNER_LIMIT" ]]; then
+    echo "semantic diagnostic owner size violation: ${semantic_diagnostic_owner_lines} > ${SEMANTIC_DIAGNOSTIC_OWNER_LIMIT} LOC" >&2
+    echo "the stable reason/fix vocabulary stays with its one rendering owner; split only when a distinct fact owner exists" >&2
+    exit 1
+fi
+
+type_system_owners=(
+    "src/compiler/mir.h"
+    "src/compiler/mir_program.h"
+    "src/compiler/mir_types.h"
+    "src/compiler/mir_source_shape.c"
+    "src/compiler/mir_source_provenance.c"
+    "src/compiler/mir_source_local_types.c"
+    "src/compiler/mir_source_local_type_shape.c"
+    "src/compiler/mir_source_local_expr_binding_facts.c"
+    "src/compiler/mir_source_local_expr_call_facts.c"
+    "src/compiler/mir_source_local_expr_types.c"
+    "src/compiler/mir_decl_headers.c"
+    "src/compiler/mir_decl_header_generic_metadata.c"
+    "src/compiler/mir_decl_header_validate.c"
+    "src/compiler/mir_decl_header_shape_validate.c"
+)
+
+type_system_owner_violations="$(
+    cd "$ROOT_DIR"
+    python3 "$ROOT_DIR/scripts/source_size_count.py" --rows "${type_system_owners[@]}" \
+        | awk '$2 != "total" && $1 > 599 { print }'
+)"
+
+if [[ -n "$type_system_owner_violations" ]]; then
+    echo "type-system owner size violations; limit is 599 LOC:" >&2
+    echo "$type_system_owner_violations" >&2
+    exit 1
+fi
+
+helper_violations="$(
+    cd "$ROOT_DIR"
+    find src -type f \( -name '*helper*.c' -o -name '*helper*.h' \) \
+        ! -path 'src/tests/*' \
+        ! -name 'test_*.c' \
+        -print0 \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
+        | awk -v limit="$HELPER_LIMIT" '$2 != "total" && $1 > limit { print }'
+)"
+
+if [[ -n "$helper_violations" ]]; then
+    echo "helper owner size violations; limit is ${HELPER_LIMIT} LOC:" >&2
+    echo "$helper_violations" >&2
+    echo "helper growth must escalate into a responsibility-named layer/owner instead of another generic helper bucket" >&2
+    exit 1
+fi
+
+echo "[test-inc-size] production C/H <= ${PRODUCTION_LIMIT} LOC; Pergyra default ${SELF_HOSTED_OWNER_LIMIT} with shared responsibility caps; semantic default and MIR type/declaration <= 599 LOC (diagnostic vocabulary <= ${SEMANTIC_DIAGNOSTIC_OWNER_LIMIT}); tools <= ${SELF_HOSTED_TOOL_LIMIT}; shrink-only helpers <= ${HELPER_LIMIT}; test includes <= ${LIMIT}"

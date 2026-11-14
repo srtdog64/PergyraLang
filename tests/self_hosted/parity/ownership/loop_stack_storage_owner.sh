@@ -5,7 +5,7 @@
 # two-million-round HashMap loop died with SIGSEGV on that route only
 # (red-team audit R5). The native LLVM backend did the same for StringSplit's
 # result slot and for a parallel join's run-time-sized task storage.
-# tests/compare_backends.sh runs short native programs only and saw neither.
+# tests/backend/compare_backends.sh runs short native programs only and saw neither.
 # - loop_stack_storage.pgy runs on all four legs and prints the same values.
 # - Its LLVM IR on both LLVM legs keeps every alloca in the entry block.
 # - loop_stack_storage_parallel_join.pgy runs on the native legs; a default

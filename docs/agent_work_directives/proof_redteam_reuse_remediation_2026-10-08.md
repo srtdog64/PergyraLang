@@ -122,7 +122,7 @@ make evidence green. Each lane returns exact files, finding IDs, observed
 gates, next falsifier, and unresolved refinement boundaries.
 
 Main is the integration owner. The shared integration gate is
-`tests/formal_semantics_smoke.sh` plus a permanent red-team regression
+`tests/proof/formal_semantics_smoke.sh` plus a permanent red-team regression
 consumer through the same fresh kernel gate. Runtime changes additionally
 need direct source-bound positive and negative probes; a model PASS is not
 runtime parity. Audit dispositions distinguish REPAIRED, CLAIM CORRECTED,

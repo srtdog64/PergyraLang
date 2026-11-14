@@ -119,7 +119,7 @@ rejected instead of merging a second authority into the same certificate.
   seals `mir_evidence_bound`; `src/compiler/air_evidence_certificate.c` carries
   the token through certificate fingerprinting and readiness checks;
   `src/compiler/air_validate.c` rejects incomplete binding state;
-  `tests/air_mir_binding_smoke.sh` covers the negative rebind path and JSON
+  `tests/ir/air_mir_binding_smoke.sh` covers the negative rebind path and JSON
   visibility.
 - **Boundary**: the token is an identity/mutation guard, not a cryptographic
   attestation. Cross-process proof artifacts still require their own payload
@@ -161,7 +161,7 @@ represented by at least one AIR `Boundary Node`.
   missing-evidence, direct world-boundary transfer evidence accept/reject, and
   parsed-source `where + transfer` zone/world boundary preservation with RIR
   evidence provenance on both emitted boundaries.
-  `tests/diagnostics_json_smoke.sh` covers parsed-source missing authority
+  `tests/language/diagnostics_json_smoke.sh` covers parsed-source missing authority
   evidence and parsed-source missing IO boundary evidence through the full
   driver JSON path. Parsed-source `transfer` coverage now includes a negative
   authority path on the transferred step: AIR must keep both the zone and world

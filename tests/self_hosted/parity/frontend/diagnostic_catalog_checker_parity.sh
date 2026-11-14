@@ -4,7 +4,7 @@
 # The C diagnostic registry smoke remains the clean exit-class bridge while the
 # Pergyra tool owns the structured report. This script asserts exit-code
 # agreement, ArtifactZone-owned report JSON shape, and negative fixtures. See
-# tests/diagnostic_registry_smoke.sh and tests/self_hosted/parity/README.md.
+# tests/registry/diagnostic_registry_smoke.sh and tests/self_hosted/parity/README.md.
 
 set -euo pipefail
 

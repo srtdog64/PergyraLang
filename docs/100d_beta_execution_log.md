@@ -1125,7 +1125,7 @@
   `make build-source-inventory-test-smoke`, targeted backend compare for
   `await_inline_spawn`, and backend compare shards 1/20 and 2/20 all passed
   locally under WSL.
-- Follow-up: `tests/build_source_inventory_smoke.sh` now routes repeated
+- Follow-up: `tests/repo/build_source_inventory_smoke.sh` now routes repeated
   recursive source scans through an executable `rg` fast path, a `git grep`
   fallback that also scans untracked files, and only then portable `grep -R`.
   This keeps the source-of-truth sentinel broad without forcing every local/CI
@@ -1413,7 +1413,7 @@ backend bug, not introduced by the closures in this session.
     surface as a `Float` ↔ `Int` conversion mismatch and need a
     typed-fallback path.
 
-- After this cluster: `tests/compare_backends.sh` reports **798/798
+- After this cluster: `tests/backend/compare_backends.sh` reports **798/798
   passed (100%)**. `examples/*` LLVM coverage moved from
   90 PASS / 12 LLVM-only-fail to **95 PASS / 7 LLVM-only-fail**. The
   seven remaining LLVM-only fails are: `collection_ops` and
@@ -1447,7 +1447,7 @@ backend bug, not introduced by the closures in this session.
   layout registry. If `mir_abi_lookup` has no entry for the parameter's
   type name, layout still returns NULL and the validator still errors.
 - Recovered `tests/cases/backend_compare/pin_secure_param_read_view_block`
-  on the C backend. `tests/compare_backends.sh` after this closure
+  on the C backend. `tests/backend/compare_backends.sh` after this closure
   reports 797/798 passed. The remaining red,
   `pin_mixed_read_view_sequence`, is unrelated: it fails on the LLVM
   backend with `LLVM MIR borrow view alias 'secureView' cannot resolve
@@ -1572,7 +1572,7 @@ one before relying on the strict-mode contract elsewhere.
   this MIR shape, so the redirect doesn't fire and the core resource-op
   emitter ends up looking at the view typed_name without a registered
   source slot to anchor it.
-- Backend evidence after #83 + #84: `tests/compare_backends.sh` reports
+- Backend evidence after #83 + #84: `tests/backend/compare_backends.sh` reports
   794/795 passed (`pin_secure_param_read_view_block` is the single
   remaining red on a real-language surface, scoped to MIR-side view
   registration). All five probes and the three BETA gating smokes stay
@@ -1592,7 +1592,7 @@ one before relying on the strict-mode contract elsewhere.
   with `previous definition of '_pgy_ssa_X_N' with type 'char *'`.
 - Recovered 4 backend-compare cases at once:
   `destructure_array`, `destructure_tuple_return`, `tuple_literal_local`,
-  `slice_surface`. `tests/compare_backends.sh` reports 793/795 passed
+  `slice_surface`. `tests/backend/compare_backends.sh` reports 793/795 passed
   (the two remaining fails are unrelated user-side surface: a
   `pin_secure_param_read_view_block` resource-op runtime-layout gap and
   the long-standing `role_include_methods` vtable inventory issue).
@@ -1640,7 +1640,7 @@ one before relying on the strict-mode contract elsewhere.
   still fires. (Note: `llvm_stmt_lookup_declared_call_return_type` keeps
   its strict MIR-mode error by design — that helper's strictness is a
   separate policy decision and is intentionally preserved.)
-- Backend evidence: `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
+- Backend evidence: `tests/backend/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
   reports 794/795 passed (`role_include_methods` is a C-backend
   inventory regression from a separate user-side tightening, unrelated to
   the LLVM closures here);
@@ -1696,7 +1696,7 @@ one before relying on the strict-mode contract elsewhere.
   (every `match`-everything-returns shape across enum/option/result/match
   fixtures).
 - Backend evidence after #72 + #73 + #74:
-  `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
+  `tests/backend/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
   reports 794/794 passed, 0 failed; `make llvm-dnd-campaign-test-smoke`
   reports `dnd_tavern_campaign C/LLVM parity ok`;
   `make llvm-campaign-projection-test-smoke` reports
@@ -1731,7 +1731,7 @@ one before relying on the strict-mode contract elsewhere.
   bytes before falling back to `file(1)` text. This prevents a stale Linux
   `bin/pgy.exe` from being launched under Windows Git Bash simply because the
   filename ends in `.exe`.
-- `tests/compare_backends.sh` applies the same runnable-binary policy to both
+- `tests/backend/compare_backends.sh` applies the same runnable-binary policy to both
   `PGY_BIN` and `PGY_ABI_PIPELINE_TEST_BIN` before the C/LLVM compare or ABI
   same-process precheck can launch. The PowerShell fallback now quotes both
   the PATH prefix and ABI executable path through the shared quote helper.
@@ -1788,7 +1788,7 @@ one before relying on the strict-mode contract elsewhere.
   block. The local-mirror dual-store from #67 becomes belt-and-suspenders
   rather than load-bearing.
 - Backend evidence after #71:
-  `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy` reports
+  `tests/backend/compare_backends.sh tests/cases/backend_compare/*/main.pgy` reports
   794/794 passed, 0 failed; `make llvm-dnd-campaign-test-smoke` reports
   `dnd_tavern_campaign C/LLVM parity ok`;
   `make llvm-campaign-projection-test-smoke` reports
@@ -1815,7 +1815,7 @@ one before relying on the strict-mode contract elsewhere.
   surfaced `dnd_campaign` memory error: compiling with #67 disabled
   reproduced the identical `rc=255` segfault at
   `WeaponCard.EffectLine`, confirming the bug pre-existed.
-- Backend evidence: `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
+- Backend evidence: `tests/backend/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
   reports 793/793 passed, 0 failed (4 probes added: `probe_record`,
   `probe_intent_array`, `probe_field_index`, `probe_zone_chain`,
   `probe_cursor`, `probe_dnd_minimal`). `make test-all` reports
@@ -1847,10 +1847,10 @@ one before relying on the strict-mode contract elsewhere.
   `tests/cases/backend_compare/probe_intent_array/main.pgy`. The same fix
   also closes the residual `examples/campaign_graph_fsm` numerical drift
   because intent value parameters there reuse generic container types.
-- Backend evidence: `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
+- Backend evidence: `tests/backend/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
   reports 789/789 passed, 0 failed (788 prior fixtures + the two new probes).
-  `tests/llvm_dnd_campaign_smoke.sh` and
-  `tests/llvm_campaign_projection_smoke.sh` are RC=0 with no diff. `make
+  `tests/backend/llvm_dnd_campaign_smoke.sh` and
+  `tests/backend/llvm_campaign_projection_smoke.sh` are RC=0 with no diff. `make
   test-all` reports `2624/0`, `870/0`, `74/0`, `58/0`, `9/0`, `119/0`,
   `18/0`, `74/0`, `20/0` across parser/lexer/semantic/transpile/memory/
   concurrency/AIR/RIR/MIR/HIR.
@@ -2025,7 +2025,7 @@ one before relying on the strict-mode contract elsewhere.
   `reverse_array_in_place`, `palindrome_check`, `bubble_sort_small`,
   `fizzbuzz_loop`, `multi_array_find`, `bool_state_toggle`, `primes_below_n`,
   `string_repeat_pattern`, `linear_search_first_match`, and
-  `map_word_grouping`. Targeted `tests/compare_backends.sh` passed 15/15, plus
+  `map_word_grouping`. Targeted `tests/backend/compare_backends.sh` passed 15/15, plus
   a targeted `map_word_grouping` run, with `bin-llvm/pgy.exe`.
 - Rechecked the systems-baseline evidence commands after the P0 shard split:
   `mingw32-make codegen-determinism-test-smoke`,
@@ -2482,7 +2482,7 @@ one before relying on the strict-mode contract elsewhere.
 ## Progress Log - 2026-06-06 Backend Compare Range Gate
 
 - C/LLVM parity work no longer has to choose between one explicit fixture and
-  the full 795-case backend compare. `tests/compare_backends.sh` now accepts
+  the full 795-case backend compare. `tests/backend/compare_backends.sh` now accepts
   deterministic `PGY_BACKEND_COMPARE_START_INDEX` and
   `PGY_BACKEND_COMPARE_MAX_CASES` controls after shard selection.
 - The CI shard matrix remains the full source of truth for broad coverage.

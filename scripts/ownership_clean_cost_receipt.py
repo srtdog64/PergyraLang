@@ -26,7 +26,7 @@ def main():
         "extraction": root / "tests/coq/OwnershipCleanupExtraction.v",
         "driver": root / "tests/ocaml/ownership_clean_driver.ml",
         "toolchain_owner": root / "scripts/rocq_toolchain_owner.sh",
-        "kernel_gate": root / "tests/coq_kernel_check.sh",
+        "kernel_gate": root / "tests/proof/coq_kernel_check.sh",
         "receipt_generator": Path(__file__).resolve(),
     }
     for name in bindings:

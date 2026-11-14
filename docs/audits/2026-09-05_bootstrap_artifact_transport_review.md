@@ -223,8 +223,8 @@ inventory execution by this lane. The objective/directive now includes the
 reached structural ratchet and its focused mechanics checks.
 
 Independently reviewed only the new transport-related delta in
-`tests/self_hosted_component_contract_smoke.sh` and
-`tests/self_hosted_component_checker_smoke.sh`; unrelated dirty checker changes
+`tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` and
+`tests/self_hosted/gates/self_hosted_component_checker_smoke.sh`; unrelated dirty checker changes
 were not modified.
 
 ### Observed structure and scope
@@ -263,7 +263,7 @@ inventory by this review.
 Executed only the permitted focused checker using the configured MSYS2 Bash:
 
 ```text
-timeout 60s bash tests/self_hosted_component_checker_smoke.sh
+timeout 60s bash tests/self_hosted/gates/self_hosted_component_checker_smoke.sh
 ```
 
 Observed terminal exit 0 in 4.862 seconds:

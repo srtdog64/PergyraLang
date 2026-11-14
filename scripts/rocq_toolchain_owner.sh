@@ -50,7 +50,7 @@ pgy_rocq_check_isolated() {
     proof_work="$(mktemp -d)" || return 1
     cp "$proof" "$proof_work/" || { rmdir "$proof_work"; return 1; }
     if PGY_COQ_PROOFS_DIR="$proof_work" PGY_COQ_EXPECTED_AXIOMS='' \
-        bash "$(dirname "${BASH_SOURCE[0]}")/../tests/coq_kernel_check.sh"; then
+        bash "$(dirname "${BASH_SOURCE[0]}")/../tests/proof/coq_kernel_check.sh"; then
         status=0
     else
         status=$?

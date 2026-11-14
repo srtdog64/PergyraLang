@@ -143,7 +143,7 @@ English anchor for tooling/doc gates:
   `MIRCallableSig` rows for `EventHandler` parameters/returns after AIR-bound
   admission; missing rows fail through the MIR inventory diagnostic and the
   LLVM declaration-inventory smoke guards the AST fallback from returning.
-  Focused object compilation, full LLVM compiler link, and `tests/llvm_smoke.sh`
+  Focused object compilation, full LLVM compiler link, and `tests/backend/llvm_smoke.sh`
   (including `event_system`) pass. This does not close method/domain callable
   declarations, constructors, or runtime-call ABI ownership.
 - LLVM Slot/SecureSlot resource consumers now use the shared
@@ -155,7 +155,7 @@ and identifier auto-read now consume that same owner instead of local row
   constructed nominal materialization, and compatibility policy remain
   explicitly `BRIDGE`.
   Gates: `abi-ownership-shape-test-smoke`, `backend-fail-closed-test-smoke`,
-  `perf-contract-test-smoke`, and `tests/llvm_smoke.sh`.
+  `perf-contract-test-smoke`, and `tests/backend/llvm_smoke.sh`.
 - Active C MIR resource operations now consume a lowered
   `MIRInstruction.resource_runtime_fact`; constructed `Slot<T>` rows are
   materialized once in MIR, validated fail-closed, serialized as
@@ -673,7 +673,7 @@ and identifier auto-read now consume that same owner instead of local row
   to compare C/LLVM outputs without rerunning the 196-case ABI pipeline first.
   This separates ABI health from oracle-output parity while preserving the
   default full guard. Gate: `build-source-inventory-test-smoke`.
-- C/LLVM compare runner Windows closure: `tests/compare_backends.sh` now retries
+- C/LLVM compare runner Windows closure: `tests/backend/compare_backends.sh` now retries
   compiler invocations through the same PowerShell launch fallback used for
   generated binaries when Git Bash direct execution returns 126/127. This closes
   the multi-case Windows drift where a later case could lose access to
@@ -926,7 +926,7 @@ and identifier auto-read now consume that same owner instead of local row
   backends. The inventory checker uses a registered-case set instead of a
   discovered x registered nested scan so the gate remains cheap on WSL/NTFS
   worktrees. Gate: `PGY_BACKEND_COMPARE_INVENTORY_ONLY=1
-  tests/compare_backends.sh`.
+  tests/backend/compare_backends.sh`.
 - Rework loop guard: beta closure work must not keep rewriting already gated
   seams. Once a seam has a named owner plus a smoke gate, further edits are
   allowed only for a concrete bug, a missing consumer, or a broken gate. Current
@@ -1267,7 +1267,7 @@ and identifier auto-read now consume that same owner instead of local row
   channel-variable requirement seam named `llvm_required_channel_var(...)`
   instead of hiding the required Channel<T> target check behind a generic arg
   helper.
-- Perf-contract gate tightening: `tests/perf_contract_smoke.sh` now indexes
+- Perf-contract gate tightening: `tests/perf/perf_contract_smoke.sh` now indexes
   `src` once and derives codegen/semantic/runtime/AIR-test slices for repeated
   negative scans, while direct-branch loops collapse into owner-level regex
   checks. The gate still remains expensive on Git Bash, but it no longer
@@ -1419,7 +1419,7 @@ and identifier auto-read now consume that same owner instead of local row
   returns, and nested range loops are now promoted from LLVM-only smoke as well.
   Subject projection, subject-vs-class method dispatch, and object layer
   binding are now promoted from LLVM-only smoke as well. Local MinGW/Git Bash
-  gate: `tests/compare_backends.sh` (`142/142` at that checkpoint).
+  gate: `tests/backend/compare_backends.sh` (`142/142` at that checkpoint).
 - Slot/SecureSlot ownership parity now includes exact LLVM-smoke coverage for
   secure pin read/write views, `Slot<subject>` and `SecureSlot<subject>` cell
   storage, `ref Slot<subject>` boundary passing, and `own SecureSlot<subject>`
@@ -4748,13 +4748,13 @@ and identifier auto-read now consume that same owner instead of local row
   full `llvm-test-backend-compare` / backend compare (`72/72` after the
   party/roster hosted-method and role-include wrapper fixtures were added).
 - C-vs-Pergyra generated-C performance now has a concrete baseline fixture.
-  `tests/perf_c_baseline_smoke.sh` compiles the same bounded arithmetic loop as
+  `tests/perf/perf_c_baseline_smoke.sh` compiles the same bounded arithmetic loop as
   hand-written C (`gcc -O3`) and as Pergyra C backend output (`--backend=c
   --opt=release`), checks identical output, and records `pgy_over_c_ratio`
   instead of claiming faster-than-C. This is a near-C baseline with run-to-run
   noise, not evidence of a stable faster-than-C result; CI output owns the
   current ratio. Gate: `perf-c-baseline-test-smoke`; local native Windows
-  spot-checks can run `tests/perf_c_baseline_smoke.ps1`. The gate also inspects
+  spot-checks can run `tests/perf/perf_c_baseline_smoke.ps1`. The gate also inspects
   emitted C and rejects
   `pgy_checked_mod_i32_export` / `pgy_checked_div_i32_export` for the fixture's
   `i % 97` / `i / 97`; constant nonzero integer divisor/modulus operands now
@@ -9222,7 +9222,7 @@ Progress log, 2026-05-04:
 - Moved MIR phi-copy emission out of `transpiler_mir_phi_emit.h` into `transpiler_mir_phi_emit.c`; phi lowering now consumes public SSA map/name APIs through a compiled owner, and `transpiler_mir_emit_decls.h` no longer needs a static forward for that seam. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_phi_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
 - Moved function forward-declaration emission out of `transpiler_mir_inventory_intent.h` into `transpiler_func_forward_emit.c`; generic specialization and program bootstrap now share a linked prototype emitter instead of a static header body. Gates: targeted `gcc -fsyntax-only` for `transpiler_func_forward_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
 - Moved misc stdlib call lowering out of `transpiler_expr_stdlib_misc_builtin.h` into `transpiler_expr_stdlib_misc_builtin.c`; the new owner uses a local heap-format helper instead of depending on the broader static `strdup_fmt` include-order seam. Gates: targeted `gcc -fsyntax-only` for `transpiler_expr_stdlib_misc_builtin.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
-- Tightened `test_inc_size_smoke.sh` so newly declaration-only C backend headers cannot silently grow function bodies again. The first gated headers are `transpiler_context.h`, `transpiler_event_builtin_emit.h`, `transpiler_event_emit.h`, `transpiler_expr_stdlib_misc_builtin.h`, `transpiler_format.h`, `transpiler_helpers.h`, `transpiler_intent_emit_metadata_helpers.h`, `transpiler_intent_failure_emit.h`, `transpiler_mir_inventory_intent.h`, `transpiler_mir_emit_state.h`, `transpiler_mir_phi_emit.h`, `transpiler_mir_resource_name_helpers.h`, and `transpiler_role_ability_helpers.h`; broader implementation-header extraction remains responsibility-first, not a blanket body ban yet. Gates: `bash -n tests/test_inc_size_smoke.sh`, `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
+- Tightened `test_inc_size_smoke.sh` so newly declaration-only C backend headers cannot silently grow function bodies again. The first gated headers are `transpiler_context.h`, `transpiler_event_builtin_emit.h`, `transpiler_event_emit.h`, `transpiler_expr_stdlib_misc_builtin.h`, `transpiler_format.h`, `transpiler_helpers.h`, `transpiler_intent_emit_metadata_helpers.h`, `transpiler_intent_failure_emit.h`, `transpiler_mir_inventory_intent.h`, `transpiler_mir_emit_state.h`, `transpiler_mir_phi_emit.h`, `transpiler_mir_resource_name_helpers.h`, and `transpiler_role_ability_helpers.h`; broader implementation-header extraction remains responsibility-first, not a blanket body ban yet. Gates: `bash -n tests/repo/test_inc_size_smoke.sh`, `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
 - Lifted MIR resource `Write`, DEF initializer/type, statement binding/defer payloads, loop iterable/range, and CFG terminator expression provenance into instruction payloads: `mir_add_resource_instruction(...)` now records the write value expression in `MIRInstruction.expr0`, C MIR resource emission consumes that payload instead of reopening `inst->ast->data.call`, DEF instructions carry initializer/value `expr0` plus let type annotation `expr1`, statement let/assignment bindings carry `arg0`, for-in LLVM lowering consumes `expr0` for the iterable, defer statements carry body `expr0`, expression branch/retun terminators carry `expr0`, C and LLVM MIR terminator/local/block emission use those payloads where possible, and the MIR validator rejects missing value/initializer/defer-body/terminator expression facts. Codegen now smoke-rejects `inst->ast->data` reopening so AST payload remains source/provenance instead of lowering inventory. Gates: `test-mir` (`44/0`), `test-transpile` (`717/0`), `cfg-body-dataflow-test-smoke`, `llvm-test-smoke`, and `perf-contract-test-smoke`.
 - Removed the remaining LLVM range-loop lowering dependency on `inst->ast` for loop init/condition shape checks. The loop-control emitter now uses MIR branch shape plus `arg0`/`expr0`/`expr1` facts for variable/start/end lowering, and the perf contract smoke rejects reintroducing the local `node = inst->ast` probe in `llvm_mir_loop_control.c`. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
 - Removed the LLVM local alloca type-inference fallback that treated the whole source statement AST as a DEF value expression when `expr0` was absent. `llvm_mir_local_emit.c` now consumes `expr0` for initializer/value and `expr1` for explicit type annotation, while `source_ast_type` remains only a shape discriminator. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
@@ -9550,7 +9550,7 @@ boundary transition??거절??고 runtime?? generation/token/resource state??검�
 **Self-host origin surface (2026-05-26):** `self_hosted/` ??더 부??스??랩. ????구 `tools/diagnostic_catalog_checker/` 가 *rung-2 minimal* (`counts.codes` /
 `counts.documented` / `counts.missing` / `counts.duplicates` /
 `counts.orphans` ??측 parity, ??재 66/66/0/0/0 ??치) 까?? 진입. C track ??
-`tests/diagnostic_registry_smoke.sh` parity backend. 3-rung 구조
+`tests/registry/diagnostic_registry_smoke.sh` parity backend. 3-rung 구조
 (clean exit-code ??JSON/counter parity ??C/LLVM/Pergyra 3-way) 박?? ??고,
 `tests/self_hosted/parity/` ??크립트??`self-host-preparation-test-smoke` ??묶임.
 ??재 parity ??exit-code, live counters, `expected/clean.json` exact JSON shape,
@@ -9604,7 +9604,7 @@ native `-O3` compile path when `pgy_runtime_strdup` was inlined through
 `StringSplit`. The runtime duplicate helper is now `PGY_RUNTIME_NOINLINE`,
 and `tests/cases/backend_compare/string_join/main.pgy` pins C/LLVM parity for
 multi-element `Array<String>` joins. Gates: `runtime-abi-lifetime-test-smoke`
-and targeted `tests/compare_backends.sh tests/cases/backend_compare/string_join`.
+and targeted `tests/backend/compare_backends.sh tests/cases/backend_compare/string_join`.
 
 **Self-host second tool (2026-05-27):** `stable_subset_section_checker`
 under `src/self_hosted/tools/`. Reads `docs/107_beta_stable_subset.md`,
@@ -9751,7 +9751,7 @@ candidates for the next consumer to lift).
 `src/self_hosted/tools/`. It originally proved the per-file-I/O loop through a
 committed file list; the current contract is DirWalk-owned. The tool calls
 `DirWalk("src")`, filters the same production header scope as
-`tests/production_header_size_smoke.sh`, `ReadFile`s each header, counts
+`tests/repo/production_header_size_smoke.sh`, `ReadFile`s each header, counts
 newlines through `TextScan.CountLines`, and asserts each header is `<= 600`
 LOC. It emits `pgy.selfhost.production-header-size.v1` with
 `headers=548 violations=0 max_lines=600` on the clean repo. Parity rung 2
@@ -9764,7 +9764,7 @@ a synthetic 701-line `.h` under `src/runtime` yields `rc=1` with a
 `production_c_size_checker` under `src/self_hosted/tools/`. Sister to tool 8,
 but covering production `.c` translation units against the 699-LOC hard cap.
 The current contract is DirWalk-owned: it calls `DirWalk("src")`, filters the
-same production `.c` scope as `tests/test_inc_size_smoke.sh`, and emits
+same production `.c` scope as `tests/repo/test_inc_size_smoke.sh`, and emits
 `pgy.selfhost.production-c-size.v1` with `c_files=869 violations=0
 max_lines=699` on the clean repo. Parity rung 2 asserts: clean exit,
 JSON byte-equal, `c_files/violations/max_lines` parity vs shell `find + wc -l`,
@@ -9827,7 +9827,7 @@ need: (a) `Args()` surface lift so a single Pergyra tool binary can
 accept multiple fixture paths (currently each tool has a hardcoded
 input); (b) byte-equal subprocess parity for the in-bash drift guard
 (currently `graceful-skip` when bash can't launch pgy); (c) routing the
-shell-side `tests/diagnostic_registry_smoke.sh` Python path through the
+shell-side `tests/registry/diagnostic_registry_smoke.sh` Python path through the
 Pergyra tool (would let CI drop its Python dependency). These are the
 candidate scope for upcoming ticks; new peripheral tools should only
 land when an existing substitution is blocked on a missing tool.
@@ -9855,8 +9855,8 @@ it eventually replaces"). All 11 parity scripts updated:
 - The lib mirror still lands at `.tmp/lib/` (the build dir does not
   mirror the `src/` prefix because the tool's `import "../../lib/..."`
   resolves from `.tmp/self_hosted/<tool>/main.pgy` -> `.tmp/lib/`).
-Makefile target paths updated. `tests/self_hosted_scaffold_smoke.sh`
-and `tests/build_source_inventory_smoke.sh` updated to scan the new
+Makefile target paths updated. `tests/self_hosted/gates/self_hosted_scaffold_smoke.sh`
+and `tests/repo/build_source_inventory_smoke.sh` updated to scan the new
 location. The `*.pgy` files survived the move with UTF-8 BOM injected by
 the file-system editor; stripped via `sed -i '1s/^\xef\xbb\xbf//'` on
 all 12 source/fixture files so Pergyra's parser accepts them. After the
@@ -10043,7 +10043,7 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
   2. 로컬 full sweep을 shard로: `PGY_BACKEND_COMPARE_SHARD_TOTAL=8
      PGY_BACKEND_COMPARE_SHARD_INDEX=k make llvm-test-backend-compare`
      (k=0..7, 하나씩 + timeout).
-  3. 실패 fixture는 `tests/compare_backends.sh
+  3. 실패 fixture는 `tests/backend/compare_backends.sh
      tests/cases/backend_compare/<fixture>`로 최소 재현 후 SoT 방식 수리
      (문자열 패치 금지 — 소유 fact 경로로).
   4. 전 shard 0 fail이면 최상단 anchor의 수치/날짜 갱신.
@@ -10252,15 +10252,15 @@ replacement 0%를 뒤집는 수치가 아니다.
   섹션 + 최소 config 재선언).
 - **단계**:
   1. `coqc`는 `/c/Users/Pc/AppData/Local/Rocq-Platform~9.0~2025.08/bin/coqc`
-     (ROCQLIB env 필요 — `tests/formal_semantics_smoke.sh` 상단 참조).
+     (ROCQLIB env 필요 — `tests/proof/formal_semantics_smoke.sh` 상단 참조).
   2. `docs/semantics/proofs/ReadingConfluence.v` 신규: AxisOwnership의
      axis-read를 순열로 일반화, `read_order_irrelevant` 정리.
   3. `docs/semantics/proofs/BinaryAdequacy.v` 신규: 표면 판정 함수
      (accept/reject) ↔ calculus guard의 iff. AIRBinding의
      `guard_air_faithful` 패턴 재사용.
-  4. `tests/formal_semantics_smoke.sh`에 require_file + require_terms
+  4. `tests/proof/formal_semantics_smoke.sh`에 require_file + require_terms
      (정리 이름 고정) 추가.
-- **게이트**: `bash tests/formal_semantics_smoke.sh` → "formal semantics
+- **게이트**: `bash tests/proof/formal_semantics_smoke.sh` → "formal semantics
   Coq smoke: ok".
 - **DoD**: 2파일 coqc green(0 admits/0 axioms) + smoke 배선 +
   docs/semantics/19 corpus 표 갱신.
@@ -10270,7 +10270,7 @@ replacement 0%를 뒤집는 수치가 아니다.
 #### WO-F2 — red-team Defense 4 게이트 명명 정리
 
 - **목표**: Defense 4가 요구한 `formal-proof-mechanization-test-smoke`는
-  실질적으로 `tests/formal_semantics_smoke.sh`로 존재 — Makefile 타깃
+  실질적으로 `tests/proof/formal_semantics_smoke.sh`로 존재 — Makefile 타깃
   별칭 + Defense 4 문구를 현재 corpus(10파일) 기준으로 갱신하고 ✅ 처리.
 - **단계**: Makefile에 `formal-semantics-test-smoke` 타깃(스크립트 호출)
   추가 → optional-toolchain 의미(coqc 부재 시 명시 skip, 무음 pass 금지)
@@ -10421,7 +10421,7 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
 
 - **계기**: 같은 감사. Roc은 테스트 할당자가 **컴파일된 Roc 코드**의 leak도
   잡는다. 우리 ASan 게이트는 **컴파일러 프로세스만** 본다
-  (`tests/sanitizer_compile_smoke.sh:4` "does the compiler leak... while
+  (`tests/backend/sanitizer_compile_smoke.sh:4` "does the compiler leak... while
   compiling?"; `make test-asan`은 unit 배터리를 `detect_leaks=0`으로 돌림).
   `PGY_BUDGET_ALLOC_COUNT`는 상한 캡이지 alloc/free 대차가 아님
   (`pgy_runtime_allocator_inline.h:164`).
@@ -10547,7 +10547,7 @@ certificate-or-HEAP fail-closed·트윈 규율·slot 스토리지 불가침).
   (escape-site 배열)가 driver rework 와 독립이라 지금 검증 착지.
 - **★REG-1d origin surface ✅ LANDED (2026-07-21, `58a4a5e4`)**:
   `src/self_hosted/compiler/region_plan_owner.pgy`(450줄) + manifest + 핀 골든
-  + `tests/selfhost_region_plan_smoke.sh` + **artifact kind 29** + OWNERS.md +
+  + `tests/self_hosted/gates/selfhost_region_plan_smoke.sh` + **artifact kind 29** + OWNERS.md +
   component-contract 등록. 게이트 green(골든 계약 diff·**C leg==LLVM leg**
   artifact 동일·require 핀 10·forbid 핀 4·self-test). 계획을 뒤집어 REG-1b+c
   train **앞에** 착지 — owner 는 *계약* 산출물이라 규칙 전체(owner-conflict
@@ -10565,7 +10565,7 @@ certificate-or-HEAP fail-closed·트윈 규율·slot 스토리지 불가침).
   `llvm_mir_emit.c` 함수-스코프) + 행에 `function_syntax_id` 추가 +
   `_scope_for_function_id` 신설 + COMPILER_SOURCES 등록. **전체 isolated
   `mingw32-make pgy` exit 0**(에러 0), 유닛 게이트 2종 green.
-- **잔여(= 그 배선 커밋과 함께 착지)**: ① `tests/region_plan_unit.c` 에
+- **잔여(= 그 배선 커밋과 함께 착지)**: ① `tests/ownership/region_plan_unit.c` 에
   추가한 커버리지 — 확장이 만든 분기가 **무테스트**였다(모든 케이스가
   `function_syntax_id = 0`): owner-conflict 거절 + `_scope_for_function_id`
   fail-closed 전 행렬(null plan·unverified·id 0·미지 owner·scope 0 인 owner 행).
@@ -10622,7 +10622,7 @@ RT 계열.
   **RED 실증**: 강제 fixture(64 outer > 16 worker, burn 후 inner fan-out)
   3/3 timeout; **mild(32/4)는 운으로 통과** — 테스트는 지나가고 부하에서
   죽는 최악 형태 확인. **GREEN**: 목격자 4/4
-  (`tests/nested_parallel_witness_smoke.sh`, c/llvm × mild 2176/forced 8448).
+  (`tests/parallel/nested_parallel_witness_smoke.sh`, c/llvm × mild 2176/forced 8448).
   회귀: core-contract·join 전 rung+17거절·backpressure 6/6×2·B_n 무변화.
 - **잔여(소)**: ① Makefile/test-all 배선(Makefile 동시 소유라 보류, 스모크는
   독립 실행형) ② semantic nested fact(선택 — 클래스 제거로 긴급도 하락)
@@ -10664,7 +10664,7 @@ RT 계열.
 - **잔여 등록**: ① self-host 등록 3점(OWNERS.md row + component contract
   smoke 절 + artifact_zone_owner.pgy kind row → comparator 편입)은 해당
   파일들 동시-세션 소유라 보류 — standalone smoke가 게이트
-  (`tests/selfhost_parallel_chunk_policy_smoke.sh`), 소유 해제 시 이관.
+  (`tests/parallel/selfhost_parallel_chunk_policy_smoke.sh`), 소유 해제 시 이관.
   ② ~~성공 기준 재정의~~ ✅ 닫힘 (2026-07-17 재실측): n=10 interleave
   best-of-3 **pgy 47.06s vs hand-C OpenMP 38.82s = 1.212x** — B2/B3
   전후 불변(옛 1.21x과 동일). 실행기 몫은 소진됐고 잔차는 **태스크당
@@ -10674,7 +10674,7 @@ RT 계열.
   docs/187 메모 1 + WO-RT-5 RED 실증이 준비됨.
   ④ ~~worker수-가변 결정성 목격자~~ ✅ 닫힘 (`5f59bfdf`): 관측 가능한
   `PGY_WORKERS` override(무효값 warn+hw fallback) +
-  `tests/parallel_worker_invariance_smoke.sh` — PGY_WORKERS 1/2/3/16 ×
+  `tests/parallel/parallel_worker_invariance_smoke.sh` — PGY_WORKERS 1/2/3/16 ×
   c/llvm 전부 byte-동일, Float 0.1-step 합을 직렬 left-fold와 **비트
   동일** 비교(청크-부분합류 회귀 시 즉시 RED).
 
@@ -10725,7 +10725,7 @@ RT 계열.
   backpressure 게이트가 반증**(반증 6호: helper에 consumer가 중첩되며
   자기 밑 producer의 continuation을 대기 → self-deadlock) — 반증 이력은
   채널 헤더 주석에 보존. probe는 하드 게이트로 승격
-  (`tests/channel_pool_starvation_probe.sh`, 양 백엔드 완주 요구 + 회귀
+  (`tests/parallel/channel_pool_starvation_probe.sh`, 양 백엔드 완주 요구 + 회귀
   시 RED). 기아 4/4·backpressure 64/64×2·중첩 4/4·불변성 GREEN.
   보상 hook 매크로는 단일 홈(`pgy_runtime_channel_status.h`, 선점 정의
   = #error, docs/188 R6).
@@ -10740,7 +10740,7 @@ RT 계열.
 - **실증 (2026-07-17, `79eb26b5`)**: THREAD-모델 채널 대기는
   cancellation-quantum timedwait로 **worker를 점유**하며 help-드레인이
   없다. 수신 태스크 수 ≥ worker+main이고 송신자가 그 뒤에 큐되면 전원
-  파킹 = 도달 가능한 기아 데드락. `tests/channel_pool_starvation_probe.sh`
+  파킹 = 도달 가능한 기아 데드락. `tests/parallel/channel_pool_starvation_probe.sh`
   가 **양 백엔드 RED**(PGY_WORKERS=2, 수신 arm 7 → 송신 arm 7; control은
   GREEN). help-first await가 못 닫는 이유 실증 포함: help는 태스크를
   helper 스레드에서 완주시키므로 수신자를 help하면 helper도 파킹.
@@ -10762,7 +10762,7 @@ RT 계열.
   (`ownership_let_validate_channel_binding` +
   `type_check_func_validate_return_boundary`의 Channel 절, alias를 뚫고
   resolved 타입에 걸림). field/클로저캡처는 기존 닫힘. 게이트 =
-  `tests/surface_boundary_hygiene_smoke.sh`(거절 5 + 합법 2 양 백엔드).
+  `tests/repo/surface_boundary_hygiene_smoke.sh`(거절 5 + 합법 2 양 백엔드).
   **이제 잔여는 param 면 1개.**
 - **판정(위임)**: 1차 rung = semantic **fail-close 거절**(silent-wrong을
   컴파일 에러로). 삽입 지점 확인됨:
@@ -11238,7 +11238,7 @@ BDFL "셀프 호스티드와 부트 스트래핑 배선깔아". 조사로 찾은
   (ast_rel 하드코딩도 BUILD_DIR 유도로 교체 — override 를 새는 구멍이었음.)
 - **★갭 3: 정책 owner 들이 부트스트랩 코퍼스 밖.** 병렬/도달성 policy owner(.pgy)는
   self-host 소스인데 통합 드라이버가 먹는지 아무도 안 물었다. →
-  `tests/selfhost_bootstrap_policy_corpus_smoke.sh`: 세 manifest 를 driver_seed/
+  `tests/self_hosted/gates/selfhost_bootstrap_policy_corpus_smoke.sh`: 세 manifest 를 driver_seed/
   oracle 에 먹여 **in_subset**(자기빌드 방출==oracle 방출, gcc, 실행, 네이티브 golden
   재현) / **out_of_subset**(controlled CODEGEN ERROR 거부 기록) 를 양방향 고정 —
   reachability 계약의 비대칭을 부트스트랩 축에. **실측: 3종 전부 out_of_subset**
@@ -11285,7 +11285,7 @@ src/runtime·compiler·codegen 전수 census 결과 참조 안 되는 TU 는 사
   ② 정당하게 빈 grep 이 `set -e`+pipefail 에서 census 를 중단시킴. sentinel 프로브를
   owner 를 안 덮는 home 으로 바꿔서 **include 필터가 깨지면 self-test 가 터지도록** 함
   (안 그러면 census 결과 전체가 무의미해진 채 green).
-- 게이트 `tests/selfhost_reachability_contract_smoke.sh`(golden + C==LLVM leg +
+- 게이트 `tests/self_hosted/gates/selfhost_reachability_contract_smoke.sh`(golden + C==LLVM leg +
   census 8건 + 양방향 self-test), aggregate =
   `redteam-repair-contract-test-smoke`. 등록: OWNERS.md · component contract ·
   artifact kind 26 · Makefile.
@@ -11691,7 +11691,7 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   진짜 위반 후보, 조사 필요**). (c) codegen→semantic 101은 실은 좁은
   face 3헤더(diag 95/builtin_kind 8/lifecycle 1).
 - ✅ **B-0+B-1 landed(2026-07-04)**: 등기부=docs/154 + include-edge
-  smoke=`tests/border_registry_smoke.sh`(순수 텍스트, 미등재 교차=FAIL,
+  smoke=`tests/registry/border_registry_smoke.sh`(순수 텍스트, 미등재 교차=FAIL,
   8경계 전부 green). B-1 수술: 공유 유틸 3헤더 개명
   (transpiler_type_mapping/builtin_type_table/mir_resource_name_helpers
   → codegen_* — llvm→transpiler include 6→0), 게이트 경로 결합 6종
@@ -11908,7 +11908,7 @@ is the longer execution plan.
 
 | Scope | Cap | Gate |
 |---|---|---|
-| `src/{codegen,runtime,compiler,semantic,parser,lsp}`??`.h` | 600 LOC (hard) | `tests/production_header_size_smoke.sh` (env `PRODUCTION_HEADER_MAX_LINES` override 가?? |
+| `src/{codegen,runtime,compiler,semantic,parser,lsp}`??`.h` | 600 LOC (hard) | `tests/repo/production_header_size_smoke.sh` (env `PRODUCTION_HEADER_MAX_LINES` override 가?? |
 | 같?? ??렉??리??`.c` | 600 LOC (split-review threshold) | 진행 ??트??서 ??람 검??+ 베?? closure sweep |
 | `tests/` / generated / `.inc` ??편 | 면제 | ??|
 
@@ -13380,7 +13380,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   semantic-suite max inventory is `0` compatibility calls: public semantic
   regression helpers now use `semantic_type_resolution_lookup_type_ref_or_materialize(...)`
   instead of entering the compatibility resolver directly.
-- `tests/type_resolution_dag_smoke.sh` now gates that accounting and also
+- `tests/ir/type_resolution_dag_smoke.sh` now gates that accounting and also
   requires compatibility resolver body fallbacks (`cache misses`) to stay `0`.
   The compatibility API call cap is tightened from 1000 to 0 because the
   global counter is now read as a max/last inventory value instead of summing
@@ -13892,7 +13892,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   `flow_has_fallthrough()`, and `flow_terminating_flags()`. This keeps the
   semantic body-flow owner focused on CFG fact consumption instead of open-coded
   flag masks at each join.
-- `tests/cfg_body_dataflow_smoke.sh` now gates those helper seams alongside the
+- `tests/ir/cfg_body_dataflow_smoke.sh` now gates those helper seams alongside the
   existing all-path retun, unreachable statement, resource snapshot, defer, and
   parallel boundary terms.
 - Local gates: `make cfg-body-dataflow-test-smoke test-semantic`
@@ -13907,7 +13907,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
 - `src/test_mir.c` adds a negative corruption regression that mutates an intent
   cleanup block to point at a normal successor and expects `mir_validate()` to
   reject it with the cleanup-block/normal-CFG-successor diagnostic.
-- `tests/cfg_body_dataflow_smoke.sh` now gates the validator terms so this
+- `tests/ir/cfg_body_dataflow_smoke.sh` now gates the validator terms so this
   cannot regress into an undocumented MIR convention.
 - Local gates: `make test-mir cfg-body-dataflow-test-smoke` (MIR 14/0).
 
@@ -13957,7 +13957,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   matching predecessor edge and every predecessor points back to the block it
   names. This tuns CFG structural consistency into a compiler-owned gate
   rather than an assumption inside dominance/MIR lowering.
-- `tests/cfg_body_dataflow_smoke.sh` now gates the validation seam. This does
+- `tests/ir/cfg_body_dataflow_smoke.sh` now gates the validation seam. This does
   not close the larger blocker that semantic body safety must fully consume
   CFG/dataflow facts; it closes the underlying HIR CFG invariant layer those
   future consumers rely on.
@@ -13974,7 +13974,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   C backend `transpiler_active_inventory()` and LLVM backend
   `llvm_active_inventory()` no longer duplicate their own
   `ASTNodeType -> mir->...` declaration-array switch.
-- `tests/mir_declaration_inventory_smoke.sh` now gates that both C and LLVM
+- `tests/ir/mir_declaration_inventory_smoke.sh` now gates that both C and LLVM
   active inventory helpers consume the MIR public API seam.
 - This does not claim dedicated declaration IR closure yet: `MIRProgram` still
   carries AST declaration arrays. The closed slice is the duplicated backend
@@ -14225,7 +14225,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
 - Valid alias stage materialization now uses the metadata-only lookup before
   reporting diagnostic unresolved inventory. Valid aliases no longer leak through the
   recursive resolver compatibility body, and
-  `tests/type_resolution_dag_smoke.sh` now gates alias compatibility fallback at zero.
+  `tests/ir/type_resolution_dag_smoke.sh` now gates alias compatibility fallback at zero.
 - The central metadata materializer no longer falls through to
   `resolve_type_node(type_node, ctx)`. Unsupported metadata shapes are recorded
   as explicit materializer fallback and return unresolved; the DAG smoke keeps
@@ -14239,7 +14239,7 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
 - Pain point found while checking: semantic cross-module cases still use fixed
   temporary import filenames. `test_semantic` now enters an isolated repo-local
   `.tmp/pgy-semantic-test.*` cwd before running cases, and
-  `tests/type_resolution_dag_smoke.sh` runs the semantic binary from its own
+  `tests/ir/type_resolution_dag_smoke.sh` runs the semantic binary from its own
   `.tmp/pgy-type-resolution-dag.*` cwd. This isolates fixture files for direct
   parallel semantic binary runs and for `test-semantic` +
   `type-resolution-dag-test-smoke`. Parallel `make test-semantic` targets are
@@ -15096,7 +15096,7 @@ not marketing claims.
 - Lean debt-slice follow-up: C backend exten declaration emission now has a
   real owner in `src/codegen/transpiler_exten.c`; `emit_exten_block(...)` was
   removed from `transpiler_emitters_base_b_part_b.inc`, reducing that near-cap
-  include body from 998 LOC to 957 LOC. `tests/inc_sentinel_smoke.sh` now uses
+  include body from 998 LOC to 957 LOC. `tests/backend/inc_sentinel_smoke.sh` now uses
   the current 159 source-`.inc` cap by default. Local gate used:
   `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke` plus touched
   path `git diff --check`.
@@ -15766,7 +15766,7 @@ Checklist source of truth:
 - `P3`: type-category vocabulary??2-3층으????축
 - `P4`: 빌드/??드박스/중간-stage JSON/artifact 문제??공식 경로 기????로 ??리
 - `P9`: arena ??턴??scratch/result lifetime 기????로 명시 ??입
-- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access??Pin/Lease 문서 기????로 분리??다. 기본 path??????근 검증이?? fast path??scope-entry capability lease + automatic unpin cleanup??어????다. Runtime ABI baseline?? `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` ????????작??고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence????았?? Generated inline `PgySlot_*` / `PgySecureSlot_*` ABI now also has typed `PgyPinnedSlotView_*` / `PgyPinnedSecureSlotView_*` wrappers plus LLVM-linkable `pgy_pin_read_*`, `pgy_pin_write_*`, and `pgy_unpin_*` exports; `make test-memory` covers occupied/token validation, cleanup helper behavior, double-unpin hard-fail, and secure invalid-token pin rejection. C source-block emission now lowers pin blocks to typed wrapper variables with GCC cleanup hooks through `src/codegen/transpiler_block_emit.c`, while `src/runtime/pgy_runtime_plain_slot_inline.h` owns the plain Slot wrapper macro under the 600 LOC split threshold. C and LLVM MIR emission now consume MIR pin-region/view-alias metadata on successor/retun exits, emitting explicit typed `pgy_pin_*` / `pgy_unpin_*` calls before control leaves the pin region; `tests/compare_backends.sh` covers plain read, secure read, plain write, secure write, mixed plain+secure source-level pin blocks, normal successor cleanup, direct retun cleanup, conditional branch-to-retun cleanup, loop `break`/`continue` cleanup, and secure boundary-slot parameter pinning. Source syntax `pin slot as view: ReadView<T>|WriteView<T> { ... }`??parser/semantic surface????성??됐?? AST `Pin Block` metadata, HIR/MIR pin-region metadata, MIR `pin-unpin-cleanup-edge` cleanup fact까?? ??려간다. MIR validator now rejects reachable pin-region blocks that lack the matching `pin-unpin-cleanup-edge` fact for source slot/view/access mode, and `src/test_mir.c` has a negative corruption regression for that contract. Pin/Lease semantic diagnostic vocabulary??`PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`??registry/docs??고정??고 `make diagnostic-registry-test-smoke`, `make beta-readiness-checklist-test-smoke`, `make diagnostics-json-test-smoke`가 drift??막는?? Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for retun escape, await boundary, parallel boundary/acquisition, defer cleanup registration, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline?? unresolved `TYPE_KIND_GENERIC`??`BORROW_TRACKED`??분류??generic `own/ref`가 조용??copy-only????과???? 못하??막는?? Source-level `PGY_SEM_PIN_TOKEN_INVALID` now fires when `ViewRead/ViewWrite` is applied to a `SecureSlot<T>` whose paired capability token symbol is not reachable in the current scope, with runtime ABI hard-fail as the deeper backstop. ???? 것?? exceptional/cancellation all-exit proof expansion and richer invalid-token source provenance. Source of truth: `docs/74_slot_pinning_caching.md`
+- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access??Pin/Lease 문서 기????로 분리??다. 기본 path??????근 검증이?? fast path??scope-entry capability lease + automatic unpin cleanup??어????다. Runtime ABI baseline?? `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` ????????작??고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence????았?? Generated inline `PgySlot_*` / `PgySecureSlot_*` ABI now also has typed `PgyPinnedSlotView_*` / `PgyPinnedSecureSlotView_*` wrappers plus LLVM-linkable `pgy_pin_read_*`, `pgy_pin_write_*`, and `pgy_unpin_*` exports; `make test-memory` covers occupied/token validation, cleanup helper behavior, double-unpin hard-fail, and secure invalid-token pin rejection. C source-block emission now lowers pin blocks to typed wrapper variables with GCC cleanup hooks through `src/codegen/transpiler_block_emit.c`, while `src/runtime/pgy_runtime_plain_slot_inline.h` owns the plain Slot wrapper macro under the 600 LOC split threshold. C and LLVM MIR emission now consume MIR pin-region/view-alias metadata on successor/retun exits, emitting explicit typed `pgy_pin_*` / `pgy_unpin_*` calls before control leaves the pin region; `tests/backend/compare_backends.sh` covers plain read, secure read, plain write, secure write, mixed plain+secure source-level pin blocks, normal successor cleanup, direct retun cleanup, conditional branch-to-retun cleanup, loop `break`/`continue` cleanup, and secure boundary-slot parameter pinning. Source syntax `pin slot as view: ReadView<T>|WriteView<T> { ... }`??parser/semantic surface????성??됐?? AST `Pin Block` metadata, HIR/MIR pin-region metadata, MIR `pin-unpin-cleanup-edge` cleanup fact까?? ??려간다. MIR validator now rejects reachable pin-region blocks that lack the matching `pin-unpin-cleanup-edge` fact for source slot/view/access mode, and `src/test_mir.c` has a negative corruption regression for that contract. Pin/Lease semantic diagnostic vocabulary??`PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`??registry/docs??고정??고 `make diagnostic-registry-test-smoke`, `make beta-readiness-checklist-test-smoke`, `make diagnostics-json-test-smoke`가 drift??막는?? Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for retun escape, await boundary, parallel boundary/acquisition, defer cleanup registration, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline?? unresolved `TYPE_KIND_GENERIC`??`BORROW_TRACKED`??분류??generic `own/ref`가 조용??copy-only????과???? 못하??막는?? Source-level `PGY_SEM_PIN_TOKEN_INVALID` now fires when `ViewRead/ViewWrite` is applied to a `SecureSlot<T>` whose paired capability token symbol is not reachable in the current scope, with runtime ABI hard-fail as the deeper backstop. ???? 것?? exceptional/cancellation all-exit proof expansion and richer invalid-token source provenance. Source of truth: `docs/74_slot_pinning_caching.md`
 - `P9c`: `Rc<T>` / `Weak<T>` 최소 subset?? beta-stable????았?? 범위??single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare?? 범위 ??payload??backend fallback????니??semantic explicit reject?? `Arc<T>`, cross-thread shared ownership, generic/object payload ??장, default ARC??beta 밖이?? Source of truth: `docs/100_beta_readiness_checklist.md`, `docs/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
 - `P10`: 모듈????파 고도??의 compile/runtime ??도 ??????별도 baseline??로 추적
 
@@ -15884,7 +15884,7 @@ Source of truth:
   - 진행: C backend expression emitter include??7-line shim + `transpiler_expr_emitters_builtins.inc` / `transpiler_expr_emitters_call_a.inc` / `transpiler_expr_emitters_call_b.inc` / `transpiler_expr_emitters_members.inc` / `transpiler_expr_emitters_tail.inc`??분리????당 debt??모두 1,000 LOC ??래???????? 검?? `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
   - 진행: LLVM call emitter include??17-line shim + `llvm_expr_call_constructors.inc` / `llvm_expr_call_arrays.inc` / `llvm_expr_call_collections_base.inc` / `llvm_expr_call_domain_queries.inc` / `llvm_expr_call_events.inc` / `llvm_expr_call_intent_observability.inc` / `llvm_expr_call_log.inc` / `llvm_expr_call_math.inc` / `llvm_expr_call_result_option.inc` / `llvm_expr_call_slots.inc` / `llvm_expr_call_task_channel.inc` / `llvm_expr_calls_part_a.inc` / `llvm_expr_calls_part_b.inc` / `llvm_expr_calls_part_c.inc` / `llvm_expr_calls_part_d.inc`??분리????당 debt??모두 1,000 LOC ??래???????? enum/class constructor, array builtin, `ListNew`/`Set*` base collection, domain query builtin, event invocation, intent observability, log, scalar math, Result/Option, slot/device-slot builtin, task/channel lowering?? `llvm_emit_call`??서 분리??어 별도 owner include가 ??다. 검?? `make test-transpile -j2`, `make backend-inc-size-test-smoke`, `make llvm-test-backend-compare -j2`
   - 진행: C backend base emitter B include??6-line shim + `transpiler_emitters_base_b_part_a.inc` / `transpiler_emitters_base_b_part_b.inc` / `transpiler_emitters_base_b_part_c.inc` / `transpiler_emitters_base_b_part_d.inc`??분리????당 debt??모두 1,000 LOC ??래???????? 검?? `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
-  - ??료: Tier 1 runtime/codegen/compiler `.inc > 1000 LOC` gate????힘. `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`, `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a.inc`, `transpiler_helpers_core_b.inc`, `transpiler_domain_role.inc`, `llvm_expr_helpers.inc`, `mir_public.inc`, `llvm_expr_call_methods.inc`, `llvm_domain_helpers.inc`??모두 safe mechanical split??로 1,000 LOC ??래????????  - ??료: `tests/backend_inc_size_smoke.sh` / `make backend-inc-size-test-smoke` 추??. `src/runtime`, `src/codegen`, `src/compiler`??`.inc <= 1000 LOC`??CI??서 고정
+  - ??료: Tier 1 runtime/codegen/compiler `.inc > 1000 LOC` gate????힘. `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`, `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a.inc`, `transpiler_helpers_core_b.inc`, `transpiler_domain_role.inc`, `llvm_expr_helpers.inc`, `mir_public.inc`, `llvm_expr_call_methods.inc`, `llvm_domain_helpers.inc`??모두 safe mechanical split??로 1,000 LOC ??래????????  - ??료: `tests/repo/backend_inc_size_smoke.sh` / `make backend-inc-size-test-smoke` 추??. `src/runtime`, `src/codegen`, `src/compiler`??`.inc <= 1000 LOC`??CI??서 고정
   - 검?? `make backend-inc-size-test-smoke`, `make test-mir test-transpile test-abi -j2`, `make llvm-test-backend-compare -j2`
   - 진행: `type_checker_helpers_late.c` standalone TU 빌드 ????러??call-path helper include-order ??존??`type_checker_intenal.h` prototype??직접 include 계약??로 고정??다
   - 진행: `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` ??이 dangling retun-type seams ??거
@@ -15905,7 +15905,7 @@ Source of truth:
   - ??재 `test-abi-perf`??존재??????raw log가 길어 worst-case 추적????렵??- 기본 방침:
   - `make test-abi-perf`??benchmark-only ABI/runtime baseline??캡처??다
   - `make perf-summary PERF_LOG=<log>`??C/LLVM compile/run ??균??worst-case????약??다
-  - representative case??`tests/bench_backend.sh <source.pgy> dev`??C/LLVM wall time + RSS??직접 ??인??다
+  - representative case??`tests/perf/bench_backend.sh <source.pgy> dev`??C/LLVM wall time + RSS??직접 ??인??다
   - generated/native compile waning?? ??도 noise가 ??니??build hygiene bug??보고 즉시 ??는??- ??재 baseline (2026-04-24, local WSL):
   - `make test-abi-perf`: 320 passed, 0 failed
   - `perf-summary`: C 32 cases, avg compile 0.569s, max 1.783s (`intent_authority_snapshot_abi`), avg run 0.001s
@@ -15913,7 +15913,7 @@ Source of truth:
 - 진행: `make perf-contract-test-smoke`가 synthetic `test-abi-perf` log????해 `perf_summary` log grammar, C/LLVM case count, average compile/run, worst-case compile/run case selection??CI??서 고정??다. ??gate??baseline ??자 ??체??고정???? ??고, perf evidence가 machine-readable ??태????????는지 검??한??
   - representative `relation_effect_propagation/main.pgy`: C dev 1.03s / 46MB, LLVM dev 0.72s / 60MB after `realpath` waning fix
 - 진행:
-  - [x] `tests/perf_summary.sh` 추??
+  - [x] `tests/perf/perf_summary.sh` 추??
   - [x] `make perf-summary PERF_LOG=<log>` 추??
   - [x] generated C/LLVM compile path??POSIX `realpath` implicit declaration 경고 ??거
 - ??음:
@@ -15933,7 +15933,7 @@ Source of truth:
   - [x] diagnostic literal registry 초안 추??
     - ??료: `src/semantic/diag_codes.h`가 `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` registry source of truth????작??고 `docs/72_diagnostic_codes.md`가 ???? 문서??  - [x] `cause_ir` / `fix_source` ??이??규칙 문서??    - ??료: `docs/72_diagnostic_codes.md`??`cause_ir` stage/subsystem/condition 규칙??`fix_source` source-action token 규칙 고정
   - [x] free-form 문자????규 추?? 지??에 smoke gate 마련
-    - ??료: `tests/diagnostic_registry_smoke.sh` / `make diagnostic-registry-test-smoke`가 semantic diagnostic call-site??`PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` macro ??용??diagnostic code 문서 sync??검??
+    - ??료: `tests/registry/diagnostic_registry_smoke.sh` / `make diagnostic-registry-test-smoke`가 semantic diagnostic call-site??`PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` macro ??용??diagnostic code 문서 sync??검??
 ### P3. ????ownership ??어 ??축
 
 - 문제:
@@ -16668,7 +16668,7 @@ Source of truth:
     - 진행: DAG smoke????제 graph-backed skip/metadata entry/metadata hit/owned metadata가 ??순??0보다 ??????보?? ??고 beta floor(`skips>=1900`, `entries>=3400`, `hits>=7500`, `owned>=240`)?? retired compatibility resolver cap(`retired_resolver_calls<=0`)??검??한?? DAG source-of-truth ??용??이 ??게 ??퇴??면 CI??서 즉시 ??는??    - 진행: 중앙 metadata materializer??마????recursive fallback?? 0??로 ??혔?? `type-resolution-dag-test-smoke`??`materializer_fallbacks==0`??모든 metadata unresolved audit family 0??고정??다
     - 진행: stage metadata materialization surface??alias/non-alias 모두 0??로 고정??다. `type_checker_resolution_stage_alias.c`가 unique alias diagnostic unresolved accounting??optional trace????유??다. ??공 alias materialization??diagnostic unresolved inventory??별도 계측??고, ???? 78건?? recursive resolver ??진??이 ??니??alias-cycle diagnostic coverage??서 ??오??unresolved inventory?? `alias_diagnostic_resolver_calls==0` gate가 ??경계??차단??다
     - 진행: program-level symbol inventory가 ability declarations??predeclare??다. `type_check_ability_decl(...)`?? ??기 ??신??predeclare????사??하??같?? ??름????른 ability??기존처럼 duplicate diagnostic??로 처리??다. forward source order??서 generic default/where, zone authority, party role-slot ability consumer가 provider ??행??어????과??는 regression??추????다
-    - 진행: `tests/cases/backend_compare/forward_ability_order/main.pgy`??backend compare suite??추????다. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering??semantic-only가 ??니??C/LLVM 출력 ??등??까지 ??????는지 검??한??    - 진행: `tests/compare_backends.sh` 기본 ??행?? `tests/cases/backend_compare/*/main.pgy`가 default case array??빠져 ??으????패??다. 명시 ??자 기반 targeted run?? ??????되, CI/default path??서 ??parity case가 조용????락??는 drift??차단??다. ??gate??기존 passing case 8??array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)??default C/LLVM parity suite????입??다
+    - 진행: `tests/cases/backend_compare/forward_ability_order/main.pgy`??backend compare suite??추????다. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering??semantic-only가 ??니??C/LLVM 출력 ??등??까지 ??????는지 검??한??    - 진행: `tests/backend/compare_backends.sh` 기본 ??행?? `tests/cases/backend_compare/*/main.pgy`가 default case array??빠져 ??으????패??다. 명시 ??자 기반 targeted run?? ??????되, CI/default path??서 ??parity case가 조용????락??는 drift??차단??다. ??gate??기존 passing case 8??array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)??default C/LLVM parity suite????입??다
     - 진행: `type-resolution-resolver-inventory-test-smoke`가 direct resolver allowlist?? ??께 metadata-first wrapper, execution/anchored-handle metadata materializer coverage??static gate??고정??다
     - 진행: `type-resolution-resolver-inventory-test-smoke`가 ??`semantic_type_resolution_resolve_or_fallback(...)` ??용???? 금????고 named fallback seam 총량??0개로 고정??다. gate 출력?? ??재 fallback seam count??직접 보여주며, `semantic_type_resolution_lookup_or_materialize(...)` ??????central recursive escape hatch??0개로 고정??다
     - 진행: fallback seam gate??기존 ??한??`30??미만??면 ??패`)??debt-reduction??맞?? ??는 규칙??로 보고 ??거??다. ??제 0????한??growth guard????????며, seam 축소??CI ??공 경로??    - 진행: `type_checker_module_contract.c`??ability contract bookkeeping?? recursive fallback helper????출???? ??고 DAG metadata lookup-only seam??로 ?????? ability 존재/visibility/generic arity/where provenance??ability-specific validator가 계속 ??유??며, fallback seam inventory??39??서 38??감소??다
@@ -16965,7 +16965,7 @@ Source of truth:
     - `semantic_result_print_json` ??semantic 진단??JSON 배열??방출 (severity/stage/location/message ??드, RFC 8259 준????스케??프)
     - `driver_emit_single_diag_json` ????일 ??러 JSON 방출 ??퍼 (module_load / backend_c_emit / backend_c_native / backend_llvm_emit / backend_llvm_native ??계 커버)
     - stage ??그: `semantic` / `module_load` / `backend_c_emit` / `backend_c_native` / `backend_llvm_emit` / `backend_llvm_native`
-    - ??공 ??`[]` (??배열), ??패 ??`[{...}]` ????출??는 ???? JSON 기?? 가??    - ????: `tests/diagnostics_json_smoke.sh` (Python ??서??shape 검?? 3 케??스: semantic / parse / success)
+    - ??공 ??`[]` (??배열), ??패 ??`[{...}]` ????출??는 ???? JSON 기?? 가??    - ????: `tests/language/diagnostics_json_smoke.sh` (Python ??서??shape 검?? 3 케??스: semantic / parse / success)
     - 검?? PowerShell??3 케??스 모두 ??상 ??작 ??인 (1668 semantic + 601 transpile ???? pass)
   - 2??증분 ??료 (2026-04-19):
     - `Diagnostic` 구조체에 `code` ??드 추?? (non-owning `const char*`, ??적 문자??리터??보??) ??`src/semantic/type_checker.h`
@@ -16978,7 +16978,7 @@ Source of truth:
       - `PGY_SEM_UNKNOWN_TYPE`
       - `PGY_SEM_UNDEFINED_SYMBOL` (identifier / member 3 ??이??
       - `PGY_SEM_INFER_COLLECTION` / `PGY_SEM_INFER_GENERIC` / `PGY_SEM_INFER_REQUIRED`
-    - smoke test ??장: `code == "PGY_SEM_TYPE_MISMATCH"` 검??+ `stage == "parse"` 검??(`tests/diagnostics_json_smoke.sh`)
+    - smoke test ??장: `code == "PGY_SEM_TYPE_MISMATCH"` 검??+ `stage == "parse"` 검??(`tests/language/diagnostics_json_smoke.sh`)
     - ????: 1688 semantic + 601 transpile, 0 failed
   - 3??증분 ??료 (2026-04-19):
     - Slot/ownership/parallel/effect 계열 코드 9??추??:
@@ -17008,7 +17008,7 @@ Source of truth:
       - `PGY_MIR_SSA_LIMIT` ??SSA local 4096 초과
       - `PGY_MIR_INTENT_CARRIER_MISSING` ??intent step metadata ??락 (C/LLVM 공통, 21 ??이????괄 ??그??이??
       - `PGY_LLVM_SPEC_LIMIT` ??Result\<T,E\> ??수????도(MAX_LLVM_RESULT_SPECS=32) 초과
-    - 카탈로그 ??장: `docs/72_diagnostic_codes.md`??"MIR Contract" ??션 5????트??+ "LLVM Backend" ??션 1????트??    - smoke test ??장: 33??Result\<Int, E*\> ??수??로 `PGY_LLVM_SPEC_LIMIT` + `stage=llvm_codegen` 검??(`tests/diagnostics_json_smoke.sh`)
+    - 카탈로그 ??장: `docs/72_diagnostic_codes.md`??"MIR Contract" ??션 5????트??+ "LLVM Backend" ??션 1????트??    - smoke test ??장: 33??Result\<Int, E*\> ??수??로 `PGY_LLVM_SPEC_LIMIT` + `stage=llvm_codegen` 검??(`tests/language/diagnostics_json_smoke.sh`)
     - 검?? `[{"severity":"error","stage":"llvm_codegen","code":"PGY_LLVM_SPEC_LIMIT",...}]` end-to-end ??인
     - ????: 1694 semantic + 601 transpile, 0 failed (??거??경로 무손??
     - ??재 ??22????정 코드 (`PGY_SEM_*` 16 + `PGY_MIR_*` 5 + `PGY_LLVM_*` 1), ~50 ??이??커버. `mir_validation` / `llvm_codegen` stage 가 기존 `backend_*_native`?? 분리??  - ???? ??업 (5??증분 ??보):
@@ -17027,7 +17027,7 @@ Source of truth:
   - ??스??결과 JSON 출력 ????재 stdout ??????식. AI가 ??싱????음 ??션 결정??????는 JSON 모드
   - LSP 진단 기계 ??독 가??????의 구조????러 메시지?? 공유 ??맷
   - backend-compare ??패 ??diff??구조??????재 unified diff. AI가 "??느 ??수????번째 stdout ??인????름"??바로 ???? 가??한 ??맷
-  - ???? 기반 ??음 (`src/lsp/` ??렉??리, `tests/compare_backends.sh` 구조)
+  - ???? 기반 ??음 (`src/lsp/` ??렉??리, `tests/backend/compare_backends.sh` 구조)
 
 **??공 기??**: Frontier 모델??Pergyra spec bundle??in-context????고, 비자명한 비즈??스 로직 (?? 결제 + 멱등??+ ??시????책) 구현??one-shot??가깝게 ??성??????음. 컴파????스????패 ??구조????러로??????기 교정 루프가 ~3????내 ??렴.
 
@@ -17040,7 +17040,7 @@ Source of truth:
 - [~] **DIR (Domain IR)** ??declaration graph / intent step graph ??작
   - ??료: `src/compiler/dir.h`, `src/compiler/dir.c`, `src/compiler/dir_collect.c`, `src/compiler/dir_collect_domain.c`, `src/compiler/dir_validate.c`, `pgy --dir`, `test-dir`
 - ??료: DIR owner split ??`dir.c`??graph storage / lookup / lower orchestration????당??고, node/role/party/world/intent collection, zone/relation/effect projection collection, validation/dump??별도 TU??분리??(`dir.c` 467 LOC, `dir_collect.c` 546 LOC, `dir_collect_domain.c` 274 LOC, `dir_validate.c` 278 LOC)
-- ??료: DIR storage growth debt ??node/edge/owned-name/intent/participant/step/name arrays use explicit capacity fields and geometric growth; `tests/perf_contract_smoke.sh` rejects the old `count+1` realloc patten.
+- ??료: DIR storage growth debt ??node/edge/owned-name/intent/participant/step/name arrays use explicit capacity fields and geometric growth; `tests/perf/perf_contract_smoke.sh` rejects the old `count+1` realloc patten.
   - ??료: intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency
   - ??료: role/ability completeness edge, missing-ability-method edge
   - ??음: richer zone/world membership graph
@@ -17222,7 +17222,7 @@ Source of truth:
   `authorized by`, `requires`, `on`, and `compensate` clause collections. The
   parser helper seam now takes explicit capacity pointers instead of hiding
   one-element growth behind `intent_append_node` / `parse_intent_name_list`.
-- `tests/perf_contract_smoke.sh` now gates these capacity fields and rejects
+- `tests/perf/perf_contract_smoke.sh` now gates these capacity fields and rejects
   regression to count-only append in `parser_intent.c` and
   `parser_intent_step.c`.
 - Verified slice probes: direct GCC compile probes for `parser_intent.c`,
@@ -17234,7 +17234,7 @@ Source of truth:
   buffer instead of rebuilding the temporary array on every input.
 - Zone grouped slot/layer name parsing now uses a local geometric capacity
   buffer instead of `malloc(count+1) + memcpy + free` for every name.
-- `tests/perf_contract_smoke.sh` now rejects count-only append regressions in
+- `tests/perf/perf_contract_smoke.sh` now rejects count-only append regressions in
   `parser_domain_world.c` and `parser_domain_zone.c`.
 - Verified slice probes: direct GCC compile probes for
   `parser_domain_world.c` and `parser_domain_zone.c`.
@@ -17245,7 +17245,7 @@ Source of truth:
   rebuilding the target array per refresh/publish/bind target.
 - Projection field-map parsing now uses geometric capacity for paired
   target/source field arrays instead of per-entry `malloc(count+1) + memcpy`.
-- `tests/perf_contract_smoke.sh` now rejects count-only append regression in
+- `tests/perf/perf_contract_smoke.sh` now rejects count-only append regression in
   `parser_domain_projection.c`.
 - Verified slice probe: direct GCC compile probe for
   `parser_domain_projection.c`.
@@ -17254,7 +17254,7 @@ Source of truth:
 
 - Match statement case lists and match-case OR-patten lists now carry explicit
   capacities and grow geometrically during parsing.
-- `tests/perf_contract_smoke.sh` now gates `patten_capacity` and rejects
+- `tests/perf/perf_contract_smoke.sh` now gates `patten_capacity` and rejects
   match case / patten regression to count-only append.
 - Verified slice probes: direct GCC compile probes for `parser_stmt.c` and
   `ast_constructors.c`.
@@ -17263,7 +17263,7 @@ Source of truth:
 
 - Enum method lists now carry explicit capacity and grow geometrically during
   parsing instead of reallocating to `method_count + 1` per method.
-- `tests/perf_contract_smoke.sh` now rejects enum method append regression to
+- `tests/perf/perf_contract_smoke.sh` now rejects enum method append regression to
   count-only growth.
 - Verified slice probe: direct GCC compile probe for `parser_enum.c`.
 
@@ -17272,7 +17272,7 @@ Source of truth:
 - Lambda parameter lists now carry explicit capacity and use the shared
   expression-list capacity helper. The old count-only `parser_append_expr_node`
   helper was removed from `parser_expr.c`.
-- `tests/perf_contract_smoke.sh` now rejects expression append paths that bypass
+- `tests/perf/perf_contract_smoke.sh` now rejects expression append paths that bypass
   the capacity helper.
 - Verified slice probes: direct GCC compile probes for `parser_expr.c` and
   `ast_domain_tail_constructors.c`.
@@ -17289,7 +17289,7 @@ Source of truth:
   domain parser helper seam, so relation/effect/zone projection entries use the
   same capacity contract.
 - The parser `count+1` append scan for the tracked pattens is now empty.
-  `tests/perf_contract_smoke.sh` rejects regression in the shared domain
+  `tests/perf/perf_contract_smoke.sh` rejects regression in the shared domain
   helpers.
 - Verified slice probes: direct GCC compile probes for `parser_domain.c`,
   `parser_domain_relation_effect.c`, `parser_domain_zone.c`,
@@ -17302,7 +17302,7 @@ Source of truth:
   `parser_doc.c`.
 - The tracked `count+1` append scan across `src/**/*.c` and `src/**/*.h` is now
   empty for the grep pattens used by the perf/debt audit.
-- `tests/perf_contract_smoke.sh` now gates structured-comment tag capacity and
+- `tests/perf/perf_contract_smoke.sh` now gates structured-comment tag capacity and
   rejects regression to `tag_count + 1`.
 - Verified slice probe: direct GCC compile probe for `parser_doc.c`.
 
@@ -17318,7 +17318,7 @@ Source of truth:
   ad-hoc error routing to the central helper.
   These remain honest hard errors; the change closes diagnostic routing drift,
   not the underlying declaration inventory TODO.
-- `tests/mir_declaration_inventory_smoke.sh` now gates the helper and rejects
+- `tests/ir/mir_declaration_inventory_smoke.sh` now gates the helper and rejects
   plain-error regression for these MIR-missing diagnostics.
 - Verified slice probes: direct GCC compile probes for `llvm_error.c`,
   `llvm_intent.c`, and `llvm_pipeline.c` with `PGY_LLVM_ENABLED`.
@@ -17442,7 +17442,7 @@ Local verification for this debt refresh:
   `mir_declaration_inventory_smoke.sh`,
   `type_resolution_resolver_inventory_smoke.sh`, `source_utf8_smoke.sh`, and
   `test_inc_size_smoke.sh`.
-- `tests/type_resolution_dag_smoke.sh` was not run locally because it requires
+- `tests/ir/type_resolution_dag_smoke.sh` was not run locally because it requires
   `SEMANTIC_TEST_BIN`. Full `make` regression was not run in this environment.
 
 ## Progress - 2026-05-02 - Thread Pool Usage Fact Tightening

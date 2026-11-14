@@ -69,7 +69,7 @@ by this lane. Other sessions' changes were preserved.
 - Its preceding comment now names native concurrency execution and semantic
   rejection across C/LLVM, explicitly excluding self-host substitution.
   No example, expected output, compiler selection, or assertion changed.
-- `tests/gate_subject_declaration_smoke.sh` passed under a 60-second timeout:
+- `tests/repo/gate_subject_declaration_smoke.sh` passed under a 60-second timeout:
   56 native-subject gates declare a subject, with no self-host-subject opt-out.
 
 ## Additional local verification

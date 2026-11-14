@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Every leg panics the same way on a runtime hard failure, and the output a
-# program printed before the panic survives it. tests/runtime_panic_codegen_smoke.sh
+# program printed before the panic survives it. tests/runtime/runtime_panic_codegen_smoke.sh
 # runs the native pipeline only, so a default route that returned a payload
 # for UnwrapOption(None), or a panic that dropped buffered stdout, reached no
 # gate.

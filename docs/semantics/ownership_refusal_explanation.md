@@ -102,9 +102,9 @@ budget is unchanged. Independent proposition consumers are in
 Run on Linux through the pinned Rocq 9.3.0 / Stdlib 9.2.0 wrapper:
 
 ```sh
-bash scripts/run_rocq_toolchain.sh timeout 300 bash tests/ownership_refusal_explanation_smoke.sh
-bash scripts/run_rocq_toolchain.sh timeout 300 bash tests/ownership_refusal_explanation_selftest.sh
-bash scripts/run_rocq_toolchain.sh timeout 1800 bash tests/formal_semantics_smoke.sh
+bash scripts/run_rocq_toolchain.sh timeout 300 bash tests/ownership/ownership_refusal_explanation_smoke.sh
+bash scripts/run_rocq_toolchain.sh timeout 300 bash tests/ownership/ownership_refusal_explanation_selftest.sh
+bash scripts/run_rocq_toolchain.sh timeout 1800 bash tests/proof/formal_semantics_smoke.sh
 ```
 
 Set an explicit installed `OPAMROOT` first. The focused gate uses the existing

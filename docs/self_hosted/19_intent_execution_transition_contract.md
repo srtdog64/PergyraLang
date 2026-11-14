@@ -324,7 +324,7 @@ C/LLVM consumers use the admitted zone without an AST or source re-read.
 Native C and LLVM return early into target-specific
 projections of that plan; typed mode does not fall through to the legacy Bool
 emitter or rescan the AST.  The native execution gate
-`tests/intent_typed_transition_native_execution_smoke.sh` observes success,
+`tests/language/intent_typed_transition_native_execution_smoke.sh` observes success,
 `failure A`, `failure B`, failure-B compensation of completed A only, and
 reverse traversal of multiple predecessor compensations on both backends.
 

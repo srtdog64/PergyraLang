@@ -272,7 +272,7 @@ parallel_block  ::= "parallel" "(" x "in" expr [ ".." expr ] ")"
 
 ## 7. Rocq/Coq 커널 검증 — 실측 결과
 
-`tests/coq_kernel_check.sh` 게이트를 WSL2(Ubuntu, Coq 8.18.0)에서 실제
+`tests/proof/coq_kernel_check.sh` 게이트를 WSL2(Ubuntu, Coq 8.18.0)에서 실제
 실행했다. 결과는 **통과(exit 0)**:
 
 ```

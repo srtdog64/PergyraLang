@@ -96,7 +96,7 @@ Rows: `abi.intent_observability_rows`, `abi.layout_rows`,
 The primary task is the only integration owner. It must compare the report
 table owner-ID union with the current registry's `BRIDGE|ACTIVE` set and reject
 any missing, extra, or duplicate row. That exact set-equality check is the one
-integration gate for this audit. `tests/sot_authority_edge_smoke.sh` remains the
+integration gate for this audit. `tests/proof/sot_authority_edge_smoke.sh` remains the
 live registry prerequisite; it does not promote an audit proposal into an
 implementation rung.
 

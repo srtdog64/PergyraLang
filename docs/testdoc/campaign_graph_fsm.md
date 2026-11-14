@@ -118,7 +118,7 @@ It has:
 
 - exact stdout golden: `expected_stdout.txt`
 - exact report golden: `expected_results.txt`
-- example smoke coverage in `tests/example_contract_smoke.sh`
+- example smoke coverage in `tests/repo/example_contract_smoke.sh`
 
 Backends:
 

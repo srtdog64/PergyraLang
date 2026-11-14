@@ -1,7 +1,7 @@
 // src/self_hosted/tools/ast_read_surface_checker/main.pgy
 //
 // Status: rung-2 DirWalk-owned (2026-06-15). Reads the shared
-// tests/ast_read_surface_ratchet.txt metric spec, counts literal AST read
+// tests/repo/ast_read_surface_ratchet.txt metric spec, counts literal AST read
 // markers by walking each metric scope with DirWalk, and emits the same growth
 // verdict as the shell smoke.
 //

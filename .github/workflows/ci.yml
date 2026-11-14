@@ -89,18 +89,18 @@ jobs:
       - name: Run Markdown contract target
         if: needs.classify-changes.outputs.markdown_only == 'true'
         run: |
-          bash tests/documentation_quality_smoke.sh
-          bash tests/post_selfhost_validation_manifest_smoke.sh
-          bash tests/sot_authority_edge_smoke.sh
-          bash tests/self_host_progress_metric_smoke.sh
+          bash tests/repo/documentation_quality_smoke.sh
+          bash tests/registry/post_selfhost_validation_manifest_smoke.sh
+          bash tests/proof/sot_authority_edge_smoke.sh
+          bash tests/self_hosted/gates/self_host_progress_metric_smoke.sh
 
       - name: Check native clock ABI and admitted scalar call widening
         if: needs.classify-changes.outputs.markdown_only != 'true'
         env:
           PGY_BIN: ./bin/pgy
         run: |
-          bash tests/runtime_now_compiler_smoke.sh
-          bash tests/call_scalar_widening_smoke.sh
+          bash tests/runtime/runtime_now_compiler_smoke.sh
+          bash tests/language/call_scalar_widening_smoke.sh
 
   build-linux-self-host-contracts:
     needs: [classify-changes, backend-compare-toolchain-linux, formal-proofs-rocq9]
@@ -198,7 +198,7 @@ jobs:
         env:
           PGY_BIN: ${{ github.workspace }}/bin/pgy
           CC: clang
-        run: bash tests/string_clone_release_smoke.sh
+        run: bash tests/ownership/string_clone_release_smoke.sh
 
       - name: Run EMITTED programs under ASan+UBSan
         # The step above sanitizes the compiler; this sanitizes what it emits.
@@ -430,7 +430,7 @@ jobs:
       - name: Run the bootstrap policy corpus on both drivers
         run: |
           chmod +x .tmp/self_hosted/driver/bootstrap/driver_seed.exe
-          PGY_BIN="$PWD/bin/pgy" bash tests/selfhost_bootstrap_policy_corpus_smoke.sh
+          PGY_BIN="$PWD/bin/pgy" bash tests/self_hosted/gates/selfhost_bootstrap_policy_corpus_smoke.sh
 
       - name: Publish the exact fixed-point profile receipt
         uses: actions/upload-artifact@v4

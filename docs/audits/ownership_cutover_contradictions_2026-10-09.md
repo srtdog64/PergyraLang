@@ -43,7 +43,7 @@ preservation remain unchanged.
 
 ## Observed checks
 
-- `tests/documentation_quality_smoke.sh`: PASS (60 s budget).
+- `tests/repo/documentation_quality_smoke.sh`: PASS (60 s budget).
 - Strict UTF-8, replacement-character, local Markdown-target and text-hygiene
   checks over all eight edited documents: PASS, 48 local link targets.
   Intentional two-space Markdown hardbreaks are retained. These checks and

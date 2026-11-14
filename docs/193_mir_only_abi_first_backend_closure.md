@@ -90,7 +90,7 @@ parameter and local registration as well. Once strict MIR signature admission
 has succeeded, a missing parameter or local type-name fact cannot be repaired
 from the retained `FuncParam.type` AST node, including the generic-substitution
 and versioned-local setup paths. The legacy AST conversion remains available
-only before MIR admission. `tests/backend_fail_closed_smoke.sh` carries the
+only before MIR admission. `tests/backend/backend_fail_closed_smoke.sh` carries the
 negative source-shape checks, while the C/LLVM 75-fixture codegen parity and
 DRV-2 producer-first body/MIR parity gates exercise the owner-carried path.
 
@@ -182,7 +182,7 @@ declaration emission. The C path keeps the same MIR callable owner, so the two
 backends project the ABI differently while consuming one row.
 
 The executable evidence is the LLVM object compile, the full LLVM compiler
-link, `mir-declaration-inventory-test-smoke`, and `tests/llvm_smoke.sh` (which
+link, `mir-declaration-inventory-test-smoke`, and `tests/backend/llvm_smoke.sh` (which
 includes `event_system`). This is a bounded routine-declaration sub-rung, not
 full LLVM declaration/bootstrap closure: the wider domain bootstrap inventory
 and runtime-call ABI rows remain separate open seams.
@@ -226,7 +226,7 @@ is a MIR inventory error in either backend; neither active path re-queries
 `ast_event_param`/`ast_let_type`. The retained AST event branch is only the
 legacy compatibility lane. This is an ABI sub-rung under the AIR-admitted
 projection plan, not a claim that event operation bodies or all LLVM bootstrap
-state have independently closed. `tests/llvm_smoke.sh` exercises the
+state have independently closed. `tests/backend/llvm_smoke.sh` exercises the
 `event_system` fixture on LLVM, and the same fixture is run through the C
 backend parity path.
 
@@ -615,7 +615,7 @@ The C last consumer is now fail-closed as well. When MIR is active,
 layout and matching `LayoutId`; it cannot reconstruct a layout with
 `mir_abi_lookup(abi_type_name)`. That lookup remains only on the legacy
 non-MIR path. The backend guard is covered by
-`tests/backend_fail_closed_smoke.sh`, while AIR-bound validation remains the
+`tests/backend/backend_fail_closed_smoke.sh`, while AIR-bound validation remains the
 earlier shared admission gate for both C and LLVM.
 
 LLVM versioned-DEF copying follows the same rule. Once a MIR routine is active,

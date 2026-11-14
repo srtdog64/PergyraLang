@@ -39,7 +39,7 @@ by hand against every reference in the repository, including docs:
   line (the pin went with it);
 - three `machine_layer_*_parity.sh` wrappers with no assertion of their own
   that printed SKIP with exit 0, and their manual-inventory rows. **Restored
-  in the next source commit:** `tests/self_hosted_scaffold_smoke.sh` requires
+  in the next source commit:** `tests/self_hosted/gates/self_hosted_scaffold_smoke.sh` requires
   a parity script for every tool under `src/self_hosted/tools/`, and these are
   the ones for `machine_layer_air_validator`, `machine_layer_mir_projection_probe`
   and `machine_layer_rir_validator`. The verification below did not run that
@@ -69,7 +69,7 @@ it made that gate red.
 | a script run twice in one job (`Makefile:3054` vs `:2561`), the `self-host-lex-minimal` alias | the Makefile is part of another session's uncommitted work |
 | the two medium-confidence RETIRE candidates `mir_resource_graph_owner_smoke.sh`, `driver_rung2_generic_default_contract_parity.sh` | medium confidence: the successor's coverage was not shown assertion by assertion |
 | orphan fixtures a README describes as checks (`tests/self_hosted/fixtures/*_fact.pgy`, four `concept_semantics/authority_effect/generic_identity_*`) | wire them or fix the README; either is a decision |
-| `tests/alpha_full_keyword_test.pgy` | named by `docs/47` |
+| `tests/language/alpha_full_keyword_test.pgy` | named by `docs/47` |
 | the no-python fallbacks (`run_literal_*`, 940 assertions, already rotted in `cfg_body_dataflow_smoke.sh`) | they exist for hosts without Python; dropping them is a support decision |
 | 40 `examples/` files no checker reads, and `examples/calendar/` superseded by `calendar_working` | a documentation decision |
 

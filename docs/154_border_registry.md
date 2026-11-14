@@ -3,7 +3,7 @@
 Status: `registry, gate-locked`. BDFL 프레임(2026-07-04): 코드베이스를
 프로세스(파이프라인 단계)가 아니라 **구획면(border)**으로 조직한다 —
 docs/151 §4 간선 등록부의 코드베이스 판. `border-registry-test-smoke`
-(tests/border_registry_smoke.sh)가 이 등기부의 실행형이다: **등재되지
+(tests/registry/border_registry_smoke.sh)가 이 등기부의 실행형이다: **등재되지
 않은 경계 교차 include = FAIL**. 순수 텍스트 검사라 CI에서 항상
 load-bearing (twin-parity 게이트 계보).
 
@@ -71,7 +71,7 @@ load-bearing (twin-parity 게이트 계보).
 
 | rung | 내용 | 상태 |
 |---|---|---|
-| B-0 | 등기부 + include-edge smoke | **landed** (이 문서 + tests/border_registry_smoke.sh) |
+| B-0 | 등기부 + include-edge smoke | **landed** (이 문서 + tests/registry/border_registry_smoke.sh) |
 | B-1 | 무명 face 정정 (3헤더 개명, 死include 판정, face 등재) | **landed** (§2) |
 | B-2 | 폴더 구획 + `.c`/`.h` 쌍 정렬 — 경계별 opportunistic, big-bang 금지. 이사 시 갱신 목록: Makefile 소스 목록·MIR allowlist(2곳)·twin parity 목록·cache deps·게이트 경로 | planned |
 

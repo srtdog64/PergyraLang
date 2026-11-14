@@ -137,7 +137,7 @@ verify_completion.py, verify_identity.py and their JSON receipts.
 
 Full integration remains OPEN, with observed failures rather than omissions:
 
-1. tests/lsp_completion_registry_smoke.sh's current native 28-item probe
+1. tests/registry/lsp_completion_registry_smoke.sh's current native 28-item probe
    passes, then full self-host LSP compilation on the default installed
    driver fails with unsupported collection runtime kind: Slice<String>.
    Reached refusal owner: collection_runtime_owner.pgy. Log: lsp.log.

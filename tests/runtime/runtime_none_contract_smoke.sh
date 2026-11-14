@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Subject of this gate:
+#   --runtime=none stopped rejecting runtime-dependent surface.
+# That is a fact about the native pipeline, so the gate compiles
+# in-process instead of delegating to the installed self-host driver.
+# Delegated, a self-host coverage gap would read as a regression in
+# the subject above. Declared per harness because the compiler is
+# reached through make and nested scripts, and the variable is the
+# same declared opt-out as --native-pipeline -- never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+PGY_BIN_WAS_DEFAULT=0
+if [[ -z "${PGY_BIN:-}" ]]; then
+    PGY_BIN="$ROOT_DIR/bin/pgy"
+    PGY_BIN_WAS_DEFAULT=1
+fi
+PGY_BIN="$(pgy_select_optional_exe_binary "$PGY_BIN")"
+WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-runtime-none.XXXXXX")"
+trap 'rm -rf "$WORK_DIR"' EXIT
+
+if [[ ! -x "$PGY_BIN" ]]; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
+        echo "[runtime-none-contract] SKIP executable probe; compiler binary unavailable"
+        exit 0
+    fi
+    echo "[runtime-none-contract] missing compiler binary: $PGY_BIN" >&2
+    exit 1
+fi
+if ! pgy_binary_is_runnable_here "$PGY_BIN"; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
+        echo "[runtime-none-contract] SKIP executable probe; binary is not runnable on this host: $PGY_BIN"
+        exit 0
+    fi
+    pgy_require_runnable_binary_here "runtime-none-contract" "$PGY_BIN"
+fi
+if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
+        echo "[runtime-none-contract] SKIP executable probe; compiler binary unavailable"
+        exit 0
+    fi
+    echo "[runtime-none-contract] compiler binary is not runnable: $PGY_BIN" >&2
+    cat "$WORK_DIR/pgy-help.err" >&2
+    exit 1
+fi
+
+pgy_path_arg() {
+    pgy_path_for_compiler "$PGY_BIN" "$1"
+}
+
+run_reject() {
+    local name="$1"
+    local source="$2"
+    local expected="$3"
+    local log="$WORK_DIR/${name}.json"
+    local source_arg
+
+    source_arg="$(pgy_path_arg "$source")"
+
+    if "$PGY_BIN" "$source_arg" --runtime=none --error-format=json >"$WORK_DIR/${name}.out" 2>"$log"; then
+        echo "[runtime-none-contract] expected rejection for $name" >&2
+        exit 1
+    fi
+    for term in \
+        "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED" \
+        "\"stage\":\"driver\"" \
+        "driver:runtime:none_unsupported" \
+        "use-default-runtime-or-remove-runtime-surface" \
+        "$expected"; do
+        if ! grep -Fq "$term" "$log"; then
+            echo "[runtime-none-contract] $name missing diagnostic term: $term" >&2
+            cat "$log" >&2
+            exit 1
+        fi
+    done
+}
+
+cat >"$WORK_DIR/array_late_runtime_surface.pgy" <<'PGY'
+func Main() -> Void {
+    let source: Array<Int> = [2];
+    let values: Array<Array<Int>> = [
+        [1],
+        parallel (x in source) join with all { give x; }
+    ];
+    Log(0);
+}
+PGY
+
+cat >"$WORK_DIR/tuple_late_runtime_surface.pgy" <<'PGY'
+func Main() -> Void {
+    let source: Array<Int> = [2];
+    let values = (1, parallel (x in source) join with all { give x; });
+    Log(0);
+}
+PGY
+
+cat >"$WORK_DIR/pin_runtime_surface.pgy" <<'PGY'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot<Int>();
+    pin scores as view: ReadView<Int> {
+        Log(1);
+    }
+    Release(scores);
+}
+PGY
+
+run_reject "parallel" "$ROOT_DIR/examples/concurrency_demo.pgy" "parallel"
+run_reject "channel" "$ROOT_DIR/examples/channel_test.pgy" "channel"
+run_reject "intent" "$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy" "intent"
+run_reject "world" "$ROOT_DIR/tests/cases/backend_compare/world_zone_projection_visibility/main.pgy" "world"
+run_reject "pin-runtime-surface" "$WORK_DIR/pin_runtime_surface.pgy" "pin"
+run_reject "array-late-runtime-surface" "$WORK_DIR/array_late_runtime_surface.pgy" "parallel"
+run_reject "tuple-late-runtime-surface" "$WORK_DIR/tuple_late_runtime_surface.pgy" "parallel"
+run_reject "pure-freestanding-blocked" "$ROOT_DIR/tests/cases/backend_compare/basic/main.pgy" "freestanding backend lowering is not implemented yet"
+
+echo "[runtime-none-contract] --runtime=none rejects runtime surfaces and blocks false freestanding claims"

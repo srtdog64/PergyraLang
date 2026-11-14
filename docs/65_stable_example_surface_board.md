@@ -32,8 +32,8 @@ module ecosystem tracks after beta closure.
 
 - 예제는 문서보다 먼저 사용자에게 "무엇이 진짜 되는가"를 가르친다
 - 따라서 sketch 예제와 stable 예제를 같은 톤으로 두면 surface trust가 깨진다
-- 현재는 `tests/example_contract_smoke.sh`를 stable example source of truth로 보고,
-  dogfood bridge 예제는 `tests/dogfood_webgl_smoke.sh`가 별도 gate로 밟는다
+- 현재는 `tests/repo/example_contract_smoke.sh`를 stable example source of truth로 보고,
+  dogfood bridge 예제는 `tests/repo/dogfood_webgl_smoke.sh`가 별도 gate로 밟는다
 
 ## 1. Stable examples (`compile-smoke covered`)
 
@@ -169,7 +169,7 @@ module ecosystem tracks after beta closure.
 ## 4. 운영 규칙
 
 1. 새 stable 예제를 추가할 때
-- `tests/example_contract_smoke.sh` 또는 동급 smoke에서 직접 밟혀야 한다
+- `tests/repo/example_contract_smoke.sh` 또는 동급 smoke에서 직접 밟혀야 한다
 - 가능하면 파일 헤더에 `compile-smoke covered example`를 명시한다
 
 2. sketch 예제를 추가할 때

@@ -106,12 +106,12 @@ single global lifecycle is inferred from that coincidence.
 | Combination | Counterexample after deleting Slot identity/state | Why a neighbor cannot decide it |
 | --- | --- | --- |
 | `Slot + Release + Read` | Two executions have the same `Int` value, scope, and capabilities; one handle is occupied and one was released. `Read` must accept only the first. The durable negative is `tests/cases/slot_contract/reject/released_slot_read/main.pgy:1-6`. | A plain `Int` has no generation or tombstone. Adding them to a wrapper recreates Slot. Lexical scope cannot decide runtime reuse. |
-| `SecureSlot + Token + Write` | Same slot and same zone, but an issued token and a foreign/stale token must produce different verdicts. `tests/slot_contract_smoke.sh:45-60` covers secure success, wrong-token write, and released secure read. | `Capability` can say `write` is permitted in general; it does not identify the token issued for this handle generation. |
+| `SecureSlot + Token + Write` | Same slot and same zone, but an issued token and a foreign/stale token must produce different verdicts. `tests/ir/slot_contract_smoke.sh:45-60` covers secure success, wrong-token write, and released secure read. | `Capability` can say `write` is permitted in general; it does not identify the token issued for this handle generation. |
 | `Slot + pin + ReadView/WriteView + loop exits` | A view must be cleaned on normal exit, return, branch, `break`, and `continue`, while release/move or owner access conflicting with the live view is rejected. The positive control exercises loop `break`/`continue` in `tests/cases/slot_contract/positive/pin_read_write_cleanup/main.pgy:1-27`; the owner contract lists the explicit cleanup edges at `docs/semantics/08_slot_capability_calculus.md:115-151`. | `Scope` supplies the lexical interval but not which resource generation is pinned or whether the lease is read/write. `Capability` supplies mode but not cleanup identity. |
-| `DeviceSlot + RemoteFuture + Result` | A device-backed read may complete after the dynamic resource was released and must become the owned failure rather than a valid value. The C/LLVM contract matrix includes `device_slot_async_read`, `device_released_read`, and `device_double_release` (`tests/slot_contract_smoke.sh:45-60`). | Future completion owns join and `Result` owns failure shape; neither owns device-handle freshness. |
+| `DeviceSlot + RemoteFuture + Result` | A device-backed read may complete after the dynamic resource was released and must become the owned failure rather than a valid value. The C/LLVM contract matrix includes `device_slot_async_read`, `device_released_read`, and `device_double_release` (`tests/ir/slot_contract_smoke.sh:45-60`). | Future completion owns join and `Result` owns failure shape; neither owns device-handle freshness. |
 | `Slot + parallel` | Same task structure and same declared permissions, but sibling read/read is admissible while read/write and write/write are not (`docs/113_memory_concurrency_model.md:70-82`). | `parallel` knows concurrency but needs Slot's stable resource identity to know that two accesses alias. |
 
-**Observed run (2026-09-05):** `tests/slot_contract_smoke.sh` passed on C and
+**Observed run (2026-09-05):** `tests/ir/slot_contract_smoke.sh` passed on C and
 LLVM with four positive families and seven rejection families.
 
 **Inference:** `Slot` passes the deletion test strongly. Removing only the word
@@ -145,7 +145,7 @@ complete borrow checker”; the owner contract explicitly rejects that claim.
 | --- | --- | --- |
 | `Zone + subject slot + copy/ref` | `let copied: CounterZone = first` must not silently duplicate the lock/resource owner, while `func Observe(ref value: CounterZone)` is admitted. The negative and positive are `tests/self_hosted/fixtures/domain_runtime_zone_copy_threadsafe_rejected.pgy:1-12` and `domain_runtime_zone_parameter_ref.pgy:1-20`. | A struct type sees equal fields in both cases. `Scope` sees both values alive. Only a resource-boundary identity plus a carriage rule separates copy from borrow/transfer. |
 | `Zone + Ability + Authority + Action + Intent` | `CockpitZone` binds authority to its `driver` slot; an intent step must keep `using`, actor, approval, postcondition, and projection in that exact zone (`tests/cases/backend_compare/intent_zone_binding/main.pgy:1-35`). The gate's negatives include where/using drift, undeclared authority slot, and ambiguous/missing subject slots (`tests/self_hosted/parity/intent_step_binding_contract_owner.sh:27-47`). | Ability states what the driver can do and authority states who approves. Neither names the residence in which the action and projection are valid. Encoding residence into every capability produces capability-per-zone products and still needs the zone topology owner. |
-| `World + embedded Zone + effect/state + frontier` | Two worlds can carry equal visible values but different dirty/ready epochs and embedded-zone provenance. Bounded recompute must converge or fail with a distinct overflow class (`docs/semantics/01_intent_world_zone.md:77-97`; `tests/runtime_frontier_contract_smoke.sh:413-442`). | A lexical scope cannot represent a persistent world/zone frontier. Slot generations identify resources, not the dependency graph between zone state and world projections. |
+| `World + embedded Zone + effect/state + frontier` | Two worlds can carry equal visible values but different dirty/ready epochs and embedded-zone provenance. Bounded recompute must converge or fail with a distinct overflow class (`docs/semantics/01_intent_world_zone.md:77-97`; `tests/runtime/runtime_frontier_contract_smoke.sh:413-442`). | A lexical scope cannot represent a persistent world/zone frontier. Slot generations identify resources, not the dependency graph between zone state and world projections. |
 | `Zone + spawn + own/ref` | A zone sent to outstanding work must preserve its ABI/ownership boundary. The current adversarial audit records an **open implementation hole**: native C emission can publish an invalid artifact for `own/ref CounterZone` spawn crossings (`docs/audits/2026-09-05_counterexample_attack_results.md:157-176`). | This is not evidence that Zone is removable; it is evidence that the Zone fact is not yet carried through every execution boundary. Treating ordinary task capture as a substitute loses the exact fact that the missing gate needs. |
 
 **Observed run (2026-09-05):**
@@ -183,7 +183,7 @@ of implementation completeness.
 | --- | --- | --- |
 | `func with caps + call graph + clock` | `entry` declares `io_read`, calls a helper, and only the helper calls `Now()`. The compiler must still reject `entry` for missing `clock` (`tests/capability/manifest_interproc.pgy:1-11`; `tests/capability/run_manifest.sh:2-14,53-70`). | A lexical scope sees no local clock call. An `Ability` bound on `entry` does not compute transitive ambient effects. A coarse nondeterministic effect cannot distinguish clock from random. |
 | `file handle + host grant + no partial artifact` | The same compiled write operation is allowed under `io_write` and denied under `io_read`; denial must occur before the success marker and leave no file artifact (`tests/capability/run_runtime_enforce.sh:128-148`). | Zone says where the file operation occurs, not whether the host granted write. Authority may name an approver, but it does not replace the host's fine-grained operation mask. |
-| `spawn/coroutine + capability context` | A child running on inline, blocking, worker, movable, C-extern, or LLVM lanes must inherit the parent's exact mask and restore the surrounding mask; executor TLS must not widen it (`docs/113_memory_concurrency_model.md:38-68`; `tests/runtime_spawn_context_propagation_smoke.sh:61-71,131-166`). | Scope contains the child but has no permission lattice. Zone residence can stay unchanged while the parent grant differs. |
+| `spawn/coroutine + capability context` | A child running on inline, blocking, worker, movable, C-extern, or LLVM lanes must inherit the parent's exact mask and restore the surrounding mask; executor TLS must not widen it (`docs/113_memory_concurrency_model.md:38-68`; `tests/parallel/runtime_spawn_context_propagation_smoke.sh:61-71,131-166`). | Scope contains the child but has no permission lattice. Zone residence can stay unchanged while the parent grant differs. |
 | `Zone crossing + Capability + Authority` | Same origin/destination zone and actor, but a held and missing entry capability must yield different crossing judgments (`docs/semantics/proofs/ZoneCrossingCore.v:94-117`). | Folding the bit into Zone makes every host grant a different zone. Folding it into Authority loses the distinction between a capability set and the grant/delegation history; `AuthorityIrreducibility.v:72-97` separately proves that authority is not reducible to capability × zone. |
 
 **Observed runs (2026-09-05):**
@@ -191,7 +191,7 @@ of implementation completeness.
 - `tests/capability/run_manifest.sh` passed after explicitly selecting
   `PGY_BIN=bin/pgy.exe`: two clean programs and eight under-declaration
   families, including the interprocedural clock case.
-- `tests/runtime_spawn_context_propagation_smoke.sh` passed its inline,
+- `tests/parallel/runtime_spawn_context_propagation_smoke.sh` passed its inline,
   C-extern, and LLVM-runtime lane checks.
 - The first Windows/Git-Bash manifest invocation used the script default
   `bin/pgy` and returned launch status 126. That launch failure is not counted
@@ -233,9 +233,9 @@ would also erase the repository's deliberate coarse/fine distinction.
 | `Cancel + Future + scope exit` | `Cancel` requests cancellation but does not retire or free the handle; an await or own transfer is still required before scope exit (`docs/113_memory_concurrency_model.md:232-275,277-282`). | Cancellation state and completion ownership are distinct. Treating cancel as scope closure would admit a still-running/orphaned task. |
 
 **Observed run (2026-09-05):**
-`tests/structured_spawn_lifecycle_smoke.sh` passed: its matrix includes nineteen
+`tests/parallel/structured_spawn_lifecycle_smoke.sh` passed: its matrix includes nineteen
 positive forms plus scope-exit, branch, loop, alias, transfer, and repeated-use
-negatives (`tests/structured_spawn_lifecycle_smoke.sh:42-63,166-181,212-258`).
+negatives (`tests/parallel/structured_spawn_lifecycle_smoke.sh:42-63,166-181,212-258`).
 
 **Inference:** the semantic coordinate passes deletion; a generic surface
 keyword does not. Current constructs already expose the meaningful boundary:
@@ -353,12 +353,12 @@ the following falsifiers:
 
 Observed in this audit session:
 
-- `tests/slot_contract_smoke.sh`: PASS, C and LLVM, four positive and seven
+- `tests/ir/slot_contract_smoke.sh`: PASS, C and LLVM, four positive and seven
   rejection families.
 - `PGY_BIN=bin/pgy.exe tests/capability/run_manifest.sh`: PASS, two clean and
   eight under-declaration families.
-- `tests/structured_spawn_lifecycle_smoke.sh`: PASS.
-- `tests/runtime_spawn_context_propagation_smoke.sh`: PASS on inline, C-extern,
+- `tests/parallel/structured_spawn_lifecycle_smoke.sh`: PASS.
+- `tests/parallel/runtime_spawn_context_propagation_smoke.sh`: PASS on inline, C-extern,
   and LLVM-runtime lanes.
 - `tests/self_hosted/parity/domain/domain_runtime_zone_sync_execution_owner.sh`: PASS,
   including zone carriage and parameter admission sub-gates.

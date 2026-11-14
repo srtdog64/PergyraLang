@@ -102,7 +102,7 @@ not. Compensation addresses worker starvation, not dependency cycles. Neither
 mechanism is redundant and neither generalises to the other's lane. Source-text
 anchors in `tests/parallel_model_adequacy_smoke.sh` are not an implementation
 simulation. The permanent red-team consumer and fresh kernel gate are
-`tests/coq/AsyncReuseRedteamRegression.v` and `tests/async_reuse_redteam_smoke.sh`.
+`tests/coq/AsyncReuseRedteamRegression.v` and `tests/parallel/async_reuse_redteam_smoke.sh`.
 
 ## 2. `ParallelReductionCore.v` — the join is schedule- and worker-invariant
 
@@ -189,7 +189,7 @@ the parallel gates check empirically.
 
 ```
 make parallel-model-adequacy-test-smoke   # model still describes the code
-bash tests/coq_kernel_check.sh            # theorems still hold, axiom budget pinned
+bash tests/proof/coq_kernel_check.sh            # theorems still hold, axiom budget pinned
 ```
 
 The kernel check is the one that matters for the proofs: `coqc` only says the

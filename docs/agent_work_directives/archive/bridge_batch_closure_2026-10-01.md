@@ -24,7 +24,7 @@ Baseline: 70 unrelated dirty status entries; `CLOSED=69 BRIDGE=24 ACTIVE=2`.
   narrowed row identity disguised as closure, or CLOSED without source deletion
   and executable negative evidence.
 - Integration owner: root. Phase-one gate is
-  `tests/sot_authority_edge_smoke.sh`, which verifies the baseline inventory,
+  `tests/proof/sot_authority_edge_smoke.sh`, which verifies the baseline inventory,
   not compiler behavior. Root fixes one shared executable integration gate and
   independent edit scopes for the selected rung before implementation begins.
 - Budget: 60 seconds for static gates, 5 minutes for a focused executable

@@ -89,11 +89,11 @@ Status: `wiring-doc, inventory-gated`. docs/138이 **무엇을**(scope ledger)
 | module | layer | status | gate |
 | --- | --- | --- | --- |
 | option.pgy | core | active | tests/cases/backend_compare/stdlib_option_bridges |
-| strview.pgy | core | active | tests/string_window_builtins_smoke.sh |
+| strview.pgy | core | active | tests/ownership/string_window_builtins_smoke.sh |
 | math.pgy | core | sketch | - |
 | datetime.pgy | domain | sketch | - |
 | device_adapter.pgy | domain | sketch | - |
-| host_task_slot.pgy | core | active | tests/host_task_policy_smoke.sh |
+| host_task_slot.pgy | core | active | tests/parallel/host_task_policy_smoke.sh |
 | http.pgy | domain | sketch | - |
 | ledger.pgy | domain | sketch | - |
 | money.pgy | domain | sketch | - |
@@ -106,7 +106,7 @@ Status: `wiring-doc, inventory-gated`. docs/138이 **무엇을**(scope ledger)
 <!-- STDLIB-INVENTORY-END -->
 
 `host_task_slot.pgy`의 inventory gate는 최신 typed policy admission을 대표한다.
-기존 stale-ticket wait/final/cleanup 계약은 `tests/host_task_slot_smoke.sh`가 계속
+기존 stale-ticket wait/final/cleanup 계약은 `tests/parallel/host_task_slot_smoke.sh`가 계속
 소유하며, `make stdlib-test-smoke`가 lifecycle gate와 policy gate를 모두 실행한다.
 
 **sketch 일괄 판정 사유(2026-07-04 감사)**: 게이트 0 · caps 선언 0 ·

@@ -4359,7 +4359,7 @@ rewrite history.
 
 - Added AST read surface checker path facts to
   `test_harness_tool_paths_owner.pgy`: tool source, expected clean JSON, and
-  `tests/ast_read_surface_ratchet.txt`.
+  `tests/repo/ast_read_surface_ratchet.txt`.
 - Extended `test_harness_manifest.pgy` with the `ast-read-surface-paths` suite.
 - Repointed `ast_read_surface_checker_parity.sh` so shell reads tool/expected
   paths and the ratchet path from the manifest, then runs the compiled C
@@ -4603,7 +4603,7 @@ rewrite history.
 - Repointed summary reads through `JsonObjectFactValueBounds(root, "summary",
   ...)`, so nested `summary`-like text cannot satisfy the root summary contract.
 - Registered the newly added `stdlib_option_bridges` backend-compare fixture in
-  `tests/compare_backends.sh`; the default case inventory is complete again.
+  `tests/backend/compare_backends.sh`; the default case inventory is complete again.
 - Tightened the self-host preparation and component contracts against
   reintroducing root-key `StringContains` scans or treating nested AIR feature
   keys as document-root fields.
@@ -5570,7 +5570,7 @@ rewrite history.
 
 ### 2026-06-24 -- MIR-lower frontier wording is ratcheted to the parity inventory
 
-- Tightened `tests/self_hosted_component_contract_smoke.sh` so the MIR JSON
+- Tightened `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` so the MIR JSON
   positive fixture inventory must remain **77**, the clean-reject inventory must
   remain **2**, and the hard-self-host scorecard must cite the same
   **77 PASS / 0 gap plus 2 clean rejects** frontier.
@@ -5583,7 +5583,7 @@ rewrite history.
 ### 2026-06-24 -- Self-host compiler-stage owner shape is gated
 
 - Added an executable owner-shape contract to
-  `tests/self_hosted_component_contract_smoke.sh`.
+  `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`.
 - Active compiler-stage `main.pgy` files (`lexer`, `parser`, `semantic`,
   `codegen`, and `mir_lower`) must now stay entrypoint-only: exactly one
   `Main`, no local helper functions, and no control-flow/string-scan/JSON-fact/
@@ -5598,9 +5598,9 @@ rewrite history.
 - Split `src/self_hosted/semantic/semantic_run_owner.pgy` out of `main.pgy`.
   The new owner owns missing-input diagnostics, source-bundle selection, program
   checking, and final deterministic semantic verdict emission.
-- Tightened `tests/self_hosted_component_contract_smoke.sh` so semantic must
+- Tightened `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` so semantic must
   keep the run owner imported by the entrypoint.
-- Verified with: `bash tests/self_hosted_component_contract_smoke.sh`,
+- Verified with: `bash tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
   `make self-host-semantic-parity-test-smoke`, `make test-inc-size-test-smoke`,
   and `make self-host-preparation-test-smoke`.
 
@@ -5609,9 +5609,9 @@ rewrite history.
 - Split `src/self_hosted/parser/program_parse_owner.pgy` out of `main.pgy`.
   The new owner owns root source reads, root cursor initialization, top-level
   declaration parse invocation, and final compact AST `Program:` assembly.
-- Tightened `tests/self_hosted_component_contract_smoke.sh` so parser must keep
+- Tightened `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` so parser must keep
   the Program owner imported by the entrypoint.
-- Verified with `bash tests/self_hosted_component_contract_smoke.sh`,
+- Verified with `bash tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
   `make self-host-parser-parity-test-smoke`, `make test-inc-size-test-smoke`,
   and `make self-host-preparation-test-smoke`.
 
@@ -5622,9 +5622,9 @@ rewrite history.
   The input owner owns argv path selection, file reads, and MIR JSON schema
   gating; the Program owner owns document-order assembly and supported routine
   selection.
-- Tightened `tests/self_hosted_component_contract_smoke.sh` so `mir_lower`
+- Tightened `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` so `mir_lower`
   must keep both owners imported by the entrypoint.
-- Verified `bash tests/self_hosted_component_contract_smoke.sh` and
+- Verified `bash tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` and
   `make self-host-mir-json-parity-test-smoke`; MIR JSON parity remains
   **77 fixtures / 2 clean rejects** through
   `pgy --mir-json | mir_lower | codegen == C oracle`.
@@ -5634,7 +5634,7 @@ rewrite history.
 - Split `src/self_hosted/codegen/ast_input_owner.pgy` out of `main.pgy`.
   It owns AST path selection, the no-argument `hello_ast.txt` probe default,
   missing-file diagnostics, and the AST `ReadFile` boundary.
-- Tightened `tests/self_hosted_component_contract_smoke.sh` so codegen must keep
+- Tightened `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` so codegen must keep
   the AST-input owner imported by `main.pgy`.
 - Refreshed self-host LOC accounting to the current direct owner-file count:
   lexer/parser/semantic/codegen now measure **9713 Pergyra LOC** against
@@ -5649,7 +5649,7 @@ rewrite history.
 - Removed the obsolete `fixture/source.txt` input side channel from
   `src/self_hosted/lexer/main.pgy`. Lexer input is now `Args()[0]` or the
   no-arg `examples/hello.pgy` probe default.
-- Tightened `tests/self_hosted_component_contract_smoke.sh` so the retired
+- Tightened `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` so the retired
   lexer concat bridge and source-file fallback cannot reappear silently.
 
 ### 2026-06-23 -- Parser input boundary unified on argv
@@ -6344,9 +6344,9 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   invokes declaration dispatch. `decl_dispatch_owner.pgy` consumes the same
   source-path owner for recursive imports instead of recomputing dirname/import
   policy locally.
-- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+- Contract ratchet: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` now requires
   `source_path_owner.pgy` as part of the parser owner surface. Verified with
-  `tests/self_hosted_component_contract_smoke.sh`,
+  `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
   `tests/self_hosted/parity/frontend/parser_parity.sh`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
@@ -6358,7 +6358,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - `main.pgy` now only orchestrates the owned input and scanner output:
   `LexerDefaultSourcePath(args)` -> `LexerReadSource(path)` ->
   `LexContent(path, content)`.
-- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+- Contract ratchet: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` now requires
   `source_input_owner.pgy` as part of the lexer owner surface.
 
 ### 2026-06-23 -- codegen run boundary owner split
@@ -6368,9 +6368,9 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - `main.pgy` now stays entrypoint-only: it imports the codegen owners, reads
   `Args()`, and calls `RunCodegenFromArgs(args)`. AST path/file policy remains
   in `ast_input_owner.pgy`; C translation remains in `program_emit.pgy`.
-- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+- Contract ratchet: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` now requires
   `codegen_run_owner.pgy` as part of the codegen owner surface. Verified with
-  `bash tests/self_hosted_component_contract_smoke.sh`,
+  `bash tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
   `make self-host-codegen-parity-test-smoke`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
@@ -6382,10 +6382,10 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - `EmitLet`, `EmitAssign`, and `EmitReturn` still consume the same
   `EmitStructValue` boundary; literal/pass-through policy is now owned by the
   struct value owner.
-- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+- Contract ratchet: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` now requires
   `struct_value_emit.pgy`, requires `func EmitStructValue` there, and rejects
   that function in `stmt_emit.pgy`. Verified with
-  `bash tests/self_hosted_component_contract_smoke.sh`,
+  `bash tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
   `make self-host-codegen-parity-test-smoke`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
@@ -6398,10 +6398,10 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - `stmt_owner.pgy` now owns statement dispatch and shared block recursion;
   loop-statement syntax is consumed through the loop owner instead of a second
   in-file branch body.
-- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+- Contract ratchet: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` now requires
   `stmt_loop_owner.pgy`, requires `func ParseForStmt` there, and rejects that
   function in `stmt_owner.pgy`. Verified with
-  `bash tests/self_hosted_component_contract_smoke.sh` and
+  `bash tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` and
   `make self-host-parser-parity-test-smoke`.
 
 ### 2026-06-23 -- parser postfix expression owner split
@@ -6412,10 +6412,10 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - `expr_primary_owner.pgy` now owns primary expression roots only; postfix
   calls, indexes, member access, postfix try, object-init syntax, and
   call-only turbofish consumption are consumed through `ApplyPostfixExpr`.
-- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+- Contract ratchet: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` now requires
   `expr_postfix_owner.pgy`, requires `func ApplyPostfixExpr` there, and rejects
   `Postfix loop:` from `expr_primary_owner.pgy`. Verified with
-  `bash tests/self_hosted_component_contract_smoke.sh` and
+  `bash tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` and
   `make self-host-parser-parity-test-smoke`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
@@ -6428,10 +6428,10 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - `routine_lower.pgy` now consumes the selected routine facts and owns CFG/body
   reconstruction only; `program_lower.pgy` and `decl_lower.pgy` consume the
   inventory owner instead of re-owning routine lookup.
-- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+- Contract ratchet: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` now requires
   `routine_inventory_owner.pgy`, requires `func FindRoutine` there, and rejects
   that owner function in `routine_lower.pgy`. Verified with
-  `bash tests/self_hosted_component_contract_smoke.sh` and
+  `bash tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` and
   `make self-host-mir-json-parity-test-smoke`.
 
 ### 2026-06-23 -- Semantic expression validation owner split
@@ -6441,7 +6441,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   into `src/self_hosted/semantic/expr_validation_owner.pgy`.
 - `expr_type_owner.pgy` now owns expression type queries only; expression
   diagnostics consume `ExprType(...)` facts through the validation owner.
-- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+- Contract ratchet: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` now requires
   `expr_validation_owner.pgy`, requires `func CheckUndefinedIdentifiers` there,
   and rejects that owner function in `expr_type_owner.pgy`.
 
@@ -6483,7 +6483,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   self-host owner/source files. The manifest now includes accepted lexer/parser/
   codegen/compiler-world slices plus audit-tool sources, not only the semantic
   and lexer entrypoints.
-- Tightened `tests/self_hosted_component_contract_smoke.sh` to ratchet the
+- Tightened `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` to ratchet the
   selfcheck manifest at 41 files and require representative parser, codegen,
   compiler-world, and audit-tool sources.
 - The gate still excludes broader parser/codegen entrypoints whose imported
@@ -6523,7 +6523,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   symbol/name-mangling state can become a zone only if it owns mutable symbol
   facts, and `program_emit`/`function_emit`/`stmt_emit`/`expr_rewrite`/
   `struct_value_emit` remain participants over those resources.
-- `tests/self_host_compiler_world_contract_smoke.sh` now ratchets that wording so
+- `tests/self_hosted/gates/self_host_compiler_world_contract_smoke.sh` now ratchets that wording so
   codegen files cannot drift into fake zone wrappers merely because they are
   separate files.
 
@@ -6951,7 +6951,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Added raw byte-array runtime exports for nominal record arrays and wired LLVM
   collection lowering to use them for the supported mutation surface.
 - Verified the narrow fixture with the freshly built compiler:
-  `PGY_BIN=E:/PergyraLang/bin/pgy.exe tests/compare_backends.sh tests/cases/backend_compare/record_array_basic`.
+  `PGY_BIN=E:/PergyraLang/bin/pgy.exe tests/backend/compare_backends.sh tests/cases/backend_compare/record_array_basic`.
 - Scope is deliberately narrow. This opens typed-record array inventory for the
   next self-host slice; it does not claim nominal-record support for map,
   filter, sort, slice, or arbitrary collection algorithms.
@@ -7681,7 +7681,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened `self_hosted_component_contract_smoke.sh` so the MIR fact graph
   contract cannot return to direct `JsonObjectStringField(json, ...)` sentinel
   comparison.
-- Verified `tests/self_hosted_component_contract_smoke.sh`,
+- Verified `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
   `tests/self_hosted/parity/driver/selfcheck_sources.sh` with C backend
   (**107 real sources accepted**), and
   `tests/self_hosted/parity/mir/mir_json_parity.sh` (**86 fixtures**, 0 clean
@@ -7700,7 +7700,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Promoted `json_emit.pgy` into the real-source selfcheck manifest and updated
   the owner ledger so JSON read/emit responsibilities are no longer stored in
   one growing file.
-- Verified `tests/self_hosted_component_contract_smoke.sh`,
+- Verified `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
   `tests/self_hosted/parity/mir/air_graph_json_validator_parity.sh`, and
   `tests/self_hosted/parity/driver/selfcheck_sources.sh` with C backend
   (**108 real sources accepted**).
@@ -7763,7 +7763,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `CompilerTargetCapabilityEnvelopeReady()` before `GenerateC`. The
   `TargetCapabilityZone` is now load-bearing for the self-host C codegen run
   boundary instead of being only a compiler-world vocabulary fact.
-- Tightened `tests/self_hosted_component_contract_smoke.sh` so the run owner
+- Tightened `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` so the run owner
   must import `target_capability_owner.pgy` and call the readiness predicate.
 - Updated the pre-self-host expansion ledger and codegen intent doc to say
   this closes the self-host C run-boundary omission, while native C/LLVM
@@ -8062,7 +8062,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Repointed `diagnostic_catalog_checker_parity.sh` so the clean structured
   counter verdict is the self-hosted checker JSON compared through
   ArtifactZone/TestHarness.
-- Kept `tests/diagnostic_registry_smoke.sh` as the C exit-class bridge, but
+- Kept `tests/registry/diagnostic_registry_smoke.sh` as the C exit-class bridge, but
   removed shell `grep`/`sort`/`sed` reconstruction of `codes`, `documented`,
   `duplicates`, and `orphans`.
 - Kept the synthetic missing-code and missing-input fixtures as fail-closed

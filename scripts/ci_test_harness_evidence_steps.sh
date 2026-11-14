@@ -1,7 +1,7 @@
 # Platform-full harness evidence. The installed toolchain is supplied by the
 # shard; each script runs in its own process so one red cannot hide the rest.
 
-run 'bash tests/arena_ledger_smoke.sh'
+run 'bash tests/ownership/arena_ledger_smoke.sh'
 run 'bash tests/self_hosted/parity/domain/world_zone_admission_owner.sh'
 run 'bash tests/self_hosted/parity/ownership/hashmap_runtime_owner.sh'
 run 'bash tests/self_hosted/parity/semantic/callable_capability_fact_owner.sh'

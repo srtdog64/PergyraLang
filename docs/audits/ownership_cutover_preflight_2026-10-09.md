@@ -37,9 +37,9 @@ Observed post-commit gates:
 
 | Gate | Result | Scope |
 |---|---|---|
-| `tests/ownership_cleanup_smoke.sh` | PASS | Existing five-module kernel/extraction; decision/refusal/summary, 43 composition, 37 readonly, nine place/view and eight exit controls; model only |
-| `tests/coq_kernel_check.sh` | PASS | 72 modules plus approval export/binding consumer; two approved Slot abstractions, no admits/unsafe kernel features |
-| `tests/documentation_quality_smoke.sh` | PASS | Documentation/static surfaces, not compiler behavior |
+| `tests/ownership/ownership_cleanup_smoke.sh` | PASS | Existing five-module kernel/extraction; decision/refusal/summary, 43 composition, 37 readonly, nine place/view and eight exit controls; model only |
+| `tests/proof/coq_kernel_check.sh` | PASS | 72 modules plus approval export/binding consumer; two approved Slot abstractions, no admits/unsafe kernel features |
+| `tests/repo/documentation_quality_smoke.sh` | PASS | Documentation/static surfaces, not compiler behavior |
 | checkpoint text/drift checks and staged `git diff --check` | PASS | Reviewed input set, strict UTF-8, credential markers and exact frozen paths |
 
 Existing Rocq masking/load-path/nested-induction warnings were not suppressed.

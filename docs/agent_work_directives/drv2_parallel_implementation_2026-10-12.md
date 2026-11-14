@@ -875,7 +875,7 @@ seed/DRV-2, installed-driver and exact-SHA CI obligations remain unchanged.
 Executable registration: function-param-flow-summary-test-smoke first executes
 readonly-map-query-fact-phase-test, including LLVM_ENABLED=0 CI. The separate
 readonly-map-query-test-smoke binds the built native compiler and direct unit
-explicitly and runs tests/readonly_map_query_smoke.sh (nine C/LLVM positives
+explicitly and runs tests/ownership/readonly_map_query_smoke.sh (nine C/LLVM positives
 and nineteen analyze-only negatives). It does not make LLVM-disabled CI require
 the LLVM backend; no intrinsic timeout is increased.
 
@@ -1365,7 +1365,7 @@ snapshot, which is recorded separately and cannot certify that generation.
 
 Priority: identical inventory policy and exact input bytes, fail-closed capture
 and generation guards, then the existing validation budget. The existing
-`tests/mir_declaration_inventory_smoke.sh` owns the predicates and their last
+`tests/ir/mir_declaration_inventory_smoke.sh` owns the predicates and their last
 structural consumer. Only repeated reopening of the same physical codegen input
 may change. A may materialize one private temporary, immutable codegen source
 view inside that budget, preserving relative filenames and exact file bytes,
@@ -1941,7 +1941,7 @@ stay unchanged. No second cache, fact family, digest or traversal is added.
 The last consumers are the existing flow evaluator and store teardown. B owns
 the internal declarations and single Makefile source registration; A owns
 only the corresponding existing source/actual-LOC registration in
-`tests/semantic_core_shape_smoke.sh`. The gate's program-root allowance is
+`tests/ir/semantic_core_shape_smoke.sh`. The gate's program-root allowance is
 not an identifier-walker allowance: it follows the actual generation binding
 and `SlotFunctionLookup` initializer, which remain in the summary owner. The
 index owner takes the store, not a new direct program-root consumer.

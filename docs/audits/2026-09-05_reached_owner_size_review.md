@@ -24,7 +24,7 @@ gate execution creates its bounded synthetic fixtures under `.tmp/`.
   Compiler semantic ownership remains with the named Pergyra owners and
   `src/self_hosted/OWNERS.md`; a size table is not semantic authority.
 - Last consumers: component line-cap checks and the generic production/semantic
-  scans in `tests/test_inc_size_smoke.sh`.
+  scans in `tests/repo/test_inc_size_smoke.sh`.
 - Forbidden repairs: duplicate exception tables, blanket cap increases, excluding
   these production files from coverage, guessed missing-row defaults, and
   mechanical source splits without a distinct responsibility.
@@ -52,7 +52,7 @@ reported the same five violations as primary's CI excerpt.
 | `compiler/direct_mir_composite_intent_program_plan_owner.pgy` | 875 | 900 | Composite owner table, line 7920 |
 
 Component anchors are in
-[self_hosted_component_contract_smoke.sh](../../tests/self_hosted_component_contract_smoke.sh).
+[self_hosted_component_contract_smoke.sh](../../tests/self_hosted/gates/self_hosted_component_contract_smoke.sh).
 Line numbers reflect the inspected working source; concurrent integration may
 move them. The named functions, paths and tables identify the decisions.
 
@@ -74,7 +74,7 @@ attempt to redesign those compiler responsibilities.
 
 ## Conflicting consumers
 
-[test_inc_size_smoke.sh](../../tests/test_inc_size_smoke.sh) independently owns:
+[test_inc_size_smoke.sh](../../tests/repo/test_inc_size_smoke.sh) independently owns:
 
 1. A default `SELF_HOSTED_OWNER_MAX_LINES` limit of 699 at line 7. Its production
    Pergyra scan at lines 221–238 excludes fixtures, expected outputs and tools,
@@ -174,7 +174,7 @@ track, source refactor, SoT closure increment or self-host substitution incremen
 - Narrow five-file GNU `wc -l` plus the existing 699 `awk` projection: printed
   all five reported violations. The filter process exited 0; it was a census,
   not execution of the complete gate's failure branch.
-- Full `timeout 60s bash tests/test_inc_size_smoke.sh`: session `15175`, exit
+- Full `timeout 60s bash tests/repo/test_inc_size_smoke.sh`: session `15175`, exit
   **124**, without output before the budget expired. No full-gate PASS or complete
   local reproduction is claimed, nor is owner-stage reachability inferred.
 - Bounded Git source history/blob/diff inspection completed. An additional
@@ -194,8 +194,8 @@ full execution by this reviewer. No source or test file was edited by this lane.
 
 Reviewed the complete new
 [responsibility table](../../tests/fixtures/self_hosted_responsibility_caps.tsv),
-[size-policy owner](../../tests/self_hosted_owner_size_policy.awk) and
-[focused checker](../../tests/self_hosted_owner_size_policy_smoke.sh), plus the
+[size-policy owner](../../tests/self_hosted/gates/self_hosted_owner_size_policy.awk) and
+[focused checker](../../tests/self_hosted/gates/self_hosted_owner_size_policy_smoke.sh), plus the
 component and production-size consumer diffs. The original five numeric caps
 are unchanged. Three later-reached conflicts extend the migration to exactly
 eight paths:
@@ -258,7 +258,7 @@ of source sizes.
 
 ### Final observed checks
 
-- Independently ran `tests/self_hosted_owner_size_policy_smoke.sh`: PASS. The
+- Independently ran `tests/self_hosted/gates/self_hosted_owner_size_policy_smoke.sh`: PASS. The
   enclosing syntax/focused/counterexample command completed in about 5.96 seconds.
   `bash -n` also accepted the focused checker and both changed shell consumers.
 - The focused gate uses the actual eight-row table for cap/cap-plus-one cases;
@@ -275,7 +275,7 @@ of source sizes.
   production gate without executing its unrelated sections. Shared default 660
   accepted the real 654-line owner; explicit diagnostic ceiling 653 rejected it
   with `654 > 653`, exit 1. This is focused consumer evidence, not a full-gate run.
-- Primary reported full `tests/test_inc_size_smoke.sh` PASS, session `47247`,
+- Primary reported full `tests/repo/test_inc_size_smoke.sh` PASS, session `47247`,
   exit 0 within the 60-second budget. This supersedes the initial timeout for
   primary's repaired candidate only; it does not retroactively make the initial
   execution successful or establish all CI/platform jobs as green.

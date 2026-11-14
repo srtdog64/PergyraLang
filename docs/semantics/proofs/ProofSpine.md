@@ -80,7 +80,7 @@ remaining obligation blocks that stronger claim.
 
 ## Live Adequacy Boundary
 
-`tests/proof_spine_smoke.sh` compiles fresh copies of the spine, its four
+`tests/proof/proof_spine_smoke.sh` compiles fresh copies of the spine, its four
 cleanup dependencies and the independent typed consumer, then runs `rocqchk`
 with no admitted axioms. It checks:
 
@@ -91,8 +91,8 @@ with no admitted axioms. It checks:
 - omitting any of those four concrete contracts prevents the cleanup claim;
 - a proof of `True` cannot substitute for either cleanup contract.
 
-The production `tests/coq_kernel_check.sh` includes that consumer in its fresh
-whole-corpus kernel check. `tests/ownership_cleanup_smoke.sh` separately extracts
+The production `tests/proof/coq_kernel_check.sh` includes that consumer in its fresh
+whole-corpus kernel check. `tests/ownership/ownership_cleanup_smoke.sh` separately extracts
 and executes the algorithm's positive/refusal controls. The extraction uses
 OCaml as a test harness, not as a new Pergyra implementation language.
 

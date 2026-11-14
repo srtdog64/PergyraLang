@@ -291,7 +291,7 @@ active variant, 초기화된 원소를 실제로 순회하는 코드를 증명�
   GUI 0/1-copy 및 empty heap을 확인했다.
 - `tests/ownership_clean_direction_smoke.sh` PASS: 폐기한 owner 27개와 두 번째
   모델이 되살아나지 않았다는 **구조 검사**다.
-- 최초 검토의 `tests/ownership_cleanup_smoke.sh`는 모델 커널 검사 뒤 기존
+- 최초 검토의 `tests/ownership/ownership_cleanup_smoke.sh`는 모델 커널 검사 뒤 기존
   OCaml observer의 API 불일치로 FAIL했다. 아래 §9의 후속 작업은 observer를
   `elab M s L B`와 새 routine 결과 형식에 맞췄다. 과거 15/24/30 receipt를
   새 모델의 실행·성능 결과로 재사용하지 않는다.
@@ -765,7 +765,7 @@ Slot release guard가 성립하면 그래프 ODrop과 일반 TDrop의 결과 힙
 정리, 유효한 root 아래 누락·재사용된 target과 두 번째 drop이다. 실제 binding
 발급자, 저장된 참조의 source 의미, 원자성·finalizer·async/FFI와 C/LLVM refinement는
 열려 있다. 특히 payload를 먼저 free하고 나중에 Slot release 거부를 발견하는 경로는
-금지한다. 집중 gate는 `tests/memory_boundary_composition_smoke.sh`다.
+금지한다. 집중 gate는 `tests/ownership/memory_boundary_composition_smoke.sh`다.
 
 장점만으로 설계를 평가하지 않는다. 오래 사는 owner의 불필요한 노드 보존,
 삭제 가능한 링크의 부재 처리, 색인·조상 검사·복사 비용, 큰 정리 묶음의 지연과

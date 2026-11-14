@@ -72,7 +72,7 @@ In particular, `bulk_reset_cost_refutes_universal_speed` is the inequality
 defined. Those are unmodelled comparison cases, not proved performance
 counterexamples. None establishes wall time, general or generational GC speed,
 or universal strict superiority.
-The proof/audit gate is `tests/ownership_gc_comparison_smoke.sh`; compiler
+The proof/audit gate is `tests/ownership/ownership_gc_comparison_smoke.sh`; compiler
 refinement, actual C/LLVM performance and installed-driver evidence stay OPEN.
 
 Identity-bearing graphs add separate retention, nullable-link, indexing,

@@ -119,8 +119,8 @@ C 백엔드는 `pgy_claim_T()` 런타임 helper를 호출한다. LLVM 백엔드�
 
 ## Parity 테스트 현황
 
-- `tests/compare_backends.sh` (414 LOC) — exit code + stdout + stderr만 비교. IR 비교 없음
-- `tests/diagnostics_json_smoke.sh` — 에러 reporting 포맷만 검증, codegen 무관
+- `tests/backend/compare_backends.sh` (414 LOC) — exit code + stdout + stderr만 비교. IR 비교 없음
+- `tests/language/diagnostics_json_smoke.sh` — 에러 reporting 포맷만 검증, codegen 무관
 - `.c.txt` / `.llvm.txt` 분기 인프라 존재하나 `examples/biome_simulator/` 1개만 사용 (그마저 내용 동일)
 - 35개 backend_compare case 중 uninit-local / struct-default / slot-fresh-alloc / array-fresh-zero를 **명시적으로 exercise하는 case는 없음**
 

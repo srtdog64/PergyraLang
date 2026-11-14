@@ -115,7 +115,7 @@ lowering과 byte-동일. 분할 산술은 런타임 단일 소스(양 백엔드 
 경계), **정책 SoT는 self-host owner**
 (`src/self_hosted/parallel/chunk_policy_owner.pgy` — golden diff +
 C==LLVM leg parity + required projection pin 10개 + legacy rejection 1개,
-`tests/selfhost_parallel_chunk_policy_smoke.sh`).
+`tests/parallel/selfhost_parallel_chunk_policy_smoke.sh`).
 
 같은 캠페인의 반증 기록(측정이 수술을 두 번 재조준): B2 shard화
 자체는 fine에 **중립**(단일 큐 경합 가설 반증 — 진범은 스폰 스레드

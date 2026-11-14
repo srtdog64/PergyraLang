@@ -109,8 +109,8 @@ separate maturity problems and must not be inferred from generated-code runtime.
 
 ## Emitted-code UB: first measurement (2026-07-28)
 
-`tests/sanitizer_compile_smoke.sh` asks whether the **compiler** commits UB while
-compiling. `tests/emitted_c_sanitizer_smoke.sh` asks the other half — whether the
+`tests/backend/sanitizer_compile_smoke.sh` asks whether the **compiler** commits UB while
+compiling. `tests/backend/emitted_c_sanitizer_smoke.sh` asks the other half — whether the
 code the compiler **emits** commits UB when it runs — and until now that surface
 had never been measured. It matters here specifically because Pergyra lowers to
 C, so the language-level safety claims are delivered *through* emitted C, and

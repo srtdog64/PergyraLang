@@ -24,7 +24,7 @@ deletion to the review. The current ownership-cutover P1/DRV-2 stays active.
 - Forbidden fallback: guessed roots, caller-supplied authority maps, missing
   count as zero, unchecked cached admission, hidden whole-store recount,
   hidden RC/COW, and a native prototype reported as compiler integration.
-- Current integration gate: `tests/graph_cycle_reclaim_smoke.sh`, with the
+- Current integration gate: `tests/ownership/graph_cycle_reclaim_smoke.sh`, with the
   independent consumer and its selftest. This checks models, not production.
 - Falsifying cases: borrowed last candidate after an earlier deletion; a
   full-inventory snapshot observing a supposedly dead node; omitted caller,

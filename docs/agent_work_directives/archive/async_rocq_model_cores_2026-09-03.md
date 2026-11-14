@@ -35,7 +35,7 @@ compiler or runtime semantics and does not claim whole-language async safety.
   keyword, `Axiom`, `Admitted`, or a claim of termination, fairness, full C11
   memory safety, detached-capture safety, or whole-language verification.
 - Verification gates: `make async-model-adequacy-test-smoke` binds theorem names
-  and modeled transitions to the live owners; `bash tests/coq_kernel_check.sh`
+  and modeled transitions to the live owners; `bash tests/proof/coq_kernel_check.sh`
   compiles and kernel-checks the full proof corpus while retaining exactly the
   existing two `SlotCalculus` interface assumptions. The official Rocq 9 CI job
   is required because no local prover is installed.

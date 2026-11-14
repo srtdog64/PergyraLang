@@ -210,7 +210,7 @@ or installed, and no new SUBSTITUTING/self-host completion is claimed.
   CI remain OPEN/not run. Do not start P2-P6/S0-S6 from these scoped successes.
 
 Concurrent files outside this packet: vision and user repro changes, plus
-`tests/self_host_ci_profile_smoke.sh`, `codegen_bootstrap.sh` and
+`tests/self_hosted/gates/self_host_ci_profile_smoke.sh`, `codegen_bootstrap.sh` and
 `codegen_bootstrap_seed_receipt_owner.sh`. Installed binaries changed externally:
 current observed pgy SHA
 `E292EDA43F933116CE6E336846507132DEE8AE0BA3D5A98B9726B355AF55B754`, driver SHA

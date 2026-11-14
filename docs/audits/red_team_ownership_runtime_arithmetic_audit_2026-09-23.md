@@ -22,7 +22,7 @@ them.
 
 ## Why these reached main
 
-- `tests/compare_backends.sh` sets `PGY_NATIVE_PIPELINE=1`, so it compares
+- `tests/backend/compare_backends.sh` sets `PGY_NATIVE_PIPELINE=1`, so it compares
   native C with native LLVM only. No general harness compares the default route
   with native C, so a wrong answer on the default route is caught only when a
   focused owner gate happens to run that exact shape. This round adds one such
@@ -187,7 +187,7 @@ instead of native's "Long literal is outside the signed 64-bit range".
 ## Repaired in this round
 
 - Native C emitted a Float literal with `%g`, six significant digits. It now
-  uses `%.17g`, and `float_literal_round_trip` in `tests/compare_backends.sh`
+  uses `%.17g`, and `float_literal_round_trip` in `tests/backend/compare_backends.sh`
   compares it with native LLVM.
 - The default C route's `Abs`, `Min` and `Max` helpers were `int32_t` and
   truncated a Long operand. They now keep the operand's type.
@@ -198,7 +198,7 @@ instead of native's "Long literal is outside the signed 64-bit range".
   whose `backend_compare` case was native-only and could not see the self-host
   defect it was added for.
 - Native C evaluates a call receiver before the method's arguments (E1), and
-  `method_receiver_before_arguments` in `tests/compare_backends.sh` compares it
+  `method_receiver_before_arguments` in `tests/backend/compare_backends.sh` compares it
   with native LLVM.
 
 ## Second round, 2026-09-23 evening

@@ -28,7 +28,7 @@ P2-P7, invent a public GraphStore ABI or replace the active P1/DRV-2 rung.
 - Forbidden fallback: ignored failed deletes, partial published state,
   arbitrary `authorized=true`, caller-chosen store/root bindings, native
   rollback of already freed memory, or calling this production CLOSED.
-- Shared gate: fresh `tests/graph_cycle_reclaim_smoke.sh` and its negative
+- Shared gate: fresh `tests/ownership/graph_cycle_reclaim_smoke.sh` and its negative
   selftest through the admitted Rocq runner, followed by documentation gates.
 - Falsifiers: a borrowed last candidate after an earlier success; duplicate,
   stale or missing candidate; wrong holder/root epoch; borrowed/pinned member

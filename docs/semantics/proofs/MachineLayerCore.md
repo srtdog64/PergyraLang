@@ -283,7 +283,7 @@ surface:
   the C inline twin and LLVM runtime export keep their implementation lanes
   separate, so the runtime receives owner values without re-reading or
   reconstructing the declaration;
-- `tests/machine_layer_pipeline_smoke.sh` exercises the RIR JSON/MIR/AIR path
+- `tests/ir/machine_layer_pipeline_smoke.sh` exercises the RIR JSON/MIR/AIR path
   plus C/LLVM lowering for the direct and submitted device-read paths.
 - the self-hosted machine-layer runtime projection owner exports only the five
   abstract contact rows; `machine_layer_declaration_consumer.pgy` is the sole

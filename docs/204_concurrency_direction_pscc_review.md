@@ -84,7 +84,7 @@ Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 | 23 | 의도적 비결정(select/race)은 capability | 채택(일부 착지) | `select`는 readiness arbitration(`docs/53` §5.5); Random/SeedRandom은 C-inline·LLVM runtime 모두 `PGY_CAP_RANDOM`을 require한다. select/any의 결정성 분류는 잔여 — §3.8 |
 | 24 | 시스템 의존 그래프 compile-once | 유보 | `docs/181` 형 B(reactive) R2 미착수 — `docs/186` 구멍 4 |
 | 25-26 | MIR에 병렬 의미 노드 유지; 스케줄이 아닌 제약만 | 정전+채택 | `docs/104` AIR boundary kind PARALLEL/CHANNEL/EXECUTION; 일반 의존 그래프는 AIR Phase 2 |
-| 27 | IR 계층: AIR → explicit spawn/token graph → Backend | **정정** | AIR는 lowering 금지, 백엔드는 AIR를 include조차 못 함(`tests/air_backend_nonimpact_smoke.sh:60-73`) — §2.2 |
+| 27 | IR 계층: AIR → explicit spawn/token graph → Backend | **정정** | AIR는 lowering 금지, 백엔드는 AIR를 include조차 못 함(`tests/ir/air_backend_nonimpact_smoke.sh:60-73`) — §2.2 |
 | 28 | 봉인 후 소거 | 정전 | `docs/178` evidence lifetime; 드라이버 메모리 벽 이력 |
 | 29 | Intent는 effect system이 아니다; Effect ⊆ Capability ⊨ IntentPolicy | 정전(+보강) | `docs/114` §1; `docs/198`; effects는 callable의 `with effects`·step의 `causes:`, caps는 `with caps`, authority는 step의 `authorized by:` — §2.8 |
 | 30-32 | Wasm/WASI/quota | 유보(예산 축만 채택) | wasm 백엔드 없음(C→Emscripten, `docs/23`); 예산 실물 4종+WALL(`src/runtime/pgy_runtime_budget.h:36-40`), ITER/TIME 축은 보드 등록 — §3.9 |
@@ -123,7 +123,7 @@ Pergyra에서 이것은 구조적으로 불가능하다:
 - 백엔드는 MIR만 소비한다(`docs/193` MIR-only/ABI-first).
 - `air-backend-nonimpact` 게이트가 `src/codegen`의 AIR include를 grep으로
   거절하고, AIR 유무에 관계없이 방출물 byte-equal을 요구한다
-  (`tests/air_backend_nonimpact_smoke.sh`).
+  (`tests/ir/air_backend_nonimpact_smoke.sh`).
 
 목표 계층(§3.10의 그림): 의미 분석이 접근·캡처 사실을 만들고
 (`boundary_witness`, `BoundaryCaptureFact`), MIR이 **봉인된

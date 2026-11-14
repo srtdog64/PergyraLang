@@ -12,7 +12,7 @@ written them as "ratchets": a deleted name must not come back, a doc must
 contain a phrase, a function must be named in a file, a file list must stay
 fixed. Before this change there were roughly 430 such scripts, holding about
 25,000 assertion lines. The largest single file,
-`tests/self_hosted_component_contract_smoke.sh`, was 29,500 lines.
+`tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`, was 29,500 lines.
 
 They do not prove behavior. They pin wording and file layout, so every
 refactor fails on text rather than on a wrong result. Text the agents had
@@ -34,7 +34,7 @@ artifacts it emitted. AGENTS.md states the rule.
 - **Generator drift.** `render_*.py --check`, or regenerate and diff against
   the checked-in projection.
 - **Line-size caps.** Left alone in this pass, including
-  `tests/self_hosted_owner_size_policy.awk` and the per-owner caps.
+  `tests/self_hosted/gates/self_hosted_owner_size_policy.awk` and the per-owner caps.
 - **Tree-wide hazard lints with a stated hazard.** Unsafe libc string calls,
   silent-fallback idioms over a whole directory, layer import rules in
   `scripts/sot_registry_gate.py`, UTF-8 and CRLF.
@@ -81,7 +81,7 @@ decide on them. On 2026-10-14 the owner decided:
 - **Removed:** `tests/security_portability_contract_smoke.sh` and
   `tests/memory_adversarial_catalog_smoke.sh`. The first checked crypto API
   names in runtime sources, the second the manifest counts and CI wiring.
-- **Stripped:** `tests/memory_string_safety_smoke.sh` keeps only its four
+- **Stripped:** `tests/ownership/memory_string_safety_smoke.sh` keeps only its four
   tree-wide hazard lints: unsafe libc string calls, `strtok`, truncated
   `snprintf` stack copies, and `+= snprintf` offset accumulation.
 
@@ -123,7 +123,7 @@ decide on them. On 2026-10-14 the owner decided:
   - `expression_root_consumption_owner.sh`
   - `slice_length_codegen_source_owner.sh`
 
-  They are now listed in `tests/manual_gate_inventory.tsv`.
+  They are now listed in `tests/repo/manual_gate_inventory.tsv`.
 - Two CLOSED SoT rows, `selfhost.expression_place_kind` and
   `selfhost.statement_result_type`, returned to BRIDGE. Their only enforcement
   gates were text scans. A third row, `semantic.symbol_type_graph`, was already

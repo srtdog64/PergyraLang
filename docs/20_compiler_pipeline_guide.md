@@ -566,7 +566,7 @@ docs/          설계 문서와 상태 문서
 
 9. 테스트
    최소한 단위 테스트와 예제를 추가.
-   가능하면 `tests/compare_backends.sh` 대상에도 넣어서 C/LLVM 결과를 맞춘다.
+   가능하면 `tests/backend/compare_backends.sh` 대상에도 넣어서 C/LLVM 결과를 맞춘다.
 
 이 프로젝트에서는 "파서만 되고 LLVM은 안 됨" 상태가 금방 쌓이기 쉽다. 새 기능은 가능하면 C와 LLVM을 같이 닫는 편이 맞다.
 
@@ -647,6 +647,6 @@ LLVM이 object를 만들어도 최종 실행 파일은 런타임 C 구현과 링
 7. `src/codegen/llvm_backend.c`
 8. `src/codegen/transpiler.c`
 9. `src/compiler/compiler.c`
-10. `tests/compare_backends.sh`
+10. `tests/backend/compare_backends.sh`
 
 이 순서로 보면 "입력 -> 프론트엔드 -> lowering -> 백엔드 -> 검증" 흐름이 가장 빨리 잡힌다.

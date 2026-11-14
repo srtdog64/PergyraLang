@@ -480,13 +480,13 @@ Current beta closure snapshot:
   beta gates. Mandatory smokes must either provide a shell/C/compiler fallback
   or fail when an explicitly supplied required binary/input is unavailable.
 - Beta/source-of-truth smoke scripts must remain compatible with macOS Bash
-  3.2. `tests/build_source_inventory_smoke.sh` owns the drift alarm for Bash
+  3.2. `tests/repo/build_source_inventory_smoke.sh` owns the drift alarm for Bash
   4-only `mapfile` / `readarray`, associative arrays, parameter
   case-conversion expansions, and case-pattern continuations that end in `|\`.
   Use explicit while-read loops or `if` checks instead.
 - Makefile shell helpers are part of the beta tooling source of truth.
   `pgy_mkdir_p` and `pgy_touch_ref` must not invoke nested login-shell bash in
-  local MinGW/Git Bash builds; `tests/build_source_inventory_smoke.sh` owns
+  local MinGW/Git Bash builds; `tests/repo/build_source_inventory_smoke.sh` owns
   the drift alarm for this because a stalled helper prevents compiler gates
   from running at all.
 - `ci-windows` must run executable MinGW tests only across a real MSYS2 bash
@@ -494,7 +494,7 @@ Current beta closure snapshot:
   is not equivalent to MSYS2 for MinGW compiler invocations and must fail fast
   in the Windows CI preflight instead of surfacing as a later silent `gcc`
   compile failure. `Makefile` owns the shell selection order, and
-  `tests/build_source_inventory_smoke.sh` gates the MSYS2-first terms.
+  `tests/repo/build_source_inventory_smoke.sh` gates the MSYS2-first terms.
 - Windows/MSYS executable smokes must call `pgy_prepend_windows_runtime_paths`
   before probing built `.exe` binaries. A missing DLL path is an environment
   setup problem, not a successful skip when the binary was explicitly built.
@@ -515,11 +515,11 @@ Current beta closure snapshot:
 - IR pipeline and Unicode policy smokes are also beta trust gates. They must
   use the same path helper and fail closed when an explicit compiler binary is
   unavailable.
-- `tests/build_source_inventory_smoke.sh` owns the drift alarm for this path
+- `tests/repo/build_source_inventory_smoke.sh` owns the drift alarm for this path
   helper contract. Adding a beta executable smoke without
   `pgy_binary_path_helpers.sh` and `pgy_path_for_compiler(...)` is a source
   inventory failure unless the smoke delegates all compiler execution to a
-  helper such as `tests/compare_backends.sh` that owns path conversion.
+  helper such as `tests/backend/compare_backends.sh` that owns path conversion.
 - `tests/pgy_binary_path_helpers.sh` also owns executable-format
   classification. Backend compare, perf, bench, dogfood, and ABI precheck
   paths must fail closed when an explicit binary is not runnable on the current
@@ -538,15 +538,15 @@ Current beta closure snapshot:
   compiler, generated binary, and toolchain directories. A fallback that only
   consumes the static LLVM/MSYS candidate prefix can re-open Windows exit-127
   drift even when the direct Bash launch path was prepared correctly.
-- `tests/compare_backends.sh` owns C/LLVM backend-compare case inventory. A
+- `tests/backend/compare_backends.sh` owns C/LLVM backend-compare case inventory. A
   fixture under `tests/cases/backend_compare/**/main.pgy` must either be in
   the default case array or be run through an explicit targeted command; the
   inventory-only smoke also rejects stale default entries whose fixture
   directory was removed. This closes the drift where passing backend parity
   cases existed on disk but were not part of the frozen parity suite.
-- `tests/semantic_core_shape_smoke.sh` gates these ownership boundaries. The
+- `tests/ir/semantic_core_shape_smoke.sh` gates these ownership boundaries. The
   test is a drift alarm; the owning `.c` files above are the source of truth.
-  `tests/mir_declaration_inventory_smoke.sh` gates the backend declaration and
+  `tests/ir/mir_declaration_inventory_smoke.sh` gates the backend declaration and
   party-slot helper ownership boundaries.
 
 ### 0.1 Mismatch Containment During Lowering

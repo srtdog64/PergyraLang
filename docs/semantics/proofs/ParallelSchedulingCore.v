@@ -15,7 +15,7 @@
   worker -- and the queued children, whose completion is the only thing that
   would wake anyone, have no thread left to run on. This is not theoretical: it
   was witnessed RED as a hang by the nested-fan-out fixture (WO-RT-3) and again,
-  in its channel form, by tests/channel_pool_starvation_probe.sh (WO-RT-5). Both
+  in its channel form, by tests/parallel/channel_pool_starvation_probe.sh (WO-RT-5). Both
   mechanisms above were written in response. This file states the model in which
   each of them is the right answer, and proves it.
 

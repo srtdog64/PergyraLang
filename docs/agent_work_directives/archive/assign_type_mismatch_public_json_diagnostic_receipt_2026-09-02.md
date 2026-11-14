@@ -113,7 +113,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   compiler pair. The failed job alone was rerun; dependency installation,
   compiler-pair admission, and its 46/46 backend comparison then passed.
 - `build-linux` passed in 25m34s and actually invoked
-  `tests/self_hosted_component_contract_smoke.sh`; the structural source
+  `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`; the structural source
   inventory and removed-path ratchets reported PASS.
 - `self-host-bootstrap-linux` passed in 35m21s and records exactly one
   173264-line `gen2 == gen3` fixed point, exactly one receipt-bound driver

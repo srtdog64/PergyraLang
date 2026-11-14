@@ -152,7 +152,7 @@ production 코드·proof owner·의미 정책·SoT 상태는 이 검토에서 �
 | 모델 `6979f767a8072e253549e62ec26edd98de03407457238df82d0b4eb3a539e375`, 정식 extraction smoke | Rocq proof 2336행 실패: `Found no subterm matching "length svs"` |
 | 모델 `f8ac63cf9a9a47389863761b3c84a49279b7e683f807956950844bc3d0d69d00`, isolated kernel | PASS, axiom 0 / admit 0 / unsafe feature 없음 |
 | 위 모델 + `OwnershipCleanupDocExamples.v` | PASS, 2-module kernel, 문서 관련 15개 예제 |
-| 최신 정식 `tests/ownership_cleanup_smoke.sh` 재실행 | 2-module kernel PASS 후 OCaml observer 32행 API 불일치로 FAIL |
+| 최신 정식 `tests/ownership/ownership_cleanup_smoke.sh` 재실행 | 2-module kernel PASS 후 OCaml observer 32행 API 불일치로 FAIL |
 | `tests/ownership_clean_direction_smoke.sh` | PASS, 폐기 owner 27개 및 중복 모델 부재; 구조 검사만 |
 
 후속 해시의 PASS는 앞선 해시의 실패 원인을 설명하지 않는다. 증명 수정의
@@ -168,13 +168,13 @@ production 코드·proof owner·의미 정책·SoT 상태는 이 검토에서 �
 PowerShell에서 고정 예제를 다시 검사하는 명령:
 
 ```powershell
-wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam PGY_COQ_PROOFS_DIR=/mnt/d/PergyraLang/.tmp/ownership-cleanup/algorithm-doc-2026-10-08 PGY_COQ_EXPECTED_AXIOMS= bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh timeout 300 bash /mnt/d/PergyraLang/tests/coq_kernel_check.sh
+wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam PGY_COQ_PROOFS_DIR=/mnt/d/PergyraLang/.tmp/ownership-cleanup/algorithm-doc-2026-10-08 PGY_COQ_EXPECTED_AXIOMS= bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh timeout 300 bash /mnt/d/PergyraLang/tests/proof/coq_kernel_check.sh
 ```
 
 현재 source에서 정식 extraction/실행 하네스를 검사하는 명령:
 
 ```powershell
-wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh timeout 300 bash /mnt/d/PergyraLang/tests/ownership_cleanup_smoke.sh
+wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh timeout 300 bash /mnt/d/PergyraLang/tests/ownership/ownership_cleanup_smoke.sh
 ```
 
 이전 `d4cca76d...` 모델의 cost receipt는 보존하지만 새 sink 알고리즘의
@@ -339,7 +339,7 @@ readonly rewrite 속도, 생성 프로그램의 실제 바이트·RSS나 speedup
 재실행 명령은 위 extraction 명령과 다음 두 가지다.
 
 ```powershell
-wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh timeout 1800 bash /mnt/d/PergyraLang/tests/formal_semantics_smoke.sh
+wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash /mnt/d/PergyraLang/scripts/run_rocq_toolchain.sh timeout 1800 bash /mnt/d/PergyraLang/tests/proof/formal_semantics_smoke.sh
 & 'C:/Program Files/Git/bin/bash.exe' -lc 'cd /d/PergyraLang && timeout 60 bash tests/ownership_clean_direction_selftest.sh'
 ```
 

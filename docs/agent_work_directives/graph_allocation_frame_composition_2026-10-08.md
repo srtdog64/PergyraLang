@@ -24,7 +24,7 @@ self-host rung, change ordinary-value semantics, or add runtime graph support.
   as an alternative to frame-aware admission; a missing frame treated as empty;
   copying external storage, hidden GC/RC, or assuming the desired disjointness
   as the postcondition instead of deriving it from the pre-transition checks.
-- Gate: tests/memory_boundary_composition_smoke.sh, fresh Rocq 9.3.0 / rocqchk
+- Gate: tests/ownership/memory_boundary_composition_smoke.sh, fresh Rocq 9.3.0 / rocqchk
   and existing two approved Slot abstractions only, then the full formal gate.
 - Falsifiers: external live block chosen for a new table, node or grown table;
   duplicate candidates; old graph table reused legally; another store's live

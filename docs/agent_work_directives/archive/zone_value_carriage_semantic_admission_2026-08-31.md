@@ -120,7 +120,7 @@ substitution progress.
   documentation-quality, and agent-boundary gates are local green. SoT stays
   at 88 authorities / 183 carriers / `CLOSED=55 BRIDGE=32 ACTIVE=1`; by-value
   and embedded zone transfer remain open.
-- `tests/test_inc_size_smoke.sh` still reports the pre-existing, unmodified
+- `tests/repo/test_inc_size_smoke.sh` still reports the pre-existing, unmodified
   `src/parser/ast_expr_control_accessors.c` at 725/699. This rung does not edit
   that owner or claim the broader size gate green.
 - Implementation commit `4e787b05f794ef03183128e0533db2e69d996707`

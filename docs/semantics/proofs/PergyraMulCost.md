@@ -16,7 +16,7 @@ different.
 This is intentionally narrower than an asymptotic multiplication theorem.
 Pergyra's current `Int` is fixed-width; arbitrary-precision integers and an
 `n`-parameterized multiplication family are not implemented. The abstract cost
-in the Coq file is not a CPU-cycle claim. `tests/pergyra_mul_coq_benchmark.sh`
+in the Coq file is not a CPU-cycle claim. `tests/proof/pergyra_mul_coq_benchmark.sh`
 therefore performs the second, empirical leg: it first kernel-checks the Coq
 file, then compares the same checked-multiply workload across hand-C, optional
 C++, Pergyra-C, and Pergyra-LLVM with output equality as a hard precondition.

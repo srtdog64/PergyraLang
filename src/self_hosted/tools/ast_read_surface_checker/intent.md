@@ -14,7 +14,7 @@ enumeration is owned by `DirWalk(scope)`.
 
 ## Input Contract
 
-- **ratchet_owner:** `tests/ast_read_surface_ratchet.txt`
+- **ratchet_owner:** `tests/repo/ast_read_surface_ratchet.txt`
 - Format: one UTF-8 line per measured metric:
   `metric|literal_pattern|ceiling|scope`
 - The Pergyra tool calls `DirWalk(scope)`, filters `.c` files, and counts
@@ -30,7 +30,7 @@ JSON document on stdout, conforming to schema
   "schema": "pgy.selfhost.ast-read-surface.v1",
   "ok": true,
   "source": {
-    "ratchet_owner": "tests/ast_read_surface_ratchet.txt",
+    "ratchet_owner": "tests/repo/ast_read_surface_ratchet.txt",
     "inventory_owner": "DirWalk(scope)"
   },
   "counts": {

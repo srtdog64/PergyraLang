@@ -42,7 +42,7 @@ Current evidence:
 - `tests/parallel_core_contract_smoke.sh` freezes the core/execution-family/runtime-mechanism split across the taxonomy, manifest, representative case tags, semantic regression, backend compare, and module smoke.
 - `src/tests/semantic/test_semantic_parallel_context.cases.h` rejects write/write slot conflicts, SecureSlot/DeviceSlot access, token-capability calls, and secure-effect helper/method calls inside `parallel`; read/write slot overlap across sibling tasks is a semantic error (`docs/113_memory_concurrency_model.md`).
 - `src/tests/semantic/test_semantic_parallel_family.cases.h` verifies `spawn -> Future<T>`, `await` async-context rules, and select-readiness rejection.
-- `tests/module_smoke.sh` keeps the `parallel_ref_slot_conflict` source-level rejection visible through the compiler driver.
+- `tests/language/module_smoke.sh` keeps the `parallel_ref_slot_conflict` source-level rejection visible through the compiler driver.
 - Channel transport validator/reporting has been separated.
 - `parallel` is documented as core, while fiber/coroutine are runtime mechanisms below the core surface.
 
@@ -61,7 +61,7 @@ Stable execution-family lowering must produce equivalent C and LLVM observable b
 
 Current evidence:
 
-- `tests/compare_backends.sh` covers `parallel_channel_sum`, `parallel_channel_dual`, and `triple_paradigm` under C/LLVM backend compare.
+- `tests/backend/compare_backends.sh` covers `parallel_channel_sum`, `parallel_channel_dual`, and `triple_paradigm` under C/LLVM backend compare.
 - Unsupported LLVM stmt/expr fallback is moving toward structured backend error.
 
 Remaining proof obligation:

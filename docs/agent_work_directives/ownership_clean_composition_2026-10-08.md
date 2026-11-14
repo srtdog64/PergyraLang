@@ -52,7 +52,7 @@ production compiler/runtime are read-only. No delegation, new worktree,
 installation, commit, push, GUI message or SoT status change in this slice.
 
 Integration owner: this task. Integration gate:
-`tests/ownership_cleanup_smoke.sh` plus the fresh full proof-corpus kernel
+`tests/ownership/ownership_cleanup_smoke.sh` plus the fresh full proof-corpus kernel
 gate and formal inventory. Static budget 60 s, focused 300 s, corpus 1800 s.
 Tests are implementation candidates until actual receipts are observed.
 

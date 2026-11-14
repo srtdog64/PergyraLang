@@ -26,7 +26,7 @@ pre-existing aggregate release-plan refusal (handoff P1b).
 - Forbidden fallback: a checked runtime variant chosen silently, a pointer-keyed
   length cache, name-only matching across sibling bindings, an allowlist of
   compiler files, or accepting an unresolved call to a routine with a requirement.
-- Gate: `tests/string_window_extent_smoke.sh` (native and self-host verdicts on
+- Gate: `tests/ownership/string_window_extent_smoke.sh` (native and self-host verdicts on
   the fixture set, plus the reproduction programs).
 - Falsifiers: the two audit reproductions; reassignment of the source or the
   extent; inout passing of the source; a helper called once with a wrong

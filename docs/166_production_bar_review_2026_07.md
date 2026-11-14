@@ -105,11 +105,11 @@ The compatibility gate must cover these surfaces together:
 | Compatibility evolution | `src/self_hosted/compiler/compatibility_evolution_owner.pgy`, `src/self_hosted/compiler/compatibility_evolution_manifest.pgy`, `tests/self_hosted/parity/driver/compatibility_evolution_manifest_parity.sh`, `src/self_hosted/tools/compatibility_evolution_checker/main.pgy`, `tests/self_hosted/parity/driver/compatibility_evolution_checker_parity.sh`, plus future production consumers over diagnostics, stable-subset, package, runtime-trace, and native backend policy |
 | Obsolete migration | Diagnostic registry plus migration metadata gate |
 | MIR-owned ABI layout | `src/compiler/mir_abi_layout.c` for type/layout rows, `src/compiler/mir_abi_resource_runtime.c` for resource runtime-call spelling rows, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, `self-host-abi-layout-row-parity-test-smoke`, and `self-host-backend-abi-layout-contract-parity-test-smoke` |
-| Backend dumb emitter | `tests/backend_fail_closed_smoke.sh`, `tests/abi_ownership_shape_smoke.sh`, and MIR/ABI fact consumers |
+| Backend dumb emitter | `tests/backend/backend_fail_closed_smoke.sh`, `tests/abi_ownership_shape_smoke.sh`, and MIR/ABI fact consumers |
 | LLVM runtime bitcode | `src/codegen/llvm_api.c`, runtime bitcode strip policy, and performance parity gates |
 | Boundary capture | `docs/146_sea_execution_lanes.md` and MIR/RIR producer code |
-| Execution lane negatives | `tests/sea_execution_lane_golden_smoke.sh` and self-host SEA parity |
-| AIR/backend access lint | `docs/104_air_compiler_architecture.md`, `tests/air_backend_nonimpact_smoke.sh`, `src/self_hosted/compiler/backend_air_access_contract_owner.pgy`, `src/self_hosted/tools/backend_air_access_checker/main.pgy`, and `self-host-backend-air-access-parity-test-smoke` |
+| Execution lane negatives | `tests/parallel/sea_execution_lane_golden_smoke.sh` and self-host SEA parity |
+| AIR/backend access lint | `docs/104_air_compiler_architecture.md`, `tests/ir/air_backend_nonimpact_smoke.sh`, `src/self_hosted/compiler/backend_air_access_contract_owner.pgy`, `src/self_hosted/tools/backend_air_access_checker/main.pgy`, and `self-host-backend-air-access-parity-test-smoke` |
 | Sandbox capability/frame budget | `docs/semantics/15_capability_sandbox.md`, `src/self_hosted/compiler/sandbox_capability_owner.pgy`, `src/self_hosted/compiler/sandbox_capability_manifest.pgy`, `self-host-sandbox-capability-parity-test-smoke`, capability manifest gates, and future runtime frame-budget fixtures |
 | Stdlib L2 doctrine | `docs/148_stdlib_architecture.md` and stdlib conformance gates |
 | Self-host replacement | `docs/self_hosted/10_hard_self_host_contract.md`, `docs/self_hosted/15_pre_self_host_expansion_ledger.md`, and `docs/160_m2_completeness_execution_plan.md` |

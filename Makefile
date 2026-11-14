@@ -1581,10 +1581,10 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_secure_slot_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_text_builder_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_text_builder_inline.h \
-                   tests/build_source_inventory_smoke.sh \
-                   tests/dogfood_webgl_smoke.sh \
-                   tests/wasm_backend_parity_smoke.sh \
-                   tests/runtime_frontier_policy_smoke.sh
+                   tests/repo/build_source_inventory_smoke.sh \
+                   tests/repo/dogfood_webgl_smoke.sh \
+                   tests/backend/wasm_backend_parity_smoke.sh \
+                   tests/runtime/runtime_frontier_policy_smoke.sh
 
 MAIN_OBJECT            = $(BUILD_DIR)/main.o
 PARSER_TEST_OBJECT     = $(BUILD_DIR)/test_parser.o
@@ -2044,7 +2044,7 @@ operator-overload-rules-test: $(BIN_DIR)/operator_overload_rules_unit$(EXEEXT)
 
 .PHONY: operator-overload-rules-test-smoke
 operator-overload-rules-test-smoke: $(PGY) operator-overload-rules-test
-	python3 tests/operator_overload_rules_smoke.py --pgy "$(abspath $(PGY))" \
+	python3 tests/language/operator_overload_rules_smoke.py --pgy "$(abspath $(PGY))" \
 		--backends "$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)"
 
 # Semantic analyzer test
@@ -2109,7 +2109,7 @@ $(BIN_DIR)/module_source_snapshot_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR
 
 .PHONY: module-source-snapshot-test
 module-source-snapshot-test: $(BIN_DIR)/module_source_snapshot_unit$(EXEEXT)
-	PGY_MODULE_SOURCE_UNIT="$(abspath $(BIN_DIR)/module_source_snapshot_unit$(EXEEXT))" "$(BASH)" tests/module_source_snapshot_smoke.sh
+	PGY_MODULE_SOURCE_UNIT="$(abspath $(BIN_DIR)/module_source_snapshot_unit$(EXEEXT))" "$(BASH)" tests/ir/module_source_snapshot_smoke.sh
 
 $(BUILD_DIR)/tests/flow_rows_check_memo_unit.o: tests/semantic/flow_rows_check_memo_unit.c
 	@$(call pgy_mkdir_p,$(dir $@))
@@ -2190,7 +2190,7 @@ $(BIN_DIR)/llvm_nested_array_clone_transport_unit$(EXEEXT): $(FRONTEND_OBJECTS) 
 
 .PHONY: nested-array-copy-test-smoke
 nested-array-copy-test-smoke: $(PGY) $(BIN_DIR)/llvm_nested_array_clone_transport_unit$(EXEEXT)
-	PGY_BIN="$(abspath $(PGY))" NESTED_ARRAY_CLONE_UNIT="$(abspath $(BIN_DIR)/llvm_nested_array_clone_transport_unit$(EXEEXT))" CC="$(CC)" "$(BASH)" tests/nested_array_copy_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" NESTED_ARRAY_CLONE_UNIT="$(abspath $(BIN_DIR)/llvm_nested_array_clone_transport_unit$(EXEEXT))" CC="$(CC)" "$(BASH)" tests/runtime/nested_array_copy_smoke.sh
 
 nested-array-test-smoke: nested-array-copy-test-smoke
 else
@@ -2342,7 +2342,7 @@ generic-method-specialization-test-smoke: $(PGY) $(TRANSPILE_TEST)
 	@$(call pgy_mkdir_p,$(abspath $(BUILD_DIR)/tmp))
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_TRANSPILE_TEST_BIN="$(abspath $(TRANSPILE_TEST))" \
-		"$(BASH)" tests/generic_method_specialization_smoke.sh
+		"$(BASH)" tests/language/generic_method_specialization_smoke.sh
 
 .PHONY: generic-method-specialization-test-smoke
 
@@ -2394,11 +2394,11 @@ test-budget: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
 # set is computed and emitted (--capability-manifest), and any function that
 # uses a capability whose effect family it did not declare fails the gate.
 builtin-capability-registry-test-smoke:
-	"$(BASH)" tests/builtin_capability_registry_smoke.sh
+	"$(BASH)" tests/registry/builtin_capability_registry_smoke.sh
 
 .PHONY: builtin-effect-registry-test-smoke
 builtin-effect-registry-test-smoke:
-	"$(BASH)" tests/builtin_effect_registry_smoke.sh
+	"$(BASH)" tests/registry/builtin_effect_registry_smoke.sh
 
 test-capability-manifest: builtin-capability-registry-test-smoke builtin-effect-registry-test-smoke $(PGY)
 	@echo "=== Capability Manifest Gate ==="
@@ -2448,7 +2448,7 @@ air-erasure-gate: $(PGY)
 # faces, runtime upstream-zero, codegen->AIR zero). No compiler needed.
 border-registry-test-smoke:
 	@echo "=== Border Registry Include-Edge Smoke (docs/154) ==="
-	$(BASH) tests/border_registry_smoke.sh
+	$(BASH) tests/registry/border_registry_smoke.sh
 
 # Source-level SoT guard: the budget charge for a metered kind must appear in
 # BOTH the C-inline and LLVM-export twin of each allocation path, or the backends
@@ -2489,7 +2489,7 @@ test-abi: $(ABI_TEST) $(PGY)
 	@echo "=== ABI Pipeline Smoke ==="
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_ABI_PIPELINE_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
-	$(BASH) tests/abi_pipeline_smoke.sh
+	$(BASH) tests/ir/abi_pipeline_smoke.sh
 
 $(ABI_PERF_RUNTIME_RELEASE_OBS0): $(RUNTIME_DIR)/pgy_runtime_lib.c $(RUNTIME_DIR)/pgy_runtime.h
 	@$(call pgy_mkdir_p,$(dir $@))
@@ -2509,44 +2509,44 @@ test-abi-perf: $(ABI_PIPELINE_TEST) abi-perf-runtime
 
 perf-summary:
 	@test -n "$(PERF_LOG)" || { echo "usage: make perf-summary PERF_LOG=/path/to/test-abi-perf.log" >&2; exit 1; }
-	$(BASH) tests/perf_summary.sh "$(PERF_LOG)"
+	$(BASH) tests/perf/perf_summary.sh "$(PERF_LOG)"
 
 perf-contract-test-smoke:
-	"$(BASH)" tests/perf_contract_smoke.sh
+	"$(BASH)" tests/perf/perf_contract_smoke.sh
 
 backend-fail-closed-test-smoke: parallel-capture-projection-test-smoke
-	"$(BASH)" tests/backend_fail_closed_smoke.sh
+	"$(BASH)" tests/backend/backend_fail_closed_smoke.sh
 
 native-match-scrutinee-single-evaluation-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_NATIVE_BOUNDARY_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
-	"$(BASH)" tests/native_match_scrutinee_single_evaluation_smoke.sh
+	"$(BASH)" tests/backend/native_match_scrutinee_single_evaluation_smoke.sh
 
 native-c-callable-macro-hygiene-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-	"$(BASH)" tests/native_c_callable_macro_hygiene_smoke.sh
+	"$(BASH)" tests/backend/native_c_callable_macro_hygiene_smoke.sh
 
 # An Array mutator on a nested member writes back to the member's storage
 # through native C's ordered-call lowering and LLVM, and a temporary receiver
 # is refused. call-argument-evaluation-order-test-smoke runs it in CI.
 .PHONY: array-member-mutation-test-smoke
 array-member-mutation-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/array_member_mutation_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/array_member_mutation_smoke.sh
 
 native-imported-private-nominal-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_NATIVE_BOUNDARY_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
-	"$(BASH)" tests/native_imported_private_nominal_smoke.sh
+	"$(BASH)" tests/backend/native_imported_private_nominal_smoke.sh
 
 native-string-result-control-ownership-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_TEST_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
-	"$(BASH)" tests/string_result_control_ownership_smoke.sh
+	"$(BASH)" tests/ownership/string_result_control_ownership_smoke.sh
 
 native-loop-local-collection-cleanup-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_TEST_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
-	"$(BASH)" tests/loop_local_collection_cleanup_smoke.sh
+	"$(BASH)" tests/ownership/loop_local_collection_cleanup_smoke.sh
 
 native-compiler-boundary-regression-test-smoke: \
 	operator-overload-rules-test-smoke \
@@ -2563,28 +2563,28 @@ native-compiler-boundary-regression-test-smoke: \
 	native-compiler-boundary-regression-test-smoke
 
 parallel-capture-projection-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_capture_projection_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_capture_projection_smoke.sh
 
 domain-runtime-topology-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS="$${PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS:-$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)}" \
-	"$(BASH)" tests/domain_runtime_topology_smoke.sh
+	"$(BASH)" tests/ir/domain_runtime_topology_smoke.sh
 
 .PHONY: domain-runtime-topology-test-smoke parallel-capture-projection-test-smoke
 
 worker-boundary-ub-test-smoke:
-	"$(BASH)" tests/worker_boundary_ub_smoke.sh
+	"$(BASH)" tests/parallel/worker_boundary_ub_smoke.sh
 
 perf-c-baseline-test-smoke: $(PGY)
-	PGY_BIN="$(PGY)" CC="$(CC)" "$(BASH)" tests/perf_c_baseline_smoke.sh
+	PGY_BIN="$(PGY)" CC="$(CC)" "$(BASH)" tests/perf/perf_c_baseline_smoke.sh
 
 pergyra-mul-coq-benchmark-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/pergyra_mul_coq_benchmark.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/proof/pergyra_mul_coq_benchmark.sh
 
 .PHONY: pergyra-mul-coq-benchmark-test-smoke
 
 evidence-guard-amortization-test-smoke: $(PGY)
-	PGY_BIN="$(PGY)" CC="$(CC)" "$(BASH)" tests/evidence_guard_amortization_smoke.sh
+	PGY_BIN="$(PGY)" CC="$(CC)" "$(BASH)" tests/ir/evidence_guard_amortization_smoke.sh
 
 # ============================================================
 # Compile-Speed Timing Baseline (docs/126 §7)
@@ -2636,11 +2636,11 @@ test-mir: $(MIR_TEST) $(PGY)
 	$(MAKE) native-loop-local-collection-cleanup-test-smoke
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS="$${PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS:-$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)}" \
-	"$(BASH)" tests/domain_runtime_topology_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/destructure_type_fact_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
+	"$(BASH)" tests/ir/domain_runtime_topology_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/destructure_type_fact_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/match_binding_type_fact_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_stmt_render_fail_closed_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_speculation_fact_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/mir_speculation_fact_smoke.sh
 
 test-hir: $(HIR_TEST) collection-owned-local-transition-test
 	@echo "=== HIR Test ==="
@@ -2705,10 +2705,10 @@ TSAN_BIN_DIR   ?= bin-tsan-$(CC_MACHINE)
 TSAN_CONCURRENCY_TEST ?= $(TSAN_BIN_DIR)/test_concurrency$(EXEEXT)
 
 ast-destroy-coverage-test-smoke:
-	"$(BASH)" tests/ast_destroy_coverage_smoke.sh
+	"$(BASH)" tests/repo/ast_destroy_coverage_smoke.sh
 
 c-backend-tmpfile-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/c_backend_tmpfile_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/backend/c_backend_tmpfile_smoke.sh
 
 # Two axes, because one sanitizer run cannot ask both questions honestly:
 #   - the compiler over a real corpus, leak detection ON: does compiling leak?
@@ -2718,10 +2718,10 @@ c-backend-tmpfile-test-smoke: $(PGY)
 # LLVM_ENABLED=0: the LLVM leg needs llvm-c headers the sanitizer host may not
 # have. The frontend and the C backend, where the allocations live, are covered.
 asan-uaf-witness-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/asan_uaf_witness_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/ownership/asan_uaf_witness_smoke.sh
 
 mir-parallel-capture-allocation-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/mir_parallel_capture_allocation_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/parallel/mir_parallel_capture_allocation_smoke.sh
 
 test-asan: asan-uaf-witness-test-smoke mir-parallel-capture-allocation-test-smoke
 	@echo "=== Sanitizer gate: ASan + UBSan ($(PGY_SANITIZERS)) ==="
@@ -2731,7 +2731,7 @@ test-asan: asan-uaf-witness-test-smoke mir-parallel-capture-allocation-test-smok
 	        BIN_DIR=$(ASAN_BIN_DIR) \
 	        PGY_DEBUG_SYMBOLS=1 \
 	        $(ASAN_PGY) $(ASAN_UNIT_BINARIES)
-	PGY_ASAN_BIN="$(abspath $(ASAN_PGY))" "$(BASH)" tests/sanitizer_compile_smoke.sh
+	PGY_ASAN_BIN="$(abspath $(ASAN_PGY))" "$(BASH)" tests/backend/sanitizer_compile_smoke.sh
 	@echo "--- batteries under the sanitizers (use-after-free / UB) ---"
 	@for battery in $(ASAN_UNIT_BINARIES); do \
 	    echo "  $$battery"; \
@@ -2753,10 +2753,10 @@ test-asan: asan-uaf-witness-test-smoke mir-parallel-capture-allocation-test-smok
 # ordinary $(PGY): the program under the sanitizer is the emitted one, not pgy.
 emitted-c-sanitizer-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_SAN_CC="$(CC)" \
-	    "$(BASH)" tests/emitted_c_sanitizer_smoke.sh
+	    "$(BASH)" tests/backend/emitted_c_sanitizer_smoke.sh
 
 tsan-race-witness-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/tsan_race_witness_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/parallel/tsan_race_witness_smoke.sh
 
 test-tsan: tsan-race-witness-test-smoke
 	@echo "=== Sanitizer gate: TSan (thread) ==="
@@ -2768,7 +2768,7 @@ test-tsan: tsan-race-witness-test-smoke
 	        PGY_DEBUG_SYMBOLS=1 \
 	        $(TSAN_CONCURRENCY_TEST)
 	PGY_TSAN_CONCURRENCY_BIN="$(abspath $(TSAN_CONCURRENCY_TEST))" \
-		"$(BASH)" tests/tsan_concurrency_smoke.sh
+		"$(BASH)" tests/parallel/tsan_concurrency_smoke.sh
 	@echo "=== Sanitizer gate: TSan clean ==="
 
 llvm-test:
@@ -2803,19 +2803,19 @@ llvm-test-hir:
 
 llvm-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/llvm_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/backend/llvm_smoke.sh
 
 llvm-runtime-aggregate-return-abi-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/llvm_runtime_aggregate_return_abi_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/backend/llvm_runtime_aggregate_return_abi_smoke.sh
 
 llvm-test-abi-same-process: $(ABI_PIPELINE_TEST)
 	@echo "=== ABI Pipeline Same-Process LLVM Regression ==="
-	"$(BASH)" tests/abi_pipeline_same_process_smoke.sh "$(ABI_PIPELINE_TEST)"
+	"$(BASH)" tests/ir/abi_pipeline_same_process_smoke.sh "$(ABI_PIPELINE_TEST)"
 
 fmt-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/fmt_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/repo/fmt_smoke.sh
 
 # pgy-lsp opens a live session through the installed self-host LSP sibling.
 # CI builds into a BIN_DIR that holds only the driver artifact, so the
@@ -2825,96 +2825,96 @@ tooling-conformance-test-smoke: $(PGY) $(PGY_LSP) self-host-compiler self-host-l
 	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" \
 		PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		PGY_SELF_LSP_BIN="$(abspath $(SELF_HOST_LSP))" PGY_CC="$(CC)" \
-		"$(BASH)" tests/tooling_conformance_smoke.sh
+		"$(BASH)" tests/repo/tooling_conformance_smoke.sh
 
 stdlib-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_STDLIB_BACKENDS="$${PGY_STDLIB_BACKENDS:-$(STDLIB_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/stdlib_surface_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/repo/stdlib_surface_smoke.sh
 	PGY_HOST_TASK_SLOT_BACKENDS="$${PGY_HOST_TASK_SLOT_BACKENDS:-$(STDLIB_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_slot_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/host_task_slot_smoke.sh
 	PGY_HOST_TASK_POLICY_BACKENDS="$${PGY_HOST_TASK_POLICY_BACKENDS:-$(STDLIB_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_policy_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/host_task_policy_smoke.sh
 
 pgy-math-registry-admission-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
-	"$(BASH)" tests/pgy_math_registry_admission_smoke.sh
+	"$(BASH)" tests/registry/pgy_math_registry_admission_smoke.sh
 
 pgy-math-adversarial-matrix-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 	PGY_MATH_ROOT="$${PGY_MATH_ROOT:?set PGY_MATH_ROOT to the PgyMath checkout}" \
-	"$(BASH)" tests/pgy_math_adversarial_matrix_smoke.sh
+	"$(BASH)" tests/registry/pgy_math_adversarial_matrix_smoke.sh
 
 host-task-slot-test-smoke: $(PGY)
 	PGY_HOST_TASK_SLOT_BACKENDS="$${PGY_HOST_TASK_SLOT_BACKENDS:-$(STDLIB_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_slot_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/host_task_slot_smoke.sh
 
 host-task-policy-test-smoke: $(PGY)
 	PGY_HOST_TASK_POLICY_BACKENDS="$${PGY_HOST_TASK_POLICY_BACKENDS:-$(STDLIB_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_policy_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/host_task_policy_smoke.sh
 
 .PHONY: host-task-slot-test-smoke host-task-policy-test-smoke
 
 stage4-determinism-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_STAGE4_DETERMINISM_BACKENDS="$${PGY_STAGE4_DETERMINISM_BACKENDS:-$(STAGE4_DETERMINISM_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/stage4_determinism_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/stage4_determinism_smoke.sh
 
 filesystem-directory-walk-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_FILESYSTEM_WALK_BACKENDS="$${PGY_FILESYSTEM_WALK_BACKENDS:-$(FILESYSTEM_WALK_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/filesystem_directory_walk_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/filesystem_directory_walk_smoke.sh
 
 module-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/module_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/language/module_smoke.sh
 
 ir-pipeline-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/ir_pipeline_probe.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/ir/ir_pipeline_probe.sh
 
 cfg-body-dataflow-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/cfg_body_dataflow_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/cfg_body_dataflow_smoke.sh
 
 loop-flow-summary-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/loop_flow_summary_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/loop_flow_summary_smoke.sh
 
 iteration-type-fact-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/iteration_type_fact_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/iteration_type_fact_smoke.sh
 
 compatibility-evolution-native-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/compatibility_evolution_native_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/compatibility_evolution_native_smoke.sh
 
 function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test flow-rows-check-memo-test flow-closure-worklist-test default-aggregate-copy-graph-test
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
-	PGY_VERIFY_FLOW_CURRENCY_MEMO=1 PGY_VERIFY_FLOW_WORKLIST=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/function_param_flow_summary_smoke.sh
+	PGY_VERIFY_FLOW_CURRENCY_MEMO=1 PGY_VERIFY_FLOW_WORKLIST=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/function_param_flow_summary_smoke.sh
 
 .PHONY: readonly-map-query-test-smoke
 readonly-map-query-test-smoke: $(PGY) $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT)
-	PGY_BIN="$(abspath $(PGY))" READONLY_MAP_FACT_UNIT="$(abspath $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT))" "$(BASH)" tests/readonly_map_query_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" READONLY_MAP_FACT_UNIT="$(abspath $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT))" "$(BASH)" tests/ownership/readonly_map_query_smoke.sh
 
 hir-function-param-flow-summary-test-smoke: $(HIR_TEST)
-	"$(BASH)" tests/hir_function_param_flow_summary_smoke.sh
+	"$(BASH)" tests/ir/hir_function_param_flow_summary_smoke.sh
 
 rir-function-param-flow-summary-test-smoke: $(RIR_TEST)
-	"$(BASH)" tests/rir_function_param_flow_summary_smoke.sh
+	"$(BASH)" tests/ir/rir_function_param_flow_summary_smoke.sh
 
 rir-resource-flow-identity-test-smoke: $(RIR_TEST) $(PGY)
-	RIR_TEST_BIN="$(abspath $(RIR_TEST))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/rir_resource_flow_identity_smoke.sh
+	RIR_TEST_BIN="$(abspath $(RIR_TEST))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/rir_resource_flow_identity_smoke.sh
 
 mir-function-param-flow-summary-test-smoke: $(MIR_TEST)
-	"$(BASH)" tests/mir_function_param_flow_summary_smoke.sh
+	"$(BASH)" tests/ir/mir_function_param_flow_summary_smoke.sh
 
 air-function-param-flow-summary-test-smoke: $(AIR_TEST)
-	"$(BASH)" tests/air_function_param_flow_summary_smoke.sh
+	"$(BASH)" tests/ir/air_function_param_flow_summary_smoke.sh
 
 air-mir-binding-test-smoke: $(AIR_TEST) $(PGY)
-	AIR_TEST_BIN="$(abspath $(AIR_TEST))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/air_mir_binding_smoke.sh
+	AIR_TEST_BIN="$(abspath $(AIR_TEST))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/air_mir_binding_smoke.sh
 
 self-host-mir-function-param-flow-summary-test-smoke:
 	"$(BASH)" tests/self_hosted/mir_function_param_flow_summary_smoke.sh
@@ -2940,20 +2940,20 @@ self-host-mir-row-borrow-retention-llvm-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" timeout 300 "$(BASH)" tests/self_hosted/parity/mir/mir_row_borrow_retention_owner.sh llvm
 
 mir-declaration-inventory-test-smoke:
-	"$(BASH)" tests/mir_declaration_inventory_smoke.sh
+	"$(BASH)" tests/ir/mir_declaration_inventory_smoke.sh
 
 package-module-resolver-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/package_module_resolver_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/package_module_resolver_smoke.sh
 
 unicode-policy-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/unicode_policy_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/repo/unicode_policy_smoke.sh
 
 build-source-inventory-test-smoke:
-	"$(BASH)" tests/build_source_inventory_smoke.sh
-	"$(BASH)" tests/build_pressure_contract_smoke.sh
+	"$(BASH)" tests/repo/build_source_inventory_smoke.sh
+	"$(BASH)" tests/perf/build_pressure_contract_smoke.sh
 
 ci-step-runner-test-smoke:
-	"$(BASH)" tests/ci_step_runner_smoke.sh
+	"$(BASH)" tests/repo/ci_step_runner_smoke.sh
 
 __pgy_build_source_inventory_print:
 	$(foreach src,$(BUILD_SOURCE_INVENTORY_SOURCES),$(info $(src)))
@@ -2961,76 +2961,76 @@ __pgy_build_source_inventory_print:
 	@:
 
 source-utf8-test-smoke:
-	"$(BASH)" tests/source_utf8_smoke.sh
+	"$(BASH)" tests/repo/source_utf8_smoke.sh
 
 observability-schema-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/observability_schema_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/observability_schema_smoke.sh
 
 memory-concurrency-model-test-smoke: structured-spawn-lifecycle-test-smoke $(PGY)
 	PGY_MEMORY_CONCURRENCY_BACKENDS="$${PGY_MEMORY_CONCURRENCY_BACKENDS:-$(MEMORY_CONCURRENCY_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/memory_concurrency_model_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/memory_concurrency_model_smoke.sh
 
 structured-spawn-lifecycle-test-smoke: $(PGY)
 	PGY_MEMORY_CONCURRENCY_BACKENDS="$${PGY_MEMORY_CONCURRENCY_BACKENDS:-$(MEMORY_CONCURRENCY_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/structured_spawn_lifecycle_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/structured_spawn_lifecycle_smoke.sh
 
 documentation-quality-test-smoke:
-	"$(BASH)" tests/documentation_quality_smoke.sh
-	"$(BASH)" tests/post_selfhost_validation_manifest_smoke.sh
+	"$(BASH)" tests/repo/documentation_quality_smoke.sh
+	"$(BASH)" tests/registry/post_selfhost_validation_manifest_smoke.sh
 
 post-selfhost-validation-manifest-test-smoke:
-	"$(BASH)" tests/post_selfhost_validation_manifest_smoke.sh
+	"$(BASH)" tests/registry/post_selfhost_validation_manifest_smoke.sh
 
 parallel-backpressure-stress-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_backpressure_stress_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_backpressure_stress_smoke.sh
 
 channel-pool-starvation-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/channel_pool_starvation_probe.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/channel_pool_starvation_probe.sh
 
 nested-parallel-witness-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/nested_parallel_witness_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/nested_parallel_witness_smoke.sh
 
 parallel-worker-invariance-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_worker_invariance_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_worker_invariance_smoke.sh
 
 parallel-budget-chunk-charge-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_budget_chunk_charge_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_budget_chunk_charge_smoke.sh
 
 parallel-join-emit-shape-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_join_emit_shape_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_join_emit_shape_smoke.sh
 
 selfhost-parallel-chunk-policy-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/selfhost_parallel_chunk_policy_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/selfhost_parallel_chunk_policy_smoke.sh
 
 selfhost-parallel-lane-policy-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/selfhost_parallel_lane_policy_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/selfhost_parallel_lane_policy_smoke.sh
 
 # Verified spawn-lane plan bridge contract (producer refusals, per-site
 # fail-closed lookup, driver-produces/backend-consumes). See
 # spawn_lane_plan_owner.pgy.
 selfhost-spawn-lane-plan-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/selfhost_spawn_lane_plan_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/selfhost_spawn_lane_plan_smoke.sh
 
 # Movable-lane M:N executor witness (docs/194 WO-MN-1): materialization in
 # both linked-runtime objects, movable==pool invariance, cooperative cancel,
 # and the inline-mode fail-closed backstop. Pure C harnesses; no pgy needed.
 mn-executor-test-smoke:
-	"$(BASH)" tests/mn_executor_smoke.sh
+	"$(BASH)" tests/parallel/mn_executor_smoke.sh
 
 # docs/177 F1 / docs/188 R5: the two availability fallbacks (inactive pool,
 # malformed PGY_WORKERS) must warn on stderr and stay silent on a live pool.
 parallel-pool-inactive-witness-test-smoke:
-	"$(BASH)" tests/parallel_pool_inactive_witness_smoke.sh
+	"$(BASH)" tests/parallel/parallel_pool_inactive_witness_smoke.sh
 
 # PgyRegion chained-block allocator witness (WO-REG-1, docs/197): chained
 # growth with stable pointers, address alignment, region-owned string concat,
 # reset reuse, inline==extern materialization, and budget fail-closed. Pure C
 # harnesses against the real runtime headers; no pgy needed.
 region-arena-test-smoke:
-	"$(BASH)" tests/region_arena_smoke.sh
+	"$(BASH)" tests/ownership/region_arena_smoke.sh
 
 string-clone-release-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" CC=clang "$(BASH)" tests/string_clone_release_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" CC=clang "$(BASH)" tests/ownership/string_clone_release_smoke.sh
 
 ALL_DEP_FILES += $(BUILD_DIR)/tests/string_clone_region_unit.d
 $(BUILD_DIR)/tests/string_clone_region_unit.o: tests/compiler/string_clone_region_unit.c
@@ -3048,7 +3048,7 @@ string-clone-region-unit-test: $(BIN_DIR)/string_clone_region_unit$(EXEEXT)
 test-mir: string-clone-region-unit-test
 
 region-backend-wiring-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/region_backend_wiring_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/region_backend_wiring_smoke.sh
 
 .PHONY: region-arena-test-smoke region-backend-wiring-test-smoke string-clone-release-test-smoke
 
@@ -3057,8 +3057,8 @@ region-backend-wiring-test-smoke: $(PGY)
 # C; the driver now produces this immutable plan before backend dispatch.
 REGION_PLAN_UNIT_BIN := $(BUILD_DIR)/region_plan_unit$(EXEEXT)
 
-$(REGION_PLAN_UNIT_BIN): tests/region_plan_unit.c src/compiler/verified_region_plan.c
-	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_plan_unit.c src/compiler/verified_region_plan.c
+$(REGION_PLAN_UNIT_BIN): tests/ownership/region_plan_unit.c src/compiler/verified_region_plan.c
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/ownership/region_plan_unit.c src/compiler/verified_region_plan.c
 
 region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 	$(REGION_PLAN_UNIT_BIN)
@@ -3073,7 +3073,7 @@ region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 # missing-fact case fail-closed.
 REGION_ESCAPE_UNIT_BIN := $(BUILD_DIR)/region_escape_unit$(EXEEXT)
 
-REGION_ESCAPE_UNIT_SOURCES := tests/region_escape_unit.c \
+REGION_ESCAPE_UNIT_SOURCES := tests/ownership/region_escape_unit.c \
     src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c \
     src/common/numeric_parse.c src/parser/ast.c src/parser/ast_identity.c \
     src/parser/ast_destroy.c src/parser/ast_destroy_domain.c \
@@ -3091,19 +3091,19 @@ region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
 
 .PHONY: builtin-argument-retention-registry-test-smoke
 builtin-argument-retention-registry-test-smoke: region-escape-unit-test-smoke
-	"$(BASH)" tests/builtin_argument_retention_registry_smoke.sh
+	"$(BASH)" tests/registry/builtin_argument_retention_registry_smoke.sh
 
 # "No mechanism without a consumer": censuses each declared mechanism against
 # its actual consumers, both directions. See reachability_owner.pgy.
 selfhost-reachability-contract-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/selfhost_reachability_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/selfhost_reachability_contract_smoke.sh
 
 # Verified region plan owner gate (WO-REG-1 REG-1d, docs/197): the origin
 # surface owns the plan contract, the producer's refusals, and the fail-closed
 # asymmetry (a lookup MISS is HEAP, so an incomplete escape pass costs speed
 # and never correctness). Golden + LLVM-leg parity + projection pins.
 selfhost-region-plan-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/selfhost_region_plan_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/selfhost_region_plan_smoke.sh
 .PHONY: selfhost-region-plan-test-smoke
 
 parallel-production-contract-test-smoke: \
@@ -3120,23 +3120,23 @@ parallel-production-contract-test-smoke: \
 
 .PHONY: string-value-copy-test-smoke
 string-value-copy-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/string_value_copy_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/string_value_copy_smoke.sh
 
 runtime-cache-identity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_cache_identity_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/runtime_cache_identity_smoke.sh
 
 ARENA_LEDGER_BIN := $(BUILD_DIR)/arena_ledger_smoke$(EXEEXT)
 
-$(ARENA_LEDGER_BIN): tests/arena_ledger_smoke.c $(BUILD_DIR)/common/arena.o
-	$(CC) $(CFLAGS) -o $@ tests/arena_ledger_smoke.c $(BUILD_DIR)/common/arena.o
+$(ARENA_LEDGER_BIN): tests/ownership/arena_ledger_smoke.c $(BUILD_DIR)/common/arena.o
+	$(CC) $(CFLAGS) -o $@ tests/ownership/arena_ledger_smoke.c $(BUILD_DIR)/common/arena.o
 
 arena-ledger-test-smoke: $(ARENA_LEDGER_BIN)
 	$(ARENA_LEDGER_BIN)
 
 RUNTIME_CONTEXT_BIN := $(BUILD_DIR)/runtime_context_smoke$(EXEEXT)
 
-$(RUNTIME_CONTEXT_BIN): tests/runtime_context_smoke.c
-	$(CC) $(CFLAGS) -o $@ tests/runtime_context_smoke.c $(THREAD_LINK_LIB) -lm
+$(RUNTIME_CONTEXT_BIN): tests/runtime/runtime_context_smoke.c
+	$(CC) $(CFLAGS) -o $@ tests/runtime/runtime_context_smoke.c $(THREAD_LINK_LIB) -lm
 
 runtime-context-test-smoke: $(RUNTIME_CONTEXT_BIN)
 	$(RUNTIME_CONTEXT_BIN)
@@ -3145,25 +3145,25 @@ runtime-context-test-smoke: $(RUNTIME_CONTEXT_BIN)
 # LLVM runtime materialization must all preserve capability masks, share the
 # exact quantitative budget owner, and restore TLS across every execution lane.
 runtime-spawn-context-propagation-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/runtime_spawn_context_propagation_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/parallel/runtime_spawn_context_propagation_smoke.sh
 
 # C-leg runtime linkage modes (docs/190 C3): the PGY_RUNTIME_INLINE=1 opt-out
 # and extern-as-default were both unexercised. Proves each mode is really that
 # mode and that they agree on output.
 runtime-inline-optout-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_inline_optout_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/runtime_inline_optout_smoke.sh
 
 surface-boundary-hygiene-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/surface_boundary_hygiene_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/repo/surface_boundary_hygiene_smoke.sh
 
 adversarial-input-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/adversarial_input_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/security/adversarial_input_smoke.sh
 
 native-pipeline-malformed-enum-progress-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/native_pipeline_malformed_enum_progress_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/native_pipeline_malformed_enum_progress_owner.sh
 
 emitted-c-warning-clean-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/emitted_c_warning_clean_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/backend/emitted_c_warning_clean_smoke.sh
 
 # Runtime-bitcode-ON backend-compare: builds the .bc and re-runs a
 # representative compare shard with the inlined runtime enabled, so the
@@ -3171,7 +3171,7 @@ emitted-c-warning-clean-test-smoke: $(PGY)
 # the bc-OFF leg CI has always run. Clang-gated; skips where clang is
 # absent.
 backend-compare-bc-on-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/backend_compare_bc_on_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/backend/backend_compare_bc_on_smoke.sh
 
 # Aggregate for the docs/189 repair campaign (mirrors the parallel
 # aggregate's one-wire-in-Linux-CI pattern).
@@ -3193,46 +3193,46 @@ redteam-repair-contract-test-smoke: \
 		selfhost-region-plan-test-smoke
 
 artifact-atomic-runtime-test-smoke:
-	"$(BASH)" tests/runtime_artifact_atomic_transaction_smoke.sh
+	"$(BASH)" tests/runtime/runtime_artifact_atomic_transaction_smoke.sh
 
 artifact-atomic-transaction-test-smoke: artifact-atomic-runtime-test-smoke
 
 ifeq ($(OS),Windows_NT)
 grammar-examples-compile-test-smoke: $(PGY)
-	powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/grammar_examples_compile_smoke.ps1 -PgyBin "$(abspath $(PGY))"
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/language/grammar_examples_compile_smoke.ps1 -PgyBin "$(abspath $(PGY))"
 else
 grammar-examples-compile-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/grammar_examples_compile_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/grammar_examples_compile_smoke.sh
 endif
 
 ifeq ($(OS),Windows_NT)
 grammar-self-driver-test-smoke: self-host-compiler
-	powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/grammar_self_driver_smoke.ps1 -DriverBin "$(abspath $(SELF_HOST_DRIVER))"
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/language/grammar_self_driver_smoke.ps1 -DriverBin "$(abspath $(SELF_HOST_DRIVER))"
 else
 grammar-self-driver-test-smoke: self-host-compiler
-	DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" tests/grammar_self_driver_smoke.sh
+	DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" tests/language/grammar_self_driver_smoke.sh
 endif
 
 stable-identity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/stable_identity_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/stable_identity_contract_smoke.sh
 
 lexer-token-stream-anchor-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/lexer_token_stream_anchor_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/lexer_token_stream_anchor_smoke.sh
 
 source-module-graph-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/source_module_graph_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/source_module_graph_smoke.sh
 
 semantic-declaration-identity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/semantic_declaration_identity_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/semantic_declaration_identity_smoke.sh
 
 hir-routine-identity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/hir_routine_identity_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/hir_routine_identity_smoke.sh
 
 dir-domain-identity-test-smoke: $(RIR_TEST)
-	RIR_TEST_BIN="$(abspath $(RIR_TEST))" "$(BASH)" tests/dir_domain_identity_smoke.sh
+	RIR_TEST_BIN="$(abspath $(RIR_TEST))" "$(BASH)" tests/ir/dir_domain_identity_smoke.sh
 
 dir-resource-flow-identity-test-smoke: $(DIR_TEST)
-	DIR_TEST_BIN="$(abspath $(DIR_TEST))" "$(BASH)" tests/dir_resource_flow_identity_smoke.sh
+	DIR_TEST_BIN="$(abspath $(DIR_TEST))" "$(BASH)" tests/ir/dir_resource_flow_identity_smoke.sh
 
 ifeq ($(EXEEXT),.exe)
 VERIFIED_PROJECTION_PLAN_CC = PATH="$(PGY_WINDOWS_NATIVE_RUNTIME_PATH):$$PATH" $(CC)
@@ -3241,7 +3241,7 @@ VERIFIED_PROJECTION_PLAN_CC = $(CC)
 endif
 
 $(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT): \
-		tests/verified_projection_plan_probe.c \
+		tests/proof/verified_projection_plan_probe.c \
 		src/common/intent_observability_abi.c \
 		src/compiler/compiler_result.c \
 		src/compiler/verified_projection_plan.c \
@@ -3249,15 +3249,15 @@ $(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT): \
 		src/compiler/machine_layer_manifest.c \
 		src/compiler/target_capability_contract.c
 	"$(BASH)" -c "mkdir -p '$(BUILD_DIR)'"
-	$(VERIFIED_PROJECTION_PLAN_CC) -std=c11 -Isrc tests/verified_projection_plan_probe.c src/common/intent_observability_abi.c src/compiler/compiler_result.c src/compiler/verified_projection_plan.c src/compiler/air_evidence_certificate.c src/compiler/machine_layer_manifest.c src/compiler/target_capability_contract.c -o "$(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT)"
+	$(VERIFIED_PROJECTION_PLAN_CC) -std=c11 -Isrc tests/proof/verified_projection_plan_probe.c src/common/intent_observability_abi.c src/compiler/compiler_result.c src/compiler/verified_projection_plan.c src/compiler/air_evidence_certificate.c src/compiler/machine_layer_manifest.c src/compiler/target_capability_contract.c -o "$(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT)"
 
 verified-projection-plan-test-smoke: $(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT)
 	PGY_VERIFIED_PROJECTION_PLAN_PROBE="$(abspath $(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT))" \
-		"$(BASH)" tests/verified_projection_plan_smoke.sh
+		"$(BASH)" tests/proof/verified_projection_plan_smoke.sh
 
 artifact-zone-plan-identity-test-smoke: $(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT)
 	PGY_VERIFIED_PROJECTION_PLAN_PROBE="$(abspath $(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT))" \
-		"$(BASH)" tests/artifact_zone_plan_identity_smoke.sh
+		"$(BASH)" tests/ir/artifact_zone_plan_identity_smoke.sh
 
 $(TARGET_CAPABILITY_TEST): $(BUILD_DIR)/test_target_capability_contract.o \
 		$(BUILD_DIR)/compiler/target_capability_contract.o | $(BIN_DIR)
@@ -3265,7 +3265,7 @@ $(TARGET_CAPABILITY_TEST): $(BUILD_DIR)/test_target_capability_contract.o \
 
 target-capability-test-smoke: $(TARGET_CAPABILITY_TEST)
 	PGY_TARGET_CAPABILITY_PROBE="$(abspath $(TARGET_CAPABILITY_TEST))" \
-		"$(BASH)" tests/target_capability_projection_smoke.sh
+		"$(BASH)" tests/ir/target_capability_projection_smoke.sh
 
 $(MACHINE_LAYER_MANIFEST_TEST): $(BUILD_DIR)/test_machine_layer_manifest.o \
 		$(BUILD_DIR)/compiler/machine_layer_manifest.o | $(BIN_DIR)
@@ -3273,53 +3273,53 @@ $(MACHINE_LAYER_MANIFEST_TEST): $(BUILD_DIR)/test_machine_layer_manifest.o \
 
 machine-layer-manifest-test-smoke: $(MACHINE_LAYER_MANIFEST_TEST)
 	PGY_MACHINE_LAYER_MANIFEST_PROBE="$(abspath $(MACHINE_LAYER_MANIFEST_TEST))" \
-		"$(BASH)" tests/machine_layer_manifest_smoke.sh
+		"$(BASH)" tests/ir/machine_layer_manifest_smoke.sh
 
 verification-methodology-test-smoke:
-	"$(BASH)" tests/verification_methodology_smoke.sh
+	"$(BASH)" tests/proof/verification_methodology_smoke.sh
 
 proof-spine-test-smoke:
-	"$(BASH)" tests/proof_spine_smoke.sh
-	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
-	"$(BASH)" tests/sot_authority_edge_smoke.sh
+	"$(BASH)" tests/proof/proof_spine_smoke.sh
+	"$(BASH)" tests/proof/sot_authority_adequacy_smoke.sh
+	"$(BASH)" tests/proof/sot_authority_edge_smoke.sh
 
 sot-authority-adequacy-test-smoke:
-	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
+	"$(BASH)" tests/proof/sot_authority_adequacy_smoke.sh
 
 sot-authority-edge-test-smoke:
-	"$(BASH)" tests/sot_authority_edge_smoke.sh
+	"$(BASH)" tests/proof/sot_authority_edge_smoke.sh
 
 self-host-preparation-test-smoke: self-host-preparation-contract-test-smoke self-host-preparation-parity-test-smoke
 
 self-host-preparation-platform-test-smoke: self-host-preparation-contract-test-smoke self-host-preparation-platform-parity-test-smoke
 
 self-host-preparation-contract-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/native_pipeline_malformed_enum_progress_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/native_pipeline_malformed_enum_progress_owner.sh
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
-	"$(BASH)" tests/mir_decl_field_kind_vocabulary_smoke.sh
-	"$(BASH)" tests/intent_observability_abi_registry_smoke.sh
+		"$(BASH)" tests/registry/callable_contract_vocabulary_smoke.sh
+	"$(BASH)" tests/registry/mir_decl_field_kind_vocabulary_smoke.sh
+	"$(BASH)" tests/registry/intent_observability_abi_registry_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/builtin_signature_registry_owner_parity.sh
-	"$(BASH)" tests/self_host_preparation_smoke.sh
-	"$(BASH)" tests/self_host_ci_profile_smoke.sh
+	"$(BASH)" tests/self_hosted/gates/self_host_preparation_smoke.sh
+	"$(BASH)" tests/self_hosted/gates/self_host_ci_profile_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/driver/self_host_fixed_point_profile_receipt_smoke.sh
-	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
-	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
+	"$(BASH)" tests/self_hosted/gates/self_hosted_scaffold_smoke.sh
+	"$(BASH)" tests/self_hosted/gates/self_hosted_component_contract_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/expression_surface_closure_probe_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_manifest.sh
-	"$(BASH)" tests/self_host_hard_contract_smoke.sh
+	"$(BASH)" tests/self_hosted/gates/self_host_hard_contract_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen/numeric_payload_byte_projection_owner.sh
 	"$(BASH)" tests/self_hosted/parity/semantic/semantic_enum_variant_builtin_collision_installed_owner.sh
 	"$(BASH)" tests/self_hosted/parity/semantic/semantic_tagged_enum_payload_statement_type_installed_owner.sh
 	"$(BASH)" tests/self_hosted/parity/semantic/semantic_tagged_enum_payload_variant_provenance_owner.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/enum_qualified_environment_fact_owner.sh
-	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
-	"$(BASH)" tests/sot_authority_edge_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
+	"$(BASH)" tests/proof/sot_authority_adequacy_smoke.sh
+	"$(BASH)" tests/proof/sot_authority_edge_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/self_host_compiler_world_contract_smoke.sh
 	"$(BASH)" tests/self_hosted/mir_resource_flow_identity_smoke.sh
 	"$(BASH)" tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh
 	PGY_FILESYSTEM_WALK_BACKENDS="$${PGY_FILESYSTEM_WALK_BACKENDS:-$(FILESYSTEM_WALK_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/filesystem_directory_walk_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/filesystem_directory_walk_smoke.sh
 
 self-host-preparation-platform-parser-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
@@ -3475,7 +3475,7 @@ self-host-preparation-impact-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/completeness_impact_run_group_runner.sh
 
 self-host-preparation-impact-changed-paths-test-smoke: $(PGY)
-	PGY_SELFHOST_IMPACT_CHANGED_PATHS="tests/self_hosted_component_contract_smoke.sh" \
+	PGY_SELFHOST_IMPACT_CHANGED_PATHS="tests/self_hosted/gates/self_hosted_component_contract_smoke.sh" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" scripts/self_host_impact_changed_paths.sh
 
 self-host-linter-parity-test-smoke: $(PGY)
@@ -4325,7 +4325,7 @@ self-host-driver-full-mir-consumer-pressure-shard-body-test-smoke:
 # which it cannot yet -- pinned both ways so bootstrap coverage neither rots
 # nor grows unrecorded. Consumes the driver-bootstrap artifacts.
 self-host-bootstrap-policy-corpus-test-smoke: self-host-driver-bootstrap-test-smoke
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/selfhost_bootstrap_policy_corpus_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/selfhost_bootstrap_policy_corpus_smoke.sh
 
 self-host-driver-rung0-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
@@ -4509,7 +4509,7 @@ self-host-json-owned-fragment-empty-test-smoke: $(PGY)
 .PHONY: self-host-domain-topology-admission-test-smoke self-host-dir-graph-inventory-test-smoke self-host-intent-execution-plan-admission-test-smoke self-host-domain-runtime-assignment-test-smoke self-host-domain-runtime-zone-sync-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-codegen-type-env-preseal-epoch-test-smoke self-host-expression-graph-identity-prefix-test-smoke self-host-routine-build-storage-lifetime-test-smoke self-host-compiler-internal-caller-provenance-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
 
 match-binding-type-fact-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/match_binding_type_fact_smoke.sh
 
 mir-lower-stmt-render-fail-closed-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_stmt_render_fail_closed_smoke.sh
@@ -4535,10 +4535,10 @@ fuzz-backend-parity-campaign-test-smoke: $(PGY)
 	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT="$${PGY_FUZZ_COUNT:-12}" PGY_FUZZ_SEED="$${PGY_FUZZ_SEED:-2026}" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/frontend/fuzz_backend_parity_generator_parity.sh
 
 self-host-component-contract-test-smoke:
-	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
+	"$(BASH)" tests/self_hosted/gates/self_hosted_component_contract_smoke.sh
 
 self-host-hard-contract-test-smoke:
-	"$(BASH)" tests/self_host_hard_contract_smoke.sh
+	"$(BASH)" tests/self_hosted/gates/self_host_hard_contract_smoke.sh
 
 self-host-intent-observability-runtime-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
@@ -4564,7 +4564,7 @@ self-host-direct-mir-nested-intent-program-llvm-test-smoke: $(PGY) self-host-com
 		"$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_nested_intent_program_llvm_owner.sh
 
 self-host-progress-metric-test-smoke:
-	"$(BASH)" tests/self_host_progress_metric_smoke.sh
+	"$(BASH)" tests/self_hosted/gates/self_host_progress_metric_smoke.sh
 
 self-host-canonical-mir-verified-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
@@ -4689,7 +4689,7 @@ self-host-future-aggregate-storage-admission-test-smoke: $(PGY)
 .PHONY: aggregate-storage-transfer-test-smoke
 aggregate-storage-transfer-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/aggregate_storage_transfer_smoke.sh
+		"$(BASH)" tests/ownership/aggregate_storage_transfer_smoke.sh
 
 .PHONY: self-host-collection-descriptor-effect-test-smoke
 self-host-collection-descriptor-effect-test-smoke: $(PGY) self-host-semantic-owner-probe-build
@@ -4791,7 +4791,7 @@ self-host-public-llvm-ir-stdout-replacement-test-smoke: self-host-public-nested-
 		"$(BASH)" tests/self_hosted/parity/public_route/public_llvm_ir_stdout_installed_self_host_owner.sh
 
 self-host-live-replacement-test-smoke: self-host-public-llvm-ir-stdout-replacement-test-smoke
-	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" tests/self_host_live_replacement_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" tests/self_hosted/gates/self_host_live_replacement_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_route/public_debug_installed_self_host_session_owner.sh
 
@@ -4854,79 +4854,79 @@ self-host-package-command-replacement-test-smoke: $(PGY) self-host-installed-dri
 		"$(BASH)" tests/self_hosted/parity/frontend/package_commands_installed_self_host_owner.sh
 
 execution-lane-policy-test-smoke:
-	"$(BASH)" tests/execution_lane_policy_smoke.sh
+	"$(BASH)" tests/parallel/execution_lane_policy_smoke.sh
 
 sea-execution-lane-golden-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/sea_execution_lane_golden_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/sea_execution_lane_golden_smoke.sh
 
 lane-scheduler-test-smoke:
-	"$(BASH)" tests/lane_scheduler_smoke.sh
+	"$(BASH)" tests/parallel/lane_scheduler_smoke.sh
 
 self-host-execution-lane-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_execution_lane_parity_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/self_host_execution_lane_parity_smoke.sh
 
 memory-safety-failclosed-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/memory_safety_failclosed_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/memory_safety_failclosed_smoke.sh
 
 nested-array-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/nested_array_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/nested_array_smoke.sh
 
 checkedarith-failclosed-test-smoke:
-	PLATFORM_CFLAGS="$(PLATFORM_CFLAGS)" THREAD_LINK_LIB="$(THREAD_LINK_LIB)" "$(BASH)" tests/checked_arith_failclosed_smoke.sh
+	PLATFORM_CFLAGS="$(PLATFORM_CFLAGS)" THREAD_LINK_LIB="$(THREAD_LINK_LIB)" "$(BASH)" tests/runtime/checked_arith_failclosed_smoke.sh
 
 generic-nested-failclosed-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/generic_nested_failclosed_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/generic_nested_failclosed_smoke.sh
 
 text-builder-owner-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/text_builder_diagnostic_isolation_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/text_builder_owner_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/text_builder_diagnostic_isolation_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/text_builder_owner_smoke.sh
 
 parallel-disjoint-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_disjoint_split_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_disjoint_split_smoke.sh
 
 parallel-snapshot-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_snapshot_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_snapshot_smoke.sh
 
 parallel-capture-reach-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_capture_reach_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_capture_reach_smoke.sh
 
 .PHONY: rocq-cost-git-context-test-smoke
 rocq-cost-git-context-test-smoke:
 	GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0= \
 		GIT_CONFIG_KEY_1=safe.directory GIT_CONFIG_VALUE_1="$(CURDIR)" \
-		"$(BASH)" tests/rocq_cost_receipt_git_context_smoke.sh
+		"$(BASH)" tests/proof/rocq_cost_receipt_git_context_smoke.sh
 
 ability-coherence-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ability_coherence_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/ability_coherence_smoke.sh
 
 parallel-vision-surface-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_vision_surface_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_vision_surface_smoke.sh
 
 parallel-join-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_join_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel/parallel_join_smoke.sh
 
 duration-literal-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/duration_literal_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/duration_literal_smoke.sh
 
 virtual-clock-test-smoke: $(PGY)
-	CC="$(CC)" "$(BASH)" tests/virtual_clock_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/virtual_clock_smoke.sh
 
 stdlib-inventory-test-smoke:
-	"$(BASH)" tests/stdlib_inventory_smoke.sh
+	"$(BASH)" tests/repo/stdlib_inventory_smoke.sh
 
 read-stdin-builtin-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/read_stdin_builtin_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/read_stdin_builtin_smoke.sh
 
 # docs/151 Decision-0 empirical kernels: measured carriage verdicts per
 # axis x mode (STATIC / RUNTIME / SILENT-COPY), locked on both backends.
 axis-carriage-probe-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/axis_carriage_probe_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/axis_carriage_probe_smoke.sh
 
 # docs/151 §8 falsification battery: constraint enforcement, unification/
 # unbound diagnostics, default-arg binding, where x G-1 composition —
 # measured voices locked on both backends.
 generic-falsification-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/generic_falsification_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/generic_falsification_smoke.sh
 
 # A-15 pairwise axis-composition safety (docs/156): the 15-pair disposition
 # matrix + the four reconciled docs/151 §4 edges stay registered, and the
@@ -4934,10 +4934,10 @@ generic-falsification-test-smoke: $(PGY)
 # finding; who-swap non-interference) are pinned on both backends.
 axis-composition-test-smoke: $(PGY)
 	@echo "=== Axis Composition Safety Matrix (docs/156, A-15) ==="
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/axis_composition_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/axis_composition_smoke.sh
 
 secure-token-reuse-test-smoke:
-	"$(BASH)" tests/secure_token_reuse_failclosed_smoke.sh
+	"$(BASH)" tests/security/secure_token_reuse_failclosed_smoke.sh
 
 # Sandbox write path must refuse to follow a symlink out of PGY_IO_ROOT at
 # open time (finding 2026-07-05-001, O_NOFOLLOW). POSIX-only; SKIPs cleanly on
@@ -4946,13 +4946,13 @@ sandbox-symlink-nofollow-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/security/symlink_write_nofollow_smoke.sh
 
 site-generator-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/site_generator_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/repo/site_generator_smoke.sh
 
 site: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" site/build.sh
 
 self-host-compiler-world-contract-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/self_host_compiler_world_contract_smoke.sh
 
 .PHONY: language-keyword-registry-test-smoke \
 	callable-contract-vocabulary-test-smoke \
@@ -4975,17 +4975,17 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	lsp-hover-registry-test-smoke \
 	vscode-language-graph-test-smoke
 language-keyword-registry-test-smoke:
-	"$(BASH)" tests/language_keyword_registry_smoke.sh
+	"$(BASH)" tests/registry/language_keyword_registry_smoke.sh
 
 callable-contract-vocabulary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
+		"$(BASH)" tests/registry/callable_contract_vocabulary_smoke.sh
 
 mir-decl-field-kind-vocabulary-test-smoke:
-	"$(BASH)" tests/mir_decl_field_kind_vocabulary_smoke.sh
+	"$(BASH)" tests/registry/mir_decl_field_kind_vocabulary_smoke.sh
 
 intent-observability-abi-registry-test-smoke:
-	"$(BASH)" tests/intent_observability_abi_registry_smoke.sh
+	"$(BASH)" tests/registry/intent_observability_abi_registry_smoke.sh
 
 self-host-intent-callable-reachability-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
@@ -5032,7 +5032,7 @@ self-host-intent-zone-authority-transition-test-smoke: self-host-compiler
 
 intent-typed-transition-native-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/intent_typed_transition_native_execution_smoke.sh
+		"$(BASH)" tests/language/intent_typed_transition_native_execution_smoke.sh
 
 self-host-tobject-boundary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
@@ -5043,101 +5043,101 @@ self-host-fallible-tobject-outcome-test-smoke: $(PGY)
 		"$(BASH)" tests/self_hosted/parity/driver/driver_rung2_fallible_tobject_outcome_owner.sh
 
 lsp-completion-registry-test-smoke:
-	"$(BASH)" tests/lsp_completion_registry_smoke.sh
+	"$(BASH)" tests/registry/lsp_completion_registry_smoke.sh
 
 lsp-hover-registry-test-smoke: $(PGY) $(PGY_LSP)
 	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" \
-		"$(BASH)" tests/lsp_hover_registry_smoke.sh
+		"$(BASH)" tests/registry/lsp_hover_registry_smoke.sh
 
 vscode-language-graph-test-smoke:
-	"$(BASH)" tests/vscode_language_graph_smoke.sh
+	"$(BASH)" tests/repo/vscode_language_graph_smoke.sh
 
 debug-hygiene-test-smoke:
-	"$(BASH)" tests/debug_hygiene_smoke.sh
+	"$(BASH)" tests/repo/debug_hygiene_smoke.sh
 
 release-primary-debug-section-hygiene-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" \
-		"$(BASH)" tests/release_primary_debug_section_hygiene_smoke.sh
+		"$(BASH)" tests/backend/release_primary_debug_section_hygiene_smoke.sh
 
 memory-string-safety-test-smoke:
-	"$(BASH)" tests/memory_string_safety_smoke.sh
+	"$(BASH)" tests/ownership/memory_string_safety_smoke.sh
 
 security-portability-contract-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/semantic_termination_security_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/semantic_termination_security_smoke.sh
 
 llvm-campaign-projection-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/llvm_campaign_projection_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/backend/llvm_campaign_projection_smoke.sh
 
 llvm-dnd-campaign-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/llvm_dnd_campaign_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/backend/llvm_dnd_campaign_smoke.sh
 
 beta-readiness-checklist-test-smoke:
-	"$(BASH)" tests/beta_readiness_checklist_smoke.sh
+	"$(BASH)" tests/repo/beta_readiness_checklist_smoke.sh
 
 dogfood-webgl-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/dogfood_webgl_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/repo/dogfood_webgl_smoke.sh
 
 wasm-backend-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/wasm_backend_parity_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/backend/wasm_backend_parity_smoke.sh
 
 formal-semantics-test-smoke: machine-layer-core-test-smoke machine-layer-pipeline-test-smoke
-	"$(BASH)" tests/formal_semantics_smoke.sh
-	"$(BASH)" tests/ir_minimality_adequacy_smoke.sh
-	"$(BASH)" tests/proof_carrying_adequacy_smoke.sh
+	"$(BASH)" tests/proof/formal_semantics_smoke.sh
+	"$(BASH)" tests/proof/ir_minimality_adequacy_smoke.sh
+	"$(BASH)" tests/proof/proof_carrying_adequacy_smoke.sh
 
 machine-layer-core-test-smoke:
-	"$(BASH)" tests/machine_layer_core_smoke.sh
+	"$(BASH)" tests/ir/machine_layer_core_smoke.sh
 
 # Fresh bounded forest model, extracted update/teardown oracles and cost
 # observations. This is not native allocator or whole-language evidence.
 ownership-teardown-redteam-test-smoke:
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership_teardown_redteam_smoke.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership/ownership_teardown_redteam_smoke.sh
 
 .PHONY: ownership-teardown-redteam-test-smoke
 
 # Focused fresh-kernel entrypoints. The full corpus already admits these
 # permanent regression consumers; CI does not need another full-corpus loop.
 async-reuse-redteam-test-smoke:
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/async_reuse_redteam_smoke.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/parallel/async_reuse_redteam_smoke.sh
 
 proof-redteam-lifecycle-authority-test-smoke:
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/proof_redteam_lifecycle_authority_smoke.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/proof/proof_redteam_lifecycle_authority_smoke.sh
 
 proof-redteam-main-test-smoke:
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/proof_redteam_main_smoke.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/proof/proof_redteam_main_smoke.sh
 
 proof-reuse-identity-test-smoke:
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/proof_reuse_identity_smoke.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/proof/proof_reuse_identity_smoke.sh
 
 ownership-cutover-preflight-test-smoke:
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership_cutover_preflight_smoke.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership/ownership_cutover_preflight_smoke.sh
 
 .PHONY: async-reuse-redteam-test-smoke proof-redteam-lifecycle-authority-test-smoke \
         proof-redteam-main-test-smoke proof-reuse-identity-test-smoke \
         ownership-cutover-preflight-test-smoke
 
 machine-layer-pipeline-test-smoke: $(PGY) machine-layer-manifest-test-smoke self-host-mir-machine-layer-test-smoke
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/machine_layer_pipeline_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/machine_layer_pipeline_smoke.sh
 
 air-drift-test-smoke:
 	$(MAKE) test-air
 
 air-json-schema-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/air_json_schema_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/air_json_schema_smoke.sh
 
 proof-carrying-pipeline-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/proof_carrying_pipeline_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/proof/proof_carrying_pipeline_smoke.sh
 
 proof-carrying-adequacy-test-smoke: proof-carrying-pipeline-test-smoke
-	"$(BASH)" tests/proof_carrying_adequacy_smoke.sh
+	"$(BASH)" tests/proof/proof_carrying_adequacy_smoke.sh
 
 ownership-clean-model-test-smoke:
-	"$(BASH)" tests/ownership_cleanup_smoke.sh
+	"$(BASH)" tests/ownership/ownership_cleanup_smoke.sh
 
 air-backend-nonimpact-test-smoke:
 	$(MAKE) LLVM_ENABLED="$(LLVM_ENABLED)" $(PGY)
@@ -5146,7 +5146,7 @@ air-backend-nonimpact-test-smoke:
 	PGY_AIR_NONIMPACT_CASE_LIMIT="$(AIR_NONIMPACT_CASE_LIMIT)" \
 	PGY_AIR_NONIMPACT_SHARD_COUNT="$(AIR_NONIMPACT_SHARD_COUNT)" \
 	PGY_AIR_NONIMPACT_SHARD_INDEX="$(AIR_NONIMPACT_SHARD_INDEX)" \
-	"$(BASH)" tests/air_backend_nonimpact_smoke.sh
+	"$(BASH)" tests/ir/air_backend_nonimpact_smoke.sh
 
 air-backend-nonimpact-full-test-smoke:
 	$(MAKE) LLVM_ENABLED="$(LLVM_ENABLED)" $(PGY)
@@ -5156,44 +5156,44 @@ air-backend-nonimpact-full-test-smoke:
 	PGY_AIR_NONIMPACT_CASE_LIMIT="$(AIR_NONIMPACT_CASE_LIMIT)" \
 	PGY_AIR_NONIMPACT_SHARD_COUNT="$(AIR_NONIMPACT_SHARD_COUNT)" \
 	PGY_AIR_NONIMPACT_SHARD_INDEX="$(AIR_NONIMPACT_SHARD_INDEX)" \
-	"$(BASH)" tests/air_backend_nonimpact_smoke.sh
+	"$(BASH)" tests/ir/air_backend_nonimpact_smoke.sh
 
 codegen-determinism-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/codegen_determinism_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/backend/codegen_determinism_smoke.sh
 
 runtime-none-contract-test-smoke:
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_RUNTIME_NONE_ALLOW_MISSING_BIN=1 \
-	"$(BASH)" tests/runtime_none_contract_smoke.sh
+	"$(BASH)" tests/runtime/runtime_none_contract_smoke.sh
 
 raw-escape-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-	"$(BASH)" tests/raw_escape_contract_smoke.sh
+	"$(BASH)" tests/ownership/raw_escape_contract_smoke.sh
 
 # Reads shell scripts only, so it needs no compiler and stays cheap enough to
 # run beside the other contract gates.
 gate-subject-declaration-test-smoke:
-	"$(BASH)" tests/gate_subject_declaration_smoke.sh
+	"$(BASH)" tests/repo/gate_subject_declaration_smoke.sh
 
 gate-script-reachability-test-smoke:
-	python3 tests/gate_script_reachability_smoke.py
+	python3 tests/repo/gate_script_reachability_smoke.py
 
 semantic-inc-size-test-smoke:
-	"$(BASH)" tests/semantic_inc_size_smoke.sh
+	"$(BASH)" tests/repo/semantic_inc_size_smoke.sh
 
 semantic-tu-size-test-smoke:
-	"$(BASH)" tests/semantic_tu_size_smoke.sh
+	"$(BASH)" tests/repo/semantic_tu_size_smoke.sh
 
 production-header-size-test-smoke: $(PGY)
-	python3 tests/source_size_count_test.py
+	python3 tests/repo/source_size_count_test.py
 	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/driver/source_size_c_owner_probe.sh
-	"$(BASH)" tests/production_header_size_smoke.sh
+	"$(BASH)" tests/repo/production_header_size_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/driver/production_header_size_checker_parity.sh
 
 # Pergyra-side primary gate: no C-side smoke owns the .c file cap today.
 production-c-size-test-smoke: $(PGY)
-	python3 tests/source_size_count_test.py
+	python3 tests/repo/source_size_count_test.py
 	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/driver/source_size_c_owner_probe.sh
 	"$(BASH)" tests/self_hosted/parity/driver/production_c_size_checker_parity.sh
 
@@ -5202,65 +5202,65 @@ examples-inventory-test-smoke: $(PGY)
 	"$(BASH)" tests/self_hosted/parity/frontend/examples_inventory_checker_parity.sh
 
 backend-inc-size-test-smoke:
-	"$(BASH)" tests/backend_inc_size_smoke.sh
+	"$(BASH)" tests/repo/backend_inc_size_smoke.sh
 
 test-inc-size-test-smoke:
-	"$(BASH)" tests/test_inc_size_smoke.sh
+	"$(BASH)" tests/repo/test_inc_size_smoke.sh
 
 transpile-strict-source-test-smoke:
-	"$(BASH)" tests/transpile_strict_source_smoke.sh
+	"$(BASH)" tests/backend/transpile_strict_source_smoke.sh
 
 source-test-harness-compile-test-smoke:
-	PLATFORM_CFLAGS="$(PLATFORM_CFLAGS)" "$(BASH)" tests/source_test_harness_compile_smoke.sh
+	PLATFORM_CFLAGS="$(PLATFORM_CFLAGS)" "$(BASH)" tests/self_hosted/gates/source_test_harness_compile_smoke.sh
 
 inc-sentinel-test-smoke:
-	"$(BASH)" tests/inc_sentinel_smoke.sh
+	"$(BASH)" tests/backend/inc_sentinel_smoke.sh
 
 semantic-core-shape-test-smoke:
-	"$(BASH)" tests/semantic_core_shape_smoke.sh
+	"$(BASH)" tests/ir/semantic_core_shape_smoke.sh
 
 type-resolution-dag-test-smoke: $(SEMANTIC_TEST)
-	SEMANTIC_TEST_BIN="$(abspath $(SEMANTIC_TEST))" "$(BASH)" tests/type_resolution_dag_smoke.sh
+	SEMANTIC_TEST_BIN="$(abspath $(SEMANTIC_TEST))" "$(BASH)" tests/ir/type_resolution_dag_smoke.sh
 
 semantic-fixture-isolation-test-smoke: $(SEMANTIC_TEST)
-	SEMANTIC_TEST_BIN="$(abspath $(SEMANTIC_TEST))" "$(BASH)" tests/semantic_fixture_isolation_smoke.sh
+	SEMANTIC_TEST_BIN="$(abspath $(SEMANTIC_TEST))" "$(BASH)" tests/ir/semantic_fixture_isolation_smoke.sh
 
 diagnostic-registry-test-smoke:
-	"$(BASH)" tests/diagnostic_registry_smoke.sh
+	"$(BASH)" tests/registry/diagnostic_registry_smoke.sh
 
 layered-diagnostics-contract-test-smoke:
-	"$(BASH)" tests/layered_diagnostics_contract_smoke.sh
+	"$(BASH)" tests/language/layered_diagnostics_contract_smoke.sh
 
 runtime-panic-abi-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/runtime_panic_abi_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/runtime_panic_abi_smoke.sh
 
 runtime-panic-codegen-test-smoke: $(PGY)
 	PGY_RUNTIME_PANIC_CODEGEN_BACKENDS="$${PGY_RUNTIME_PANIC_CODEGEN_BACKENDS:-$(RUNTIME_PANIC_CODEGEN_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_panic_codegen_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/runtime_panic_codegen_smoke.sh
 
 slot-contract-test-smoke: $(PGY)
 	PGY_SLOT_CONTRACT_BACKENDS="$${PGY_SLOT_CONTRACT_BACKENDS:-$(SLOT_CONTRACT_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/slot_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/slot_contract_smoke.sh
 
 hashmap-owned-string-provenance-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/hashmap_owned_string_provenance_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/hashmap_owned_string_provenance_smoke.sh
 
 .PHONY: process-args-utf8-test-smoke
 process-args-utf8-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/process_args_utf8_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/process_args_utf8_smoke.sh
 
 .PHONY: hashmap-string-storage-runtime-test-smoke hashmap-i32-storage-runtime-test-smoke hashmap-i64-storage-runtime-test-smoke hashmap-bool-storage-runtime-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke
 hashmap-string-storage-runtime-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/hashmap_string_storage_runtime_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/hashmap_string_storage_runtime_smoke.sh
 
 hashmap-i32-storage-runtime-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/hashmap_i32_storage_runtime_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/hashmap_i32_storage_runtime_smoke.sh
 
 hashmap-i64-storage-runtime-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/hashmap_i64_storage_runtime_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/hashmap_i64_storage_runtime_smoke.sh
 
 hashmap-bool-storage-runtime-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/hashmap_bool_storage_runtime_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/hashmap_bool_storage_runtime_smoke.sh
 
 hashmap-key-storage-runtime-test-smoke: \
 		hashmap-string-storage-runtime-test-smoke \
@@ -5275,15 +5275,15 @@ hashmap-admission-test-smoke: $(PGY) self-host-compiler
 
 .PHONY: collection-ownership-fact-projection-test-smoke
 collection-ownership-fact-projection-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/collection_ownership_fact_projection_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/collection_ownership_fact_projection_smoke.sh
 
 .PHONY: long-literal-exactness-test-smoke
 long-literal-exactness-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/long_literal_exactness_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/long_literal_exactness_smoke.sh
 
 .PHONY: call-argument-evaluation-order-test-smoke
 call-argument-evaluation-order-test-smoke: $(PGY) array-member-mutation-test-smoke
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/call_argument_evaluation_order_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/call_argument_evaluation_order_smoke.sh
 
 .PHONY: self-host-public-array-drop-test-smoke
 self-host-public-array-drop-test-smoke: self-host-compiler
@@ -5395,40 +5395,40 @@ self-host-collection-ownership-fact-carrier-test-smoke: self-host-compiler
 		"$(BASH)" tests/self_hosted/parity/ownership/collection_ownership_fact_carrier_owner.sh
 
 mir-param-carriage-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_param_carriage_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/mir_param_carriage_smoke.sh
 
 runtime-frontier-contract-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_frontier_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/runtime_frontier_contract_smoke.sh
 
 runtime-frontier-policy-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/runtime_frontier_policy_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/runtime_frontier_policy_smoke.sh
 
 # Direct current-source probes, independent of cached runtime objects.
 runtime-proof-redteam-test-smoke:
-	CC="$(CC)" "$(BASH)" tests/runtime_intent_identity_reuse_smoke.sh
-	CC="$(CC)" "$(BASH)" tests/runtime_host_clock_smoke.sh
-	CC="$(CC)" "$(BASH)" tests/runtime_c_profile_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/runtime_intent_identity_reuse_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/runtime_host_clock_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime/runtime_c_profile_smoke.sh
 
 runtime-now-compiler-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_now_compiler_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/runtime_now_compiler_smoke.sh
 
 call-scalar-widening-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/call_scalar_widening_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/call_scalar_widening_smoke.sh
 
 .PHONY: runtime-proof-redteam-test-smoke runtime-now-compiler-test-smoke call-scalar-widening-test-smoke
 
 parser-lexer-diagnostic-test-smoke:
-	"$(BASH)" tests/parser_lexer_diagnostic_smoke.sh
+	"$(BASH)" tests/language/parser_lexer_diagnostic_smoke.sh
 
 parser-imported-intent-composition-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parser_imported_intent_composition_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/parser_imported_intent_composition_smoke.sh
 
 diagnostics-json-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/diagnostics_json_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/language/diagnostics_json_smoke.sh
 
 backend-compare-inventory-test-smoke:
-	PGY_BACKEND_COMPARE_INVENTORY_ONLY=1 "$(BASH)" tests/compare_backends.sh
+	PGY_BACKEND_COMPARE_INVENTORY_ONLY=1 "$(BASH)" tests/backend/compare_backends.sh
 
 PGY_BACKEND_COMPARE_COMPILER_MODE ?= build
 
@@ -5452,7 +5452,7 @@ llvm-test-backend-compare: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRECHECK)),,$(A
 	PGY_BACKEND_COMPARE_CASES="$(PGY_BACKEND_COMPARE_CASES)" \
 	PGY_BACKEND_COMPARE_START_INDEX="$(PGY_BACKEND_COMPARE_START_INDEX)" \
 	PGY_BACKEND_COMPARE_MAX_CASES="$(PGY_BACKEND_COMPARE_MAX_CASES)" \
-	"$(BASH)" tests/compare_backends.sh
+	"$(BASH)" tests/backend/compare_backends.sh
 
 air-strict-backend-compare-test-smoke: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRECHECK)),,$(ABI_PIPELINE_TEST))
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
@@ -5468,18 +5468,18 @@ air-strict-backend-compare-test-smoke: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRE
 	PGY_BACKEND_COMPARE_CASES="$(PGY_BACKEND_COMPARE_CASES)" \
 	PGY_BACKEND_COMPARE_START_INDEX="$(PGY_BACKEND_COMPARE_START_INDEX)" \
 	PGY_BACKEND_COMPARE_MAX_CASES="$(PGY_BACKEND_COMPARE_MAX_CASES)" \
-	"$(BASH)" tests/compare_backends.sh
+	"$(BASH)" tests/backend/compare_backends.sh
 
 example-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/example_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/repo/example_contract_smoke.sh
 
 string-window-builtins-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/string_window_builtins_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/string_window_builtins_smoke.sh
 
 # Native and installed self-host routes give the same extent verdicts.
 string-window-extent-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/string_window_extent_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/string_window_extent_smoke.sh
 
 llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test
@@ -5490,12 +5490,12 @@ llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test-concurrency
 	$(MAKE) LLVM_ENABLED=1 test-hir
 	$(MAKE) LLVM_ENABLED=1 $(PGY) $(ABI_PIPELINE_TEST)
-	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/llvm_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/backend/llvm_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_CC="$(CC)" \
 	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
-	"$(BASH)" tests/compare_backends.sh
+	"$(BASH)" tests/backend/compare_backends.sh
 
 check-linux-toolchain:
 	@cc_machine="$$( $(CI_LINUX_CC) -dumpmachine 2>/dev/null || true )"; \
@@ -5550,8 +5550,8 @@ check-build-tools:
 		echo "build preflight: nasm not found; assembly runtime objects are disabled." >&2; \
 	fi
 
-SECURITY_OPENSSL_PREFLIGHT = tests/security_openssl_preflight.c
-SECURITY_WINDOWS_PREFLIGHT = tests/security_windows_bcrypt_preflight.c
+SECURITY_OPENSSL_PREFLIGHT = tests/security/security_openssl_preflight.c
+SECURITY_WINDOWS_PREFLIGHT = tests/security/security_windows_bcrypt_preflight.c
 
 check-security-toolchain: | $(BUILD_DIR)
 ifeq ($(EXEEXT),.exe)
@@ -5724,21 +5724,21 @@ lsp: $(PGY_LSP) self-host-lsp
 
 .PHONY: ownership-gc-comparison-test-smoke
 ownership-gc-comparison-test-smoke:
-	"$(BASH)" tests/ownership_gc_comparison_smoke.sh
+	"$(BASH)" tests/ownership/ownership_gc_comparison_smoke.sh
 
 .PHONY: memory-boundary-composition-test-smoke
 memory-boundary-composition-test-smoke:
-	"$(BASH)" tests/memory_boundary_composition_smoke.sh
+	"$(BASH)" tests/ownership/memory_boundary_composition_smoke.sh
 
 .PHONY: graph-cycle-reclaim-test-smoke
 graph-cycle-reclaim-test-smoke:
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/graph_cycle_reclaim_smoke.sh
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/graph_cycle_reclaim_selftest.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership/graph_cycle_reclaim_smoke.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership/graph_cycle_reclaim_selftest.sh
 
 .PHONY: graph-action-scope-test-smoke
 graph-action-scope-test-smoke:
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/graph_action_scope_smoke.sh
-	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/graph_action_scope_selftest.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership/graph_action_scope_smoke.sh
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership/graph_action_scope_selftest.sh
 
 .PHONY: all compiler dev-compiler all-with-tests clean clean-objects clean-scratch build-resource-report build-pressure-dev-compiler build-pressure-compiler build-pressure-self-host-compiler clean-local-variant-artifacts clean-local-artifacts rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
@@ -5774,5 +5774,5 @@ endif
 
 # Physical release of checked borrowed concatenation call results.
 region-call-temporary-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" bash tests/region_call_temporary_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" bash tests/ownership/region_call_temporary_smoke.sh
 .PHONY: region-call-temporary-test-smoke

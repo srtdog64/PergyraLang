@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Native C, native LLVM and the default routes agree on the numeric rules
 # that the 2026-09-23 red-team audit (A2, A3, A4, R4, E4) found split between
-# them. tests/compare_backends.sh runs the native pipeline only, so it cannot
+# them. tests/backend/compare_backends.sh runs the native pipeline only, so it cannot
 # see a default-route answer or a front end that accepts what the other
 # refuses. Values run on every leg that compiles the case; refusals are
 # checked on both front ends (native and self-host).

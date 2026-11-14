@@ -125,8 +125,8 @@ status ∈ {planned, landed}. landed = artifact+gate 실존.
 
 | rung | 내용 | status | artifact | gate |
 |---|---|---|---|---|
-| AC-0 | 15쌍 전수 배치 + 간선 등록부 정합(신규 4) + matrix-lock | landed | docs/156 §2–3 | tests/axis_composition_smoke.sh |
-| AC-1 | 커널 2쌍 실측(W×I 발견 + A×I 비간섭) C==LLVM | landed | tests/cases/axis_composition | tests/axis_composition_smoke.sh |
+| AC-0 | 15쌍 전수 배치 + 간선 등록부 정합(신규 4) + matrix-lock | landed | docs/156 §2–3 | tests/language/axis_composition_smoke.sh |
+| AC-1 | 커널 2쌍 실측(W×I 발견 + A×I 비간섭) C==LLVM | landed | tests/cases/axis_composition | tests/language/axis_composition_smoke.sh |
 | AC-2 | 부재-쌍 커널(W×Actor, W×Auth, Actor×slot, Z×Actor 직접-잔여) | planned | - | - |
 | AC-3 | SILENT 2건 닫힘 — **전면 정리 T landed(2026-07-05)**: S1(zone 생성자, corpus 28사이트)+S2(world 유출 — call 인자·let-init, 플래그십·handoff 픽스처 개종). 재비준 2회(플래그십 관용구/handoff 설계기능 증거에도 전면 유지). 잔여=중첩 base(`w.zone.subject`) 미커버·S2 진단 위치 0:0(명명 잔여) + handoff 재설계 트랙 | landed | src/semantic/type_checker_world_embedding.c | axis_carriage(zone_pos_share REJECT) + axis_composition(cross/member REJECT) |
 | AC-4 | WO-F3 who≠approval 기계화 + role⊨ability Coq 조각 | planned | - | - |

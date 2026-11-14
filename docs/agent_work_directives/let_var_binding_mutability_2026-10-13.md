@@ -140,7 +140,7 @@ such as the `let mut` messages in `src/parser/parser.c`, `src/parser/parser_decl
 `src/self_hosted/parser/stmt_owner.pgy`, `decl_nominal_owner.pgy`,
 `diagnostic_owner.pgy` and the `broken_let_mut_*.pgy` fixtures. Regenerate the
 language-word inventory afterwards, because fixture counts change (the command is
-in `tests/language_keyword_registry_smoke.sh`, with `--write` in place of
+in `tests/registry/language_keyword_registry_smoke.sh`, with `--write` in place of
 `--check`).
 
 ## Slices, in dependency order

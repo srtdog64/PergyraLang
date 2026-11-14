@@ -35,8 +35,8 @@
 //     exists to remove.
 //
 // Registration is pinned by src/self_hosted/OWNERS.md,
-// tests/self_hosted_component_contract_smoke.sh, and the standalone
-// tests/selfhost_region_plan_smoke.sh gate.
+// tests/self_hosted/gates/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/self_hosted/gates/selfhost_region_plan_smoke.sh gate.
 
 func RegionPlanSchema() -> String {
     return "pgy.selfhost.region-plan.v1";

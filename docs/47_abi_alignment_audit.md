@@ -12,7 +12,7 @@
 
 - ABI spec 단일 문서는 [`src/runtime/pgy_abi_spec.h`](../src/runtime/pgy_abi_spec.h)에 있고, [`src/test_abi_spec.c`](../src/test_abi_spec.c)와 [`src/test_abi_pipeline.c`](../src/test_abi_pipeline.c)로 회귀된다.
 - `make test-abi`는 spec-level check와 end-to-end pipeline/binary check를 함께 돈다.
-- `tests/compare_backends.sh`는 LLVM MIR ABI 매핑 회귀를 실제 실행 결과 비교로 잡는다. 현재 `host_method_class_return`, `zone_param_mutation`, `zone_host_method_abi_combo`가 메서드 인자 바인딩/zone pointer-self host ABI 정렬을 고정한다.
+- `tests/backend/compare_backends.sh`는 LLVM MIR ABI 매핑 회귀를 실제 실행 결과 비교로 잡는다. 현재 `host_method_class_return`, `zone_param_mutation`, `zone_host_method_abi_combo`가 메서드 인자 바인딩/zone pointer-self host ABI 정렬을 고정한다.
 - `make test-abi-perf`는 같은 pipeline 위에서 phase timing과 medium workload benchmark를 돈다.
 - driver는 `driver_run_pipeline_timed(...)`를 통해 `module_load`, `semantic`, `HIR/DIR/RIR/MIR`, `backend`, `total` timing을 직접 제공한다.
 - `object` lowering은 이제 C/LLVM 양쪽에서 borrow-first다. non-escaping `ToObject(...)` local binding은 source subject를 직접 읽는 projection alias로 다뤄진다.

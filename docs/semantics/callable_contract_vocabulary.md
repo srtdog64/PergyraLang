@@ -18,7 +18,7 @@ for the closed values accepted by `with caps` and `with effects`.
   capability grant parser.
 - Forbidden fallback: local spelling arrays, chained word predicates, literal
   known-mask unions, duplicate folding, `local` mixing, or projection drift.
-- Verification and falsifier: `tests/callable_contract_vocabulary_smoke.sh`
+- Verification and falsifier: `tests/registry/callable_contract_vocabulary_smoke.sh`
   plus the DRV-2 action wire mutations; duplicate words, reversed canonical
   order, unknown values, and both `local` mix orders must fail closed.
 
@@ -75,7 +75,7 @@ or a second canonical order are forbidden fallbacks.
 
 ## Verification
 
-`tests/callable_contract_vocabulary_smoke.sh` checks the 9+9 schema, stable IDs,
+`tests/registry/callable_contract_vocabulary_smoke.sh` checks the 9+9 schema, stable IDs,
 ranks, masks, `local`, runtime-only aliases, projection freshness, native C
 lookup, source positives/negatives, and absence of the retired local tables.
 The DRV-2 ActionContract parity gate additionally mutates MIR arrays for

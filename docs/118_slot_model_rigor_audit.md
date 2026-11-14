@@ -610,7 +610,7 @@ documentation does not drift.
   `pgy_make_token` takes `fetch_add + 1`. Every claim's identity is fresh; a
   stale token can never equal a later one, meeting the same standard as Vale's
   monotonic generational reference (§4.4).
-- **Locked by** `tests/secure_token_reuse_failclosed_smoke.sh`
+- **Locked by** `tests/security/secure_token_reuse_failclosed_smoke.sh`
   (`make secure-token-reuse-test-smoke`) driving
   `src/tests/secure_token_reuse_test.c`: `distinct_ids` asserts two claims
   through one call site get distinct ids (the old scheme fails this), and

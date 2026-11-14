@@ -26,7 +26,7 @@ authority or substitution progress.
 - Forbidden fallback: skip all Markdown validation, infer scope independently
   in YAML, weaken non-Markdown coverage, treat unavailable base as docs-only,
   or rename the required job.
-- Verification gate: `tests/self_host_ci_profile_smoke.sh` must prove exclusive
+- Verification gate: `tests/self_hosted/gates/self_host_ci_profile_smoke.sh` must prove exclusive
   step selection and the exact Markdown target inventory. The eight Markdown
   scripts must pass locally. Remote falsifier is a Markdown-only push where
   dependency installation and `make ci-push-linux` are skipped and the

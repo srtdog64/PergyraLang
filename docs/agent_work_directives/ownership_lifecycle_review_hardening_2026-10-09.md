@@ -76,8 +76,8 @@ model; record that before changing it. Do not edit canonical value/graph/tree
 machines, native/self-host sources, installed executables or SoT registry.
 
 Integration owner: this task. Primary integration gate:
-`tests/graph_action_scope_smoke.sh` with its independent consumer; planted
-regressions in `tests/graph_action_scope_selftest.sh`. Static budget 60 seconds,
+`tests/ownership/graph_action_scope_smoke.sh` with its independent consumer; planted
+regressions in `tests/ownership/graph_action_scope_selftest.sh`. Static budget 60 seconds,
 focused invocation 300 seconds, full kernel integration 1800 seconds. Use the
 repository's pinned Rocq 9.3.0 wrapper. No timeout/axiom-policy relaxation.
 

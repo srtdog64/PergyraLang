@@ -21,7 +21,7 @@ Primary owns implementation and the eventual semantic parity integration gate.
   `platform-full-windows` MSYS2 installation. That job invokes `make ci-windows`
   inside `shell: msys2 {0}`; its inherited host checkout is not the package list
   checked by this repair.
-- `tests/self_host_ci_profile_smoke.sh:40` scopes its new AWK assertion to that
+- `tests/self_hosted/gates/self_host_ci_profile_smoke.sh:40` scopes its new AWK assertion to that
   exact job and its folded `install: >-` list. A `git` mention in another job,
   an ordinary comment, or the name of a surrounding step does not satisfy the
   current predicate. No broad substring acceptance was introduced.
@@ -29,7 +29,7 @@ Primary owns implementation and the eventual semantic parity integration gate.
 
 ### Intent / spawn JSON diagnostics
 
-- `tests/diagnostics_json_smoke.sh:778` retains the invalid `on: spawn DoWork()`
+- `tests/language/diagnostics_json_smoke.sh:778` retains the invalid `on: spawn DoWork()`
   source and the required nonzero compiler result. The changed assertions at
   lines 805–810 require exactly two diagnostics with exactly the two named
   codes, semantic/error classification, and location `{line: 11, column: 13}`.
@@ -93,11 +93,11 @@ Primary owns implementation and the eventual semantic parity integration gate.
 
 1. **Initial finding: canonical inline twin presence was not pinned.** At the
    initial review snapshot, observed source:
-   `tests/border_registry_smoke.sh:24` enumerates `pgy_runtime.h` and the existing
+   `tests/registry/border_registry_smoke.sh:24` enumerates `pgy_runtime.h` and the existing
    `*inline*.h` matches. If `pgy_runtime_panic_checked_inline.h` alone disappears
    while another inline header remains, that absent twin is not an input and
    cannot fail the file-presence loop. The test named `missing_inline` in
-   `tests/border_registry_checker_smoke.sh:20` instead omits `pgy_runtime.h` and
+   `tests/registry/border_registry_checker_smoke.sh:20` instead omits `pgy_runtime.h` and
    still creates the canonical inline twin. This is a statically identified
    gap in the new mandatory-input evidence, not an observed production failure.
    Proposed focused follow-up: explicitly require the canonical inline twin
@@ -105,7 +105,7 @@ Primary owns implementation and the eventual semantic parity integration gate.
    existing missing-umbrella control. Primary was notified; this lane made no
    implementation change or new mutation run.
 2. **Exact JSON assertions require Python.** The pre-existing
-   `check_json` fallback at `tests/diagnostics_json_smoke.sh:78` checks bracket
+   `check_json` fallback at `tests/language/diagnostics_json_smoke.sh:78` checks bracket
    shape and occurrence of quoted literals, not `len`, numeric locations, or
    per-diagnostic field association. Thus exact-two/error-attribution claims
    above apply to the Python path. The Windows job under review explicitly
@@ -128,8 +128,8 @@ UCRT64/MSYS2/Git PATH and `timeout 60s` per invocation.
 | Command inside Bash | Observed result |
 |---|---|
 | `timeout 60s bash tests/self_hosted/parity/semantic/semantic_fixture_frontier_owner.sh` | PASS, exit 0; matching owner frontier and missing/malformed/mismatched refusals |
-| `timeout 60s bash tests/border_registry_checker_smoke.sh` | PASS, exit 0; comment-only references, both cross-includes, existing missing inputs |
-| `timeout 60s bash tests/border_registry_smoke.sh` | PASS, exit 0; backend/stage/twin/AIR text checks including the checker self-test |
+| `timeout 60s bash tests/registry/border_registry_checker_smoke.sh` | PASS, exit 0; comment-only references, both cross-includes, existing missing inputs |
+| `timeout 60s bash tests/registry/border_registry_smoke.sh` | PASS, exit 0; backend/stage/twin/AIR text checks including the checker self-test |
 
 The border test's initial command yielded session `40803`; its terminal result
 was then observed with exit 0. No timeout or unknown-session result is counted
@@ -164,7 +164,7 @@ finding 1; it does not rewrite the earlier observations.
   the specific gap, while the umbrella/extern missing-input and both real
   crossing controls remain.
 - Independently reran
-  `timeout 60s bash tests/border_registry_checker_smoke.sh` with the same MSYS2
+  `timeout 60s bash tests/registry/border_registry_checker_smoke.sh` with the same MSYS2
   environment: PASS, terminal exit 0, observed tool wall time 1.032 seconds.
   All six cases ran through the actual extracted checker. No compiler or
   remote CI was invoked.

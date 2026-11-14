@@ -19,7 +19,7 @@ staged 상태로 진행 중이라(ast.h/채널 런타임/join 이미터/Makefile
 실시계 advance/음수 advance = lifecycle panic(무음 no-op 금지 — 테스트
 훅이 조용히 삼키면 그 훅이 잡으려는 drift를 숨긴다). LLVM 빌트인 선언
 3종 등록. 목격자 3/3(실모드 단조·가상 0→5ms 정확·misuse panic),
-`tests/virtual_clock_smoke.sh`(독립 실행형 — 로컬 주의: 게임 중
+`tests/runtime/virtual_clock_smoke.sh`(독립 실행형 — 로컬 주의: 게임 중
 bash→gcc 무음 사망 채널 함정, CI에는 해당 없음). **make 배선 완료
 (2026-07-12)**: `virtual-clock-test-smoke` + `duration-literal-test-
 smoke` 타깃 — 배선 당일 duration은 make 경유 GREEN, virtual-clock은

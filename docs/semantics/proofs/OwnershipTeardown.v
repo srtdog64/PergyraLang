@@ -111,7 +111,7 @@
      indexed subtree walker or a complexity bound. [unit_unique] is an
      extracted finite certificate observer with quadratic list-membership
      cost on a unique list, not the chosen production enumeration algorithm.
-     tests/ownership_teardown_redteam_smoke.sh measures only bounded fresh
+     tests/ownership/ownership_teardown_redteam_smoke.sh measures only bounded fresh
      OCaml observations, not native allocator, GC or compiler performance.
    - Release needs a resolving handle to a rooted node; it does not model
      that only the owner may release, or that a loan/pin blocks retirement.

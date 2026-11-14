@@ -33,7 +33,7 @@ can observe a zeroed budget or grant.
 
 The C-inline and LLVM-linked implementations use the same header-level policy;
 the LLVM file supplies ABI wrappers and does not own a parallel capability or
-budget global. `tests/runtime_context_smoke.c` proves that two bound root
+budget global. `tests/runtime/runtime_context_smoke.c` proves that two bound root
 contexts retain independent manifests and counters.
 
 ## Spawn carriage

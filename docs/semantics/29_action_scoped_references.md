@@ -199,5 +199,5 @@ This does not establish the language's memory safety, that lifetimes are
 unnecessary for every program, that compensation undoes its effects, or any
 performance result.
 
-Gate: `tests/graph_action_scope_smoke.sh`; planted regressions:
-`tests/graph_action_scope_selftest.sh`.
+Gate: `tests/ownership/graph_action_scope_smoke.sh`; planted regressions:
+`tests/ownership/graph_action_scope_selftest.sh`.

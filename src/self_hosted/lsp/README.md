@@ -38,7 +38,7 @@ The focused executable gate is
 `tests/self_hosted/parity/lsp/lsp_live_session_owner.sh`. It keeps one process
 alive across initialize, open, hover, a fragmented change, updated hover,
 shutdown, and exit. It also rejects stale/same-version changes, incomplete EOF,
-and a public launcher with no sibling. `tests/tooling_conformance_smoke.sh`
+and a public launcher with no sibling. `tests/repo/tooling_conformance_smoke.sh`
 guards the wider editor-facing contract.
 
 This rung does not claim multi-document live ownership, incremental semantic

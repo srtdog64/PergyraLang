@@ -346,10 +346,10 @@ and the borrow table is empty between statements.
 Links into other stores live in values. Weak links that reclamation may
 clear are not provided. The production producer of liveness, frame maps and
 value layouts, runtime counters and their overflow, concurrency, cost and
-the C/LLVM refinement remain OPEN. Gate: `tests/graph_cycle_reclaim_smoke.sh`
+the C/LLVM refinement remain OPEN. Gate: `tests/ownership/graph_cycle_reclaim_smoke.sh`
 kernel-checks seven models and `tests/coq/GraphCycleReclaimAudit.v`, which pins
 the proposition types and concrete reuse/authority/root falsifiers.
-`tests/graph_cycle_reclaim_selftest.sh` plants deletion, weakened-theorem,
+`tests/ownership/graph_cycle_reclaim_selftest.sh` plants deletion, weakened-theorem,
 new-assumption, source-drift and receipt-overwrite regressions in isolated
 copies. Source hashes bind each focused receipt before/after its run; that
 does not prove continuous immutability or a main-thread P0 baseline.
@@ -428,7 +428,7 @@ snapshot contract, not a captured growable backing pointer.
 
 Rocq 9.3.0 and `rocqchk` check every file below. The only assumptions are
 SlotCalculus's two approved abstractions (the token verifier and the
-slot-id bound). The focused gate is `tests/memory_boundary_composition_smoke.sh`.
+slot-id bound). The focused gate is `tests/ownership/memory_boundary_composition_smoke.sh`.
 
 **Every model admits reuse.**
 

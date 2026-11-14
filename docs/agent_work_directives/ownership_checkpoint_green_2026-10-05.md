@@ -19,18 +19,18 @@ The starting checkout has 57 dirty paths; preserve existing work.
   whitelists, guessed ownership, or claiming a narrow oracle is full parity.
 - Integration gate: the required workflow checks on the exact pushed HEAD.
   The focused source-inventory gate is
-  `tests/self_hosted_component_contract_smoke.sh`; it is structural only.
+  `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`; it is structural only.
 - Falsifying case: a relocated readonly policy guard or exact local identity
   check is absent from its named owner; a failing/omitted required CI check
   also falsifies the final green claim.
 
 ## Independent scopes
 
-- Root: `tests/self_hosted_component_contract_smoke.sh`, this directive,
+- Root: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`, this directive,
   integration review, Git staging/commit/push, exact-head CI verification.
 - `generic_return_gate`: only
   `tests/self_hosted/parity/semantic/generic_return_probe_parity.sh` (completed), then
-  `tests/self_hosted_component_checker_smoke.sh` for the isolated dry-run tests.
+  `tests/self_hosted/gates/self_hosted_component_checker_smoke.sh` for the isolated dry-run tests.
 - `handoff_refresh`: only `docs/current_work_handoff.md` and
   `src/self_hosted/tools/generic_return_probe/intent.md`.
 - `ci_failure_triage`: read-only workflow, exact-head run/job/log inspection;

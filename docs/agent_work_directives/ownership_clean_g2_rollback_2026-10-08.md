@@ -210,8 +210,8 @@ C2/C5 and actual replacement receipts exist.
 - src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy
 - src/self_hosted/tools/wrapper_policy_probe/main.pgy
 - tests/fixtures/self_hosted_responsibility_caps.tsv
-- tests/self_host_compiler_world_contract_smoke.sh
-- tests/self_host_hard_contract_smoke.sh
+- tests/self_hosted/gates/self_host_compiler_world_contract_smoke.sh
+- tests/self_hosted/gates/self_host_hard_contract_smoke.sh
 - tests/self_hosted/fixtures/action_authority_admission_fact.pgy
 - tests/self_hosted/fixtures/array_storage_call_preservation_probe.pgy
 - tests/self_hosted/fixtures/callable_capability_fact.pgy
@@ -271,7 +271,7 @@ C2/C5 and actual replacement receipts exist.
 - tests/self_hosted/parity/semantic_function_table_owner_smoke.sh
 - tests/self_hosted/parity/semantic/type_env_state_retirement_owner.sh
 - tests/self_hosted/semantic/fixture/compiler_internal_builtin_artifact_provenance.pgy
-- tests/self_hosted_component_contract_smoke.sh
+- tests/self_hosted/gates/self_hosted_component_contract_smoke.sh
 
 ## Exact new-file removal inventory (all backed up)
 

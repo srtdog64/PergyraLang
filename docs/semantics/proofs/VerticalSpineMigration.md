@@ -50,7 +50,7 @@
   유지하고 snapshot으로 Released/Empty를 복원하지 않는다. bulk 생성자로
   발급된 capability 사본도 제거하고 실제 SDelegate edge를 합성의 전제로
   받는다. 수명은 공용 뿌리의 step/run 보존 정리로 유도한다. 로컬 관측은
-  tests/proof_redteam_lifecycle_authority_smoke.sh의 fresh kernel gate로
+  tests/proof/proof_redteam_lifecycle_authority_smoke.sh의 fresh kernel gate로
   구분하며, 원격 CI 및 값 보상/실제 compensate 순서의 refinement는 별도다.
 - **`PergyraCoreZoneBridge.v` 추가**(zone corner → 뿌리 엣지, additive):
   `ZoneCrossingCore`의 세 보장(무앰비언트 권한·capability soundness·fail-closed)을
@@ -73,7 +73,7 @@
 ## 순서 주의
 
 초기 `FOUNDATION_FIRST`는 `PergyraCore.v` 하나였다. 현재 목록은
-`tests/coq_kernel_check.sh`가 소유한다. import가 늘어나면 실제 의존 순서를
+`tests/proof/coq_kernel_check.sh`가 소유한다. import가 늘어나면 실제 의존 순서를
 반영해야 하며, 파일명 정렬을 의존 순서로 가정하지 않는다.
 
 ## 2026-10-06: 조정 확장 기계의 실제 import 연결

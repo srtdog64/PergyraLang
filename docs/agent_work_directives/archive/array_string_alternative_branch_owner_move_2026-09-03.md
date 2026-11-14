@@ -78,7 +78,7 @@ one-sided conditional moves, general ownership flow, or close the registry row.
   carriage/pass/ABI in both backends without publishing an artifact. Existing
   straight entrypoint, straight non-entrypoint, and two-independent-local gates
   are green in a 7.4-second parallel run.
-- `tests/self_hosted_component_contract_smoke.sh` is green, but its observed
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` is green, but its observed
   run exceeded the declared 60-second static budget because it also invokes an
   executable driver-source MIR action. That gate-shape performance debt does
   not weaken the focused executable verdict and is not repaired in this rung.

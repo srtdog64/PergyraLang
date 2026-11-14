@@ -4,7 +4,7 @@
 # Invalid sources are checked for admission only. Only valid local controls run.
 #
 # SoT semantic.builtin_effect_policy fallback IDs, each kept closed by a check
-# here or in the companion tests/builtin_effect_registry_smoke.sh:
+# here or in the companion tests/registry/builtin_effect_registry_smoke.sh:
 # - capability_bits_as_effects: every case below is decided by declared
 #   effects alone, and the companion smoke keeps capability out of the
 #   generated self projection; capabilities are recorded on their own axis.

@@ -97,7 +97,7 @@ Semantic authority is not in this file. It lives in:
 
 **Shared, append-only files:**
 
-- `tests/formal_semantics_smoke.sh` (proof list)
+- `tests/proof/formal_semantics_smoke.sh` (proof list)
 - `docs/102_formal_semantics_and_proof_obligations.md`
 - `docs/semantics/README.md`
 - `src/self_hosted/OWNERS.md`
@@ -257,7 +257,7 @@ two carry the most DX weight (27 section 5.3).
   - Falsifier closed: `gui_calls_sink_moves_only` gives 0 copies where
     `gui_calls_copy_twice` (borrow-only) gives 2.
   - API change that G1 must follow. Until it does, the OCaml driver of
-    `tests/ownership_cleanup_smoke.sh` cannot compile against the new
+    `tests/ownership/ownership_cleanup_smoke.sh` cannot compile against the new
     extraction. Claude did not run that smoke, so GPT's cost receipt is
     untouched.
     - `elab M s L B`, where `M : Modes` and `borrow_all` reproduces the old
@@ -325,6 +325,6 @@ two carry the most DX weight (27 section 5.3).
     with no copy (`pack_child_segment` shows the blocks moved are the part's
     own).
   - Hashes: Core 900c2b27, Composition 3bb896b3, ReadOnly d3b42c35.
-  - `tests/ownership_cleanup_smoke.sh` passes (4 proofs, 0 axioms; places
+  - `tests/ownership/ownership_cleanup_smoke.sh` passes (4 proofs, 0 axioms; places
     controls added). The fresh corpus passes 60 proofs.
   - Work items continue in ownership_clean_implementation_2026-10-08.md.

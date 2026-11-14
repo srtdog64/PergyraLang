@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The default C route computes the same scalar values as native C for shapes
-# tests/compare_backends.sh cannot see: that harness runs the native pipeline
+# tests/backend/compare_backends.sh cannot see: that harness runs the native pipeline
 # only, so a wrong answer on the default route reached no gate at all.
 # - A C reserved word and the name its C escape spells are distinct bindings.
 # - A name <windows.h> defines as a macro (a local `near`, a function `max`)

@@ -75,6 +75,6 @@ pattern.
 - exact stdout: [`examples/resource_scheduler_async_probe/expected_stdout.txt`](/mnt/e/PergyraLang/examples/resource_scheduler_async_probe/expected_stdout.txt)
 - exact results: [`examples/resource_scheduler_async_probe/expected_results.txt`](/mnt/e/PergyraLang/examples/resource_scheduler_async_probe/expected_results.txt)
 - example smoke:
-  [`tests/example_contract_smoke.sh`](/mnt/e/PergyraLang/tests/example_contract_smoke.sh)
+  [`tests/repo/example_contract_smoke.sh`](/mnt/e/PergyraLang/tests/repo/example_contract_smoke.sh)
 - failure smoke:
-  [`tests/module_smoke.sh`](/mnt/e/PergyraLang/tests/module_smoke.sh)
+  [`tests/language/module_smoke.sh`](/mnt/e/PergyraLang/tests/language/module_smoke.sh)

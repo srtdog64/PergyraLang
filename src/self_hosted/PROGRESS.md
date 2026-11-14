@@ -5723,7 +5723,7 @@ or default replacement remains 0%.
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while
-`tests/sot_authority_adequacy_smoke.sh` binds those names to the live semantic
+`tests/proof/sot_authority_adequacy_smoke.sh` binds those names to the live semantic
 owner and codegen consumer and mutation-tests missing-owner and fallback
 reintroduction. The bounded model now covers the array-literal body, try-let
 operand, collection-mutation statement, enum declaration, and nominal/field
@@ -5737,7 +5737,7 @@ classified derived fact carriers in
 `BRIDGE`, and thirteen `ACTIVE` rows. Each authority row names its stable handle,
 Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
-reason. `tests/sot_authority_edge_smoke.sh` consumes the registry without a
+reason. `tests/proof/sot_authority_edge_smoke.sh` consumes the registry without a
 copied owner list or status count, checks registry/Coq projection equality,
 producer uniqueness, CLOSED-consumer fallback absence, and complete
 classification of every self-host `*_fact_owner.pgy`. This defines the owner
@@ -5769,7 +5769,7 @@ replacement, and one promoted target does not imply whole-product self-hosting.
 **Hard self-host contract (2026-06-22):** hard self-host is now gated as
 staged substitution rather than tracked as a separate cleanup project. The
 contract lives in `docs/self_hosted/10_hard_self_host_contract.md`, and
-`tests/self_host_hard_contract_smoke.sh` keeps the docs, Makefile wiring, active
+`tests/self_hosted/gates/self_host_hard_contract_smoke.sh` keeps the docs, Makefile wiring, active
 hard rungs, C oracle, LLVM oracle, bridge/fallback split, codegen bootstrap, and
 MIR JSON fact-only lowering aligned. The substitution percentage below is
 unchanged by that contract gate; future percentage increases require a Pergyra
@@ -6436,7 +6436,7 @@ beyond the lexer:
   `production_c_size_checker` now consume `DirWalk("src")` directly, so their
   clean inventories no longer depend on committed file-list fixtures.
   `ast_read_surface_checker` now keeps only the metric/ceiling ratchet spec in
-  `tests/ast_read_surface_ratchet.txt` and owns live file discovery through
+  `tests/repo/ast_read_surface_ratchet.txt` and owns live file discovery through
   `DirWalk(scope)`. Remaining manifest-owned surfaces are document contracts,
   not clean directory file lists.
 - **Parser LLVM depth/type-inference parity** -- `parser_parity.sh` now

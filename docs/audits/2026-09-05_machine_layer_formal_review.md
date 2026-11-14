@@ -100,10 +100,10 @@ owner 표와 일치한다. 모델 정합성, compiler 구현 적합성, 실제 h
 
 | 기존 게이트 | 읽어 확인한 책임 | 이번 감사 |
 | --- | --- | --- |
-| [machine_layer_core_smoke.sh](../../tests/machine_layer_core_smoke.sh):16, :63 | 주요 정의·정리 및 과장 금지 문구, 금지된 legacy 이름을 검사한 뒤 MachineLayerCore를 compile한다. prover 부재는 기본 실패이고 explicit skip은 미검증이라고 출력한다 | 소스만 읽음; 미실행 |
-| [formal_semantics_smoke.sh](../../tests/formal_semantics_smoke.sh):581, :1038, :1142 | ResourceMachineBridge의 계약 inventory와 두 파일을 포함한 proof corpus의 등록·compile 경로를 검사한다 | 소스만 읽음; 미실행 |
-| [coq_kernel_check.sh](../../tests/coq_kernel_check.sh):28, :103, :122, :166 | 현재 `.v` corpus를 compile한 뒤 그 module만 kernel-check하고 axiom budget을 비교한다. corpus 허용치는 SlotCalculus의 두 명시적 abstraction이며 전체 0-axiom 주장이 아니다 | 소스만 읽음; 미실행 |
-| [coq_kernel_check_selftest.sh](../../tests/coq_kernel_check_selftest.sh):46, :58, :79 | clean control은 수용하고 planted Admitted는 axiom-budget 오류와 해당 이름으로 거절하는지 검사한다 | 소스만 읽음; 미실행 |
+| [machine_layer_core_smoke.sh](../../tests/ir/machine_layer_core_smoke.sh):16, :63 | 주요 정의·정리 및 과장 금지 문구, 금지된 legacy 이름을 검사한 뒤 MachineLayerCore를 compile한다. prover 부재는 기본 실패이고 explicit skip은 미검증이라고 출력한다 | 소스만 읽음; 미실행 |
+| [formal_semantics_smoke.sh](../../tests/proof/formal_semantics_smoke.sh):581, :1038, :1142 | ResourceMachineBridge의 계약 inventory와 두 파일을 포함한 proof corpus의 등록·compile 경로를 검사한다 | 소스만 읽음; 미실행 |
+| [coq_kernel_check.sh](../../tests/proof/coq_kernel_check.sh):28, :103, :122, :166 | 현재 `.v` corpus를 compile한 뒤 그 module만 kernel-check하고 axiom budget을 비교한다. corpus 허용치는 SlotCalculus의 두 명시적 abstraction이며 전체 0-axiom 주장이 아니다 | 소스만 읽음; 미실행 |
+| [coq_kernel_check_selftest.sh](../../tests/proof/coq_kernel_check_selftest.sh):46, :58, :79 | clean control은 수용하고 planted Admitted는 axiom-budget 오류와 해당 이름으로 거절하는지 검사한다 | 소스만 읽음; 미실행 |
 | [ci.yml](../../.github/workflows/ci.yml):228, :244, :252 | 고정 Rocq 9.0.1 job이 kernel check와 negative self-test를 호출한다 | 설정만 읽음; 원격 run 결과는 이번 감사에서 확인하지 않음 |
 
 두 대상 `.v`의 현재 텍스트에는 `Axiom`, `Parameter`, `Admitted` 선언이나 `admit`

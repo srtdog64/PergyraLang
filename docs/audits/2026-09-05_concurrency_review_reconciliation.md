@@ -17,7 +17,7 @@ Status: documentation and focused-example verification COMPLETE; compiler/runtim
   native retry after self-host refusal, accepted-invalid execution, quiet skips,
   copied fixtures, or a second implementation track on the active enum rung.
 - Verification: `tests/async_model_positioning_smoke.sh` and
-  `tests/concurrency_examples_smoke.sh`; syntax, links and scoped diff checks.
+  `tests/parallel/concurrency_examples_smoke.sh`; syntax, links and scoped diff checks.
 
 The main task owns mixed-arity tagged-enum source changes, shared progress,
 registry, integration wrapper and handoff files. Those are not edited here.
@@ -66,11 +66,11 @@ post-self-host. This side task does not set a successor implementation priority.
 
 - Original `bash -n` invocation supplied both script paths, which checks only
   the first script; it was not evidence for both. The 2026-09-05 integration
-  review ran `bash -n tests/concurrency_examples_smoke.sh` and separately
+  review ran `bash -n tests/parallel/concurrency_examples_smoke.sh` and separately
   `bash -n tests/async_model_positioning_smoke.sh`: both exit 0.
 - `timeout 60 bash tests/async_model_positioning_smoke.sh`: PASS, including all
   nine lifecycle rows and explicit current/model-only example boundaries.
-- `PGY_BIN=/d/PergyraLang/bin/pgy.exe timeout 300 bash tests/concurrency_examples_smoke.sh`:
+- `PGY_BIN=/d/PergyraLang/bin/pgy.exe timeout 300 bash tests/parallel/concurrency_examples_smoke.sh`:
   PASS, exit 0 within the five-minute budget. Eight unique canonical programs,
   sixteen native C/LLVM executions, exact stdout after line-ending normalization,
   exit 0 and empty runtime stderr for every execution. Five existing negative

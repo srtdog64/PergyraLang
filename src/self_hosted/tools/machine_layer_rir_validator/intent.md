@@ -25,5 +25,5 @@ exit non-zero for schema or contact drift.
 
 ## Oracle
 
-`tests/machine_layer_pipeline_smoke.sh` is the native RIR producer oracle;
+`tests/ir/machine_layer_pipeline_smoke.sh` is the native RIR producer oracle;
 the self-host smoke supplies malformed-contact mutation coverage.

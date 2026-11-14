@@ -17,7 +17,7 @@ func CompilerHarnessAstReadSurfaceExpectedJsonPath() -> String {
 }
 
 func CompilerHarnessAstReadSurfaceRatchetPath() -> String {
-    return "tests/ast_read_surface_ratchet.txt";
+    return "tests/repo/ast_read_surface_ratchet.txt";
 }
 
 func CompilerHarnessAstReadSurfaceGrowthFixturePath() -> String {

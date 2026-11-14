@@ -78,7 +78,7 @@ PGY_NATIVE_PIPELINE=1 bin/pgy examples/game_economy_demo/main.pgy --run --backen
 ```
 
 `--backend=llvm`도 같은 출력을 낸다. `PGY_WORKERS=1/2/4/8`에서도 출력이 바이트 단위로 같다.
-`tests/example_contract_smoke.sh`가 `expected_stdout.txt`와 정확히 비교한다.
+`tests/repo/example_contract_smoke.sh`가 `expected_stdout.txt`와 정확히 비교한다.
 
 ## intent step에서 기억할 것
 

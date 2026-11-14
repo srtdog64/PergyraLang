@@ -34,10 +34,10 @@ Both Linux and Windows core passed. Watches `63073` / `36279` completed exit
 ## Independent scopes
 
 - `semantic_index_review` owns only
-  `tests/self_hosted_component_contract_smoke.sh`,
-  `tests/self_hosted_component_checker_smoke.sh`,
-  `tests/self_hosted_owner_size_policy.awk`, and
-  `tests/self_hosted_owner_size_policy_smoke.sh`.
+  `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
+  `tests/self_hosted/gates/self_hosted_component_checker_smoke.sh`,
+  `tests/self_hosted/gates/self_hosted_owner_size_policy.awk`, and
+  `tests/self_hosted/gates/self_hosted_owner_size_policy_smoke.sh`.
   Reached macOS failures: `checked_dirs[@]: unbound variable` from the extracted
   regex scope checker under Bash 3.2; `unreadable-source returned exit 2` when
   BWK awk reads a directory, instead of the expected owned read-error exit 1.

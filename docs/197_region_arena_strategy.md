@@ -65,9 +65,9 @@ The fixed-capacity `PgyArena` family remains available for legacy runtime
 helpers, while `PgyRegion` in `src/runtime/pgy_runtime_region_inline.h` is the
 live WO-REG-1 family. The driver produces `PgyRegionPlan` rows from the escape
 certificate; C consumes inline region operations and LLVM consumes the exported
-runtime twins. `tests/region_arena_smoke.sh` proves chained growth, pointer
+runtime twins. `tests/ownership/region_arena_smoke.sh` proves chained growth, pointer
 stability, alignment, reset, and budget fail-closed behaviour in both runtime
-materializations. `tests/region_backend_wiring_smoke.sh` proves the producer /
+materializations. `tests/ownership/region_backend_wiring_smoke.sh` proves the producer /
 consumer path for certified string temporaries and the heap fallback for an
 uncertified binding. The former zero-consumer statement applies only to the
 legacy fixed `PgyArena`, not to the region path.
@@ -112,7 +112,7 @@ never received the evidence pipeline to make it live.
   blocks. This is not last-use reclamation inside an unbounded loop, nor
   cleanup of returned Strings or aggregate fields. Missing analysis can
   therefore still retain heap memory; it is not a proof of leak freedom.
-  `tests/string_clone_release_smoke.sh` checks independent output and actual
+  `tests/ownership/string_clone_release_smoke.sh` checks independent output and actual
   release on native C (ASan/UBSan + LSan) and LLVM (LSan), separately from a
   returned-String control. `string-clone-region-unit-test` injects scope faults
   at the real emitters; the semantic unit gate refuses unproved identities
@@ -631,7 +631,7 @@ flipped to **live in the same commit** (until then they stay declared/honest).
 ### A.3 REG-1d — origin surface ✅ LANDED (`58a4a5e4`)
 
 `src/self_hosted/compiler/region_plan_owner.pgy` (450 lines) + manifest +
-pinned golden + `tests/selfhost_region_plan_smoke.sh`, artifact-zone kind 29,
+pinned golden + `tests/self_hosted/gates/selfhost_region_plan_smoke.sh`, artifact-zone kind 29,
 OWNERS.md and component-contract registration. Gate is green: golden contract
 diff through the self-hosted comparator, C-leg == LLVM-leg artifact equality,
 10 require pins, 4 forbid pins, self-test.
@@ -699,7 +699,7 @@ with no errors. Both unit gates stay green.
 Two follow-ups this session produced that must land **with** that wiring
 commit, because they reference the not-yet-committed `function_syntax_id`:
 
-1. `tests/region_plan_unit.c` gained coverage for the branches the extension
+1. `tests/ownership/region_plan_unit.c` gained coverage for the branches the extension
    added and left untested — every test had passed `function_syntax_id = 0`, so
    the new owner-conflict refusal and the whole
    `_scope_for_function_id` fail-closed matrix (null plan, unverified plan,

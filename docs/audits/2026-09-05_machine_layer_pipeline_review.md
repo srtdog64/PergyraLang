@@ -211,10 +211,10 @@ that intent from current C/LLVM production scope
 
 ## Suggested verification, not executed in this lane
 
-- `tests/border_registry_smoke.sh`: narrow AIR/backend include boundary.
-- `tests/machine_layer_manifest_smoke.sh`: existing manifest/runtime probe and
+- `tests/registry/border_registry_smoke.sh`: narrow AIR/backend include boundary.
+- `tests/ir/machine_layer_manifest_smoke.sh`: existing manifest/runtime probe and
   structural owner checks; requires its probe binary and is not just a lint.
-- `tests/machine_layer_pipeline_smoke.sh`: native RIR/MIR/AIR and C/LLVM machine
+- `tests/ir/machine_layer_pipeline_smoke.sh`: native RIR/MIR/AIR and C/LLVM machine
   pipeline. Inspect any reported skip; its old introductory self-host limitation
   is not evidence against the newer installed-source gate below.
 - `tests/self_hosted/parity/public_route/public_machine_manifest_installed_self_host_owner.sh`:

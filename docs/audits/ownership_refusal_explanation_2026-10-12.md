@@ -65,9 +65,9 @@ They did not invalidate the observed kernel/assumption-budget result.
 - Independent consumers: `tests/coq/OwnershipRefusalExplanationAudit.v` and
   `tests/coq/OwnershipRefusalExplanationExtraction.v`.
 - Extracted checker controls: `tests/ocaml/ownership_refusal_driver.ml`.
-- Gates: `tests/ownership_refusal_explanation_smoke.sh` and
-  `tests/ownership_refusal_explanation_selftest.sh`.
-- Registration: `tests/coq_kernel_check.sh`, `tests/formal_semantics_smoke.sh`
+- Gates: `tests/ownership/ownership_refusal_explanation_smoke.sh` and
+  `tests/ownership/ownership_refusal_explanation_selftest.sh`.
+- Registration: `tests/proof/coq_kernel_check.sh`, `tests/proof/formal_semantics_smoke.sh`
   and `.github/workflows/formal_proofs.yml`.
 - Scope/evidence/navigation: the semantics note and README, this receipt,
   the work directive and a bounded completion note in the current handoff.

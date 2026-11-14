@@ -121,7 +121,7 @@ Mechanized artifacts:
   resulting heap and preserve their invariants, while the same Slot admits
   release. Includes a concrete cyclic graph compatible with both invariants
   and missing/stale/released/token/pin/borrow refusal witnesses. Gate:
-  `tests/memory_boundary_composition_smoke.sh`. No new heap interpreter,
+  `tests/ownership/memory_boundary_composition_smoke.sh`. No new heap interpreter,
   issuer proof, atomic runtime operation or production-support claim.
   Reuse (2026-10-08): access resolves a generation link, not an address
   (`address_link_admits_reused_node` is the counterexample); retirement
@@ -144,7 +144,7 @@ Mechanized artifacts:
   `texec` counters. Zero inspection weight gives equality; bulk reset is only
   an arithmetic alternative (`1 < 3`), not an implemented collector or a
   measured counterexample. Typed audit: `tests/coq/OwnershipCleanGCComparisonAudit.v`.
-  Gate: `tests/ownership_gc_comparison_smoke.sh`. No claim that correct GC is
+  Gate: `tests/ownership/ownership_gc_comparison_smoke.sh`. No claim that correct GC is
   unsafe, all collectors are slower, or C/LLVM cleanup is implemented.
 
 - [proofs/OwnershipGraphLinks.v](proofs/OwnershipGraphLinks.v): design check
@@ -185,9 +185,9 @@ Mechanized artifacts:
   transfer and consumption; a checked boundary connects accepted batches to
   maintained counts and propagates authority/root/delete refusal.
   Store/root binding issuance, whole-unit lease/pin checks and synchronized
-  retirement remain OPEN. Gate: `tests/graph_cycle_reclaim_smoke.sh`, independent
+  retirement remain OPEN. Gate: `tests/ownership/graph_cycle_reclaim_smoke.sh`, independent
   typed consumer: `tests/coq/GraphCycleReclaimAudit.v`; planted gate regressions:
-  `tests/graph_cycle_reclaim_selftest.sh`. The consumer also pins baseline
+  `tests/ownership/graph_cycle_reclaim_selftest.sh`. The consumer also pins baseline
   retention, the old sequential partial-deletion falsifier, checked-batch
   original-state refusal under a borrow, and full-inventory snapshot
   observations outside the checked language. Production producer, runtime and
@@ -205,9 +205,9 @@ Mechanized artifacts:
   successful body operations and actual graph state; a stuck compensation
   retains both failure causes. Finishing compensation is not effect recovery.
   Admitted partial-forward, no-op-compensation and partial-compensation
-  counterexamples pin this distinction. Gate: `tests/graph_action_scope_smoke.sh`
+  counterexamples pin this distinction. Gate: `tests/ownership/graph_action_scope_smoke.sh`
   with consumer `tests/coq/GraphActionScopeAudit.v`; planted regressions:
-  `tests/graph_action_scope_selftest.sh`. Sequential only; surface,
+  `tests/ownership/graph_action_scope_selftest.sh`. Sequential only; surface,
   inference, effect restoration, runtime and cost are OPEN. See the
   [implementation boundary matrix](ownership_lifecycle_implementation_boundaries.md)
   for owner/producer/consumer, physical atomicity and root/count/authority
@@ -230,7 +230,7 @@ Mechanized artifacts:
   scoped. Retirement units now require `NoDup`; a unique exact unit still
   always exists. SetField/Attach use only the actual old/new index rows and
   refine the scan specifications under exact indexes; unrelated rows are
-  returned without a copy. `tests/ownership_teardown_redteam_smoke.sh`
+  returned without a copy. `tests/ownership/ownership_teardown_redteam_smoke.sh`
   kernel-checks the typed regression and freshly extracts bounded OCaml
   value/sharing/cost observations. Large old/new rows remain expensive;
   the list uniqueness observer is quadratic, not a production subtree walker.
@@ -697,10 +697,10 @@ If any item is missing, the feature is either `IN PROGRESS`, `explicit reject`, 
 
 scripts/rocq_toolchain_owner.sh admits only Rocq/rocqchk 9.3.0 and Stdlib
 9.2.0; scripts/run_rocq_toolchain.sh activates the explicit project switch.
-System Coq is not a fallback. tests/coq_kernel_check.sh checks a fresh source
+System Coq is not a fallback. tests/proof/coq_kernel_check.sh checks a fresh source
 snapshot and the approved assumption bindings, never source-tree .vo files.
 
-tests/ownership_cleanup_smoke.sh freshly extracts OwnershipCleanCore.elab and
+tests/ownership/ownership_cleanup_smoke.sh freshly extracts OwnershipCleanCore.elab and
 callee elaboration. Its controls and hashed cost receipt are bounded model
 evidence, not runtime drop glue, D1 policy, implementation refinement or beta
 closure. Commands, exact hashes, limitations and recovery evidence are in

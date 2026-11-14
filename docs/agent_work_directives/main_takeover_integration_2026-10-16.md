@@ -2767,7 +2767,7 @@ unused HIR/MIR field or a subset-only mandatory drop would not close this
 chain. The generic/tuple/enum pack coverage and direct-constructor path are
 part of the same owner decision.
 
-The new behavioral gate `tests/aggregate_storage_transfer_smoke.sh` was run
+The new behavioral gate `tests/ownership/aggregate_storage_transfer_smoke.sh` was run
 with unchanged Linux compiler SHA256 `d539d7eca05beb938cae038e08ed13783928b67362fe4670b2e34446d2460b86`.
 Five positive fixtures passed on both native C and LLVM (10/10), including a
 local `Pair` assembled without illegal source reuse; six unsafe negative

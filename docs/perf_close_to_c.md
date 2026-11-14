@@ -68,7 +68,7 @@ C-baseline sides from drifting; when a Rust toolchain is available, rerun the
 same string-window loop before changing the Rust-ratio claims.
 
 Benchmarks use data-dependent bodies so neither optimizer can fold the work
-away. The gate lives in `tests/perf_close_to_c_smoke.sh`.
+away. The gate lives in `tests/perf/perf_close_to_c_smoke.sh`.
 
 ## Results (sandbox, gcc -O2; representative)
 
@@ -167,7 +167,7 @@ generalize; real self-hosted code runs at near-C speed on both backends.
 
 ## The gate (test)
 
-`tests/perf_close_to_c_smoke.sh`:
+`tests/perf/perf_close_to_c_smoke.sh`:
 
 - compiles each benchmark across every toolchain present — hand-C (`gcc`),
   hand-C++ (`g++`), Rust (`rustc`), pgy-C, pgy-LLVM — with inline baselines,
@@ -191,7 +191,7 @@ broken optimization), not micro-noise.
 ## Extending
 
 Add a benchmark by dropping `benchmarks/<name>.pgy` and, in
-`tests/perf_close_to_c_smoke.sh`, adding a `pgy_src` mapping plus a
+`tests/perf/perf_close_to_c_smoke.sh`, adding a `pgy_src` mapping plus a
 `write_sources` case with the C / Rust (and, when the idiom differs, C++)
 baselines — each must print the same line the `.pgy` does, which the
 cross-language equality check enforces. `branchmix` (branch-heavy control flow)
@@ -463,7 +463,7 @@ the compatibility path and still compute the source length internally.
 Both backends know the fused string-window builtins (`SubIndexOf`, `SubEquals`,
 `SubContains`, `SubStartsWith`) and their length-fact counterparts
 (`SubIndexOfWithLen`, `SubEqualsWithLen`, `SubContainsWithLen`,
-`SubStartsWithLen`). `tests/string_window_builtins_smoke.sh` compares them
+`SubStartsWithLen`). `tests/ownership/string_window_builtins_smoke.sh` compares them
 against the allocating `Substring(...)` equivalents. The remaining
 language-design work is narrower: make the borrowed lifetime a first-class
 semantic fact instead of the current safe runtime condition that strings are

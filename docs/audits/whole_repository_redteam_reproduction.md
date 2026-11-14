@@ -154,7 +154,7 @@ complete.
 ```text
 [sot-authority-edge] FAIL semantic.hashmap_collection_ownership:
 enforcement_gate required text is absent from
-tests/hashmap_owned_string_provenance_smoke.sh:
+tests/ownership/hashmap_owned_string_provenance_smoke.sh:
 local String producer transfer and nonbinding deep-drop C-LLVM refusals PASS
 ```
 
@@ -171,7 +171,7 @@ and run `scripts/sot_registry_gate.py` as a required gate.
 
 ### P1: Forty-nine executable gates are not reachable
 
-`python tests/gate_script_reachability_smoke.py` returned exit 1:
+`python tests/repo/gate_script_reachability_smoke.py` returned exit 1:
 
 ```text
 scripts=865 target-reachable=760 manual=56
@@ -228,7 +228,7 @@ success on both backends, and exit 0. The same test passes with the
 LLVM-enabled compiler, but the C-only path can falsely satisfy a two-backend
 contract.
 
-The gate is `tests/channel_pool_starvation_probe.sh`; the runtime owner is
+The gate is `tests/parallel/channel_pool_starvation_probe.sh`; the runtime owner is
 `src/runtime/pgy_parallel_pool_lifecycle.h`.
 
 Required closure: track executed backend count and fail if a required
@@ -331,10 +331,10 @@ These are supporting evidence, not closure:
 - fresh C + LLVM compiler build: PASS;
 - `tests/array_drop_storage_smoke.sh`: PASS;
 - `tests/collection_parameter_boundary_smoke.sh`: PASS;
-- `tests/channel_pool_starvation_probe.sh` with LLVM enabled: PASS;
-- `tests/hashmap_owned_string_provenance_smoke.sh`: PASS;
-- `tests/documentation_quality_smoke.sh`: PASS;
-- `tests/self_host_progress_metric_smoke.sh`: PASS;
+- `tests/parallel/channel_pool_starvation_probe.sh` with LLVM enabled: PASS;
+- `tests/ownership/hashmap_owned_string_provenance_smoke.sh`: PASS;
+- `tests/repo/documentation_quality_smoke.sh`: PASS;
+- `tests/self_hosted/gates/self_host_progress_metric_smoke.sh`: PASS;
 - `tests/parallel_core_contract_smoke.sh`: PASS;
 - `tests/ownership_relocation_cleanup_contract_smoke.sh`: PASS.
 
@@ -665,7 +665,7 @@ Status: LANDED 462c10fa (finding b); finding a moved to T8
 - io_result_builtin_owner.sh (Windows copy without the NTFS read-only-dir row): PASS
 - make test-semantic: 2954 passed, 0 failed; make test-transpile: 979 passed, 0 failed; make test-mir: 216 passed
 - self_hosted_component_contract_smoke.sh, default_route_diagnostic_position_owner.sh, containment_embedding_copy_owner.sh: PASS
-- tests/diagnostics_json_smoke.sh: spec-limit FAIL, also red on origin/main (stale fixture: 33 enums share variant `A`)
+- tests/language/diagnostics_json_smoke.sh: spec-limit FAIL, also red on origin/main (stale fixture: 33 enums share variant `A`)
 - Finding: under `--error-format=json`, any direct-MIR codegen refusal on the
   default LLVM route prints `self-host JSON diagnostic receipt is
   malformed`. Native reports `struct IoError` at line 0 (`enum IoError` gets
@@ -717,7 +717,7 @@ Status: LANDED 12ba034b..72a7897e
   `transpiler_expr_call_spawn_emit.c`,
   `transpiler_expr_stdlib_builtin_policy.c`, `src/common/pgy_builtin_type_table.c`.
 - Gate: new `tests/cases/backend_compare` cases; the two known-open
-  `f_where_g1` rows in `tests/generic_falsification_smoke.sh` must flip to
+  `f_where_g1` rows in `tests/language/generic_falsification_smoke.sh` must flip to
   passing (update them).
 
 Q (agent-t5): the checker's `Option<payload>` type for `Some(x)` was not
@@ -794,7 +794,7 @@ Status: OPEN (blocked on `type_checker_helpers_late.c`, WIP)
 - Finding: `TakeOpt(Some(5))` for `TakeOpt<T>(o: Option<T>)` fails in MIR
   lowering on both native backends; the binder matches type-name text
   instead of consuming the semantic binding.
-  `tests/generic_nested_failclosed_smoke.sh`, outside CI, is red.
+  `tests/language/generic_nested_failclosed_smoke.sh`, outside CI, is red.
 - Edit scope: the MIR generic specialization owner under `src/compiler`.
 - Do not edit: `mir_types.h`, `mir_branch_source_facts.c`,
   `mir_json_dump.c`, `mir_source_local_types.c` (WIP). If the fix needs
@@ -843,7 +843,7 @@ Status: LANDED b4467abe..9c32e7bd
 
 Q (agent-t8): the refusals this card names are decided inside the direct-MIR
 multi-routine dispatcher, and two pins in
-`tests/self_hosted_component_contract_smoke.sh` (on the WIP list) freeze that
+`tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` (on the WIP list) freeze that
 code: lines 8393-8398 pin `return UnwrapOption(composite_intent_payload);` and
 its nested-intent twin, and lines 19995-19997 require
 `DirectMirScalarProgramRouteAdmissionDie(scalar_program_admission)`. May I
@@ -925,7 +925,7 @@ Status: LANDED 97c05a4e..fd19f0e5
   and emits an undeclared `IsSome_Result` for `IsSome` on
   `Option<Result<Int,String>>` inside a specialized function.
 - Gate: the known-open `nested_struct_param` row in
-  `tests/generic_nested_failclosed_smoke.sh` becomes a run row on C; a
+  `tests/language/generic_nested_failclosed_smoke.sh` becomes a run row on C; a
   backend_compare case for the `IsSome` form.
 
 **T11: self-host parse acceptance gaps.**
@@ -1054,7 +1054,7 @@ tests/collection_own_parameter_boundary_smoke.sh: PASS
   includes forged origin+receipt event
   includes forged direct-builtin operation kind
   includes forged transition, duplicate, event, destination, and witness rows
-tests/collection_ownership_fact_projection_smoke.sh: PASS
+tests/ownership/collection_ownership_fact_projection_smoke.sh: PASS
 tests/collection_split_owned_producer.sh: PASS
 tests/owned_statement_prefix_exact_transfer_smoke.sh: PASS
 test_mir collection ownership subset: 225 passed, 0 failed
@@ -1129,7 +1129,7 @@ PGY_BIN=.tmp/redteam-current/bin/pgy.exe \
 PASS
 
 PGY_BIN=.tmp/redteam-current/bin/pgy.exe \
-  bash tests/collection_ownership_fact_projection_smoke.sh
+  bash tests/ownership/collection_ownership_fact_projection_smoke.sh
 PASS
 
 PGY_BIN=.tmp/redteam-current/bin/pgy.exe \
@@ -1305,9 +1305,9 @@ Authoritative baseline captured before the audit:
   `semantic.hashmap_collection_ownership` at line 110.
 - `python scripts/sot_registry_gate.py` exits 1 because the
   `semantic.hashmap_collection_ownership` row names required text that is
-  absent from `tests/hashmap_owned_string_provenance_smoke.sh`. The registry is
+  absent from `tests/ownership/hashmap_owned_string_provenance_smoke.sh`. The registry is
   therefore not currently machine-green.
-- `python tests/gate_script_reachability_smoke.py` exits 1 with
+- `python tests/repo/gate_script_reachability_smoke.py` exits 1 with
   `scripts=875 target-reachable=768 manual=56
   manual-registry-historical=1 undeclared=51 stale=0 dual=0`.
 - GitHub CI run
@@ -1621,7 +1621,7 @@ registry census: CLOSED=66 BRIDGE=27 ACTIVE=2
 active rows: selfhost.semantic_artifact_admission,
             semantic.hashmap_collection_ownership
 scripts/sot_registry_gate.py: RED
-tests/gate_script_reachability_smoke.py: RED (875/768/56/51)
+tests/repo/gate_script_reachability_smoke.py: RED (875/768/56/51)
 ```
 
 Exact-head GitHub CI run `36113563646` is still `in_progress`; 30 jobs are
@@ -1667,7 +1667,7 @@ The documentation pass now:
 - repairs the confirmed README_KO and beta-ticket relative links;
 - keeps the shared audit channel itself Git-ignored.
 
-`tests/documentation_quality_smoke.sh` passes. The SoT registry machine gate
+`tests/repo/documentation_quality_smoke.sh` passes. The SoT registry machine gate
 now passes with the truthful active census:
 
 ```text
@@ -1699,7 +1699,7 @@ Found on the way (open, not fixed here):
 
 - Gate bug, large: `! grep -Fq ...` statement lines never fail a
   `set -euo pipefail` script (bash exempts `!` pipelines from errexit).
-  `tests/perf_contract_smoke.sh` has 713 such lines; several other gates
+  `tests/perf/perf_contract_smoke.sh` has 713 such lines; several other gates
   have 7-19. Offered to the user as a separate task.
 - `type_check_claim_slot` reports "ClaimSlot takes no arguments" for
   `ClaimSecureSlot(level)` as well (wrong callee name in the message).
@@ -1907,7 +1907,7 @@ Found on the way:
 - Open: `zone_effect_pool_runtime` on the default route now reaches the
   `HasLayer` refusal (`builtin_native_pipeline_only`), but its span is the
   zone line 7:1, not the call at 13:13.
-- Open: `tests/vscode_language_graph_smoke.sh` ignores every path that
+- Open: `tests/repo/vscode_language_graph_smoke.sh` ignores every path that
   contains `.tmp`, so it fails in any worktree under `.tmp/`.
 - Still open from the last checkpoint: `ClaimSecureSlot(level)` reports
   "ClaimSlot takes no arguments", and `! grep -Fq` lines never fail a

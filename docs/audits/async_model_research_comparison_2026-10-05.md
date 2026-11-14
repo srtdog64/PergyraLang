@@ -275,7 +275,7 @@ schedule-independent safety(POPL 2026: 내부 결정적 프로그램은 한 inte
 
 **평가.** 연구 흐름과 가장 잘 맞는 축이다. 비결정을 이름(`any`)으로 드러내는 것도
 LVars의 quasi-determinism 같은 "비결정은 명시적으로" 원칙과 같다. 실행 증거도 있다.
-`tests/parallel_worker_invariance_smoke.sh`가 같은 프로그램을 `PGY_WORKERS` 1·2·3·16으로
+`tests/parallel/parallel_worker_invariance_smoke.sh`가 같은 프로그램을 `PGY_WORKERS` 1·2·3·16으로
 두 백엔드에서 돌려 바이트 동일을 요구한다. 이 문서의 첫 판은 이 게이트를 놓치고
 "착지하지 않았다"고 적었다(§4.5에서 정정).
 
@@ -390,7 +390,7 @@ async func Main() -> Void {
 | R1 | `async` 색의 결정 기록 | 런타임은 stackful인데 표면만 색을 강제. `docs/05` 예제도 어긋남 | 결정 기록 하나: (a) 색 유지 + 문서 수정, (b) "멈출 수 있음"을 추론 효과로 바꾸고 pin·intent 검사가 그 요약을 소비. 이 문서는 (b)를 권한다 | (a)면 문서 예제 컴파일 게이트, (b)면 요약 소유자 음성 게이트 |
 | R2 | deadline scope와 실패 정책 | 취소를 일으킬 원인이 없다. Result 형제의 첫 실패를 다룰 join이 없다 | `PgyCancelNode`와 예산을 재사용하는 scope deadline(level-triggered). `await`의 타임아웃은 `Result`로. Result 원소용 join 모드 후보 하나 | 가상 클록 결정 목격자(`PGY_VIRTUAL_CLOCK`) |
 | R3 | 채널 | 이름 있는 작업 사이 공유 불가, 비차단 select뿐 | 불투명 채널 핸들 → 차단 `select` + 타임아웃 case → "모두 park" 탐지기 | 채널·select Rocq 모델 먼저, 그다음 양 백엔드 목격자 |
-| R4 | 결정성 실행 증거 | (정정: 이미 있음, §4.5) | — | `tests/parallel_worker_invariance_smoke.sh` |
+| R4 | 결정성 실행 증거 | (정정: 이미 있음, §4.5) | — | `tests/parallel/parallel_worker_invariance_smoke.sh` |
 | R5 | 경계 증거를 fact family 하나로 | 증거 규칙이 검사기 여러 곳에 흩어져 구성성이 약하다 | `docs/178` 증거를 SoT 레지스트리 행 하나로 등록하고 소비자 이전 | 레지스트리 행 + 음성 래칫 |
 | R6 | 문서 정리 | §3.1의 불일치 셋 | 문서만 | 문서 예제 컴파일 smoke |
 
@@ -406,7 +406,7 @@ R0과 R6은 작고 즉시 할 수 있다. R1은 사용자 의미를 바꾸므로
 | R1 | 결정 필요 | 색을 추론 효과로 바꾸는 일은 사용자 의미를 바꾼다. 결정 전까지 `docs/05`는 현재 규칙(async 문맥 필수)대로 고쳤다. |
 | R2 | 결정 필요 | deadline scope와 Result 원소 join 모드는 새 표면이다. `docs/204`의 순서에 붙인다. |
 | R3 | 결정 필요 | 불투명 채널 핸들이 먼저다(`docs/178`). 차단 `select`는 채널·select 모델을 둔 뒤에 연다. |
-| R4 | 이미 있음 | `tests/parallel_worker_invariance_smoke.sh`(workers 1·2·3·16, 두 백엔드). 첫 판의 "착지하지 않았다"는 틀렸다. |
+| R4 | 이미 있음 | `tests/parallel/parallel_worker_invariance_smoke.sh`(workers 1·2·3·16, 두 백엔드). 첫 판의 "착지하지 않았다"는 틀렸다. |
 | R5 | 결정 필요 | SoT 레지스트리 행 추가는 활성 rung 규율(연속 SoT-only 커밋 제한)을 따라야 한다. |
 | R6 | 수정됨 | `docs/05` §2 예제를 `async func Main`으로, `docs/semantics/05`의 read/write overlap을 semantic error로, `docs/146`의 self-host async 문장을 코드 근거대로 고쳤다. |
 

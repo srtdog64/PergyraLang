@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # A method receiver evaluates before the method's arguments, and a party
 # ability call's arguments evaluate left to right, on the default C route as
-# on native C and LLVM (docs/205 §11.1). tests/compare_backends.sh runs the
+# on native C and LLVM (docs/205 §11.1). tests/backend/compare_backends.sh runs the
 # native pipeline only, so the default route's order reached no gate: it
 # printed "a b receiver" where native printed "receiver a b".
 # - A call receiver, an index receiver and a field of a call receiver are

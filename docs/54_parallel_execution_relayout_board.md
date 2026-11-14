@@ -164,7 +164,7 @@
 - [test_semantic_async_part_{a,b}.cases.h](/mnt/e/PergyraLang/src/tests/semantic/test_semantic_async_part_{a,b}.cases.h)
 - [test_semantic_runtime_*_part_*.cases.h](/mnt/e/PergyraLang/src/tests/semantic/test_semantic_runtime_*_part_*.cases.h)
 - [test_transpile_domain_async_part_{a,b}.cases.h](/mnt/e/PergyraLang/src/tests/transpile/test_transpile_domain_async_part_{a,b}.cases.h)
-- [llvm_smoke.sh](/mnt/e/PergyraLang/tests/llvm_smoke.sh)
+- [llvm_smoke.sh](/mnt/e/PergyraLang/tests/backend/llvm_smoke.sh)
 
 ## 6. 남은 빈 부분
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Native C used to emit C that gcc rejected for three shapes the default C
 # route compiles, and to accept a zone parameter shape the default route
-# refuses. tests/compare_backends.sh compares only native C with native
+# refuses. tests/backend/compare_backends.sh compares only native C with native
 # LLVM, so this gate adds the default C route to each shape.
 # - An inout subject parameter is a copy-in value local: its action receiver
 #   and a default argument take its address (subject_inout_action_receiver).

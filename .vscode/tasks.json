@@ -59,13 +59,13 @@
       "type": "process",
       "command": "bash",
       "args": [
-        "tests/documentation_quality_smoke.sh"
+        "tests/repo/documentation_quality_smoke.sh"
       ],
       "windows": {
         "command": "C:\\msys64\\usr\\bin\\bash.exe",
         "args": [
           "-c",
-          "export PATH=/usr/bin:/ucrt64/bin:/mingw64/bin:$PATH; bash tests/documentation_quality_smoke.sh"
+          "export PATH=/usr/bin:/ucrt64/bin:/mingw64/bin:$PATH; bash tests/repo/documentation_quality_smoke.sh"
         ]
       },
       "options": {

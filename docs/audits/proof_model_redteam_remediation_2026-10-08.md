@@ -110,13 +110,13 @@ source-test harness의 compiler failure를 skip-success로 숨기던 경로도 �
 
 고정 source snapshot, Rocq **9.3.0 / Stdlib 9.2.0**:
 
-- `tests/formal_semantics_smoke.sh`: 63 owner + 영구 regression consumer 6개,
+- `tests/proof/formal_semantics_smoke.sh`: 63 owner + 영구 regression consumer 6개,
   총 69개와 별도 assumption approval consumer를 fresh compile / rocqchk PASS.
   69개 SHA256를 현재 파일과 다시 비교해 모두 일치했다.
 - 전체 assumption budget은 기존 `SlotCalculus.MaxSlotId`, `verify_token`의
   승인된 타입 2개다. 추가 axiom/admit/unsafe kernel feature는 없다.
   기존 masking/deprecated 및 indexed-inductive dependency 보고는 숨기지 않았다.
-- `tests/coq_kernel_check_selftest.sh`: planted admit, 같은 이름의 승인 API
+- `tests/proof/coq_kernel_check_selftest.sh`: planted admit, 같은 이름의 승인 API
   타입 변경 3종, 빈/missing approval 거부 PASS.
 - main의 arithmetic/IR/emission/config regression: fresh 7개 module, axiom 0 PASS.
 - GC 비교: fresh 3개 module, axiom 0 PASS. 이는 추상 정책 비용이지 실측이 아니다.
@@ -137,9 +137,9 @@ source-test harness의 compiler failure를 skip-success로 숨기던 경로도 �
 - Windows gcc로 real-clock inline/linked positive probe 2개 PASS. Windows
   전체 compiler/backend matrix나 syscall failure injection은 실행하지 않았다.
 - 격리된 native Linux/LLVM18 compiler build PASS; 설치 bin/driver는 바꾸지 않았다.
-- `tests/runtime_now_compiler_smoke.sh`: 새 compiler의 C/LLVM 실행 및 i64 Now
+- `tests/runtime/runtime_now_compiler_smoke.sh`: 새 compiler의 C/LLVM 실행 및 i64 Now
   declaration PASS.
-- `tests/call_scalar_widening_smoke.sh`: signed Int → Long, Float → Double,
+- `tests/language/call_scalar_widening_smoke.sh`: signed Int → Long, Float → Double,
   direct/member/subject/hosted/callable/intent C/LLVM 실행 PASS. Long → Int와
   String → Long은 structured semantic error로 거부하고 executable을 만들지 않는다.
 - 변경하지 않은 stdlib surface 입력: C/LLVM 양쪽 PASS.
@@ -176,18 +176,18 @@ Linux/WSL에서 다음처럼 실행한다. PGY_BIN은 **검증할 실제 binary*
 
 ```bash
 env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam \
-  bash scripts/run_rocq_toolchain.sh bash tests/formal_semantics_smoke.sh
-bash tests/runtime_intent_identity_reuse_smoke.sh
-bash tests/runtime_host_clock_smoke.sh
-bash tests/runtime_c_profile_smoke.sh
+  bash scripts/run_rocq_toolchain.sh bash tests/proof/formal_semantics_smoke.sh
+bash tests/runtime/runtime_intent_identity_reuse_smoke.sh
+bash tests/runtime/runtime_host_clock_smoke.sh
+bash tests/runtime/runtime_c_profile_smoke.sh
 env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam \
-  bash scripts/run_rocq_toolchain.sh bash tests/proof_carrying_adequacy_smoke.sh
+  bash scripts/run_rocq_toolchain.sh bash tests/proof/proof_carrying_adequacy_smoke.sh
 PGY_BIN="$PWD/.tmp/proof-redteam-repair-2026-10-08/bin/pgy" \
-  bash tests/runtime_now_compiler_smoke.sh
+  bash tests/runtime/runtime_now_compiler_smoke.sh
 PGY_BIN="$PWD/.tmp/proof-redteam-repair-2026-10-08/bin/pgy" \
-  bash tests/call_scalar_widening_smoke.sh
+  bash tests/language/call_scalar_widening_smoke.sh
 PGY_BIN="$PWD/.tmp/proof-redteam-repair-2026-10-08/bin/pgy" \
-  bash tests/stdlib_surface_smoke.sh
+  bash tests/repo/stdlib_surface_smoke.sh
 ```
 
 | 검증 대상 | SHA256 |

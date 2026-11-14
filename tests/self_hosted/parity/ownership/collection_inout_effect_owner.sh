@@ -537,7 +537,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/semantic/builtin_argument_retention_registry.def \
     scripts/render_builtin_argument_retention_registry.py \
     "${BASH_SOURCE[0]}" \
-    tests/builtin_argument_retention_registry_smoke.sh >"$WORK/owners.sha256"
+    tests/registry/builtin_argument_retention_registry_smoke.sh >"$WORK/owners.sha256"
 sha256sum tests/self_hosted/parity/ownership/collection_map_payload_written_root_owner.sh >>"$WORK/owners.sha256"
 sha256sum tests/self_hosted/parity/ownership/collection_copy_field_owner.sh >>"$WORK/owners.sha256"
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"

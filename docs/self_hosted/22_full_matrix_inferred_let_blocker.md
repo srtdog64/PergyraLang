@@ -292,4 +292,4 @@ narrow MSYS2 `PATH` hid `powershell`, causing the Make fallback to run the full
 oracle without the pressure owner; that owned process was stopped. Later
 attempts were contaminated by concurrent compiler builds, so their peaks were
 discarded. The Make contract now fails closed on Windows when PowerShell is not
-discoverable, and `tests/build_pressure_contract_smoke.sh` ratchets that rule.
+discoverable, and `tests/perf/build_pressure_contract_smoke.sh` ratchets that rule.

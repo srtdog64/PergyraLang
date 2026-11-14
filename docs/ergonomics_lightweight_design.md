@@ -222,7 +222,7 @@ Status: IMPLEMENTED (pending CI). Touch points applied:
 Behavior is additive: it changes only when a `-> Type` annotation is absent.
 
 Positive fixture: `examples/infer_return.pgy` (inferred `add` and `label`),
-registered in `tests/example_contract_smoke.sh` expecting `INFER RETURN sum=5`.
+registered in `tests/repo/example_contract_smoke.sh` expecting `INFER RETURN sum=5`.
 
 Negative fixtures to wire into the semantic-error harness (kept out of
 `examples/` so the example runner does not try to run-and-pass them):

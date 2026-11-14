@@ -48,14 +48,14 @@ routine fact index가 `routine MIR fact index is incomplete: ... [match_binding_
 - 새 parity 픽스처 `src/self_hosted/mir_lower/fixture/defer_direct_call.pgy`
   (MIR parity manifest 31번, core 개수 31 → 32). 이전에는 direct-call defer 경로를
   실행하는 parity 픽스처가 없었다.
-- `tests/match_binding_type_fact_smoke.sh`, `tests/destructure_type_fact_smoke.sh`: 통과.
+- `tests/ir/match_binding_type_fact_smoke.sh`, `tests/ir/destructure_type_fact_smoke.sh`: 통과.
 - MIR JSON parity (`intent_nested_direct` 제외 118개): 97개 실행 결과 일치.
   `defer_direct_call`도 포함되며 oracle과 via-MIR 모두 `work`, `done`을 출력했다.
   98번째 `str_case_math`에서 codegen이 재구성 AST를 거부해 중단됐다(3절).
 - 수정 전후 `mir_lower` 출력 비교 (manifest 119개 전체): 118개는 바이트 단위로 같다.
   다른 하나는 `defer_direct_call`의 `Call:` 접두사뿐이다. parity가 중단돼 실행하지 못한
   나머지 20개도 재구성 AST가 수정 전과 같다.
-- `tests/self_hosted_component_contract_smoke.sh`: 수정한 파일에 걸린 규칙 106개는 통과.
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`: 수정한 파일에 걸린 규칙 106개는 통과.
   스크립트 전체는 다른 세션이 수정 중인 파일 5개(`ast_collection_ownership_verdict_owner.pgy`,
   `mir/json_projection_owner.pgy`, `collection_ownership_fact_owner.pgy`,
   `routine_fact_index_owner.pgy`, `src/pgy_driver.c`)의 줄 수 상한 초과로 실패한다.

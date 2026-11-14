@@ -36,9 +36,9 @@ forest/RC 전이는 새 국소 변환만 사용한다. 명세를 실행 fallback
 
 ## 관측한 검증
 
-- 집중 게이트: `tests/ownership_teardown_redteam_smoke.sh`, rc=0.
+- 집중 게이트: `tests/ownership/ownership_teardown_redteam_smoke.sh`, rc=0.
   fresh Rocq 9.3.0 / `rocqchk` 3개 모듈, **가정 0개**, admit/unsafe kernel 없음.
-- 전체 통합: `tests/formal_semantics_smoke.sh`, rc=0.
+- 전체 통합: `tests/proof/formal_semantics_smoke.sh`, rc=0.
   명시 inventory 64개와 독립 소비자 7개를 **동일한 fresh snapshot에서 71개**
   커널 검사했다. 승인 export/binding 소비자도 통과했다. 기존 Slot의 두 승인
   추상화만 남고 추가 가정은 없다. 검사한 71개 해시가 현재 소스와 모두 일치한다.
@@ -114,10 +114,10 @@ reachability와 unit의 일치를 증명하고, `enum_below`는 bound 아래 고
 ```bash
 OPAMROOT=/home/c/.local/share/pergyra-rocq/opam \
   timeout 300s bash scripts/run_rocq_toolchain.sh \
-  bash tests/ownership_teardown_redteam_smoke.sh
+  bash tests/ownership/ownership_teardown_redteam_smoke.sh
 OPAMROOT=/home/c/.local/share/pergyra-rocq/opam \
   timeout 1800s bash scripts/run_rocq_toolchain.sh \
-  bash tests/formal_semantics_smoke.sh
+  bash tests/proof/formal_semantics_smoke.sh
 ```
 
 관측물: `.tmp/ownership-teardown-improvement-2026-10-08/`의 `formal.log`,

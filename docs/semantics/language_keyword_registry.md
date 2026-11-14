@@ -33,7 +33,7 @@ structure, not missing authority. MODULE is a context bit, not a new fact axis.
 The enum values, row shape, stable word IDs and LSP wire names are unchanged.
 Representative category assertions and the overload/owner distinction live in
 [`docs/42`](../42_keyword_orthogonality.md#11-registry-primary-categories-are-not-fact-ownership).
-`tests/language_keyword_registry_probe.c` checks native registry values and
+`tests/registry/language_keyword_registry_probe.c` checks native registry values and
 lookup behavior. `proofs/FormalKernel.v` is a separate representative
 vocabulary model, not a verified projection of every registry row or parser
 production. Neither check proves the semantic adequacy of every word.

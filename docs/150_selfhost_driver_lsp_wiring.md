@@ -194,7 +194,7 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
 | 갭 | 내용 | 소유 | 선행 |
 |---|---|---|---|
 | **G-EXEC** | subprocess builtin + process capability. `SubprocessRunnerZone`의 env allowlist, timeout, cwd, exit facts를 runtime에 강제 | 표면 결정 + 양 백엔드 lowering + capability gate | DRV-3 |
-| **G-STDIN** | `ReadStdin(n) -> String` byte-count stdin substrate, caps: `io_read`; C/LLVM/runtime/self-host codegen symbol owner landed and consumed by LSP-2a single-frame transport | `tests/read_stdin_builtin_smoke.sh` | LSP-2a |
+| **G-STDIN** | `ReadStdin(n) -> String` byte-count stdin substrate, caps: `io_read`; C/LLVM/runtime/self-host codegen symbol owner landed and consumed by LSP-2a single-frame transport | `tests/runtime/read_stdin_builtin_smoke.sh` | LSP-2a |
 | **G-LSP-STREAM** | live JSON-RPC session loop: repeated read-exact body consumption from stdin, document-store mutation consumed by session state, semantic feature content, session-script parity | planned surface/runtime owner | LSP-2 |
 | **O-LSP** | 기본 `pgy-lsp --dump-diagnostics <src>`는 installed `pgy-self-lsp`; explicit `--native-pipeline`만 C canonical-event oracle | bounded public takeover landed | LSP-0 `SUBSTITUTING`; full vocabulary/live session parity는 LSP-2/LSP-3 후속 |
 

@@ -37,7 +37,7 @@
  * worker when no idle runner remains -- a parked channel wait occupies its
  * thread, and with every pool thread parked on receives a queued sender
  * could never run (starvation class witnessed by
- * tests/channel_pool_starvation_probe.sh). Running the queued task INLINE
+ * tests/parallel/channel_pool_starvation_probe.sh). Running the queued task INLINE
  * here instead was refuted by the backpressure gate: channel deps are
  * cyclic, so the helped task can nest above the parked op it depends on.
  * Timeout variants are excluded: they self-unblock by deadline. The

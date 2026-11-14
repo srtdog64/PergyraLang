@@ -9,7 +9,7 @@ remains `docs/125_source_of_truth_spine.md`.
 
 ## 2026-05-29 Backend Parity Refresh
 
-Local MinGW/Git Bash `tests/compare_backends.sh` passed the frozen
+Local MinGW/Git Bash `tests/backend/compare_backends.sh` passed the frozen
 backend-compare suite at `181/181` after promoting `select_fairness`,
 registering `if_else_chain`, adding the `device_slot_remote` C/LLVM path, and
 registering loop-defer `continue` cleanup parity.

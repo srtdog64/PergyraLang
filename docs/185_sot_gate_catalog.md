@@ -261,7 +261,7 @@ substitution progress.
 - **Chunk policy owner**: `src/self_hosted/parallel/chunk_policy_owner.pgy`
   is the auto-chunk policy SoT; C runtime (`pgy_parallel_chunk.h`), exports,
   and both emitters are projections. Gate:
-  `tests/selfhost_parallel_chunk_policy_smoke.sh` (comparator-backed golden
+  `tests/parallel/selfhost_parallel_chunk_policy_smoke.sh` (comparator-backed golden
   + C==LLVM legs + stable-identifier pins parsed from the compiled
   manifest). Pin doctrine: stable identifiers only — arithmetic spellings
   are not pinned (the 2026-07-17 relocation/rename false-positive is the
@@ -291,22 +291,22 @@ Makefile and run as the `redteam-repair-contract-test-smoke` cluster:
   cover the stateful/panic-carrying families, the exclusion loop enforces
   external linkage, freshness is a directory scan, and the checked
   float->int twins exist in both runtime homes (docs/189 C4-C7).
-- `tests/surface_boundary_hygiene_smoke.sh` — C-reserved-word rejection
+- `tests/repo/surface_boundary_hygiene_smoke.sh` — C-reserved-word rejection
   for function/parameter names (SoT twin:
   `symbol_table_owner.pgy` CompilerSymbolCReservedWord) and the Channel
   copy-edge rules (let-copy/mut/return fail closed; constructor-born
   immutable lets and SSA-renamed `let double` stay legal) (C11+C12).
-- `tests/adversarial_input_smoke.sh` — termination-contract exercise:
+- `tests/security/adversarial_input_smoke.sh` — termination-contract exercise:
   deep nesting (parser 400 cap), operator bomb (4096 cap), 1MB token,
   garbage bytes, and a 10MB valid source, all under hard timeouts with
   hang/crash/accept outcomes distinguished (C8/C10/C14). Complements
-  `tests/semantic_termination_security_smoke.sh` (step budget + NUL),
+  `tests/ir/semantic_termination_security_smoke.sh` (step budget + NUL),
   which landed with the CI-repair track.
-- `tests/emitted_c_warning_clean_smoke.sh` — emitted C for a 15-fixture
+- `tests/backend/emitted_c_warning_clean_smoke.sh` — emitted C for a 15-fixture
   representative slice must compile warning-clean at
   `-Wall -Wextra -Werror` (suppressions only for the structural
   single-TU inline-runtime noise) (C14).
-- Panic-class gate extension: `tests/runtime_panic_codegen_smoke.sh`
+- Panic-class gate extension: `tests/runtime/runtime_panic_codegen_smoke.sh`
   now also pins `float_to_int_oob` / `float_to_long_oob` /
   `float_nan_to_int` on both backends (C1); the Coq side is
   `CheckedArith.v` `checked_f2i` (`f2i_none_iff` / `f2i_some_exact` /

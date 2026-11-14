@@ -34,7 +34,7 @@ general parser-recovery campaign.
   timeout as recovery, global `parser_consume` behavior changes, HIR/backend
   repair, token skipping after successful grammar matches, silent acceptance,
   or broad parser refactoring.
-- Focused gate: `tests/native_pipeline_malformed_enum_progress_owner.sh`.
+- Focused gate: `tests/self_hosted/gates/native_pipeline_malformed_enum_progress_owner.sh`.
 - Falsifying cases: exact no-newline inputs `enum({`, `enum)`, `enum[`,
   `enum]`, and `enum{{` plus a malformed in-body variant token must reject
   without timeout or crash in at most one second. Public token/AST/MIR neighbor

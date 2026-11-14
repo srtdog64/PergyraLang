@@ -13,8 +13,8 @@
 // the required terms this owner declares.
 //
 // Registration is pinned by src/self_hosted/OWNERS.md,
-// tests/self_hosted_component_contract_smoke.sh, and the standalone
-// tests/selfhost_parallel_chunk_policy_smoke.sh gate.
+// tests/self_hosted/gates/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/parallel/selfhost_parallel_chunk_policy_smoke.sh gate.
 
 func ParallelChunkPolicySchema() -> String {
     return "pgy.selfhost.parallel-chunk-policy.v1";

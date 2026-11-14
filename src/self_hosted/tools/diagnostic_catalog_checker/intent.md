@@ -10,7 +10,7 @@ checks docs headings for orphan entries.
 
 Rung-2 parity asserts the emitted JSON against committed expected artifacts and
 negative fixtures. The C-side reference logic still lives in
-[`tests/diagnostic_registry_smoke.sh`](../../../../tests/diagnostic_registry_smoke.sh)
+[`tests/registry/diagnostic_registry_smoke.sh`](../../../../tests/registry/diagnostic_registry_smoke.sh)
 and remains the clean exit-class bridge; the Pergyra side under this directory
 owns the structured counters and findings.
 
@@ -81,7 +81,7 @@ surface before `ReadFile(...)` is called.
 
 ## Oracle
 
-`tests/diagnostic_registry_smoke.sh` is the C exit-class bridge for this
+`tests/registry/diagnostic_registry_smoke.sh` is the C exit-class bridge for this
 rung-2 candidate. The Pergyra implementation directory owns the emitted
 JSON/counter contract; it does not replace the C oracle until rung-3 three-way
 agreement is shipped.

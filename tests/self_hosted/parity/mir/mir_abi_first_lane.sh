@@ -10,7 +10,7 @@ BUILD_ROOT="${PGY_SELFHOST_MIR_ABI_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/mir_abi
 
 mkdir -p "$BUILD_ROOT"
 
-"${BASH}" "$ROOT_DIR/tests/self_host_hard_contract_smoke.sh"
+"${BASH}" "$ROOT_DIR/tests/self_hosted/gates/self_host_hard_contract_smoke.sh"
 PGY_BIN="$PGY" PGY_SELFHOST_BUILD_DIR="$BUILD_ROOT/abi_layout" "${BASH}" \
     "$ROOT_DIR/tests/self_hosted/parity/codegen/abi_layout_row_manifest_parity.sh"
 PGY_BIN="$PGY" PGY_SELFHOST_BUILD_DIR="$BUILD_ROOT/runtime_call_abi" "${BASH}" \

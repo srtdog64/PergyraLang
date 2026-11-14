@@ -115,8 +115,8 @@ This is an executable negative self-test, not an orphan.
 
 Exact anchors exist in:
 
-- `tests/self_host_hard_contract_smoke.sh:457`;
-- `tests/self_hosted_component_contract_smoke.sh:18136`;
+- `tests/self_hosted/gates/self_host_hard_contract_smoke.sh:457`;
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh:18136`;
 - `tests/self_hosted/parity/one_mir/one_mir_array_param_projection.sh:57`.
 
 Judgment: **test-owner migration candidate**, not immediate deletion in the

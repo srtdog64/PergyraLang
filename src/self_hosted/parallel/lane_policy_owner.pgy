@@ -28,8 +28,8 @@
 // pinned below so that agreement cannot drift silently.
 //
 // Registration is pinned by src/self_hosted/OWNERS.md,
-// tests/self_hosted_component_contract_smoke.sh, and the standalone
-// tests/selfhost_parallel_lane_policy_smoke.sh gate.
+// tests/self_hosted/gates/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/parallel/selfhost_parallel_lane_policy_smoke.sh gate.
 
 func ParallelLanePolicySchema() -> String {
     return "pgy.selfhost.parallel-lane-policy.v1";

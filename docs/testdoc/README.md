@@ -26,7 +26,7 @@ For a regression-grade scenario:
 3. Run both backends
 4. Save exact stdout and exact `results.txt`
 5. Write `docs/testdoc/<scenario>.md`
-6. Register the scenario in `tests/example_contract_smoke.sh`
+6. Register the scenario in `tests/repo/example_contract_smoke.sh`
 
 ## What A Good Testdoc Should Record
 

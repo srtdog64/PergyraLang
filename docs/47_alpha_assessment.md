@@ -1,7 +1,7 @@
 # Pergyra Alpha 평가 및 페인포인트
 
 > 작성일: 2026-04-08  
-> 테스트: `tests/alpha_full_keyword_test.pgy` — 전체 키워드 종합 예제
+> 테스트: `tests/language/alpha_full_keyword_test.pgy` — 전체 키워드 종합 예제
 
 ---
 

@@ -44,7 +44,7 @@ field on an untrusted certificate asserting that its own negative tests passed.
 
 ## Live Adequacy Boundary
 
-`tests/proof_carrying_adequacy_smoke.sh` no longer treats keyword presence as
+`tests/proof/proof_carrying_adequacy_smoke.sh` no longer treats keyword presence as
 implementation adequacy. It freshly compiles the model and extraction module
 in an isolated directory, kernel-checks their empty assumption budget, extracts
 `check_bits` to OCaml, compiles it, then compares its decisions with the finite

@@ -23,7 +23,7 @@
 - 우선순위: 계약상 독립 출력, 실제 원본 변경의 관측, 복사본 보존, 변경량.
 - 의미 owner: [local copy 결정](../truth/decisions/2026-10-21_local_copies_refuse_the_other_side_after_a_change.md)
   및 `docs/semantics/27_ownership_clean.md` §2.1.
-- 마지막 소비자: `tests/nested_array_copy_smoke.sh`의 C/LLVM 독립 출력 oracle.
+- 마지막 소비자: `tests/runtime/nested_array_copy_smoke.sh`의 C/LLVM 독립 출력 oracle.
 - 변경 범위: fixture에 변경된 원본도 출력하고, outer를 별도로 다시 변경한다.
   oracle은 원본·outer의 변경 전후·명시적 Clone을 각각 검증한다.
   allocator/ownership 코드와 기존 OOM·ABI 음성 검사는 그대로 둔다.

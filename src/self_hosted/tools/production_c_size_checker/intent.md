@@ -3,7 +3,7 @@
 **Status:** *rung-2 DirWalk-owned* (2026-07-06). Sister tool to the production
 header size checker, but covering production `.c` translation units against
 the 699-LOC hard cap. It enumerates `DirWalk("src")` and filters the same
-production `.c` scope as `tests/test_inc_size_smoke.sh`.
+production `.c` scope as `tests/repo/test_inc_size_smoke.sh`.
 
 ## Intent
 
@@ -59,7 +59,7 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 The clean oracle is the committed expected JSON artifact
 `expected/clean.json`, compared through the shared ArtifactZone/TestHarness
 path. The broader C-side cap is still enforced separately by
-`tests/test_inc_size_smoke.sh`; this self-hosted parity rung must not recompute
+`tests/repo/test_inc_size_smoke.sh`; this self-hosted parity rung must not recompute
 the clean production C counts in shell.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:

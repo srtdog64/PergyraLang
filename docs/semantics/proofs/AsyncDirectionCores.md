@@ -88,7 +88,7 @@ shows the compiler enforces the scope guards beyond the named-Future flow;
 that enforcement is docs/204 §4 item 2. The runtime skeleton this rung will
 consume exists with no caller (`src/runtime/async/async_scope.h`), and the
 gate pins its `AsyncScopeWaitAll` so the model's close rule stays tied to a
-real join. `tests/async_reuse_redteam_smoke.sh` freshly kernel-checks the
+real join. `tests/parallel/async_reuse_redteam_smoke.sh` freshly kernel-checks the
 owners and `tests/coq/AsyncReuseRedteamRegression.v`, including cancellation
 drain and numeric scope reuse. The source-text adequacy gate is an anchor,
 not proof that the runtime implements the whole scope-tree relation.
@@ -226,7 +226,7 @@ rungs docs/204 §4 orders is what turns each refutation into a re-pointing of
 
 ```
 make async-direction-adequacy-test-smoke  # models still describe the code
-bash tests/coq_kernel_check.sh            # theorems hold, axiom budget pinned
+bash tests/proof/coq_kernel_check.sh            # theorems hold, axiom budget pinned
 ```
 
 The kernel check is the one that matters for the proofs. All four cores

@@ -42,7 +42,7 @@ proof edits, process-name kills, worktree split, commit/push, or GUI messaging.
 ## Acceptance and falsifiers
 
 Integration owner: this GPT chat. Shared gate:
-`tests/ownership_teardown_redteam_smoke.sh`. Static checks 60 seconds, focused
+`tests/ownership/ownership_teardown_redteam_smoke.sh`. Static checks 60 seconds, focused
 gate 5 minutes, full kernel/inventory integration 30 minutes. Rocq 9.3.0 only.
 
 Positive: actual root creation/allocation, same-owner subtree retirement,

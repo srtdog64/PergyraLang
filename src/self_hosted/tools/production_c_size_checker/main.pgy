@@ -2,7 +2,7 @@
 //
 // Status: rung-2 DirWalk-owned (2026-06-15). Sister tool to tool 8 --
 // enumerates production `.c` owners through DirWalk("src"), filters the same
-// production owner scope as tests/test_inc_size_smoke.sh, excludes comment-only
+// production owner scope as tests/repo/test_inc_size_smoke.sh, excludes comment-only
 // records, and asserts the current production C size cap. Blank records count.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.

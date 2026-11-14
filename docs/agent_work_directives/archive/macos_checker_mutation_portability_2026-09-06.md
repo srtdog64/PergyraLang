@@ -34,10 +34,10 @@ Do not confuse that test-construction error with a successful owner refusal.
 ## Independent scopes
 
 - Primary owns the single mutation line in
-  `tests/self_hosted_component_checker_smoke.sh`, all evidence/navigation
+  `tests/self_hosted/gates/self_hosted_component_checker_smoke.sh`, all evidence/navigation
   updates, local execution, Git and CI. No compiler implementation lease opens.
 - `semantic_index_review` is read-only: review this mechanics smoke and the
-  functions it extracts from `tests/self_hosted_component_contract_smoke.sh`
+  functions it extracts from `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`
   for adjacent Bash 3.2 / BSD tool assumptions reached by the same execution.
   Validate whether the portable insertion preserves the intended mutant and
   the existing exact refusal. Return bounded findings in a message; no edits,

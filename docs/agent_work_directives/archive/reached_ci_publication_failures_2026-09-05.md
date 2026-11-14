@@ -43,10 +43,10 @@ integration/commit/push/CI authorization applies; no new compiler rung opens.
 - Primary owns all compiler source changes, binding-origin tests, builds,
   navigation, staging, commits/push, and workflow/result coordination.
 - `ci_assertion_review` owns only the reached test-harness fixes in
-  `tests/self_hosted_component_contract_smoke.sh`,
-  `tests/self_hosted_component_checker_smoke.sh`,
-  `tests/structured_spawn_lifecycle_smoke.sh`, and
-  `tests/concurrency_examples_smoke.sh`, plus its separate report
+  `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
+  `tests/self_hosted/gates/self_hosted_component_checker_smoke.sh`,
+  `tests/parallel/structured_spawn_lifecycle_smoke.sh`, and
+  `tests/parallel/concurrency_examples_smoke.sh`, plus its separate report
   `docs/audits/2026-09-05_reached_platform_checker_review.md`.
   Diagnose macOS Bash 3.2 missing-placement-root acceptance, C-only backend
   profile propagation, and the missing Subject of this gate comment. Preserve
@@ -55,7 +55,7 @@ integration/commit/push/CI authorization applies; no new compiler rung opens.
 - `semantic_index_review` is read-only for the five owner-size failures and
   their existing gate/cap ownership. Only report at
   `docs/audits/2026-09-05_reached_owner_size_review.md`. Trace current
-  `tests/test_inc_size_smoke.sh` and existing source-cap registries/consumers,
+  `tests/repo/test_inc_size_smoke.sh` and existing source-cap registries/consumers,
   distinguish pre-existing debt from this commit, and recommend an owner-
   consistent correction without an automatic cap increase or broad refactor.
 
@@ -182,8 +182,8 @@ completed without restarting or cancelling a live job.
   23 with another guessed SSA suffix, removing phi mutations, accepting arbitrary
   nonzero exit, or interpreting source/native parity as proof of phi identity.
 - Independent edit scopes: `semantic_index_review` may change only
-  `tests/self_hosted_owner_size_policy.awk` and
-  `tests/self_hosted_owner_size_policy_smoke.sh`. Primary owns the collection/
+  `tests/self_hosted/gates/self_hosted_owner_size_policy.awk` and
+  `tests/self_hosted/gates/self_hosted_owner_size_policy_smoke.sh`. Primary owns the collection/
   enum parity child and its focused fixtures/diagnostics, all compiler source,
   documentation, Git, and CI. No agent builds a compiler or changes workflows.
 - Integration gate: focused size-policy mechanics (60 seconds) and the reached

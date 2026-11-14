@@ -130,7 +130,7 @@ now checks that success and uses `chain_store` for genuine zero-round deferral.
 - Documentation quality, evidence-lifetime enum/manifest correspondence
   including its negative self-test, shell syntax and `git diff --check` pass.
   The three corrected model hashes still match the focused receipt.
-- Fresh full `tests/formal_semantics_smoke.sh` through the admitted runner:
+- Fresh full `tests/proof/formal_semantics_smoke.sh` through the admitted runner:
   **PASS**, 74 model modules plus nine independent default consumers
   (83 compiled/kernel-checked), with the separate approval export/binding
   consumer also kernel-checked. Its assumption budget is the two existing

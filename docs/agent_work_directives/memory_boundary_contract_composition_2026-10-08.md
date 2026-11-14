@@ -191,9 +191,9 @@ Findings and changes:
 
 Gates (Rocq 9.3.0, `rocqchk`, two approved abstractions only):
 
-- `tests/memory_boundary_composition_smoke.sh`: PASS;
-- `tests/coq_kernel_check.sh`: 63 proofs;
-- `tests/formal_semantics_smoke.sh`: PASS.
+- `tests/ownership/memory_boundary_composition_smoke.sh`: PASS;
+- `tests/proof/coq_kernel_check.sh`: 63 proofs;
+- `tests/proof/formal_semantics_smoke.sh`: PASS.
 
 Logs: `.tmp/rocq93_ownership/memory-boundary-reuse-claude.log`,
 `kernel-reuse-claude.log`, `formal-smoke-reuse-claude.log`. No compiler,

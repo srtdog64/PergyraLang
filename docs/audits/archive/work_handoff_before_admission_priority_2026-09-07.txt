@@ -811,7 +811,7 @@ or agent lease is being left running. Next work is the one Intent query card.
   push steps but ran neither repaired checker, so it does not validate the
   Bash/BWK correction. The existing two mechanics gates are now scheduled
   once before native compilation in `scripts/ci_push_macos_steps.sh`, with a
-  ratchet in `tests/self_host_ci_profile_smoke.sh`. Old-list ratchet `19312`
+  ratchet in `tests/self_hosted/gates/self_host_ci_profile_smoke.sh`. Old-list ratchet `19312`
   failed as intended; `47595` passed the profile and dispatched both actual
   mechanics gates once without running compiler commands. Final profile
   `40183` passed, including six in-memory missing/duplicate/late/earlier-native
@@ -1434,7 +1434,7 @@ or agent lease is being left running. Next work is the one Intent query card.
   `.tmp/concurrency_examples.bhvG0K/`; this is not self-host substitution.
   The prior blocked-state recheck observed other-session changes in
   `src/parser/parser_async.c`, `tests/cases/sea_execution_lanes/expected_lanes.txt`
-  and `tests/sea_execution_lane_golden_smoke.sh`. They are now published in
+  and `tests/parallel/sea_execution_lane_golden_smoke.sh`. They are now published in
   `b4d22cf2`, not part of this task's dirty publication scope. The resumed turn
   inspected and tested that committed delta without editing its sources.
   Formerly excluded paths were opened for review by the latest user request.
@@ -2573,7 +2573,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - Bash syntax, build-source inventory, self-host preparation, and CI-profile
   gates are locally green. The exact directive and gate are
   `docs/agent_work_directives/native_malformed_enum_parser_progress_2026-09-02.md`
-  and `tests/native_pipeline_malformed_enum_progress_owner.sh`.
+  and `tests/self_hosted/gates/native_pipeline_malformed_enum_progress_owner.sh`.
 - This native security/progress repair does not change the SoT registry or
   count as Pergyra substitution progress. SoT remains `88/183`,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project forecast remains
@@ -3796,7 +3796,7 @@ or agent lease is being left running. Next work is the one Intent query card.
   Log inspection showed that path checked docs/sentinels but not the
   language-word registry, so it is insufficient remote evidence for the one
   failure from run `33347320011`.
-- CI now executes `tests/language_keyword_registry_smoke.sh` in the Markdown
+- CI now executes `tests/registry/language_keyword_registry_smoke.sh` in the Markdown
   contract and `self_host_ci_profile_smoke.sh` ratchets the call. The exact
   local Markdown sequence is green. Publish this CI repair and observe the
   registry PASS remotely before moving the card to Published.
@@ -3848,7 +3848,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - SoT census remains 88 authorities / 183 carriers and
   `CLOSED=55 BRIDGE=32 ACTIVE=1`; the integrated forecast remains 83%.
   By-value and embedded zone transfer remain open under the existing ACTIVE
-  semantic family. `tests/test_inc_size_smoke.sh` retains the unrelated,
+  semantic family. `tests/repo/test_inc_size_smoke.sh` retains the unrelated,
   unmodified `src/parser/ast_expr_control_accessors.c` 725/699 baseline failure.
 - Objective and exact scope are recorded in
   `docs/agent_work_directives/zone_value_carriage_semantic_admission_2026-08-31.md`.
@@ -6517,7 +6517,7 @@ Everything below this line is inactive lookup evidence, not an active queue.
   behavioral evidence, `.github/workflows/platform_full.yml` for runner/shard
   placement, `scripts/ci_linux_steps.sh` and `scripts/ci_windows_steps.sh` for
   standalone-versus-artifact-fed core mode, and
-  `tests/self_host_ci_profile_smoke.sh` for the negative ratchet; last consumers
+  `tests/self_hosted/gates/self_host_ci_profile_smoke.sh` for the negative ratchet; last consumers
   = Linux/Windows full core plus their four parity matrix legs; forbidden =
   removing or skipping a gate, advisory failure, a shared growable scratch,
   fixed-runner `make -jN`, accepting an incomplete artifact, or silently
@@ -6604,7 +6604,7 @@ Everything below this line is inactive lookup evidence, not an active queue.
   `scripts/ci_push_*_steps.sh` for branch
   feedback, `scripts/ci_*_steps.sh` plus
   `.github/workflows/platform_full.yml` for full platform evidence, and
-  `tests/self_host_ci_profile_smoke.sh` for the negative ratchet; last
+  `tests/self_hosted/gates/self_host_ci_profile_smoke.sh` for the negative ratchet; last
   consumers = the three main workflow platform jobs and the weekly/manual/`v*`
   full workflow; forbidden = deleting a test, `continue-on-error`, a silent
   skip, duplicating platform-independent self-host evidence on all three push
@@ -6706,7 +6706,7 @@ Everything below this line is inactive lookup evidence, not an active queue.
   scheduled/manual/release exhaustive proof, fallback prevention, then patch
   size; fact owners = `.github/workflows/ci.yml`,
   `.github/workflows/self_host_parity.yml`, and
-  `tests/self_host_ci_profile_smoke.sh`; last consumers = GitHub push/PR runs
+  `tests/self_hosted/gates/self_host_ci_profile_smoke.sh`; last consumers = GitHub push/PR runs
   and the weekly, manual, or `v*` release-tag exhaustive run; forbidden =
   `continue-on-error`, deleting or shortening the parity command, reintroducing
   branch-push parity, unbounded/default timeout, treating a skipped or failed
@@ -6854,7 +6854,7 @@ Everything below this line is inactive lookup evidence, not an active queue.
   parity, component removed-path ratchets, and the full 29-job clean matrix.
 - The wrapper, collection, and aggregate native oracle legs now pass
   `--native-pipeline`; their self-host C/LLVM probe legs remain unchanged.
-  `tests/self_hosted_component_contract_smoke.sh` rejects removal of the three
+  `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` rejects removal of the three
   explicit native boundaries. This follows the already canonical semantic
   parity oracle pattern instead of weakening the installed-driver contract.
 - After that harness correction, the reached LLVM execution defect was
@@ -6876,11 +6876,11 @@ Everything below this line is inactive lookup evidence, not an active queue.
   `aggregate_field_policy_probe_parity.sh` passed after the semantic fix and
   before the responsibility-only owner split; the final wrapper run proves the
   split owner is present in the installed production graph.
-- `tests/self_hosted_component_contract_smoke.sh` passes after enforcing the
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` passes after enforcing the
   admission owner at 445/445 lines and the new leaf identity fact owner at
   44/55 lines. Shell syntax checks for all edited parity/component scripts and
-  `git diff --check` pass. `tests/documentation_quality_smoke.sh` and
-  `tests/self_host_ci_profile_smoke.sh` also pass. Project progress remains 78%
+  `git diff --check` pass. `tests/repo/documentation_quality_smoke.sh` and
+  `tests/self_hosted/gates/self_host_ci_profile_smoke.sh` also pass. Project progress remains 78%
   overall, strict beta 83%, and hard SoT 49/86; this is a reached executable/CI
   tail closure, not a new top-level registry row.
 - Next executable rung: publish the derived-fact classification and this
@@ -6934,9 +6934,9 @@ Everything below this line is inactive lookup evidence, not an active queue.
   driver, `assignment_projection_probe_parity.sh` passed its C/LLVM positive
   paths and missing-fact negatives. The production MIR projected to LLVM and
   `llvm-as` accepted it; the same MIR projected to C and GCC compiled it to an
-  object. `tests/self_hosted_component_contract_smoke.sh`,
-  `tests/documentation_quality_smoke.sh`,
-  `tests/self_host_ci_profile_smoke.sh`, and `git diff --check` are green.
+  object. `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`,
+  `tests/repo/documentation_quality_smoke.sh`,
+  `tests/self_hosted/gates/self_host_ci_profile_smoke.sh`, and `git diff --check` are green.
   Temporary driver/MIR/backend artifacts remain ignored and do not count as
   progress.
 - First publication run `32499479384` reached 24 green jobs before
@@ -9493,7 +9493,7 @@ blocker again.
   `2D7F4291F43B6996F6C25AD5366D231467741C2C29507362E8CE5BB6D72D8398`.
   All sixteen focused GraphPlan C/LLVM gates pass in one 117.3-second installed-
   driver run. The full component structural contract passes in 172.5 seconds,
-  and `tests/self_host_ci_profile_smoke.sh` passes.
+  and `tests/self_hosted/gates/self_host_ci_profile_smoke.sh` passes.
 - CI/CD keeps the sixteen focused gates behind one
   `SELFHOST_SCALAR_GRAPH_PLAN_GATE`. The Linux job builds the phony
   `self-host-compiler` prerequisite and runs all consumers in one serial `make`
@@ -9638,7 +9638,7 @@ blocker again.
   It covers multi-routine scalar, Option<Int>, Option<String>, Option<Bool>,
   two-Int nominal, logical record, and Array<Int> value-result gates. The Linux
   exhaustive parity job invokes this aggregate explicitly, and
-  `tests/self_host_ci_profile_smoke.sh` pins the exact Makefile/workflow edge so
+  `tests/self_hosted/gates/self_host_ci_profile_smoke.sh` pins the exact Makefile/workflow edge so
   CI cannot silently fall back to the pre-v29 subset.
 - The installed LLVM production canary passes the former routine 47
   `JsonArrayStringFact` logical-record boundary. It remains deliberately RED,
@@ -9703,7 +9703,7 @@ blocker again.
 - CI/CD's canonical `SELFHOST_SCALAR_GRAPH_PLAN_GATE` includes multi-routine,
   Option<Int>, Option<String>, Option<Bool>, two-Int nominal, and Array<Int>
   value-result. The Linux parity workflow consumes that aggregate and
-  `tests/self_host_ci_profile_smoke.sh` pins the exact dependency.
+  `tests/self_hosted/gates/self_host_ci_profile_smoke.sh` pins the exact dependency.
 - The installed routine-index canary remains deliberately RED but now passes
   the former routine 43 `JsonBoolValueOptWithin -> Option<Bool>`
   callable-envelope boundary. After 43.7 seconds it reports the next exact
@@ -9997,10 +9997,10 @@ blocker again.
   `from`/`resolved`, kinds, names, labels, targets, ordering, and topology
   owners remain byte-significant. Count-preserving edge-kind and intent-
   provenance mutations fail.
-- `tests/self_hosted_component_contract_smoke.sh` exits 0 in 137.2 seconds with
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` exits 0 in 137.2 seconds with
   the provenance/intent renderer owners, exact line caps, no-provenance-rescan
   rule, renderer/CLI boundaries, and removed-path ratchets.
-- `tests/sot_authority_edge_smoke.sh` exits 0 with 86 authorities and 159
+- `tests/proof/sot_authority_edge_smoke.sh` exits 0 with 86 authorities and 159
   derived fact carriers (`CLOSED=49`, `BRIDGE=36`, `ACTIVE=1`). The inventory
   bridge and text-artifact consumer remain last consumers of
   `dir.domain_graph`; they are not mislabeled as `*_fact_owner.pgy` derived
@@ -10236,7 +10236,7 @@ blocker again.
   projections and negative gates. A new ambient builtin or call view cannot be
   added on only one side and still pass the registry/public gates.
 - Capability verification evidence: both registry generators pass `--check`;
-  `tests/builtin_capability_registry_smoke.sh` exits 0 in 2.7 seconds;
+  `tests/registry/builtin_capability_registry_smoke.sh` exits 0 in 2.7 seconds;
   `tests/self_hosted/parity/public_route/public_capability_manifest_installed_self_host_owner.sh`
   exits 0 in 4.9 seconds; `tests/capability/run_manifest.sh` reports zero
   failures; public token, public AST, and installed CLI gates remain green; the
@@ -11742,7 +11742,7 @@ blocker again.
   composition in covered structured slices, but no general arbitrary-type
   `!Move` or `!Forget` equivalent may be inferred from that design direction.
 - Full CI, full bootstrap, current-source gen2==gen3, and Coq/Rocq did not run.
-  `tests/sot_authority_edge_smoke.sh` remains independently red on pre-existing
+  `tests/proof/sot_authority_edge_smoke.sh` remains independently red on pre-existing
   duplicate Coq fact-authority rows; this rung did not broaden into that repair.
   Memory remains final-integration-only: attention at 2.4 GiB, hard stop at
   3 GiB, and only a final pressure result is recorded.
@@ -12830,7 +12830,7 @@ explicitly names it.
   current generation, only restart advances it, vacant start issues the next
   generation, and malformed phase/generation fails closed. Existing `Replace`
   delegates its generation transition to restart policy.
-- `tests/host_task_policy_smoke.sh` executes active/vacant/malformed and stale-
+- `tests/parallel/host_task_policy_smoke.sh` executes active/vacant/malformed and stale-
   ticket cases through stable `use host_task_slot;` on C and LLVM. The aggregate
   `make stdlib-test-smoke` keeps the unrelated all-module surface fixture
   separate, then runs both the legacy slot and policy gates. This avoids making
@@ -12967,15 +12967,15 @@ explicitly names it.
   deletes or replaces a C-owned production compiler path, so this work earns
   no hard self-host progress credit.
 - Exact focused evidence observed:
-  - `PGY_HOST_TASK_SLOT_BACKENDS=c bash tests/host_task_slot_smoke.sh`: C
+  - `PGY_HOST_TASK_SLOT_BACKENDS=c bash tests/parallel/host_task_slot_smoke.sh`: C
     compile/run PASS;
-  - `PGY_HOST_TASK_SLOT_BACKENDS=llvm bash tests/host_task_slot_smoke.sh`: LLVM
+  - `PGY_HOST_TASK_SLOT_BACKENDS=llvm bash tests/parallel/host_task_slot_smoke.sh`: LLVM
     compile/run PASS;
   - `PGY_BIN=bin/pgy.exe bash
     tests/self_hosted/parity/codegen/binary_projection_preflight_probe_parity.sh`: C
     compile/run PASS, LLVM compile/run PASS, and output parity PASS;
-  - `bash tests/self_hosted_scaffold_smoke.sh`: `35 tool(s) gated`;
-  - `bash tests/stdlib_inventory_smoke.sh`: inventory/contracts PASS.
+  - `bash tests/self_hosted/gates/self_hosted_scaffold_smoke.sh`: `35 tool(s) gated`;
+  - `bash tests/repo/stdlib_inventory_smoke.sh`: inventory/contracts PASS.
 - Verification scope is intentionally bounded. The full stdlib surface matrix,
   full self-host parity matrix, CI/platform matrix, and production compiler
   bootstrap suites were not run for this checkpoint.
@@ -14421,7 +14421,7 @@ explicitly names it.
   and the exact mutation/state/layout/sync result from one typed plan.
 - Resume with `docs/200_object_to_action_boundary_patterns.md` sections 2.1 and
   4.2.1, the `dir.domain_graph` registry row,
-  `tests/domain_runtime_topology_smoke.sh`, and
+  `tests/ir/domain_runtime_topology_smoke.sh`, and
   `tests/self_hosted/parity/domain/domain_topology_admission_owner.sh`.
 
 ## Previous compiler world/action boundary checkpoint (superseded)
@@ -14877,9 +14877,9 @@ Green:
   Pergyra-built v74 seed for `ifelse`, `if_else_assign`, `reassign_block`,
   `nestedif`, `whileloop`, `forloop`, and `break_after_stmt`, including
   CFG/phi/nested/while/range/break/AIR/certificate/plan mutations;
-- `tests/self_host_preparation_smoke.sh`;
-- `tests/self_hosted_component_contract_smoke.sh`;
-- `tests/language_keyword_registry_smoke.sh`: 145 registry rows, 71 reserved
+- `tests/self_hosted/gates/self_host_preparation_smoke.sh`;
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`;
+- `tests/registry/language_keyword_registry_smoke.sh`: 145 registry rows, 71 reserved
   lexer rows, stable native/self-host word identity and metadata, native
   lookup/debug probe, eight generated projection owners below 600 lines, and
   exact generated-inventory drift checks;
@@ -14888,11 +14888,11 @@ Green:
   selfhost AST parity, and matching rejection of unregistered `systemic`;
 - `tests/self_hosted/parity/frontend/lexer_parity.sh`: all 9 sources byte-equal on C,
   LLVM, and live-native comparison;
-- `tests/lsp_completion_registry_smoke.sh`: 27 registry-owned native/self-host
+- `tests/registry/lsp_completion_registry_smoke.sh`: 27 registry-owned native/self-host
   completion rows; the old independent `items:[]` path is rejected;
-- `tests/lsp_hover_registry_smoke.sh`: 25 lowercase language rows plus 7
+- `tests/registry/lsp_hover_registry_smoke.sh`: 25 lowercase language rows plus 7
   builtins, with C/self-host runtime parity and decoded multiline Markdown;
-- `tests/vscode_language_graph_smoke.sh`: 92 exact highlighted rows, one full
+- `tests/repo/vscode_language_graph_smoke.sh`: 92 exact highlighted rows, one full
   grammar, and no grammar ownership in the thin client;
 - `tests/self_hosted/parity/driver/driver_execution_action_abi_parity.sh`: C/LLVM
   subject/action aggregate ABI, enum result, capabilities, `WriteFile`/`ReadFile`,
@@ -14901,20 +14901,20 @@ Green:
   action reachability, requested/target-admitted/artifact-written/rejected
   transitions, exactly one backend-owner call and action-owned write, and no
   direct `Main` bypass;
-- `tests/compare_backends.sh tests/cases/backend_compare/subject_action_global_helper`:
+- `tests/backend/compare_backends.sh tests/cases/backend_compare/subject_action_global_helper`:
   C/LLVM output `12`, with the file-scope nominal-return helper prototype ahead
   of the subject action body;
 - current `driver_bootstrap_main.pgy` native C build: 0 errors/0 warnings;
   the action-rung driver passed hello, `let_log`, and `multilet` one-MIR direct
   C/LLVM projection plus the existing graph/kind/target/ABI negatives;
-- `tests/tooling_conformance_smoke.sh` and `make -j2 test`;
+- `tests/repo/tooling_conformance_smoke.sh` and `make -j2 test`;
 - `python scripts/sot_registry_gate.py`: 52 authorities, 54 derived carriers,
   `CLOSED=31 BRIDGE=21 ACTIVE=0`;
 - `python scripts/protocol_registry_gate.py`: 7 protocol rows;
-- `tests/build_pressure_contract_smoke.sh`;
-- `tests/self_host_ci_profile_smoke.sh`;
-- `PGY_DOC_QUALITY_FULL_UTF8=1 tests/documentation_quality_smoke.sh`;
-- `PGY_ALLOW_MISSING_COQ=1 tests/formal_semantics_smoke.sh`: structural gate
+- `tests/perf/build_pressure_contract_smoke.sh`;
+- `tests/self_hosted/gates/self_host_ci_profile_smoke.sh`;
+- `PGY_DOC_QUALITY_FULL_UTF8=1 tests/repo/documentation_quality_smoke.sh`;
+- `PGY_ALLOW_MISSING_COQ=1 tests/proof/formal_semantics_smoke.sh`: structural gate
   green, explicit missing-prover skip; 41 proofs not machine-checked;
 - `git diff --check`;
 - gen2/gen3 complete C byte equality and bounded gen2/gen3 parity.
@@ -14923,7 +14923,7 @@ Green:
 
 Environment omission:
 
-- `tests/formal_semantics_smoke.sh` passed its structural registry/load-path
+- `tests/proof/formal_semantics_smoke.sh` passed its structural registry/load-path
   checks with `PGY_ALLOW_MISSING_COQ=1`, then declared the missing prover skip.
   No Coq/Rocq binary is installed, so the 41 proofs were not machine-checked;
   do not report this as proof-kernel success.
@@ -14943,10 +14943,10 @@ Known RED, unchanged and not weakened:
   errors/5 warnings because six authority-bearing intent steps omit required
   `authorized by` actors. AST/topology gates do not supersede this RED.
 
-- `tests/self_host_hard_contract_smoke.sh` stops only because
+- `tests/self_hosted/gates/self_host_hard_contract_smoke.sh` stops only because
   `driver_rung2_owner.pgy` lacks the pre-existing literal
   `"tests/cases/backend_compare/device_slot_machine_layer/main.pgy"`.
-- `tests/self_host_compiler_world_contract_smoke.sh` still expects the retired
+- `tests/self_hosted/gates/self_host_compiler_world_contract_smoke.sh` still expects the retired
   `CompileSourceToMirJsonVerified(` spelling while the current entrypoint owns
   the pressure-observed/verified file variants. This mismatch predates v65 and
   was not weakened or folded into the active direct-backend rung.
@@ -15078,7 +15078,7 @@ Do not start a broad proof expansion before the gen2 takeover above. Commits
 `PergyraCoreZoneBridge.v`, plus foundation-first/load-path wiring in the kernel
 gate. The source audit found no `Admitted` or Coq `Axiom`, and only the two
 declared `SlotCalculus` interface parameters (`MaxSlotId` and `verify_token`).
-`tests/formal_semantics_smoke.sh` now registers all 41 files and compiles them
+`tests/proof/formal_semantics_smoke.sh` now registers all 41 files and compiles them
 from the same sibling-module load path. No local Coq/Rocq binary was available,
 so both new proofs and the migrated capstone remain pending the dedicated Rocq
 9 kernel CI; the local structural run was an explicit prover skip, not proof
@@ -15737,7 +15737,7 @@ body gate green.
 Green on implementation checkpoint `3418b0f3` plus the retained predecessor
 measurements:
 
-- `tests/self_hosted_component_contract_smoke.sh`;
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/driver_rung2_structured_expression_order_owner.sh`;
 - `tests/self_host_program_graph_unification_smoke.sh` with
   `phase=unified structural_owners=1`;
@@ -15789,7 +15789,7 @@ measurements:
 - focused current-source resource runtime ABI negatives through C- and
   LLVM-built drivers, including missing/identity/payload/aux rows and a stray
   wrong-kind row on a non-resource instruction;
-- `tests/build_pressure_contract_smoke.sh`;
+- `tests/perf/build_pressure_contract_smoke.sh`;
 - focused current-driver `nested_if_in_loop` MIR production/consumption plus a
   forged one-predecessor header-phi rejection;
 - `tests/self_hosted/parity/frontend/module_manifest_resolver_parity.sh` (C/LLVM,
@@ -15812,7 +15812,7 @@ measurements:
   `49 authorities, 41 derived fact carriers; CLOSED=29 BRIDGE=20 ACTIVE=0`;
 - `git diff --check` and `git diff --cached --check`.
 
-`tests/self_host_hard_contract_smoke.sh` remains RED at the unrelated existing
+`tests/self_hosted/gates/self_host_hard_contract_smoke.sh` remains RED at the unrelated existing
 manifest assertion that `driver_rung2_owner.pgy` contain
 `tests/cases/backend_compare/device_slot_machine_layer/main.pgy`. This was not
 weakened or relabeled as success.

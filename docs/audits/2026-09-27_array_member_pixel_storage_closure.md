@@ -36,23 +36,23 @@ not impose a new mutator rule on `ListGet` or the other collection families.
 | Argument order | no member-address ratchet | trace is exactly `1234` on C and LLVM |
 | Temporary receiver | admitted before codegen | `PGY_SEM_BUILTIN_ARGS_INVALID`, exact named-binding diagnostic |
 
-`tests/array_member_mutation_smoke.sh` also inspects emitted C for address
+`tests/ownership/array_member_mutation_smoke.sh` also inspects emitted C for address
 capture of both `buffer.values` and `frame.buffer.values` and rejects the old
 value-descriptor temporary. C/LLVM each compare against a fixed stdout oracle;
 backend agreement alone is not the oracle.
 
 Observed supporting gates:
 
-- `tests/array_member_mutation_smoke.sh`: PASS.
+- `tests/ownership/array_member_mutation_smoke.sh`: PASS.
 - `tests/array_drop_storage_smoke.sh`: PASS, including release and
   use-after-release refusals.
-- `tests/runtime_panic_codegen_smoke.sh`: PASS, including collection
+- `tests/runtime/runtime_panic_codegen_smoke.sh`: PASS, including collection
   out-of-bounds panic classes on generated C and LLVM.
 - `tests/collection_parameter_boundary_smoke.sh`: PASS.
 - `tests/collection_own_parameter_boundary_smoke.sh`: PASS.
 - `make -j1 pgy` in MSYS2/UCRT64: PASS.
 
-`tests/call_argument_evaluation_order_smoke.sh` passed its native C and LLVM
+`tests/language/call_argument_evaluation_order_smoke.sh` passed its native C and LLVM
 legs, then failed at `default-c`: the installed self-host route still evaluated
 the first fixture right to left (`c,b,a`, `21`, `y,x`, `q,p`, `32`). This is
 explicit OPEN self-host evidence, not a native P0 regression.

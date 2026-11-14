@@ -72,7 +72,7 @@ source-bound theorem/gate result; it cannot reuse this count by convention.
 
 ## Verification
 
-`tests/ir_minimality_adequacy_smoke.sh` binds the declared edges to current
+`tests/proof/ir_minimality_adequacy_smoke.sh` binds the declared edges to current
 driver/lowering source and checks the narrow Rocq module when configured.
 `tests/coq/ProofRedteamMainRegression.v` consumes the real five-edge graph
 and the negative two-level result. The whole formal corpus is compiled from

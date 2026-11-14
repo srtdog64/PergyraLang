@@ -66,8 +66,8 @@ Final implementation hashes:
 | Input | SHA-256 |
 |---|---|
 | `scripts/measure_build_pressure.ps1` | `bd6838cead384990181d9426c79f3c7df2a6f544d5b0ea58dc1c6aef89ed7961` |
-| `tests/build_pressure_contract_smoke.sh` | `85835619026b56b734608623a65b07c04b60fda734b1910786e03e44dcfc7bbf` |
-| `tests/build_pressure_execution_receipt_selftest.ps1` | `2b23aadede7ce618dc2ee5081d83719c8302c730f688573d36741262aae1d899` |
+| `tests/perf/build_pressure_contract_smoke.sh` | `85835619026b56b734608623a65b07c04b60fda734b1910786e03e44dcfc7bbf` |
+| `tests/perf/build_pressure_execution_receipt_selftest.ps1` | `2b23aadede7ce618dc2ee5081d83719c8302c730f688573d36741262aae1d899` |
 
 ## Current handoff boundary
 

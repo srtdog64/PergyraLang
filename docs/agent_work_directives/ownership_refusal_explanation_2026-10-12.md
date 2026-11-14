@@ -23,7 +23,7 @@ and prove Rocq authorizes this proof scope, including the new core file.
 - Forbidden fallback: treating a may-share fact as a feasible stale execution;
   calling a missing-proof witness evidence of unsafe code; inferring production
   coverage from model fixtures; assuming identical iteration schedules.
-- Gate: `tests/ownership_refusal_explanation_smoke.sh`, pinned Linux Rocq 9.3.0
+- Gate: `tests/ownership/ownership_refusal_explanation_smoke.sh`, pinned Linux Rocq 9.3.0
   and Stdlib 9.2.0, zero added assumptions, extracted executable controls.
 - Falsifiers: forged rule or summary reference, unrelated boundary, wrong parent,
   unavailable effect, no relocation, read before retirement, seedless cycle,
@@ -63,7 +63,7 @@ No parallel implementation track, commit, push or installed-driver replacement.
 Use `OPAMROOT=/home/c/.local/share/pergyra-rocq/opam` with
 `scripts/run_rocq_toolchain.sh` in `Ubuntu-E-WSL`. Static checks: 60 seconds;
 focused gate: 300 seconds; corpus integration: 1800 seconds. The existing
-`tests/coq_kernel_check.sh` owns kernel and assumption-budget checks. Preserve
+`tests/proof/coq_kernel_check.sh` owns kernel and assumption-budget checks. Preserve
 the approved `tests/coq/assumption_budget` contract; do not enlarge its budget.
 
 Outputs are a proved model and executable reference checker, plus observed

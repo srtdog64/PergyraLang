@@ -47,7 +47,7 @@ the plan or collaboration history does not override these latest directions.
   another lane's process to this run, treating working-set/private memory as
   heap live or cumulative allocation bytes, or calling this preparation P0
   completion, P1 closure or compiler substitution.
-- Integration owner/gate: GPT; `tests/build_pressure_contract_smoke.sh`,
+- Integration owner/gate: GPT; `tests/perf/build_pressure_contract_smoke.sh`,
   including the Windows execution self-test. Missing runtime coverage is
   explicitly reported on non-Windows hosts, not presented as that test passing.
 - Falsifiers: declared input/tool/executable changes during the run; missing
@@ -57,7 +57,7 @@ the plan or collaboration history does not override these latest directions.
 The next dependency seam has its own bounded objective: consume the actual
 core-call recovery and static view-scope theorems in
 `tests/coq/OwnershipCutoverPreflightAudit.v`, with the focused entrypoint
-`tests/ownership_cutover_preflight_smoke.sh`. The model files remain Claude's
+`tests/ownership/ownership_cutover_preflight_smoke.sh`. The model files remain Claude's
 owners; the audit checks exact theorem types, positive traces and alias,
 escaping-control, backing growth/transfer and view-escape refusals. No
 `recovery_exec` theorem may substitute for the ordinary-table call witness.
@@ -378,7 +378,7 @@ refinement; P1 and production automatic-cleanup activation remain OPEN.
 
 ## Reached static CI-profile obligation
 
-The P0 static inventory reached `tests/self_host_ci_profile_smoke.sh`, which
+The P0 static inventory reached `tests/self_hosted/gates/self_host_ci_profile_smoke.sh`, which
 still requires four full-only steps in `build-linux`. The unchanged workflow
 has five: dependencies, download, admission, core execution, and the existing
 native clock/scalar-call ABI checks. Its single Markdown-only step is unchanged.

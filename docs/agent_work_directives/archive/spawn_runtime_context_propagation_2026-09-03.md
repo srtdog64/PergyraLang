@@ -35,7 +35,7 @@ evidence, not semantic authority, a SoT row, or a completion claim.
   child context bound after return/yield/await, source syntax or backend-local
   context transport, and a silent inline retry after context capture failure.
 - Verification gate:
-  `tests/runtime_spawn_context_propagation_smoke.sh`, plus existing runtime
+  `tests/parallel/runtime_spawn_context_propagation_smoke.sh`, plus existing runtime
   context, lane scheduler, M:N, capability, budget, cancellation, and backend
   parity gates.
 - Falsifying cases: a parent bound to a non-default instance with an

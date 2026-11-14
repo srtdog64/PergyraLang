@@ -131,7 +131,7 @@ new meanings, but they escape the declared spelling owner and its ratchet.
   foreign valid field ID; duplicate ID; retain sentinel artifacts after each
   direct C/LLVM refusal. Add a no-consumer-literal ratchet over production
   field-kind consumers, not just six legacy files.
-- Existing gate foundations: `tests/mir_decl_field_kind_vocabulary_smoke.sh`,
+- Existing gate foundations: `tests/registry/mir_decl_field_kind_vocabulary_smoke.sh`,
   `tests/self_hosted/parity/domain/domain_topology_admission_owner.sh`,
   `tests/self_hosted/parity/driver/driver_rung2_effect_declaration_parity_owner.sh`,
   `tests/self_hosted/parity/domain/tobject_boundary_execution_owner.sh`.

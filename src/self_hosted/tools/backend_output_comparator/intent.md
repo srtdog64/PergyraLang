@@ -9,7 +9,7 @@ and exits `1` on any mismatch. No diff payload yet -- only counts and a small
 ## Intent
 
 C/LLVM parity is the spine of the staged self-host plan. When parity drifts,
-the existing `tests/compare_backends.sh` driver catches it but only as a
+the existing `tests/backend/compare_backends.sh` driver catches it but only as a
 binary pass/fail. This tool is the *first* Pergyra-origin gate that reads
 two text outputs and emits a structured diff verdict, so downstream tooling
 can route on `counts.mismatch_lines` instead of grepping logs.

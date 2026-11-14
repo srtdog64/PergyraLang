@@ -51,7 +51,7 @@ ReadOnly, Composition or Exits proofs, doc 207 section 11, compiler/runtime
 implementation, installed binaries, or SoT statuses. This direct user request
 opens this bounded supplement; it does not transfer the remaining proof cores.
 Integration owner: this chat. Shared integration gate:
-`tests/ownership_gc_comparison_smoke.sh`, then fresh corpus / formal inventory.
+`tests/ownership/ownership_gc_comparison_smoke.sh`, then fresh corpus / formal inventory.
 Budgets: 60 s static, 300 s focused, 1800 s fresh corpus. No new worktree,
 staging, commit, push, installation or GUI message in this scope.
 

@@ -38,11 +38,11 @@ owner/gate table의 존재 정리는 인터페이스 inventory 증거일 뿐이�
 
 ## 관찰한 검증
 
-- `tests/proof_reuse_identity_smoke.sh`: Rocq 9.3.0 / Stdlib 9.2.0의 fresh
+- `tests/proof/proof_reuse_identity_smoke.sh`: Rocq 9.3.0 / Stdlib 9.2.0의 fresh
   snapshot으로 5개 owner + `tests/coq/ReuseIdentityAudit.v`를 컴파일한 뒤
   trusted kernel로 검사했다. 6개 module PASS, axiom/admit/unsafe feature 없음.
   SlotLifecycleCore의 기존 masking/deprecated 경고는 남는다.
-- `tests/runtime_intent_identity_reuse_smoke.sh`: 실제 runtime source의
+- `tests/runtime/runtime_intent_identity_reuse_smoke.sh`: 실제 runtime source의
   inline/linked × trace 0/1 조합을 빌드하고 실행했다. 정상 nesting,
   non-LIFO leave, 동일 registry 저장소 재사용, 다른 thread와의 충돌 거부,
   stale exit/trace, MAX 직후와 빈 registry에서도 지속되는 exhaustion을 검증한다.

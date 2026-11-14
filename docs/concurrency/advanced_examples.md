@@ -122,7 +122,7 @@ Slot 재검증의 [Rocq 모델](../semantics/proofs/AsyncDirectionCores.md)은 u
 ## Running the bounded gate
 
 ```sh
-PGY_BIN=/absolute/path/to/pgy bash tests/concurrency_examples_smoke.sh
+PGY_BIN=/absolute/path/to/pgy bash tests/parallel/concurrency_examples_smoke.sh
 bash tests/async_model_positioning_smoke.sh
 ```
 
@@ -135,7 +135,7 @@ semantic refusal와 artifact 부재를 확인하고 실행하지 않는다.
 전체 예산은 5분, 단일 compile은 최대 45초, 실행은 최대 15초다. timeout이나
 누락 도구를 SKIP/PASS로 바꾸지 않는다. 실행 증거는 별도 `.tmp` 디렉터리에
 남긴다. 이 수동 집중 gate를 새 CI job으로 등록하지 않는다. 추가된 goldens는
-이미 등록된 `tests/compare_backends.sh` 경로가 그대로 소비한다.
+이미 등록된 `tests/backend/compare_backends.sh` 경로가 그대로 소비한다.
 
 ## Primary references, not Pergyra implementation authority
 

@@ -6,7 +6,7 @@ large `main.pgy`". Each active `.pgy` file below must own one clear stage
 responsibility. `main.pgy` files are entrypoints only: argv wiring,
 orchestration, and no semantic decisions.
 
-`tests/self_hosted_component_contract_smoke.sh` requires every active
+`tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` requires every active
 compiler-stage `.pgy` source to be listed here.
 
 This file inventories physical Pergyra modules. Top-level semantic authority is
@@ -2823,7 +2823,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   over the chunk policy owner: prints the canonical count/split/cover table
   and the require rows for the expected-artifact diff on both compiler legs
   (`src/self_hosted/parallel/expected_chunk_policy_manifest.txt`, gate
-  `tests/selfhost_parallel_chunk_policy_smoke.sh`).
+  `tests/parallel/selfhost_parallel_chunk_policy_smoke.sh`).
 - `src/self_hosted/parallel/lane_policy_owner.pgy` -- SEA execution-lane
   classification SoT (docs/146): the evidence record, the priority-ordered
   decision table, the in-language invariants it exists to guarantee
@@ -2836,7 +2836,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   over the lane policy owner: prints the canonical lane/invariant/reachable
   table and the require rows for the expected-artifact diff on both compiler
   legs (`src/self_hosted/parallel/expected_lane_policy_manifest.txt`, gate
-  `tests/selfhost_parallel_lane_policy_smoke.sh`).
+  `tests/parallel/selfhost_parallel_lane_policy_smoke.sh`).
 - `src/self_hosted/parallel/spawn_lane_plan_owner.pgy` -- verified spawn-lane
   plan bridge SoT (docs/146 WO-PAR-NOVEL step 2): how AIR-classified lanes
   TRAVEL to the backends. Owns the plan artifact contract (revision, legal
@@ -2851,7 +2851,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   producer witnesses, and emits the require/forbid rows for the
   expected-artifact diff on both compiler legs
   (`src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt`, gate
-  `tests/selfhost_spawn_lane_plan_smoke.sh`).
+  `tests/parallel/selfhost_spawn_lane_plan_smoke.sh`).
 
 ## Compiler World
 
@@ -2893,7 +2893,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/reachability_manifest.pgy` -- runnable projection
   over that contract for the expected-artifact diff on both compiler legs
   (`src/self_hosted/compiler/expected_reachability_manifest.txt`, gate
-  `tests/selfhost_reachability_contract_smoke.sh`).
+  `tests/self_hosted/gates/selfhost_reachability_contract_smoke.sh`).
 
 - `src/self_hosted/compiler/world.pgy` -- `PgyCompilerWorld`, stage path
   manifest, and root compiler intent flow.
@@ -2985,7 +2985,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   soundness witnesses, and emits the require/forbid rows for the
   expected-artifact diff on both compiler legs
   (`src/self_hosted/compiler/expected_region_plan_manifest.txt`, gate
-  `tests/selfhost_region_plan_smoke.sh`).
+  `tests/self_hosted/gates/selfhost_region_plan_smoke.sh`).
 - `src/self_hosted/compiler/test_harness_owner.pgy` -- fixture/result row
   vocabulary for Pergyra-owned parity harness work.
 - `src/self_hosted/compiler/test_harness_target_paths_owner.pgy` -- target

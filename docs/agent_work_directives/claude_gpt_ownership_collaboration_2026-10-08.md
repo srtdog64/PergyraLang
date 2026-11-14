@@ -39,7 +39,7 @@ Windows Git 305개 항목, staged 0개). 이 문서는 분담과 순서만 정�
 | `tests/coq/OwnershipTeardownRedteam.v` | `fe021db2894417c3040cb01a26ac7270125813bba7f33256efaa2ac95e9e971e` |
 | `tests/coq/OwnershipTeardownExtraction.v` | `3f7ce538c90d4987458aef89dff35f5e6c11d91f5eb5fb3dc713d6acb994756d` |
 | `tests/ocaml/ownership_teardown_driver.ml` | `932d3ab09d7a8a1a8cdb09ab99fe32e3d5e4f54721f2de9afc0d7f0695bde102` |
-| `tests/ownership_teardown_redteam_smoke.sh` | `f23724d7e3136f450ef426be97d00fb01bfcd4615fdb54d944137dd4aeb151d3` |
+| `tests/ownership/ownership_teardown_redteam_smoke.sh` | `f23724d7e3136f450ef426be97d00fb01bfcd4615fdb54d944137dd4aeb151d3` |
 | `docs/semantics/proofs/OwnershipGraphLinks.v` | `035bf8a85705c075cd7a3ee2276b9ba9aafd91d634a91dcbaaebabab45a62eac` |
 
 값 정리 증명 4개의 해시와 구현 항목 I1–I8은
@@ -51,7 +51,7 @@ Windows Git 305개 항목, staged 0개). 이 문서는 분담과 순서만 정�
   모든 노드에 대한 저장된 지역 링크가 이후 모든 상태에서 None으로 읽힌다.
 - 반례 파일에 `root_drop_has_no_holder_permission_premise`(루트 핸들만으로 루트
   전체 해제, OPEN 유지)와 `saved_child_local_refused_after_root_drop`을 넣었다.
-- `tests/ownership_teardown_redteam_smoke.sh`를 다시 돌려 PASS를 확인했다.
+- `tests/ownership/ownership_teardown_redteam_smoke.sh`를 다시 돌려 PASS를 확인했다.
   3개 모듈 가정 0개, 검사 변이 11개와 비용 측정 변이 2개 모두 거부됐다.
   로그는 `.tmp/rocq93_ownership/teardown-redteam-smoke-claude-unit-read.log`다.
 
@@ -87,7 +87,7 @@ CL7은 `OwnershipCleanViewScope.v`의 제한된 focus 대안을 증명했지만 
 
 | ID | 할 일 | 수용 조건 |
 |---|---|---|
-| GT1 | **해체 게이트 유지.** Claude의 모델 변경마다 반례 파일·추출·OCaml 관측기를 이전하고 `tests/ownership_teardown_redteam_smoke.sh`를 녹색으로 유지한다. CL1이 들어오면 권한 반례 두 개가 거부로 바뀌었음을 변이 검사로 고정한다. | 집중 게이트 PASS, 변이가 실제로 거부됨, 영수증 갱신. |
+| GT1 | **해체 게이트 유지.** Claude의 모델 변경마다 반례 파일·추출·OCaml 관측기를 이전하고 `tests/ownership/ownership_teardown_redteam_smoke.sh`를 녹색으로 유지한다. CL1이 들어오면 권한 반례 두 개가 거부로 바뀌었음을 변이 검사로 고정한다. | 집중 게이트 PASS, 변이가 실제로 거부됨, 영수증 갱신. |
 | GT2 | **순회의 추출과 비용 관측.** CL4의 순회 함수를 추출해 정확·고유 단위 생성을 같은 고정 입력에서 관측하고, 지금의 이차 비용 `unit_unique` 관측기와 비교한다. | 같은 입력에서 결과가 기존 단위와 일치하고 비용 행이 기록된다. OCaml 모델 비용이지 런타임 성능이 아니라고 적는다. |
 | GT3 | **값 정리 구현을 한 번에 전환(전체 구현 보류).** [전환 계획](ownership_cutover_plan_2026-10-08.md)의 P0–P10은 마지막 검토 후 착수 확인을 받으면 따른다. 후속 승인은 네 선행 항목의 로컬 기준선·계약·필수 importing 증명 preflight만 연다. I1–I8 집중 조건을 장벽으로 유지하며 공개 착지는 한 번이다. P1은 GPT 통합, Claude 계약·증명 검토다. | 기준선 checkpoint는 고정; 전체 P0 매트릭스와 P1은 아직 미완료. 최종 착지는 exact-SHA CI를 포함한 계획의 게이트 8개가 녹색일 때만. 같은 main worktree·3 GiB 상한·음성 fixture 보존. 원격/설치/GUI 권한과 증거는 별도 확인. |
 | GT4 | **런타임 색인 표현 제안.** 역방향 색인과 소유자별 자식 색인을 C/LLVM 런타임에서 어떤 자료구조로 둘지 제안한다. 큰 행의 필터와 append 비용, 이차 관측기 한계를 포함한다. | 제안서(audits). 구현이 아니다. CL1이 정한 권한·대여 경계에 맞춘다. |
@@ -101,7 +101,7 @@ cutover의 추가 선행 조건으로 바꾸지 않는다. 과거 hold 기록은
 | 담당 | 편집하는 파일 | 편집하지 않는 파일 |
 |---|---|---|
 | Claude | `docs/semantics/proofs/OwnershipTeardown.v`, 새 증명 core(`docs/semantics/proofs/`), 27·28번 문서의 증명 근거 절, 이 문서의 Claude 항목과 협업 기록 | 컴파일러·런타임 소스, `tests/ocaml/`, 게이트 스크립트 |
-| GPT | `tests/coq/OwnershipTeardown{Redteam,Extraction}.v`, `tests/ocaml/ownership_teardown_driver.ml`, `tests/ownership_teardown_redteam_smoke.sh`, 컴파일러·런타임 구현(GT3), 영수증(`docs/audits/`), 이 문서의 GPT 항목과 협업 기록 | `docs/semantics/proofs/*.v`의 정의와 정리 |
+| GPT | `tests/coq/OwnershipTeardown{Redteam,Extraction}.v`, `tests/ocaml/ownership_teardown_driver.ml`, `tests/ownership/ownership_teardown_redteam_smoke.sh`, 컴파일러·런타임 구현(GT3), 영수증(`docs/audits/`), 이 문서의 GPT 항목과 협업 기록 | `docs/semantics/proofs/*.v`의 정의와 정리 |
 
 - 예외 1: Claude의 모델 변경이 반례 파일이나 추출 계약을 깨면, Claude가 같은
   변경 안에서 최소한으로 이전하고 기록한다. 이후 정리는 GPT 몫이다.
@@ -120,8 +120,8 @@ cutover의 추가 선행 조건으로 바꾸지 않는다. 과거 hold 기록은
 
 ## 통합 주인과 게이트
 
-- 해체 쪽 통합 주인은 GPT, 게이트는 `tests/ownership_teardown_redteam_smoke.sh`다.
-  증명 파일을 바꾸면 `tests/coq_kernel_check.sh`와 `tests/formal_semantics_smoke.sh`도
+- 해체 쪽 통합 주인은 GPT, 게이트는 `tests/ownership/ownership_teardown_redteam_smoke.sh`다.
+  증명 파일을 바꾸면 `tests/proof/coq_kernel_check.sh`와 `tests/proof/formal_semantics_smoke.sh`도
   돌린다.
 - 값 정리 쪽 통합 주인과 게이트는 구현 지시서의 I8을 따른다.
 - 산출물의 성격: Claude의 증명은 설계 확인이다. 구현 증거나 executable CLOSED가
@@ -164,7 +164,7 @@ cutover의 추가 선행 조건으로 바꾸지 않는다. 과거 hold 기록은
   - 문서: 27 §5.10.5, semantics README, docs/102.
 - 2026-10-09 Claude, preflight 검토(읽기 전용): checkpoint `a75da804`는 456개
   파일, 바이너리·비밀값·충돌 표시·Claude co-author 없음. 새 증명 3개와 게이트
-  해시가 영수증과 같고, `tests/ownership_cutover_preflight_smoke.sh`를 따로 돌려
+  해시가 영수증과 같고, `tests/ownership/ownership_cutover_preflight_smoke.sh`를 따로 돌려
   PASS(7개 모듈, 가정 0)를 확인했다(`.tmp/rocq93_ownership/preflight-claude-review.log`).
   주장과 다른 증명 결함은 찾지 못했다. 남은 것: (1) 다중 inout은 호출자 쪽
   pack/call/unpack과 피호출자 쪽 `recovery_exec`가 따로 증명됐고, `recovery_exec`는

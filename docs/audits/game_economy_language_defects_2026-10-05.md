@@ -39,7 +39,7 @@ Status: 읽기 전용 탐색 증거다. 컴파일러 의미론의 권위가 아�
   수 없다. zone shared `Array`의 원소를 바꿀 수 있다.
 - 타입 별칭은 투명하다. 상태 표에서 "Not Current Surface"를 "Supported but Evolving"으로 옮겼다.
 
-#6, #11, #12로 예제 게이트(`tests/example_contract_smoke.sh`)가 C와 LLVM 양쪽에서
+#6, #11, #12로 예제 게이트(`tests/repo/example_contract_smoke.sh`)가 C와 LLVM 양쪽에서
 처음으로 끝까지 통과한다(`PGY_EXAMPLE_BACKENDS="c llvm"`). CI는 아직 C 경로만 돌린다.
 
 ## 남은 것

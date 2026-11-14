@@ -230,7 +230,7 @@ fallback 또는 ownership 전환 순서 변경을 승인하지 않는다.
 
 ## 7. 이번 문서 변경의 확인 범위
 
-2026-10-09에 `tests/documentation_quality_smoke.sh`가 exit 0으로 통과했다.
+2026-10-09에 `tests/repo/documentation_quality_smoke.sh`가 exit 0으로 통과했다.
 이 문서와 INDEX의 strict UTF-8 검사 및 local link target 197개 확인도 통과했다.
 검토한 inout native/self-host owner, LLVM declaration, MIR ABI validator와 C
 resource emitter는 읽기 전후 SHA-256이 같았다. 이는 그 소스 대조의 안정성이지

@@ -167,7 +167,7 @@ through `ViewSchedule` steps that include both issuance and end. Its currentness
 checker is a dynamic ghost oracle, not the production static issuer. It reuses
 teardown lease vocabulary without fabricating graph handles. The typed consumer is
 `tests/coq/OwnershipCutoverPreflightAudit.v`; focused gate
-`tests/ownership_cutover_preflight_smoke.sh` freshly kernel-checks it.
+`tests/ownership/ownership_cutover_preflight_smoke.sh` freshly kernel-checks it.
 Production callee lowering/pointer ABI, complete/current caller-scope issuance,
 source expression/place evaluation,
 static final-MIR lifetime/effect facts, evidence linearity/snapshot binding,
@@ -232,8 +232,8 @@ consumption. Binding issuance and synchronized graph/forest retirement with
 whole-unit lease/pin checks remain OPEN.
 Four falsifiers (aggregate-only, caller-frame-only, view-only and a dropped
 returned link) show what a wrong producer or certificate breaks. Gate:
-`tests/graph_cycle_reclaim_smoke.sh` includes the independent proposition-typed
-`tests/coq/GraphCycleReclaimAudit.v`; `tests/graph_cycle_reclaim_selftest.sh`
+`tests/ownership/graph_cycle_reclaim_smoke.sh` includes the independent proposition-typed
+`tests/coq/GraphCycleReclaimAudit.v`; `tests/ownership/graph_cycle_reclaim_selftest.sh`
 checks planted gate regressions. The user adopted optional store-local scope
 on 2026-10-09; ordinary non-tracing ownership cleanup remains the default.
 The consumer now also pins a borrowed-last-candidate partial deletion and a
@@ -267,8 +267,8 @@ admitted steps, under arbitrary operations between steps, no outcome is a
 failed dereference. A node deleted between steps is found at the next step's
 start and completed steps are compensated. A deleted compensation target
 leaves the saga observably stuck; sparing it is a premise for deletion
-authority, not a theorem. Gate: `tests/graph_action_scope_smoke.sh` with
-`tests/coq/GraphActionScopeAudit.v` and `tests/graph_action_scope_selftest.sh`.
+authority, not a theorem. Gate: `tests/ownership/graph_action_scope_smoke.sh` with
+`tests/coq/GraphActionScopeAudit.v` and `tests/ownership/graph_action_scope_selftest.sh`.
 The canonical step result now carries its successful body-prefix length;
 `run_body_receipt_projects` ties it to actual graph execution without ignored
 refusals. `SagaCompensationFinished` is not restoration or forward success,

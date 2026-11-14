@@ -34,9 +34,9 @@ in WSL `Ubuntu-E-WSL`:
 
 ```sh
 timeout 300s bash scripts/run_rocq_toolchain.sh \
-  bash tests/ownership_cutover_preflight_smoke.sh
+  bash tests/ownership/ownership_cutover_preflight_smoke.sh
 timeout 1800s bash scripts/run_rocq_toolchain.sh \
-  bash tests/formal_semantics_smoke.sh
+  bash tests/proof/formal_semantics_smoke.sh
 ```
 
 Focused: PASS, nine kernel-checked modules, zero assumptions, no admits or
@@ -54,7 +54,7 @@ Logs under `.tmp/ownership-cutover-2026-10-09/`:
 | `OwnershipCleanCallLowering.v` | `8db2031418cad5e1d91b0e9b9323b79d2a50ed611f54e8e0511c3d8285572026` |
 | `OwnershipCleanViewScope.v` | `f7c7a5c58bce85fbb0ec0d2c612a544bfc1d90c57d65f1e81baccf5f09c8fd04` |
 | `tests/coq/OwnershipCutoverPreflightAudit.v` | `8d62aed402f19da456f614f46839eb646bdf86be11fd95c1dc09404dbb5a902f` |
-| `tests/ownership_cutover_preflight_smoke.sh` | `b8bfefc34dc93b386b376ed15a486a4105207afe4123d1864f3bb22bb5383c3c` |
+| `tests/ownership/ownership_cutover_preflight_smoke.sh` | `b8bfefc34dc93b386b376ed15a486a4105207afe4123d1864f3bb22bb5383c3c` |
 
 **Not closed:** source-place/expression evaluation order, direct-jump
 epilogue refinement, physical pointer/bundle/descriptor refinement, actual

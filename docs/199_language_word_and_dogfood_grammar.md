@@ -264,7 +264,7 @@ feature를 대체하는 실제 dogfood다.
 
 - 활성 `.pgy` 하나는 **하나의 스테이지 책임**만 가진다.
 - `main.pgy`는 **엔트리포인트 전용** — argv 배선과 오케스트레이션만, 의미 결정 금지.
-- `tests/self_hosted_component_contract_smoke.sh`가 **모든 활성 스테이지 소스가
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`가 **모든 활성 스테이지 소스가
   OWNERS.md에 등재됐는지** 요구한다.
 - 이 파일은 물리 모듈 목록이다. 상위 의미 권위는
   `docs/semantics/sot_owner_spine_registry.md`가 따로 가진다 — 두 번째
@@ -274,7 +274,7 @@ feature를 대체하는 실제 dogfood다.
 
 ### 3.2 컴포넌트 계약 게이트
 
-`tests/self_hosted_component_contract_smoke.sh`가 거는 핀:
+`tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`가 거는 핀:
 
 | 장치 | 수 | 역할 |
 |---|---|---|
@@ -395,7 +395,7 @@ selector를 가질 것을 요구한다. 강등은 죽은 표면을 예약어에�
 
 ### 5.3 적정성 래칫
 
-`tests/language_keyword_registry_smoke.sh`에 추가했다: "reserved인데 parser
+`tests/registry/language_keyword_registry_smoke.sh`에 추가했다: "reserved인데 parser
 selector 0"인 행 집합을 `KNOWN_DEAD_RESERVED`로 핀 고정하고 달라지면
 fail-closed. 인벤토리는 이 상태를 **보고**만 했고 아무것도 실패시키지 않아
 조용히 누적될 수 있었다. `channel` 제거로 이 집합은 이제 **비어 있으며**, 그

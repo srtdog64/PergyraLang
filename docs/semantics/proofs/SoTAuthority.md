@@ -61,7 +61,7 @@ fallback consumers are gone.
 
 ## Implementation Binding
 
-`tests/sot_authority_adequacy_smoke.sh` binds the model to the current source:
+`tests/proof/sot_authority_adequacy_smoke.sh` binds the model to the current source:
 
 - `src/self_hosted/parser/expression_graph_owner.pgy` produces the array
   literal root and ordered element edges;

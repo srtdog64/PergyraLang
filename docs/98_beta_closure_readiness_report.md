@@ -953,7 +953,7 @@ Already closed:
 - production runtime/codegen/compiler include files are below the 1,000 LOC
   gate; the current MIR public split is `part_a=959` and `part_b=800`, guarded
   by `make backend-inc-size-test-smoke` and `make inc-sentinel-test-smoke`.
-- tooling conformance is green locally; `tests/tooling_conformance_smoke.sh`
+- tooling conformance is green locally; `tests/repo/tooling_conformance_smoke.sh`
   invokes formatter smoke through `bash`, avoiding Linux execute-bit drift on
   mounted worktrees.
 

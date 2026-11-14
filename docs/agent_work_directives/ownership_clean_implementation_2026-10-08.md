@@ -180,7 +180,7 @@ A review the user passed on, and where each point now stands:
     changes in the coordination log;
   - the three proofs above and new proof cores;
   - `docs/207_compiler_owned_cleanup_algorithm.md` §11.
-- **Shared, append-only:** `tests/formal_semantics_smoke.sh` (the proof list),
+- **Shared, append-only:** `tests/proof/formal_semantics_smoke.sh` (the proof list),
   `docs/102_formal_semantics_and_proof_obligations.md`,
   `docs/semantics/README.md`, `src/self_hosted/OWNERS.md`, and
   `docs/current_work_handoff.md` (each agent edits only its own card).
@@ -192,11 +192,11 @@ A review the user passed on, and where each point now stands:
 - Model and extraction gate, 300 s:
 
   ```bash
-  wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash scripts/run_rocq_toolchain.sh bash tests/ownership_cleanup_smoke.sh
+  wsl -d Ubuntu-E-WSL --exec env OPAMROOT=/home/c/.local/share/pergyra-rocq/opam bash scripts/run_rocq_toolchain.sh bash tests/ownership/ownership_cleanup_smoke.sh
   ```
 
 - Fresh proof corpus, 1800 s: the same wrapper with
-  `tests/coq_kernel_check.sh`.
+  `tests/proof/coq_kernel_check.sh`.
 - Static owner gates: 60 s. Focused parity: 300 s. Integration shard: 1800 s.
 - Build into your own output directory. Validate the real installer/launcher
   flow in an isolated prefix. Read-only support/route-injection confirmation
@@ -242,7 +242,7 @@ proof/contract preflight, not production execution or this full landing gate.
 
 ## Evidence at hand-off (2026-10-08, Claude)
 
-- `tests/ownership_cleanup_smoke.sh` passes. Its kernel check covers 5
+- `tests/ownership/ownership_cleanup_smoke.sh` passes. Its kernel check covers 5
   files (the four proofs and the extraction contract) with 0 axioms.
   Controls: 15 decision, 24 refusal, 10 summary, 43 sink/composition, 37
   read-only, 9 places, and 8 exits. The 30 cost cases are in
@@ -286,14 +286,14 @@ proof/contract preflight, not production execution or this full landing gate.
   inside GPT's `tests/**` scope: `tests/ocaml/ownership_clean_driver.ml`
   (summary and exits controls; no default table for calls),
   `tests/coq/OwnershipCleanupExtraction.v` (summary, ascent, and exit
-  contracts), and one `cp` line in `tests/ownership_cleanup_smoke.sh`.
-  `tests/formal_semantics_smoke.sh` gained the `OwnershipCleanExits.v` entry
+  contracts), and one `cp` line in `tests/ownership/ownership_cleanup_smoke.sh`.
+  `tests/proof/formal_semantics_smoke.sh` gained the `OwnershipCleanExits.v` entry
   (append-only). GPT owns these files from here.
 - 2026-10-08 Claude, not mine: `docs/semantics/proofs/OwnershipCleanGCComparison.v`
-  (mtime 16:02, registered in `tests/formal_semantics_smoke.sh`) appeared
+  (mtime 16:02, registered in `tests/proof/formal_semantics_smoke.sh`) appeared
   while this work ran. It already uses `no_summaries`. Against the current
   Core it does not compile (`Nat.eqb_refl` not found at line 182; an earlier
-  snapshot failed at line 46), so `tests/coq_kernel_check.sh` on the full
+  snapshot failed at line 46), so `tests/proof/coq_kernel_check.sh` on the full
   corpus is red. I did not edit it; its author fixes it or the user decides.
   It belongs to `ownership_automatic_memory_gc_comparison_2026-10-08.md`, a
   bounded supplement the user opened in another chat. That chat also added

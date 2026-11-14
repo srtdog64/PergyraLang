@@ -12,7 +12,7 @@ double_unpin|double-release|Pin<T>|TRAP_RUNTIME|RUNTIME_GUARD|src/tests/memory/t
 detached_async_local_capture|use-after-scope|async-block|REJECT_COMPILE|SEMANTIC_FACT|src/tests/semantic/test_semantic_async_part_a_2.cases.h|cfg-body-dataflow-test-smoke|CLOSED
 borrowed_slice_spawn|reallocation-dangling|Slice<T>|REJECT_COMPILE|SEMANTIC_FACT|src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h|cfg-body-dataflow-test-smoke|CLOSED
 borrowed_slice_channel|borrow-escape|Channel<Slice<T>>|REJECT_COMPILE|SEMANTIC_FACT|src/tests/semantic/test_semantic_async_part_a_2.cases.h|cfg-body-dataflow-test-smoke|CLOSED
-raw_pointer_escape|ffi-lifetime|SlotRawPointer|REJECT_COMPILE|SEMANTIC_FACT|tests/raw_escape_contract_smoke.sh|raw-escape-contract-test-smoke|CLOSED
+raw_pointer_escape|ffi-lifetime|SlotRawPointer|REJECT_COMPILE|SEMANTIC_FACT|tests/ownership/raw_escape_contract_smoke.sh|raw-escape-contract-test-smoke|CLOSED
 compiler_scope_symbol_uaf|compiler-use-after-free|ResourceFlowUniverse|SANITIZER_CLEAN|SANITIZER_WITNESS|src/tests/semantic/test_semantic_resource_flow_lifetime.cases.h|test-asan|CLOSED
 c_heap_uaf_witness|oracle-calibration|C-pointer|DETECT_WITNESS|SANITIZER_WITNESS|tests/cases/memory_adversarial/c_witness/heap_use_after_free.c|asan-uaf-witness-test-smoke|CLOSED
 c_pthread_race_witness|oracle-calibration|pthread-shared-int|DETECT_WITNESS|SANITIZER_WITNESS|tests/cases/memory_adversarial/c_witness/pthread_data_race.c|tsan-race-witness-test-smoke|CLOSED

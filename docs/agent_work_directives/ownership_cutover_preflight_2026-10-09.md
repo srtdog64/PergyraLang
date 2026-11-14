@@ -65,7 +65,7 @@ implementation, consumer migration and production validation separately.
 
 ## Observed starting checks
 
-Fresh `tests/ownership_cleanup_smoke.sh`: PASS with Rocq 9.3.0/Stdlib 9.2.0,
+Fresh `tests/ownership/ownership_cleanup_smoke.sh`: PASS with Rocq 9.3.0/Stdlib 9.2.0,
 five kernel-checked extraction modules, zero assumptions; decision, refusal,
 summary, place/view and exit controls passed. This is model/extraction only.
 Fresh documentation-quality gate and `git diff --check`: PASS. Existing CRLF
@@ -111,7 +111,7 @@ owners unchanged and import them, rather than constructing a second heap.
 | formal inventory/docs/receipt/handoff | actual proof scopes -> navigation and validation registration | No existing SoT status broadened; no proof count as implementation progress. |
 
 GPT owns these edits in the frozen shared worktree. Claude co-review is
-read-only. One integration gate: `tests/ownership_cutover_preflight_smoke.sh`,
+read-only. One integration gate: `tests/ownership/ownership_cutover_preflight_smoke.sh`,
 then the full kernel and formal-semantics gates. Compiler/runtime/backend,
 the four existing cleanup cores and teardown authority are outside this edit
 inventory. Revisit the plan if a new dependency would change those owners.

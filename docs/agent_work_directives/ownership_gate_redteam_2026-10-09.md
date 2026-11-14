@@ -16,7 +16,7 @@ This directive does not reopen P2-P7 or override the frozen-P0 boundary.
   the importing preflight consumer (not Claude's model definitions); and
   `scripts/measure_build_pressure.ps1` for process observation/output receipts.
 - Last consumers: HIR/DIR/RIR/MIR and native artifact emission for value facts;
-  `tests/build_pressure_contract_smoke.sh`, its Windows executable self-test,
+  `tests/perf/build_pressure_contract_smoke.sh`, its Windows executable self-test,
   and P0's reporting consumer for measurements. These are not automatic-drop
   producers, semantic registry closure or self-host substitution.
 - Forbidden: manual annotation/copy workarounds, discarded value facts,

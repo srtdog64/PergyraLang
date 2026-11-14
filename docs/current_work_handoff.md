@@ -1717,7 +1717,7 @@ Only `gmon.out` (profiler output) stays untracked. Private builds only
 
 | Boundary | Flag | Evidence / next obligation |
 | --- | --- | --- |
-| String-window extent rule | FOCUSED_GREEN | `tests/string_window_extent_smoke.sh` (`string-window-extent-test-smoke`, Linux push shard) on the final tree: 8 accept fixtures print their exact output and 17 reject fixtures are refused on both the native route (`PGY_SEM_STRING_WINDOW_EXTENT_UNPROVEN`) and the selfhost route (`string_window_extent_unproven`, private final driver at `--emit-mir-json-verified`): 16 accepted, 34 refused. Rule P1–P8: `agent_work_directives/string_window_extent_closure_2026-10-10.md`. |
+| String-window extent rule | FOCUSED_GREEN | `tests/ownership/string_window_extent_smoke.sh` (`string-window-extent-test-smoke`, Linux push shard) on the final tree: 8 accept fixtures print their exact output and 17 reject fixtures are refused on both the native route (`PGY_SEM_STRING_WINDOW_EXTENT_UNPROVEN`) and the selfhost route (`string_window_extent_unproven`, private final driver at `--emit-mir-json-verified`): 16 accepted, 34 refused. Rule P1–P8: `agent_work_directives/string_window_extent_closure_2026-10-10.md`. |
 | Compiler-source migration | GREEN (native) | `driver_bootstrap_main.pgy` native check 0 errors; the 188 programs importing changed files show no error beyond the pre-migration snapshot's. 23 per-block/per-routine re-measurements of MIR JSON were replaced by carried record extents. |
 | Behavior preservation | GREEN | 1488 `tests/cases` + `examples` programs: pre- and post-migration drivers built by one compiler give byte-identical MIR, C and diagnostics. |
 | Structural gates | GREEN | Final tree: component contract (435 s; transition-owner cap 72→84), source-scan, CI profile (67 Linux push steps), owner size. |
@@ -2328,10 +2328,10 @@ uncommitted. New: docs/semantics/29_action_scoped_references.md (definition,
 status DEFINITION RECORDED), semantics/proofs/OwnershipGraphActionScope.v
 (62119ab13ab4...3f0fb83, imports only Core and the unchanged GraphLinks),
 independent consumer tests/coq/GraphActionScopeAudit.v (330a85bf4612...f505d),
-focused gate tests/graph_action_scope_smoke.sh and planted-regression
-tests/graph_action_scope_selftest.sh (Makefile graph-action-scope-test-smoke,
+focused gate tests/ownership/graph_action_scope_smoke.sh and planted-regression
+tests/ownership/graph_action_scope_selftest.sh (Makefile graph-action-scope-test-smoke,
 CI step in .github/workflows/formal_proofs.yml), registration in
-tests/formal_semantics_smoke.sh, and index entries in the semantics README and
+tests/proof/formal_semantics_smoke.sh, and index entries in the semantics README and
 docs/102. Proven: a link keeps resolving to the same blocks through every
 operation except a delete of its slot or a drop of its store; while held both
 are refused; an admitted step never fails a dereference and releases exactly
@@ -2341,7 +2341,7 @@ neighbour, delete ignoring holds, compensation target deleted between steps.
 Evidence: focused gate PASS (4 modules, no assumptions; receipt
 .tmp/graph-action-scope/run.XIsSoa) and selftest PASS (6 planted regressions
 refused). The consumer is not added to the production consumer list in
-tests/coq_kernel_check.sh (another lane's dirty file); the owner module is in
+tests/proof/coq_kernel_check.sh (another lane's dirty file); the owner module is in
 the production corpus. Not touched: the cycle-reclaim/root-completeness
 modules, their gate and the graph directives of the concurrent GPT lane.
 OPEN: surface syntax, acquisition inference, acquire-on-first-touch
@@ -2367,8 +2367,8 @@ checking/issuing invariants is reproduced by the reclaiming run. A canonical
 ledger permission projection connects grant, transfer and consumption at a
 checked counted boundary. Four falsifiers cover aggregate-only, frame-only and
 view-only links and a dropped returned link. Registered in
-tests/formal_semantics_smoke.sh; new focused gate
-tests/graph_cycle_reclaim_smoke.sh (Makefile graph-cycle-reclaim-test-smoke,
+tests/proof/formal_semantics_smoke.sh; new focused gate
+tests/ownership/graph_cycle_reclaim_smoke.sh (Makefile graph-cycle-reclaim-test-smoke,
 CI step in .github/workflows/formal_proofs.yml). Scoped review: focused gate
 PASS (six models + independent typed consumer, no assumptions), five planted
 gate regressions refused, full formal gate PASS (81 modules plus approval
@@ -2400,7 +2400,7 @@ view as a whole-backing focus and proves the backing keeps its length, with
 growth/transfer/release of the suspended backing refused statically.
 Kernel check of the 5 modules: PASS, no assumptions
 (.tmp/rocq93_ownership/cl6-cl7-kernel-claude.log). Both registered in
-tests/formal_semantics_smoke.sh (two lines, collaboration exception 1); the
+tests/proof/formal_semantics_smoke.sh (two lines, collaboration exception 1); the
 full formal gate rerun is logged in
 .tmp/rocq93_ownership/formal-smoke-cl6-cl7-claude.log. Decisions handed to GPT:
 direct-jump epilogue refinement (flag lowering lengthens lifetimes), the DX
@@ -2554,7 +2554,7 @@ dropped unit. OwnershipTeardownRedteam.v is
 fe021db2894417c3040cb01a26ac7270125813bba7f33256efaa2ac95e9e971e: adds
 root_drop_has_no_holder_permission_premise (retained OPEN, like the release
 one) and saved_child_local_refused_after_root_drop. Observed PASS:
-tests/ownership_teardown_redteam_smoke.sh (3 modules, 0 assumptions, 11 + 2
+tests/ownership/ownership_teardown_redteam_smoke.sh (3 modules, 0 assumptions, 11 + 2
 mutations refused), documentation_quality_smoke, evidence_lifecycle_adequacy.
 Split: agent_work_directives/claude_gpt_ownership_collaboration_2026-10-08.md
 (Claude CL1 authority/loan boundary first; GPT GT1 gate upkeep, GT3 = I1-I8
@@ -3135,7 +3135,7 @@ change; no staging, push, remote CI, or GUI message.
 - 27 §1, §4, and §5.4 make the storage-model change (one owner per backing,
   deep copy glue) a precondition of any drop.
 - Last green gates:
-  - `tests/ownership_cleanup_smoke.sh`: 5 files, 0 axioms, summary and exits
+  - `tests/ownership/ownership_cleanup_smoke.sh`: 5 files, 0 axioms, summary and exits
     controls (`.tmp/rocq93_ownership/cores3-smoke-claude.log`);
   - the full fresh corpus, 62 proofs including the other chat's
     OwnershipCleanGCComparison.v
@@ -5188,7 +5188,7 @@ SoT registry override its older status.
   carrying this card changes only inventory transport, its checker fixtures,
   and coordination/handoff documents; compiler implementation remains at this
   checkpoint. Resolve the inventory revision with
-  `git log -1 --format=%H -- tests/self_hosted_component_contract_smoke.sh`.
+  `git log -1 --format=%H -- tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`.
   Only `gmon.out` is intentionally excluded from publication. Verify local HEAD,
   dirty paths, and remote HEAD when resuming.
 - Root owns integration and Git publication; Main owns the reached compiler

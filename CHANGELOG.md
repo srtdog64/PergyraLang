@@ -302,7 +302,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added `examples/logistics_intent_probe/` as a four-layer compiler probe that
   deliberately crosses `DIR`, `RIR`, `MIR`, and runtime intent execution in one
   small scenario. It includes exact stdout/results goldens and a dedicated
-  `tests/ir_pipeline_probe.sh` dump smoke for `--dir`, `--rir`, and `--mir`.
+  `tests/ir/ir_pipeline_probe.sh` dump smoke for `--dir`, `--rir`, and `--mir`.
 - Fixed intent lowering so failed intents now return `false` instead of
   returning the value of the `failure:` predicate. This bug surfaced while
   building the new logistics probe: a failed step could previously produce
@@ -505,7 +505,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   testdoc workflow where large scenarios are kept together with their design
   notes, discovered pain points, and exact regression coverage
 - CLI optimization profiles: `--opt=dev|release`
-- `tests/bench_backend.sh` for quick C vs LLVM compile+run timing on a scenario
+- `tests/perf/bench_backend.sh` for quick C vs LLVM compile+run timing on a scenario
 - Backend-specific biome simulator result goldens to keep example smoke exact
   while C/LLVM parity is still being tightened
 - New folder-based complex FSM scenario: `examples/fsm_factory/` with multi-file
@@ -801,7 +801,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   concatenation now produces stable values on the C backend, and
   `examples/campaign_graph_fsm/` is promoted to an exact-golden multi-file
   scenario with matching stdout/results on both backends.
-- ci/examples: make `tests/example_contract_smoke.sh` exact-golden comparison resilient when external `diff` is unavailable by falling back through `cmp`, `git diff --no-index`, or Python unified diff output; update `examples/biome_simulator/expected_results.txt` to the current stable report so generic expected data no longer lags behind the backend-specific goldens.
+- ci/examples: make `tests/repo/example_contract_smoke.sh` exact-golden comparison resilient when external `diff` is unavailable by falling back through `cmp`, `git diff --no-index`, or Python unified diff output; update `examples/biome_simulator/expected_results.txt` to the current stable report so generic expected data no longer lags behind the backend-specific goldens.
 - codegen/runtime: fix `String == ...` / `String != ...` lowering so C and LLVM both route through `pgy_string_equals(...)` instead of pointer comparison, add runtime support plus a transpile regression, and unblock packet/sink filtering in the upgraded observer pattern example without leaking compiler warnings into exact stdout.
 - examples/docs: deepen `examples/pattern_library_basics/` observer translation from hardcoded `PublishCombat/PublishUi/PublishAudit` sink helpers into `RelaySinkSpec` + `RelayPacket` + `RelayBundle` + `DispatchPacket(...)`, update the exact golden output, and align pattern-library docs so `observer` now consistently means explicit relay bundles and sink specs instead of a handful of ad hoc sink functions.
 - examples/docs: deepen `examples/pattern_library_basics/` state translation from a raw `TransitionState(current, event)` helper into `TransitionRuleFactory(...)` + `TransitionContext` + `ApplyTransitionRule(...)`, update the exact golden output, and align pattern-library docs so `state` now consistently means explicit transition rule tables with context application rather than a single opaque transition function.
@@ -866,7 +866,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - docs: updated [`docs/35_hands_on_language_assessment.md`](docs/35_hands_on_language_assessment.md) so the old “calendar even this cannot be built” section reflects the current state instead of stale pre-fix claims.
 - Lifted `shopping_mall_checkout_refund` onto real `use http; use storage; use page;` surfaces. The example now emits `HttpIntentRequest/HttpIntentResponse`, page route/action binding lines, and transcript persistence through `SaveTranscript(...)` / `RenderStorageWrite(...)` instead of direct ad hoc transport/storage strings.
 - Fixed stdlib `use` deduplication in the import resolver so repeated `use http; use storage; use page;` across imported files no longer redeclare the same stdlib types.
-- Fixed CI portability in `tests/example_contract_smoke.sh` by normalizing CRLF/LF in exact comparisons and running generated example binaries from a repo-local `.tmp` directory instead of `/tmp`, which avoided `noexec` failures in GitHub Actions. Updated `.github/workflows/ci.yml` to `actions/checkout@v5`.
+- Fixed CI portability in `tests/repo/example_contract_smoke.sh` by normalizing CRLF/LF in exact comparisons and running generated example binaries from a repo-local `.tmp` directory instead of `/tmp`, which avoided `noexec` failures in GitHub Actions. Updated `.github/workflows/ci.yml` to `actions/checkout@v5`.
 # 2026-04-05
 
 - HIR를 순수 top-level bucket classifier에서 한 단계 올려 `decl index` / `routine summary` / direct-call snapshot을 가진 indexed program view로 확장했다. `hir_find_decl(...)`, `hir_find_routine(...)`, `HIRPhase`, `HIRRoutine.direct_calls`가 추가되어 향후 최적화 패스와 분석 패스가 AST 전체를 다시 훑지 않고도 top-level/routine 수준 정보를 읽을 수 있다.
@@ -891,7 +891,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 # 2026-04-06
 
 - compiler/mir/tests/docs: made `MIR` slot-aware instead of only `RIR`-aware. `MIRInstruction` and `MIRValueSummary` now preserve `slot_anchor`, resource/cleanup instructions keep the matching `RIR` slot anchor, `def/phi` summaries keep the base local as slot anchor, MIR validation now rejects missing/divergent slot anchors, and `--mir` dumps now show slot ownership directly. Added MIR regressions for slot-anchored resource flow and intent cleanup anchors.
-- tests: strengthened `tests/ir_pipeline_probe.sh` so the end-to-end IR probe now locks `DIR` slot-contract nodes, `RIR` `tobject`/handoff semantics, and `MIR` slot-aware cleanup/resource output instead of only checking coarse graph presence.
+- tests: strengthened `tests/ir/ir_pipeline_probe.sh` so the end-to-end IR probe now locks `DIR` slot-contract nodes, `RIR` `tobject`/handoff semantics, and `MIR` slot-aware cleanup/resource output instead of only checking coarse graph presence.
 - compiler/codegen: expanded the first MIR->C vertical slice beyond simple function CFGs so `intent` cleanup now emits `cleanup/rollback/invalidation` labels from MIR exceptional block ids while preserving existing step semantics
 - compiler/codegen: `emit_intent_decl(...)` now routes failure/success cleanup gotos through MIR cleanup blocks when a matching `MIR_SCOPE_INTENT` routine is available
 - tests: added MIR-backed transpile regression for intent exceptional CFG emission in [`src/test_transpile.c`](src/test_transpile.c)

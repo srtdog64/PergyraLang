@@ -29,12 +29,12 @@ Base: `9fd9ac06fa9521339ceef5c5f38572247a6b6cc2` on `main`.
 
 ## Independent scopes
 
-- Root: `tests/self_hosted_component_contract_smoke.sh`, this directive,
+- Root: `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`, this directive,
   the reached indexed-signature materialization in
   `SemanticExpressionGraphResolvedCallArgumentFactsFromGraph`, integration
   review, and sole Git publication.
 - `generic_return_gate`: only
-  `tests/self_hosted_component_checker_smoke.sh`, exercising Root's actual
+  `tests/self_hosted/gates/self_hosted_component_checker_smoke.sh`, exercising Root's actual
   named checker rather than duplicating its predicates.
 - `ci_failure_triage`: read-only exact-head workflow/job/log evidence.
 - Main chat: existing executable verification of the reached compiler rung;

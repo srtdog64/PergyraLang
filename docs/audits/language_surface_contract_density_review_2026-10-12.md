@@ -82,7 +82,7 @@ production source, tests, active handoff, SoT registry, directive는 수정하�
 | effect의 서로 다른 의미 | [effect 설계](../effect_system_design.md), [effect mask owner](../../src/semantic/type_checker_helpers_effects.c), [call graph propagation](../../src/semantic/callable_capability_inference.c) | 도메인 effect, callable effect mask, runtime capability는 다르다. 사용 효과의 전파 코드가 존재하지만 Koka의 row-polymorphic effect type system을 구현했다는 근거는 아니다. |
 | Slot view와 중단 경계 | [view boundary owner](../../src/semantic/type_checker_slot_view_boundary.c), [await 소비자](../../src/semantic/type_checker_expr.c), [spawn/channel 소비자](../../src/semantic/type_checker_async_channel.c) | 활성 pinned view가 await/spawn/channel 경계를 넘는 경우를 거부하는 경로가 있다. 저장된 일반 graph link와 모든 callback 경로의 폐쇄는 별도다. |
 | 동적 권한 검사 | [SecureSlot runtime exports](../../src/runtime/pgy_runtime_lib_secure_slot_exports.h), [authority failure contract](../../src/runtime/pgy_runtime_authority_contract.h) | token 일치와 읽기/쓰기 권한 검사 및 구분된 실패 코드가 있다. 전체 OS handle을 포괄하거나 동시 check/use·세대 wrap까지 증명했다는 결론은 안 된다. |
-| 풍부한 의미 축의 합성 | [15쌍 매트릭스](../156_axis_composition_safety.md), [실제 gate](../../tests/axis_composition_smoke.sh) | 15쌍의 처분 등록과 일부 실행 kernel을 구분해야 한다. 15쌍 모두를 실행으로 검증한 gate가 아니다. AC-2/4/5는 문서상 planned다. |
+| 풍부한 의미 축의 합성 | [15쌍 매트릭스](../156_axis_composition_safety.md), [실제 gate](../../tests/language/axis_composition_smoke.sh) | 15쌍의 처분 등록과 일부 실행 kernel을 구분해야 한다. 15쌍 모두를 실행으로 검증한 gate가 아니다. AC-2/4/5는 문서상 planned다. |
 | 모델의 합성 정리 | [WholeProgramCore](../semantics/proofs/WholeProgramCore.v) | whole_program_safety의 결론은 WF 보존과 authority circulation 비증가다. native memory의 모든 위험 부재를 결론으로 쓰면 안 된다. |
 | AIR의 의미 보존 역할 | [AIR 계약](../104_air_compiler_architecture.md), [driver gate](../../src/compiler/driver_app.c), [MIR evidence 수집](../../src/compiler/air_evidence_mir.c) | AIR은 실제 admission에 참여한다. 등록된 의무의 증거 검사와 필요한 의무가 빠짐없이 만들어졌다는 보장은 별개다. |
 
@@ -312,7 +312,7 @@ compiler의 수용 패턴에 맞춰 corpus를 만드는 편향을 피하려고 �
 
 문서 검증은 실제 실행했다. 엄격 UTF-8, LF, 후행 공백, 마지막 개행과
 본문의 로컬 링크 26개를 확인했고, 저장소의
-`tests/documentation_quality_smoke.sh`가 60초 예산 안에 통과했다.
+`tests/repo/documentation_quality_smoke.sh`가 60초 예산 안에 통과했다.
 이는 문서 검사 결과이며 아래 구현·비교 실험의 통과로 세지 않는다.
 
 이번 리뷰는 위에 연결한 계약·production source·gate 정의를 읽고, Koka 원문

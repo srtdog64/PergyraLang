@@ -183,9 +183,9 @@ backend의 별도 판단표 수정으로 번지면 중복 authority가 남아 �
 
 | 검사 | 무엇을 확인하는가 | 확인하지 않는 것 |
 |---|---|---|
-| `tests/graph_action_scope_smoke.sh` + 독립 consumer | no-deref/hold 반환, 실제 성공 prefix, 원래 실패와 보상 실패 보존, 부분 효과·no-op 보상 반례 | 도메인 복구, 실제 compiler/runtime |
-| `tests/graph_action_scope_selftest.sh` | proof/receipt 약화, 실제 실행 prefix 삭제, assumption/source drift 등의 planted mutation 거절 | 모든 결함 종류의 완전 탐지 |
-| `tests/graph_cycle_reclaim_smoke.sh` + 독립 consumer | checked batch, canonical 권한 투영, checked root/count 전제와 반례 | 물리 commit, binding issuer, 전체 비용 |
+| `tests/ownership/graph_action_scope_smoke.sh` + 독립 consumer | no-deref/hold 반환, 실제 성공 prefix, 원래 실패와 보상 실패 보존, 부분 효과·no-op 보상 반례 | 도메인 복구, 실제 compiler/runtime |
+| `tests/ownership/graph_action_scope_selftest.sh` | proof/receipt 약화, 실제 실행 prefix 삭제, assumption/source drift 등의 planted mutation 거절 | 모든 결함 종류의 완전 탐지 |
+| `tests/ownership/graph_cycle_reclaim_smoke.sh` + 독립 consumer | checked batch, canonical 권한 투영, checked root/count 전제와 반례 | 물리 commit, binding issuer, 전체 비용 |
 | 전체 Rocq kernel + formal inventory | 현재 snapshot의 등록·타입·승인된 가정 | native 테스트나 exact-SHA CI |
 
 후속 구현 반증에는 반드시 late-borrowed batch, root/후손 overlap, 오래된 epoch,

@@ -70,7 +70,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/codegen/numeric_literal_conversion_owner.sh'
     run 'bash tests/self_hosted/parity/ownership/loop_stack_storage_owner.sh'
     run 'bash tests/self_hosted/parity/semantic/default_llvm_unwrap_panic_owner.sh'
-    run 'bash tests/llvm_runtime_entrypoint_attrs_smoke.sh'
+    run 'bash tests/backend/llvm_runtime_entrypoint_attrs_smoke.sh'
     run 'bash tests/self_hosted/parity/semantic/default_route_empty_literal_site_owner.sh'
     run 'bash tests/self_hosted/parity/semantic/default_route_inout_prototype_payload_owner.sh'
     run 'bash tests/self_hosted/parity/frontend/builtin_surface_parity_owner.sh'

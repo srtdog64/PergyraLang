@@ -4,7 +4,7 @@
 # method parameter, a declared result type, an assigned binding or field. Both
 # front ends refused `Doc(true, [], [])` with Array<Unknown> and `values = []`
 # as a type mismatch; native C also refused `Fill([])` and `acc.Sum([])`.
-# tests/compare_backends.sh runs the native pipeline only, so the default
+# tests/backend/compare_backends.sh runs the native pipeline only, so the default
 # route reached no gate.
 # - Each literal is pushed into afterwards, so the element type it lowered
 #   with is read back at run time.
@@ -72,7 +72,7 @@ expect_output() {
 # single-routine assignment runs on all four. A List or Set returned by a user
 # call cannot be bound or passed on the default C route at all ("List<T>
 # initializer must be ListNew"), so the List and Set results live in
-# empty_literal_collection_result, which tests/compare_backends.sh runs.
+# empty_literal_collection_result, which tests/backend/compare_backends.sh runs.
 expect_output typed-site "$CASE/main.pgy" \
     "$(printf '%s\n' 0 0 42 n 56 x 107 3 11 9 z 0 3 6 1 0 0 12)" \
     native-c native-llvm default-c

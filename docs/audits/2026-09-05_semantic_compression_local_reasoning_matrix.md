@@ -360,7 +360,7 @@ trace/history remains attributable to the same purpose identity
 
 `tests/intent_compression_contract_smoke.sh`는 이 유도를 codegen 재추론으로
 미루지 않고 provenance와 explicit/derived conflict를 DIR/AIR/RIR까지
-보존하도록 정적 ratchet을 둔다. `tests/example_contract_smoke.sh:352-359`는
+보존하도록 정적 ratchet을 둔다. `tests/repo/example_contract_smoke.sh:352-359`는
 explicit/compact calendar 및 orchestration 예제를 양 backend 실행 목록에 둔다.
 이 감사에서는 두 gate를 재실행하지 않았다.
 

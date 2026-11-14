@@ -45,7 +45,7 @@ it.
   set. `direct_mir_scalar_process_args_direct_call_owner.sh` and
   `direct_mir_scalar_dir_walk_direct_call_owner.sh` also passed with the same
   installed driver.
-- `tests/self_hosted_component_contract_smoke.sh` passed its full structural
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` passed its full structural
   inventory. It now bans the retired scalar-preamble C struct literal, LLVM
   aggregate literal, and hard-coded data index, and tracks the new owners at
   35/50, 76/90, and 139/160 lines. The existing collection orchestration owners

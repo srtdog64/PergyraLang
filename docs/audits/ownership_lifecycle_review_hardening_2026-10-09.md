@@ -68,9 +68,9 @@ load-path warnings remain in the logs; they are not hidden or a native result.
 |---|---|
 | `docs/semantics/proofs/OwnershipGraphActionScope.v` | `faefa5de9d84b25fdfd01623eaae3f40effb4ef251212e415346adb33ab1d099` |
 | `tests/coq/GraphActionScopeAudit.v` | `a546bbaafd9b47bd333ec21644142139ce673c40b278b15e1be65b5cea59cc64` |
-| `tests/graph_action_scope_smoke.sh` | `b0ed7f18de85178414ed52f1523458255149cc21f19b4ecc5b44da5a328999ff` |
-| `tests/graph_action_scope_selftest.sh` | `98ced39aec61fc873f238a801de0bbf4e2d4538d6692687aa3086f25c52f43fb` |
-| `tests/coq_kernel_check.sh` | `39a5e59c9ec989b39fdac4a279beb353978c84cf09971e7ce3f8c93e22e12a6b` |
+| `tests/ownership/graph_action_scope_smoke.sh` | `b0ed7f18de85178414ed52f1523458255149cc21f19b4ecc5b44da5a328999ff` |
+| `tests/ownership/graph_action_scope_selftest.sh` | `98ced39aec61fc873f238a801de0bbf4e2d4538d6692687aa3086f25c52f43fb` |
+| `tests/proof/coq_kernel_check.sh` | `39a5e59c9ec989b39fdac4a279beb353978c84cf09971e7ce3f8c93e22e12a6b` |
 
 Focused receipts also bind imported source, kernel gate and toolchain owner
 before and after each run. These checks do not imply continuous source

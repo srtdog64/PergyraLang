@@ -72,7 +72,7 @@ DRV-2 MIR. Each one hid the next.
    - `self-host-direct-mir-nested-intent-program-llvm-test-smoke`;
    - `self-host-driver-source-c-execution-action-test-smoke`;
    - `self-host-installed-driver-cli-mode-test-smoke`;
-   - `tests/selfhost_bootstrap_policy_corpus_smoke.sh`.
+   - `tests/self_hosted/gates/selfhost_bootstrap_policy_corpus_smoke.sh`.
 
    Logs are `/root/pgy-ci.rest-*.log`. Expect more stale pins of this
    kind: the bootstrap was red ahead of these targets since 2026-10-02.

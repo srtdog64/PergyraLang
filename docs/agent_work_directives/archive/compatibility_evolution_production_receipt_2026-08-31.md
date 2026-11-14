@@ -80,7 +80,7 @@ CI.
   binary is green across the installed source-C, source-MIR, MIR-C, LLVM
   intent, diagnostic, REPL, format, and device-manifest requests.
 - `tests/self_host_compiler_topology_smoke.sh` and
-  `tests/self_hosted_component_contract_smoke.sh` are green. The component
+  `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` are green. The component
   contract requires typed `Main -> DriverRung2ExecuteInstalledRequest`
   carriage and the exact validator call. The topology ratchet requires that
   call to precede request dispatch and rejects a bool-only readiness call.

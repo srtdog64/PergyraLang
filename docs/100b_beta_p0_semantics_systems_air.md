@@ -824,7 +824,7 @@ Performance gate:
   `pgy_over_c_ratio`; it does not claim Pergyra is faster than C. The honest
   baseline is near-C with run-to-run noise, and CI output is the source of truth
   for the active ratio. Local native Windows spot-checks can run
-  `tests/perf_c_baseline_smoke.ps1`. The same gate also rejects regressions
+  `tests/perf/perf_c_baseline_smoke.ps1`. The same gate also rejects regressions
   where `i % 97` or `i / 97` lower through checked div/mod helpers; constant
   nonzero integer divisors/moduli must emit direct arithmetic in both C and LLVM
   lowering because divide-by-zero panic is statically impossible. The shared
@@ -1041,12 +1041,12 @@ Closed now:
   for implementation boundary` regression.
 - HIR proof matching is source-specific; a top-level intent HIR routine is not
   accepted unless it matches the AIR owner/step/source identity.
-- `tests/diagnostics_json_smoke.sh` now includes a parsed-source AIR negative
+- `tests/language/diagnostics_json_smoke.sh` now includes a parsed-source AIR negative
   case: a valid semantic intent requiring `authorized by: buyer` without a
   lowering-visible zone authority declaration is rejected by default strict AIR
   as `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`, with JSON
   `cause_ir`/`fix_source` and `expected authority participant(s): buyer`.
-- `tests/diagnostics_json_smoke.sh` also covers a parsed-source execution
+- `tests/language/diagnostics_json_smoke.sh` also covers a parsed-source execution
   boundary negative: an intent step calling `ReadFile(...)` is rejected by
   default strict AIR until AIR/RIR synthesis exposes real IO boundary evidence.
   This prevents owner-name-only RIR scope matching from falsely satisfying
@@ -1282,7 +1282,7 @@ make ir-pipeline-test-smoke
 Status: `IN PROGRESS / BLOCKER`
 
 Source of truth: `TODO.md` type-resolution DAG section,
-`tests/type_resolution_dag_smoke.sh`, and
+`tests/ir/type_resolution_dag_smoke.sh`, and
 `tests/type_resolution_resolver_inventory_smoke.sh`.
 
 Goal:

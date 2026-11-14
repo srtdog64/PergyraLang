@@ -29,8 +29,8 @@
 // and have to be closed on purpose.
 //
 // Registration is pinned by src/self_hosted/OWNERS.md,
-// tests/self_hosted_component_contract_smoke.sh, and the standalone
-// tests/selfhost_reachability_contract_smoke.sh gate.
+// tests/self_hosted/gates/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/self_hosted/gates/selfhost_reachability_contract_smoke.sh gate.
 
 func ReachabilitySchema() -> String {
     return "pgy.selfhost.reachability-contract.v1";

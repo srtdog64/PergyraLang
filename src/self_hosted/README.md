@@ -161,7 +161,7 @@ hidden declaration order; if an owner needs another owner fact, import that
 owner directly and let the import graph materialize it once.
 
 The compiler-stage shape is executable policy, not just a convention:
-`tests/self_hosted_component_contract_smoke.sh` requires every active
+`tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` requires every active
 compiler-stage `main.pgy` to stay an entrypoint-only boundary (one `Main`
 function, no local helper functions, no control-flow/parser/JSON/diagnostic
 work), and requires each stage owner source to stay at or below the 600-line
@@ -191,7 +191,7 @@ the default proof for an isolated owner change.
 - **2026-05-26** -- directory bootstrapped. First tool:
   `tools/diagnostic_catalog_checker/`. Pergyra implementation is a rung-2
   partial checker; the C-side reference still lives in
-  `tests/diagnostic_registry_smoke.sh`. Parity rung 1 checks clean-repo exit
+  `tests/registry/diagnostic_registry_smoke.sh`. Parity rung 1 checks clean-repo exit
   class and schema-header visibility; rung 2 checks clean JSON plus live
   `codes`, `documented`, `missing`, `duplicates`, and `orphans` counters
   against shell drift detectors, then verifies a synthetic missing-code fixture
@@ -227,7 +227,7 @@ the default proof for an isolated owner change.
   side-by-side substitution loop, not full compiler parity.
 - **2026-06-15** -- soft self-host track now contains **12 rung-2 tools**.
   `tools/ast_read_surface_checker/` reads the shared
-  `tests/ast_read_surface_ratchet.txt` ratchet and proves the same
+  `tests/repo/ast_read_surface_ratchet.txt` ratchet and proves the same
   enum/source_ast/source_decl/routine-source-decl counts as the shell smoke,
   including a synthetic growth fixture. This strengthens capability 5 evidence
   but remains peripheral audit tooling, not compiler-core substitution.

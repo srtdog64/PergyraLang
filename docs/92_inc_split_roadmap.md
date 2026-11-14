@@ -367,8 +367,8 @@ Test stop condition:
 
 - 장기 모듈화는 include-order debt를 줄이되, frontend/backend latency를 숨은 비용으로 늘리면 안 된다.
 - `make test-abi-perf`는 beta frozen ABI/runtime surface의 benchmark-only baseline으로 유지한다.
-- `tests/perf_summary.sh <log>` 또는 `make perf-summary PERF_LOG=<log>`로 C/LLVM compile/run 평균과 worst-case를 요약한다.
-- representative backend benchmark는 `tests/bench_backend.sh <source.pgy> dev`로 C/LLVM wall time과 peak RSS를 같이 본다.
+- `tests/perf/perf_summary.sh <log>` 또는 `make perf-summary PERF_LOG=<log>`로 C/LLVM compile/run 평균과 worst-case를 요약한다.
+- representative backend benchmark는 `tests/perf/bench_backend.sh <source.pgy> dev`로 C/LLVM wall time과 peak RSS를 같이 본다.
 - generated/native compile warning은 performance noise로 취급하지 않고 build hygiene bug로 즉시 닫는다.
 
 Speed stop condition:

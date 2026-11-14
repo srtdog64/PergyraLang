@@ -214,7 +214,7 @@ self-hosting.
 
 ## CI Owner
 
-`tests/self_host_hard_contract_smoke.sh` owns this contract. It does not replace
+`tests/self_hosted/gates/self_host_hard_contract_smoke.sh` owns this contract. It does not replace
 the heavy parity scripts; it proves the hard rungs, docs, and Makefile wiring
 stay aligned so the heavy scripts remain load-bearing.
 

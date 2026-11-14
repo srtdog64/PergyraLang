@@ -172,7 +172,7 @@ Observed importer and blast-radius evidence:
 Gate if later authorized:
 
 - structural/topology: `tests/self_host_compiler_topology_smoke.sh` and
-  `tests/self_host_compiler_world_contract_smoke.sh`;
+  `tests/self_hosted/gates/self_host_compiler_world_contract_smoke.sh`;
 - executable authority: `tests/self_hosted/parity/compiler_root_intent_takeover_gate.sh`;
 - old-path negative: reject all four old root paths only after path manifests,
   benchmark evidence, executable gates, and live documents are migrated.

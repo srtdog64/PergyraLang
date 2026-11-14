@@ -1290,7 +1290,7 @@ still constructs scratch fixtures, but the module-manifest, stdlib-dispatch,
 and production size negative verdict shapes are no longer shell-owned.
 
 TestHarness delta, 2026-07-05: `ast_read_surface_checker_parity.sh` now gets
-the checker source, expected clean JSON, and `tests/ast_read_surface_ratchet.txt`
+the checker source, expected clean JSON, and `tests/repo/ast_read_surface_ratchet.txt`
 through the `ast-read-surface-paths` manifest suite, then runs the compiled
 checker binary for clean and growth fixtures.
 

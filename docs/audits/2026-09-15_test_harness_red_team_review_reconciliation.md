@@ -86,7 +86,7 @@ results, as `8df77c92` did, and has to land with a gate run.
 
 ### F2. The gate-subject meta-gate checks one direction only
 
-`tests/gate_subject_declaration_smoke.sh` requires every script that declares
+`tests/repo/gate_subject_declaration_smoke.sh` requires every script that declares
 `PGY_NATIVE_PIPELINE` to state its subject, and forbids self-host-subject
 scripts from declaring it. Nothing rejects the reverse -- an oracle leg that
 omits the declaration and silently delegates -- which is how F1 survives.
@@ -100,7 +100,7 @@ possibly itself. The scan is a heuristic: a script sourced by a relative path it
 does not spell out would be a false positive, so the number is a ceiling. Five
 were checked by hand and are unreached:
 
-- `tests/arena_ledger_smoke.sh` (the Makefile builds `arena_ledger_smoke.c`, not
+- `tests/ownership/arena_ledger_smoke.sh` (the Makefile builds `arena_ledger_smoke.c`, not
   this script);
 - `tests/self_hosted/parity/domain/world_zone_admission_owner.sh`,
   `hashmap_runtime_owner.sh` and `one_mir_string_trim_projection.sh`, which are

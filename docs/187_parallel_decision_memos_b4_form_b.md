@@ -47,7 +47,7 @@ fiber 없이도 충분하다는 증거가 된다. 어느 쪽이든 결정이 측
 선다. (O3는 IO 축 실증 전엔 정보 손실.)
 
 **★선행 조건 ① 충족 (2026-07-17, 메모 작성 당일)**:
-`tests/channel_pool_starvation_probe.sh`가 착지했고 **양 백엔드 RED**다
+`tests/parallel/channel_pool_starvation_probe.sh`가 착지했고 **양 백엔드 RED**다
 — PGY_WORKERS=2에서 수신 arm 7개가 송신 arm 7개보다 먼저 큐에 서면
 worker 2 + help로 들어간 main까지 전부 채널 recv에 파킹, 송신자는
 영원히 큐에 남는다(10s timeout, control은 GREEN). help-first await가
@@ -128,7 +128,7 @@ WO의 §3 절차 입력이다.
 **판정 D — SPAWN_COUNT 예산 = 실제 생성 태스크 수** (docs/188 R3).
 join fan-out은 chunk 수를 charge한다; 반복수 상한은 별도 미래 축
 (ITER/TIME, 보드 등록). 게이트가 판정을 pin:
-`tests/parallel_budget_chunk_charge_smoke.sh` (budget 100에서 n=1000
+`tests/parallel/parallel_budget_chunk_charge_smoke.sh` (budget 100에서 n=1000
 join 완주 = 의미론 pin, budget 8에서 budget-exceeded = ceiling 유지).
 
 ## Related

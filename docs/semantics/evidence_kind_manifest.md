@@ -50,7 +50,7 @@ Reading the columns:
 
 Gate coverage for the shared surfaces:
 
-- graph digest shape: `tests/air_json_schema_smoke.sh`
+- graph digest shape: `tests/ir/air_json_schema_smoke.sh`
 - evidence drift (declared vs validated): `tests/air_drift_smoke.sh`
 - machine-neutral projection ownership: `tests/machine_neutral/`
 - this registry's enum correspondence + RED self-test:

@@ -112,7 +112,7 @@ semantic owner, SoT registry, progress counter, or completion claim.
   `origin/main`. Exact-head CI run `33539097572` is green 30/30, including
   backend comparison shards 20/20.
 - `build-linux` passed in 25m33s and actually invoked
-  `tests/self_hosted_component_contract_smoke.sh`; the structural source
+  `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`; the structural source
   inventory and removed-path ratchets reported PASS.
 - `self-host-bootstrap-linux` passed in 34m42s and records exactly one
   173254-line `gen2 == gen3` fixed point, exactly one receipt-bound driver

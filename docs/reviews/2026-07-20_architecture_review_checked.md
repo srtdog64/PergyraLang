@@ -53,7 +53,7 @@ The source review reported that codegen still used
 - C and LLVM receive the verified spawn-lane plan from AIR;
 - a current source scan finds `ast_spawn_is_blocking` only in the AIR boundary
   evidence producer, not in codegen emitters;
-- `bash tests/execution_lane_policy_smoke.sh` passed the native 12/12 policy
+- `bash tests/parallel/execution_lane_policy_smoke.sh` passed the native 12/12 policy
   rows and the 13/13 AIR evidence rows on this Windows checkout.
 
 This is a repaired SoT seam, not evidence that every runtime executor is
@@ -90,7 +90,7 @@ has a first executable ledger owner (`PgyArenaLedger`) with created/retained/
 peak bytes, allocation count, string payload bytes, explicit cross-stage and
 identity-copy counters, owner, last consumer, and release point. Lexer, HIR,
 semantic, C, and LLVM arena owners are named, and
-`tests/arena_ledger_smoke.sh` verifies the accounting and annotations.
+`tests/ownership/arena_ledger_smoke.sh` verifies the accounting and annotations.
 
 This is a first stage-lifetime rung, not proof that every compiler allocation
 is arena-backed. Heap-backed semantic tables and generated artifact buffers
@@ -187,7 +187,7 @@ gate. The runtime cache now has an executable v2 identity owner in
 `src/compiler/compiler_runtime_cache.c`: its path digest includes the cache
 schema, ABI version, linkage family, profile, observability mode, compiler
 revision, target identity, toolchain selector, sanitizer mode, and the thread
-flag. `tests/runtime_cache_identity_smoke.sh` proves that two supplied
+flag. `tests/runtime/runtime_cache_identity_smoke.sh` proves that two supplied
 compiler revisions cannot reuse the same runtime object path, and the C/LLVM
 link consumers receive the keyed path rather than the legacy profile/mtime-only
 name.

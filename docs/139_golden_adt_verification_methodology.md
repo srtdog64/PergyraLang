@@ -8,7 +8,7 @@ compiler, self-hosted, runtime, and proof work.
 
 Executable anchors:
 
-- `tests/verification_methodology_smoke.sh`
+- `tests/proof/verification_methodology_smoke.sh`
 - `docs/semantics/proofs/VerificationMethodology.v`
 - `docs/semantics/proofs/VerificationMethodology.md`
 

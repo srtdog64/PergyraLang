@@ -21,7 +21,7 @@ for compiler policy.
   or before the last consumer, and runtime materialization without an explicit
   runtime need.
 - Verification gate: `make evidence-lifecycle-adequacy-test-smoke` plus
-  `bash tests/coq_kernel_check.sh`. Removing a cited theorem, a lifecycle state,
+  `bash tests/proof/coq_kernel_check.sh`. Removing a cited theorem, a lifecycle state,
   the proof registration, or a live manifest row is the falsifying case.
 
 ## Model
@@ -100,5 +100,5 @@ Verify with:
 
 ```sh
 make evidence-lifecycle-adequacy-test-smoke
-bash tests/coq_kernel_check.sh
+bash tests/proof/coq_kernel_check.sh
 ```

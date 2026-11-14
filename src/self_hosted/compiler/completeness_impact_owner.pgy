@@ -57,7 +57,7 @@ func CompilerCompletenessImpactPlannerDriverProbePath() -> String {
 }
 
 func CompilerCompletenessImpactPlannerComponentContractPath() -> String {
-    return "tests/self_hosted_component_contract_smoke.sh";
+    return "tests/self_hosted/gates/self_hosted_component_contract_smoke.sh";
 }
 
 func CompilerCompletenessImpactPlannerUnmatchedProbePath() -> String {
@@ -273,7 +273,7 @@ func CompilerCompletenessImpactRowAt(index: Int) -> String {
     if index == 5 {
         return CompilerCompletenessImpactRow(
             "component-contract",
-            "tests/self_hosted_component_contract_smoke.sh",
+            "tests/self_hosted/gates/self_hosted_component_contract_smoke.sh",
             "-",
             "-",
             "-",

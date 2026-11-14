@@ -68,8 +68,8 @@ MIT이므로 이식은 가능하지만 substantial source copy에는 license not
   - 100,000 restarts, warmup 뒤 30 samples
   - `DirectInsereTask.restart`: median `6.55ms`, p75 `6.97ms`
   - Promise+Map+Abort 대비 median throughput ratio `153.55x`
-- Pergyra `tests/host_task_slot_smoke.sh`: C/LLVM PASS
-- Pergyra `tests/host_task_policy_smoke.sh`: C/LLVM PASS
+- Pergyra `tests/parallel/host_task_slot_smoke.sh`: C/LLVM PASS
+- Pergyra `tests/parallel/host_task_policy_smoke.sh`: C/LLVM PASS
 
 Restart 수치는 기존 `dist`의 v0.2.3 artifact를 실행한 이 장비의 microbenchmark다.
 Pergyra runtime 성능 증거나 언어 간 절대 비교가 아니다. `npm run check`와 release
@@ -183,7 +183,7 @@ callable/monomorphization 제약과 기존 `Channel<T>`/runtime mechanism 소유
 - `D:/PergyraLang/src/lsp/pgy_lsp.c:181`의 native store는 URI/content 하나만
   보유한다.
 - 같은 파일의 didChange path `:310`은 LSP version을 읽지 않는다.
-- `D:/PergyraLang/tests/tooling_conformance_smoke.sh:214`는 version 2를 보내지만
+- `D:/PergyraLang/tests/repo/tooling_conformance_smoke.sh:214`는 version 2를 보내지만
   version carriage, rollback rejection 또는 multi-document isolation을 assert하지
   않는다.
 

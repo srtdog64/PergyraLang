@@ -95,7 +95,7 @@ hidden callback list 대신 `RelaySinkSpec`, `RelayPacket`, `RelayBundle`,
 
 - `./bin/pgy examples/pattern_library_basics/main.pgy` 컴파일 통과
 - generated binary 실행 통과
-- `tests/example_contract_smoke.sh`의 exact stdout 대상으로 등록
+- `tests/repo/example_contract_smoke.sh`의 exact stdout 대상으로 등록
 
 ## 다음 단계
 

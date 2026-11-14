@@ -289,7 +289,7 @@ canonical `HostTasks.*`로 되돌리는 것이 다음 DX ratchet이다.
 
 | Track | 상태 | Evidence | Grade |
 | --- | --- | --- | --- |
-| HostTaskSlot | generation guard와 typed admission policy 구현·배치·focused parity 완료 | `stdlib/host_task_slot.pgy`, `tests/host_task_slot_smoke.sh`, `tests/host_task_policy_smoke.sh`, `docs/stdlib/host_task_slot.md`, stdlib inventory/stable-use wiring | `REACHABLE` official library |
+| HostTaskSlot | generation guard와 typed admission policy 구현·배치·focused parity 완료 | `stdlib/host_task_slot.pgy`, `tests/parallel/host_task_slot_smoke.sh`, `tests/parallel/host_task_policy_smoke.sh`, `docs/stdlib/host_task_slot.md`, stdlib inventory/stable-use wiring | `REACHABLE` official library |
 | LSP latest publication | URI/version/text/ticket revision admission과 stale diagnostics publication rejection이 production self-host LSP Main에 연결됨 | `src/self_hosted/lsp/document_revision_owner.pgy`, `document_store_owner.pgy`, `tests/self_hosted/parity/lsp/lsp_document_latest_publication_parity.sh` | bounded `REACHABLE` self-host LSP |
 | SnapshotTicket | caller-provided identity의 immutable 결속과 generation rejection 구현; live handle authenticity는 미연결 | `src/self_hosted/lib/snapshot_ticket.pgy` | `REACHABLE` tooling/library |
 | BinaryProjection | existing layout id + explicit endian preflight 구현 | `src/self_hosted/lib/binary_projection_preflight_owner.pgy` | `REACHABLE` tooling/library |
@@ -398,14 +398,14 @@ Zeno의 capability-derived runtime import/emission 원칙은 이미 Pergyra의
 
 현재 관찰된 focused evidence:
 
-- `bash tests/self_hosted_scaffold_smoke.sh`: `35 tool(s) gated`.
-- `PGY_HOST_TASK_SLOT_BACKENDS=c bash tests/host_task_slot_smoke.sh`: C
+- `bash tests/self_hosted/gates/self_hosted_scaffold_smoke.sh`: `35 tool(s) gated`.
+- `PGY_HOST_TASK_SLOT_BACKENDS=c bash tests/parallel/host_task_slot_smoke.sh`: C
   compile/run PASS.
-- `PGY_HOST_TASK_SLOT_BACKENDS=llvm bash tests/host_task_slot_smoke.sh`: LLVM
+- `PGY_HOST_TASK_SLOT_BACKENDS=llvm bash tests/parallel/host_task_slot_smoke.sh`: LLVM
   compile/run PASS.
-- `PGY_HOST_TASK_POLICY_BACKENDS=c bash tests/host_task_policy_smoke.sh`: active
+- `PGY_HOST_TASK_POLICY_BACKENDS=c bash tests/parallel/host_task_policy_smoke.sh`: active
   skip/spawn/restart, vacant start, malformed phase/generation C 실행 PASS.
-- `PGY_HOST_TASK_POLICY_BACKENDS=llvm bash tests/host_task_policy_smoke.sh`:
+- `PGY_HOST_TASK_POLICY_BACKENDS=llvm bash tests/parallel/host_task_policy_smoke.sh`:
   동일 decision/status와 generation/ticket 결과 LLVM 실행 PASS.
 - `PGY_SELFHOST_LSP_BACKENDS=c bash
   tests/self_hosted/parity/lsp/lsp_document_latest_publication_parity.sh`: production
@@ -420,7 +420,7 @@ Zeno의 capability-derived runtime import/emission 원칙은 이미 Pergyra의
   `host-task-policy-test-smoke`는 focused target이다. 두 focused fixture가
   stable `use host_task_slot;` 경계에서 lifecycle과 read-only skip decision을
   각각 실제 소비한다.
-- `bash tests/stdlib_inventory_smoke.sh`: inventory/contracts PASS.
+- `bash tests/repo/stdlib_inventory_smoke.sh`: inventory/contracts PASS.
 - `PGY_BIN=bin/pgy.exe bash
   tests/self_hosted/parity/codegen/binary_projection_preflight_probe_parity.sh`:
   C compile/run PASS, LLVM compile/run PASS, output parity PASS.

@@ -372,7 +372,7 @@ the next compiler edit/rebuild target, now without the prior storage-choice bloc
 The overall self-host/bootstrap/SoT objective remains incomplete.
 
 Primary completed its bounded edit lease on `scripts/ci_push_macos_steps.sh`
-and `tests/self_host_ci_profile_smoke.sh`: execute the two existing checker
+and `tests/self_hosted/gates/self_host_ci_profile_smoke.sh`: execute the two existing checker
 mechanics gates early on macOS, without duplicating full preparation or a
 compiler build. The objective/evidence is in the third-round directive below.
 Old-list rejection (`19312`), actual two-checker dispatch (`47595`), profile
@@ -1828,7 +1828,7 @@ definition/ownership documentation, not an Intent implementation lease.
 - Exact objective and falsifier are in
   `docs/agent_work_directives/native_malformed_enum_parser_progress_2026-09-02.md`.
   The focused gate is
-  `tests/native_pipeline_malformed_enum_progress_owner.sh`; timeout is a hard
+  `tests/self_hosted/gates/native_pipeline_malformed_enum_progress_owner.sh`; timeout is a hard
   failure, all malformed cases must reject, and a valid enum must remain green.
 - This is a bounded native progress/security repair requested by the user. It
   does not change a SoT row, count as Pergyra self-host substitution progress,
@@ -2900,7 +2900,7 @@ definition/ownership documentation, not an Intent implementation lease.
   target and that target did not execute the registry renderer check. This is a
   CI evidence gap, not exact remote closure of the previous sole failure.
 - The Markdown contract target now runs
-  `tests/language_keyword_registry_smoke.sh`; the CI-profile ratchet requires
+  `tests/registry/language_keyword_registry_smoke.sh`; the CI-profile ratchet requires
   that call. The exact local Markdown command list is green with the regenerated
   inventory. Publication and exact execution were pending until the CI repair.
 - Implementation `672990d2a4eaf58a2a67d065aa904b3995676983`, borrow-view
@@ -5298,7 +5298,7 @@ now released; this list is historical overlap evidence:
 - `src/self_hosted/codegen/emission/intent_*emit_owner.pgy`
 - `src/self_hosted/codegen/emission/program_{emit,entry,admitted_semantic_owner}.pgy`
 - `tests/self_hosted/parity/intent_{mode,priority}_nested_observability_owner.sh`
-- `tests/self_hosted_component_contract_smoke.sh`
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`
 - `src/self_hosted/OWNERS.md`
 - `docs/current_work_handoff.md`
 
@@ -5307,7 +5307,7 @@ inspect it as project evidence, stage it, delete it, or rewrite it.
 
 ### Current observed evidence
 
-- `tests/self_hosted_component_contract_smoke.sh`: PASS after the AST-read
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh`: PASS after the AST-read
   residue ratchet and owner inventory update.
 - Current source graph through the Pergyra-built codegen seed: PASS,
   10,609,620-byte C artifact, 114.27 seconds, no `CODEGEN ERROR`.

@@ -38,7 +38,7 @@ and the relevant existing contracts and comparator consumer.
 - The ping-pong fixture genuinely needs interleaved communicating arms. Its
   source and the new guide correctly distinguish that requirement from the
   serial-equivalence claim for independent computation.
-- `tests/compare_backends.sh:623` onward already lists these eight cases; at
+- `tests/backend/compare_backends.sh:623` onward already lists these eight cases; at
   lines 583–593 it compares both backend outputs with a present
   `expected.stdout`. The new goldens therefore strengthen the existing
   registration, rather than inventing a parallel fixture inventory.
@@ -77,7 +77,7 @@ Exactly one focused example invocation was made, with no compiler rebuild:
 
 ```text
 PGY_BIN=/d/PergyraLang/.tmp/native_await_integration_20260905/pgy.exe
-timeout 300s bash tests/concurrency_examples_smoke.sh
+timeout 300s bash tests/parallel/concurrency_examples_smoke.sh
 ```
 
 Observed terminal exit 0, session `93990`. Eight unique canonical programs ran
@@ -169,7 +169,7 @@ with exit 0:
 
 ```text
 timeout 60s bash tests/async_model_positioning_smoke.sh
-timeout 60s bash -n tests/concurrency_examples_smoke.sh
+timeout 60s bash -n tests/parallel/concurrency_examples_smoke.sh
 timeout 60s bash -n tests/async_model_positioning_smoke.sh
 ```
 

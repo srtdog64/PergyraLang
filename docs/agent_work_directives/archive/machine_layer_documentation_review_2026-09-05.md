@@ -29,7 +29,7 @@ integration and all unrelated changes remain with their existing owners.
   board support, formal conditions presented as hardware measurements, or
   blanket self-host/projection completion claims.
 - Verification: primary integrates through
-  `tests/documentation_quality_smoke.sh`; existing narrow machine-layer gates
+  `tests/repo/documentation_quality_smoke.sh`; existing narrow machine-layer gates
   may be run by primary within their bounded budgets. Report executed versus
   inspected gates separately.
 - Non-goals: compiler/runtime/proof implementation, new language syntax,
@@ -70,9 +70,9 @@ were not changed by this documentation scope.
 
 Observed locally on 2026-09-05:
 
-- `tests/documentation_quality_smoke.sh`: PASS (exit 0, within 60 seconds),
+- `tests/repo/documentation_quality_smoke.sh`: PASS (exit 0, within 60 seconds),
   including the new wording/forbidden-linear-AIR guard.
-- `PGY_BIN=/d/PergyraLang/bin/pgy.exe bash tests/machine_layer_pipeline_smoke.sh`:
+- `PGY_BIN=/d/PergyraLang/bin/pgy.exe bash tests/ir/machine_layer_pipeline_smoke.sh`:
   PASS (exit 0, 8.782 seconds); native RIR/MIR/AIR and C/LLVM lowering evidence,
   no reported skipped LLVM leg. This is not every installed self-host route.
 - `make machine-layer-manifest-test-smoke`: PASS (exit 0, 6.931 seconds),
@@ -80,7 +80,7 @@ Observed locally on 2026-09-05:
 - Added local Markdown targets (33), scoped UTF-8, tracked whitespace and
   documentation-gate shell syntax: PASS. The link check covers additions and
   new reports, not every older README link.
-- Additional `tests/border_registry_smoke.sh`: FAIL (exit 1) at the parser to
+- Additional `tests/registry/border_registry_smoke.sh`: FAIL (exit 1) at the parser to
   semantic include allowlist, before its AIR-specific check.
   `src/parser/ast_print.c:8` and `src/parser/parser_decl_clause.c:3` include
   `../semantic/callable_contract_vocabulary.h`; the gate permits only the older

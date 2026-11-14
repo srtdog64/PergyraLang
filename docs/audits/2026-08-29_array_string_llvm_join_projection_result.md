@@ -35,7 +35,7 @@ it.
   edit. The focused gate then passed C/LLVM Split/Join and ArrayString access,
   semantic-change execution, and all existing no-artifact negatives in 25
   seconds.
-- `tests/self_hosted_component_contract_smoke.sh` passed its full structural
+- `tests/self_hosted/gates/self_hosted_component_contract_smoke.sh` passed its full structural
   inventory. The Join owner is 18/20 and its collection orchestration caller is
   115/115; no cap was raised.
 - Native-oracle driver C emission completed with zero errors. SoT live binding

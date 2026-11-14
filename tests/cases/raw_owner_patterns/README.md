@@ -30,16 +30,16 @@ The native compiler and runtime snapshot are required arguments, with no
 installed-driver or current-worktree fallback.
 
 ```sh
-python3 tests/raw_owner_pattern_trials.py \
+python3 tests/ownership/raw_owner_pattern_trials.py \
   --native /absolute/path/to/native-pgy \
   --runtime-root /absolute/path/to/runtime-source-root \
   --output /absolute/path/to/new-algorithm-results --timing
 
-python3 tests/raw_owner_buffer_trials.py \
+python3 tests/ownership/raw_owner_buffer_trials.py \
   --baseline /absolute/path/to/new-algorithm-results \
   --output /absolute/path/to/new-buffer-results
 
-python3 tests/raw_owner_slot_trials.py \
+python3 tests/ownership/raw_owner_slot_trials.py \
   --baseline /absolute/path/to/new-algorithm-results \
   --output /absolute/path/to/new-slot-results
 ```
@@ -66,7 +66,7 @@ cmake -S /absolute/path/to/dependencies/mimalloc \
   -DMI_BUILD_OBJECT=OFF -DMI_BUILD_TESTS=OFF
 cmake --build /absolute/path/to/dependencies/mimalloc-build --parallel 2
 
-python3 tests/raw_owner_allocator_trials.py \
+python3 tests/ownership/raw_owner_allocator_trials.py \
   --baseline /absolute/path/to/new-algorithm-results \
   --dependencies /absolute/path/to/dependencies \
   --output /absolute/path/to/new-allocator-results

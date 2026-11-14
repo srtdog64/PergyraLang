@@ -76,7 +76,7 @@ they are not represented as a third Claude review.
 
 ## Observed gates
 
-`tests/ownership_teardown_redteam_smoke.sh`: PASS on the hashes below, Rocq
+`tests/ownership/ownership_teardown_redteam_smoke.sh`: PASS on the hashes below, Rocq
 9.3.0 / Stdlib 9.2.0 / OCaml 4.14.1. Four focused modules freshly compiled and
 kernel-verified, zero assumptions/admits/unsafe kernel features. Actual freshly
 extracted functions passed 62 authority success/refusal cases. Earlier forest
@@ -98,8 +98,8 @@ shell syntax and scoped whitespace checks also passed. An initial command used
 the nonexistent `evidence_lifecycle_adequacy.sh`; the actual
 `evidence_lifecycle_adequacy_smoke.sh` was subsequently run and its PASS observed.
 
-`tests/formal_semantics_smoke.sh` on the final `ca8aa6f1` source: PASS.
-Its full `tests/coq_kernel_check.sh` integration kernel-verified 72 modules
+`tests/proof/formal_semantics_smoke.sh` on the final `ca8aa6f1` source: PASS.
+Its full `tests/proof/coq_kernel_check.sh` integration kernel-verified 72 modules
 (65 proof owners plus seven permanent consumers), with approval export/binding
 consumer checks. The only declared assumptions remain the two existing
 SlotCalculus abstractions (`verify_token`, `MaxSlotId`), no new assumptions,

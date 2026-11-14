@@ -20,30 +20,30 @@ jobs:
         run: OPAMROOT=/home/rocq/.opam opam exec -- env OPAMROOT=/opt/pergyra-rocq/opam bash scripts/install_rocq_toolchain.sh
       - name: Kernel-check the fresh corpus
         run: |
-          bash scripts/run_rocq_toolchain.sh bash tests/coq_kernel_check.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/proof/coq_kernel_check.sh
       - name: Execute source-bound intent and host-clock regression probes
         run: |
-          bash tests/runtime_intent_identity_reuse_smoke.sh
-          bash tests/runtime_host_clock_smoke.sh
-          bash tests/runtime_c_profile_smoke.sh
+          bash tests/runtime/runtime_intent_identity_reuse_smoke.sh
+          bash tests/runtime/runtime_host_clock_smoke.sh
+          bash tests/runtime/runtime_c_profile_smoke.sh
       - name: Exercise version and kernel refusal paths
         run: |
-          bash scripts/run_rocq_toolchain.sh bash tests/rocq_toolchain_selftest.sh
-          bash scripts/run_rocq_toolchain.sh bash tests/coq_kernel_check_selftest.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/proof/rocq_toolchain_selftest.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/proof/coq_kernel_check_selftest.sh
       - name: Check ownership memory comparisons and overclaim counterexamples
-        run: bash scripts/run_rocq_toolchain.sh bash tests/ownership_gc_comparison_smoke.sh
+        run: bash scripts/run_rocq_toolchain.sh bash tests/ownership/ownership_gc_comparison_smoke.sh
       - name: Check canonical cleanup, graph and Slot composition
-        run: bash scripts/run_rocq_toolchain.sh bash tests/memory_boundary_composition_smoke.sh
+        run: bash scripts/run_rocq_toolchain.sh bash tests/ownership/memory_boundary_composition_smoke.sh
       - name: Check local graph reclamation and its root completeness
         run: |
-          bash scripts/run_rocq_toolchain.sh bash tests/graph_cycle_reclaim_smoke.sh
-          bash scripts/run_rocq_toolchain.sh bash tests/graph_cycle_reclaim_selftest.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership/graph_cycle_reclaim_smoke.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership/graph_cycle_reclaim_selftest.sh
       - name: Check action-scoped graph references and sagas
         run: |
-          bash scripts/run_rocq_toolchain.sh bash tests/graph_action_scope_smoke.sh
-          bash scripts/run_rocq_toolchain.sh bash tests/graph_action_scope_selftest.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership/graph_action_scope_smoke.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership/graph_action_scope_selftest.sh
       - name: Red-team teardown, root reuse and checked local reads
-        run: bash scripts/run_rocq_toolchain.sh bash tests/ownership_teardown_redteam_smoke.sh
+        run: bash scripts/run_rocq_toolchain.sh bash tests/ownership/ownership_teardown_redteam_smoke.sh
       - name: Preserve bounded teardown model observations
         uses: actions/upload-artifact@v4
         with:
@@ -62,17 +62,17 @@ jobs:
           GIT_CONFIG_KEY_1: safe.directory
           GIT_CONFIG_VALUE_1: ${{ github.workspace }}
         run: |
-          bash scripts/run_rocq_toolchain.sh bash tests/rocq_cost_receipt_git_context_smoke.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/proof/rocq_cost_receipt_git_context_smoke.sh
           if ! command -v python3 >/dev/null 2>&1; then
             apt-get update
             apt-get install -y --no-install-recommends python3
           fi
-          bash scripts/run_rocq_toolchain.sh bash tests/proof_carrying_adequacy_smoke.sh
-          bash scripts/run_rocq_toolchain.sh bash tests/ownership_cleanup_smoke.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/proof/proof_carrying_adequacy_smoke.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership/ownership_cleanup_smoke.sh
       - name: Check ownership refusal explanations and extracted witness checker
         run: |
-          bash scripts/run_rocq_toolchain.sh bash tests/ownership_refusal_explanation_smoke.sh
-          bash scripts/run_rocq_toolchain.sh bash tests/ownership_refusal_explanation_selftest.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership/ownership_refusal_explanation_smoke.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership/ownership_refusal_explanation_selftest.sh
       - name: Preserve model cost evidence
         uses: actions/upload-artifact@v4
         with:

@@ -95,7 +95,7 @@ unsupported detach와 나머지 multi-tenant 자원은 별도 과제다.
 **P-A1. 중첩 병렬 데드락 닫기 — 2중 방어.** ✅ (a) 완료 (2026-07-17,
 `740f5a68`): help-first await 착지 — RED 실증(강제 fixture 3/3 timeout;
 mild 32/4 형태는 **운으로 통과**해 "테스트는 지나가고 부하에서 죽는" 최악
-형태임을 확인) → GREEN 4/4 (`tests/nested_parallel_witness_smoke.sh`,
+형태임을 확인) → GREEN 4/4 (`tests/parallel/nested_parallel_witness_smoke.sh`,
 c/llvm × mild/forced). 회귀 green: core-contract, join 전 rung + 17 거절,
 backpressure 6/6×2, B_n 무변화(flat await는 main 스레드라 help 미경유).
 (b) semantic fact는 후속(선택) — (a)가 클래스를 제거해 긴급도 하락.
@@ -183,7 +183,7 @@ fine 200k 64x 열위(2239ms, 손-청크 시 동일 워크로드가 1위 = 갭은
   정책 산술+cover 불변식(in-language witness)+projection pin 목록까지
   Pergyra가 소유, manifest 실행→golden diff+C==LLVM leg byte-parity+
   필수 projection 10종 + 금지 legacy projection 1종 grep+self-test
-  (`tests/selfhost_parallel_chunk_policy_smoke.sh`,
+  (`tests/parallel/selfhost_parallel_chunk_policy_smoke.sh`,
   RED 실증 후 GREEN). OWNERS.md/component-smoke/artifact-kind 등록은
   동시-세션 파일 소유로 보드 잔여.
 - ✅ **B3 hot-loop 직접 호출화 (2026-07-19)** — 런타임의 generic

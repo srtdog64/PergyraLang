@@ -27,7 +27,7 @@ seven branch commits, so main can fast-forward to it. The working tree
 of `D:\PergyraLang` has uncommitted GPT work in files the branch also
 changes (`src/semantic/formal_string_store_landing_owner.c` and `.h`,
 `src/semantic/function_param_flow_backing_dependencies.c`,
-`tests/function_param_flow_summary_smoke.sh`), so commit or set that work
+`tests/ir/function_param_flow_summary_smoke.sh`), so commit or set that work
 aside first, then `git merge --ff-only claude/p0-native-checker` and
 replay it.
 
@@ -35,12 +35,12 @@ Gates run on the merge commit `2d1b9a7fa` (fresh WSL tree, Linux):
 
 | Gate | Result |
 |---|---|
-| `tests/function_param_flow_summary_smoke.sh` | pass (256 s) |
-| `tests/aggregate_storage_transfer_smoke.sh` | pass |
+| `tests/ir/function_param_flow_summary_smoke.sh` | pass (256 s) |
+| `tests/ownership/aggregate_storage_transfer_smoke.sh` | pass |
 | `backend_compare/map_clone_deep`, C against LLVM | same output |
 | `operator_overload_rules_unit`, `default_aggregate_copy_graph_unit`, `flow_rows_check_memo_unit`, `flow_closure_worklist_unit` | pass |
 | `readonly_map_query_fact_phase_unit` | 1 failure of 13431, the same on main `06a7980be` (the GPT working tree edits this test) |
-| `tests/semantic_tu_size_smoke.sh` | fails as on main; the merge takes `default_aggregate_move_owner.c` from 600 to 613 counted lines and `formal_string_store_landing_owner.c` from 767 to 775 |
+| `tests/repo/semantic_tu_size_smoke.sh` | fails as on main; the merge takes `default_aggregate_move_owner.c` from 600 to 613 counted lines and `formal_string_store_landing_owner.c` from 767 to 775 |
 
 Not run: the canonical census on the merge, bootstrap, installed driver,
 gen2 == gen3, CI.

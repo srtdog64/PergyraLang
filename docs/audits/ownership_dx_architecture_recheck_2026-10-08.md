@@ -206,7 +206,7 @@ does not prove general ownership inference or claim implementation/CI closure.
 ## Observed review verification
 
 - `tests/language_contract_golden_smoke.sh`: PASS (exit 0).
-- `tests/self_host_hard_contract_smoke.sh`: PASS (exit 0). This verifies contract
+- `tests/self_hosted/gates/self_host_hard_contract_smoke.sh`: PASS (exit 0). This verifies contract
   wiring/source structure, not automatic cleanup or completed substitution.
 - Installed-native C/LLVM probe builds: the two positive controls pass and the
   two unsupported actual forms refuse, as recorded above. No runtime cleanup

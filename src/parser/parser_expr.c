@@ -17,7 +17,7 @@ ASTNode* parse_pipe(Parser* parser);
  * >= 1 inside every function body -- so the count silently accumulated
  * ACROSS statements and a legal 5000-statement function with one operator
  * per line was rejected at statement ~4096 (caught by
- * tests/adversarial_input_smoke.sh big_valid, docs/189 C14).
+ * tests/security/adversarial_input_smoke.sh big_valid, docs/189 C14).
  */
 #define PARSER_MAX_EXPR_OPERATORS 4096
 

@@ -467,7 +467,7 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
   문장을 "순수 질의"로 보고 DCE로 지우는 것이 드러났다. 이름 표(`mir_source_call_is_pure_query`)
   앞에서 fact를 먼저 본다.
 - 기존 픽스처 셋이 예약 이름을 함수로 선언하고 있었다. `backend_compare/max_reduction_slot`과
-  `tests/alpha_full_keyword_test.pgy`의 `Max`는 `Larger`로, semantic 단위 테스트의 top-level
+  `tests/language/alpha_full_keyword_test.pgy`의 `Max`는 `Larger`로, semantic 단위 테스트의 top-level
   `Read`는 `Inspect`로 바꿨다. `tests/concept_semantics/hashmap/shadowed_map_keys_drop.pgy`
   (`MapKeys`)는 이제 선언에서 거부된다.
 - 남은 것(10.5에서 다룸): method의 bare 호출, 빌트인 철자가 아닌 이름과 런타임 심볼의 충돌.
@@ -500,7 +500,7 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 - 기본 C 경로: `codegen/emission/call_argument_order_owner.pgy`가 같은 규칙으로 by-value 인자를
   statement expression 안의 임시 변수에 묶는다. inout·ref·identity 인자는 주소라 제자리에 둔다.
   이항 연산자 피연산자는 이미 같은 방식이었다.
-- 게이트: `tests/call_argument_evaluation_order_smoke.sh`가 네 경로에서 사용자·빌트인 호출을 보고,
+- 게이트: `tests/language/call_argument_evaluation_order_smoke.sh`가 네 경로에서 사용자·빌트인 호출을 보고,
   native C/LLVM과 기본 C 경로에서 method 호출과 `ArraySet`을 본다. 기본 LLVM 경로는 method
   픽스처의 모양을 아직 받지 않고 거부한다. 틀린 순서로 도는 경로는 없다.
 - receiver: method receiver는 인자보다 먼저 평가한다. 전에는 receiver가 호출 안에 남아 인자보다

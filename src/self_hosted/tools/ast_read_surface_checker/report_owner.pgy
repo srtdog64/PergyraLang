@@ -10,7 +10,7 @@ func AstReadSurfaceSchema() -> String {
 }
 
 func AstReadSurfaceRatchetOwnerPath() -> String {
-    return "tests/ast_read_surface_ratchet.txt";
+    return "tests/repo/ast_read_surface_ratchet.txt";
 }
 
 func AstReadSurfaceInventoryOwner() -> String {
@@ -119,7 +119,7 @@ func AstReadSurfaceInputErrorJson(error_kind: String, key: String, location: Str
 func AstReadSurfaceReportOwnerReady() -> Bool {
     let no_findings: Array<String> = [];
     return AstReadSurfaceSchema() == "pgy.selfhost.ast-read-surface.v1" &&
-        AstReadSurfaceRatchetOwnerPath() == "tests/ast_read_surface_ratchet.txt" &&
+        AstReadSurfaceRatchetOwnerPath() == "tests/repo/ast_read_surface_ratchet.txt" &&
         AstReadSurfaceInventoryOwner() == "DirWalk(scope)" &&
         AstReadSurfaceGrowthFindingKind() == "surface_growth" &&
         StringIndexOf(AstReadSurfaceReportJson(true, AstReadSurfaceRatchetOwnerPath(), 0, 0, 0, 0, 0, 0, 0, no_findings), AstReadSurfaceSchema()) >= 0;

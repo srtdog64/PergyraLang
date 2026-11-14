@@ -108,7 +108,7 @@ native compile bypass.
   walk.
 - `src/compiler/debugger.c:196-296` owns prompts, stepping, breakpoints,
   context, backtrace, quit, and the source-AST traversal order.
-- `tests/tooling_conformance_smoke.sh:90-107` exercises only the current native
+- `tests/repo/tooling_conformance_smoke.sh:90-107` exercises only the current native
   parse/semantic/interactive-quit observable; it is not Pergyra ownership
   evidence.
 
@@ -167,7 +167,7 @@ partial-failure outcome. Do not build it solely to remove native C.
   `src/compiler/pkg_manifest.c:575-596` owns the `pgy.toml` template.
 - `src/compiler/pkg_lock.c:287-322` owns the deterministic `pgy.lock` text and
   publication diagnostic.
-- `tests/package_module_resolver_smoke.sh:73-95` observes those native files and
+- `tests/language/package_module_resolver_smoke.sh:73-95` observes those native files and
   messages. It does not establish a Pergyra producer.
 
 ### Pergyra owner and classification

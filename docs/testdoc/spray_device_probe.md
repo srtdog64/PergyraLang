@@ -51,4 +51,4 @@ description for the current simulated-dispatch plus device-readback contract.
 - exact results:
   [`examples/spray_device_probe/expected_results.txt`](/mnt/e/PergyraLang/examples/spray_device_probe/expected_results.txt)
 - example smoke:
-  [`tests/example_contract_smoke.sh`](/mnt/e/PergyraLang/tests/example_contract_smoke.sh)
+  [`tests/repo/example_contract_smoke.sh`](/mnt/e/PergyraLang/tests/repo/example_contract_smoke.sh)

@@ -270,7 +270,7 @@ Float→Int가 무가드**고, **LLVM 레그의 `.bc` 인라인 구성은 로컬
 
 ### C14. 측정·캠페인 갭 — 컴파일 속도는 무측정, fuzz는 미가동
 
-- **증거**: ① `tests/perf_contract_smoke.sh`(HEAD 기준; 현재 유저
+- **증거**: ① `tests/perf/perf_contract_smoke.sh`(HEAD 기준; 현재 유저
   편집 중)는 **하드코딩 가짜 시각**(`compile=0.500s`)을 로그에 쓰고
   summary **포맷만** grep — 실제 가치는 fail-open 폴백 grep이고 컴파일
   속도 임계는 0개. 단계별 타이밍 계기(`PGY_DEBUG_PIPELINE_TIMING`,

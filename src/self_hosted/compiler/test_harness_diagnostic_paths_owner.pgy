@@ -32,7 +32,7 @@ func CompilerHarnessDiagnosticCatalogDocsOwnerPath() -> String {
 }
 
 func CompilerHarnessDiagnosticCatalogCOraclePath() -> String {
-    return "tests/diagnostic_registry_smoke.sh";
+    return "tests/registry/diagnostic_registry_smoke.sh";
 }
 
 func CompilerHarnessDiagnosticCatalogPathCount() -> Int {

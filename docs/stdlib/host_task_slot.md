@@ -49,13 +49,13 @@ Open `projection` (generation 1), replace it with the same key (generation 2),
 then attempt generation-1 wait publication, final publication, and cleanup.
 All three must be rejected with `stale_generation` while generation 2 remains
 current. The generation-2 ticket must still complete waiting, final, and
-cleanup. `tests/host_task_slot_smoke.sh` executes this case on C and LLVM.
+cleanup. `tests/parallel/host_task_slot_smoke.sh` executes this case on C and LLVM.
 
 The policy falsifier applies `skip`, `spawn`, and `restart` in that order to
 the same active generation. The first two must preserve both the slot and the
 current ticket, while only restart invalidates the old ticket. After cleanup,
 spawn must start the next generation; malformed phase/generation facts must be
-rejected unchanged. `tests/host_task_policy_smoke.sh` executes the exact trace
+rejected unchanged. `tests/parallel/host_task_policy_smoke.sh` executes the exact trace
 on C and LLVM. `make stdlib-test-smoke` runs the unrelated aggregate stdlib
 surface first, then both stable-`use host_task_slot;` lifecycle and policy
 gates. `make host-task-slot-test-smoke` and

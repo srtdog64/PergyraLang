@@ -62,5 +62,5 @@ Re-check with:
 
 ```sh
 make async-model-adequacy-test-smoke
-bash tests/coq_kernel_check.sh
+bash tests/proof/coq_kernel_check.sh
 ```

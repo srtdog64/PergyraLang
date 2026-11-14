@@ -12,13 +12,13 @@ Pergyra가 잡지 못하는 부류도 빼지 않는다. 그런 행은 `ACCEPTED_
 ## 실행
 
 ```bash
-PGY_BIN=.tmp/claude-bin/pgy.exe bash tests/counterexample_corpus_smoke.sh
+PGY_BIN=.tmp/claude-bin/pgy.exe bash tests/repo/counterexample_corpus_smoke.sh
 ```
 
 - `PGY_BIN`에는 현재 C 소스로 빌드한 컴파일러를 준다. 기본값은 `bin/pgy`이다.
 - TypeScript(`tsc`, `node`), C#(`dotnet`, .NET 10의 파일 하나짜리 실행), Python, Rust(`rustc`, 표준 라이브러리만)가 있으면 함께 돌린다. Rust는 `RUSTC`, PATH, `~/.cargo/bin` 순서로 찾는다. 없는 도구는 통과가 아니라 `SKIP`으로 찍는다. `PGY_CORPUS_OTHERS=0`이면 다른 언어를 돌리지 않는다.
 - 데모(아래)도 함께 돈다. `PGY_CORPUS_DEMO=0`이면 뺀다.
-- 수동 게이트다(`tests/manual_gate_inventory.tsv`). 이 기계에서 약 3분 걸린다.
+- 수동 게이트다(`tests/repo/manual_gate_inventory.tsv`). 이 기계에서 약 3분 걸린다.
 
 ## 사례 구성
 

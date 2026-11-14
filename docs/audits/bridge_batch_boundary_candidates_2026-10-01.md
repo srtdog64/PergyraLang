@@ -41,7 +41,7 @@ The installed composition is real, not just a declared stage world:
 These are source-call-graph observations, not a newly executed gate. The live
 ArrayDrop audit records an installed C/LLVM pair at this HEAD's feature boundary;
 it does not prove machine-contact, generic, or AIR lifetime completeness.
-`tests/machine_layer_pipeline_smoke.sh` explicitly forces the native pipeline;
+`tests/ir/machine_layer_pipeline_smoke.sh` explicitly forces the native pipeline;
 it must not be reported as default installed source-route substitution.
 
 ## 1. Machine-contact AST lookup deletion: smallest residue, not full closure

@@ -31,6 +31,6 @@ non-zero with a diagnostic on any missing owner fact.
 
 ## Oracle
 
-`tests/machine_layer_pipeline_smoke.sh` and
+`tests/ir/machine_layer_pipeline_smoke.sh` and
 `tests/self_hosted/mir_machine_layer_smoke.sh` remain the native producer and
 mutation oracles.
