@@ -26,14 +26,14 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "$owner hard cap exceeded: $lines/$cap"
     shared_nominal_total=$((shared_nominal_total + lines))
 done <<'SHARED_NOMINAL_OWNER_CAPS'
-direct_mir_nominal_literal_declaration_fact_owner.pgy|180
-direct_mir_nominal_literal_graph_fact_owner.pgy|150
-direct_mir_nominal_literal_program_identity_owner.pgy|200
-direct_mir_nominal_literal_route_fact_owner.pgy|110
-direct_mir_nominal_literal_instruction_envelope_owner.pgy|100
-direct_mir_nominal_literal_abi_absence_owner.pgy|120
-direct_mir_nominal_literal_program_admission_owner.pgy|220
-direct_mir_nominal_literal_projection_owner.pgy|110
+direct_mir/direct_mir_nominal_literal_declaration_fact_owner.pgy|180
+direct_mir/direct_mir_nominal_literal_graph_fact_owner.pgy|150
+direct_mir/direct_mir_nominal_literal_program_identity_owner.pgy|200
+direct_mir/direct_mir_nominal_literal_route_fact_owner.pgy|110
+direct_mir/direct_mir_nominal_literal_instruction_envelope_owner.pgy|100
+direct_mir/direct_mir_nominal_literal_abi_absence_owner.pgy|120
+direct_mir/direct_mir_nominal_literal_program_admission_owner.pgy|220
+direct_mir/direct_mir_nominal_literal_projection_owner.pgy|110
 SHARED_NOMINAL_OWNER_CAPS
 [[ "$shared_nominal_total" -le 900 ]] || \
     fail "shared nominal literal owner cap exceeded: $shared_nominal_total/900"
@@ -45,10 +45,10 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "$owner hard cap exceeded: $lines/$cap"
     mutable_identity_total=$((mutable_identity_total + lines))
 done <<'MUTABLE_IDENTITY_OWNER_CAPS'
-direct_mir_mutable_nominal_identity_plan_owner.pgy|180
-direct_mir_mutable_nominal_identity_target_projection_owner.pgy|100
-direct_mir_mutable_nominal_identity_c_emission_owner.pgy|90
-direct_mir_mutable_nominal_identity_llvm_emission_owner.pgy|90
+direct_mir/direct_mir_mutable_nominal_identity_plan_owner.pgy|180
+direct_mir/direct_mir_mutable_nominal_identity_target_projection_owner.pgy|100
+direct_mir/direct_mir_mutable_nominal_identity_c_emission_owner.pgy|90
+direct_mir/direct_mir_mutable_nominal_identity_llvm_emission_owner.pgy|90
 MUTABLE_IDENTITY_OWNER_CAPS
 [[ "$mutable_identity_total" -le 384 ]] || \
     fail "mutable nominal identity owner cap exceeded: $mutable_identity_total/384"
