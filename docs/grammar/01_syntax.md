@@ -426,6 +426,28 @@ func Pick(flag: Bool) -> Int {
   본문은 받고, 끝까지 흘러갈 수 있는 non-`Void` 본문은 `PGY_SEM_MISSING_RETURN`으로
   거부한다(`docs/compiler/205_language_limit_and_fact_gap_closure_design.md` L1).
 
+#### 진입점 `Main`의 결과와 종료 코드
+
+진입점(`Main`, `Main`이 없으면 `main`)의 결과는 프로세스 종료 코드다
+([결정](../truth/decisions/2026-11-15_main_int_result_is_exit_status.md)).
+
+```pergyra
+func Main() -> Int {
+    Log("checked");
+    return 3;   // 종료 코드 3
+}
+```
+
+- `-> Void`: 끝까지 가거나 `return;`하면 종료 코드는 0이다.
+- `-> Int`: 돌려준 값이 종료 코드다. Main이 돌아온 뒤, 즉 Main의 defer와 소유권 정리가
+  끝난 뒤 넘긴다. 호스트가 값을 받는 방식은 `Exit(code)`와 같다(Linux는 하위 8비트만
+  남겨 `return 300`은 44로 끝난다).
+- `-> Never`: `Exit(code)`로 끝난다.
+- 그 밖의 결과 타입(`Bool`, `String`, `Float`, `Long` 등)은 두 프런트엔드 모두
+  `PGY_SEM_TYPE_MISMATCH`(cause `semantic:entrypoint:result_type`)로 거부한다.
+- `Exit(code)`는 그 자리에서 프로세스를 끝내므로 Main의 defer와 소유권 정리를 거치지
+  않는다. 정리를 마친 뒤 0이 아닌 코드로 끝내려면 Main에서 `Int`를 돌려준다.
+
 ### 2.3 타입 선언
 
 ```pergyra

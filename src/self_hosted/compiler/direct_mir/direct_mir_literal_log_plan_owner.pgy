@@ -25,9 +25,12 @@ func DirectMirLiteralLogIntegerKind() -> Int { return 1; }
 func DirectMirLiteralLogStringKind() -> Int { return 2; }
 func DirectMirLiteralLogRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput) -> Bool {
+    // Only a Void entrypoint: an Int result is the exit status, which this
+    // route does not emit, so that program goes to the scalar program route.
     if MirProgramRoutineIndexCount(admitted.routines) != 1 ||
         admitted.routines.routine_block_counts[0] != 1 ||
-        MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, 0, 0) != 2 { return false; }
+        MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, 0, 0) != 2 ||
+        !DirectMirRoutineNoParamSignatureReady(admitted.routines, 0, "Void", 2) { return false; }
     let row: Int = MirProgramRoutineIndexGlobalInstructionRow(admitted.routines, 0, 0, 0);
     if row < 0 { return false; }
     let expression: MirProgramInstructionExpressionFact = MirProgramInstructionExpressionIndexAt(

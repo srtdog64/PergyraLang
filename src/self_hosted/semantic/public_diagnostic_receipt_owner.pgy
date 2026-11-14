@@ -138,6 +138,10 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
         return SemanticPublicDiagnosticIdentity(
             true, "semantic:cfg:missing_return_path", "add-return-on-all-paths");
     }
+    if code == "entrypoint_result_type" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:entrypoint:result_type", "return-int-or-void-from-main");
+    }
     if code == "return_type_mismatch" {
         return SemanticPublicDiagnosticIdentity(
             true,

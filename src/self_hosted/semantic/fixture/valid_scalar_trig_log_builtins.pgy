@@ -1,4 +1,4 @@
-func Main() -> Float {
+func Probe() -> Float {
     let zero: Float = 0.0;
     let one: Float = 1.0;
     let two: Float = 2.0;
@@ -18,4 +18,8 @@ func Main() -> Float {
     let ten: Float = Log10(hundred);
     let two_log: Float = Log2(eight);
     return Pow(two, three) + s + c + t + asi + aco + ata + at2 + rounded + expd + logged + ten + two_log;
+}
+
+func Main() -> Void {
+    let probe: Float = Probe();
 }

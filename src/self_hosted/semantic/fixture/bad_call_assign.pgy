@@ -1,5 +1,9 @@
-func Main() -> String {
+func Probe() -> String {
     let s: String = "hi";
     let x: String = StringLength(s);
     return x;
+}
+
+func Main() -> Void {
+    let probe: String = Probe();
 }

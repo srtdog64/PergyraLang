@@ -1,6 +1,6 @@
-func Main() -> Bool {
+func Main() -> Void {
     let table: HashMap<String, Int> = MapNew();
     var copy: HashMap<String, Int> = table;
     MapSet(copy, "seed", 1);
-    return MapHas(table, "seed");
+    Log(MapHas(table, "seed"));
 }

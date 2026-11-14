@@ -2,6 +2,10 @@ func DoubleValue() -> Double {
     return 1.25;
 }
 
-func Main() -> Float {
+func Probe() -> Float {
     return DoubleValue();
+}
+
+func Main() -> Void {
+    let probe: Float = Probe();
 }

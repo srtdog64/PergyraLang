@@ -105,6 +105,14 @@ func SemanticAstEntrypointUsesLowercaseSpelling(
         IsSome(SemanticAstEntrypointSignatureIndex(fact, signature_count));
 }
 
+// The entrypoint's result is the process exit status
+// (docs/truth/decisions/2026-11-15_main_int_result_is_exit_status.md):
+// Void (or no result) and Never give 0, Int is the status.
+func SemanticAstEntrypointResultTypeAdmitted(result_type: String) -> Bool {
+    return result_type == "" || result_type == "Void" ||
+        result_type == "Int" || result_type == "Never";
+}
+
 func SemanticEntrypointSingleRuntimeCallableSelected(name: String) -> Bool {
     var accumulator: SemanticAstEntrypointSelectionAccumulator =
         SemanticAstEntrypointSelectionAccumulatorEmpty();

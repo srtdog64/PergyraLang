@@ -14,6 +14,33 @@ mir_program_main_function_name(const MIRProgram *mir)
     return mir != NULL ? mir->main_function_name : NULL;
 }
 
+/* The process exit status the entrypoint hands to the host
+ * (docs/truth/decisions/2026-11-15_main_int_result_is_exit_status.md):
+ * Void and Never give 0, an Int result is the status, and any other return
+ * type has no status and must not reach a backend wrapper. */
+MIRMainExitKind
+mir_program_main_exit_kind(const MIRProgram *mir)
+{
+    if (mir == NULL || !mir->has_main_function
+        || mir->main_function_name == NULL)
+        return MIR_MAIN_EXIT_NONE;
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        const MIRRoutine *routine = &mir->routines[i];
+        if (routine->ast == NULL || routine->ast->type != AST_FUNC_DECL
+            || routine->owner_name != NULL || routine->name == NULL
+            || strcmp(routine->name, mir->main_function_name) != 0)
+            continue;
+        const char *ret = mir_routine_return_type_name(routine);
+        if (ret == NULL || strcmp(ret, "Void") == 0
+            || strcmp(ret, "Never") == 0)
+            return MIR_MAIN_EXIT_ZERO;
+        if (strcmp(ret, "Int") == 0)
+            return MIR_MAIN_EXIT_INT_RESULT;
+        return MIR_MAIN_EXIT_UNSUPPORTED;
+    }
+    return MIR_MAIN_EXIT_NONE;
+}
+
 bool
 mir_program_has_top_level_exec(const MIRProgram *mir)
 {

@@ -17,6 +17,7 @@ native trials); a local PASS is not CI evidence.
 | macOS, Windows, formal proofs, tsan | PASS on CI at `a7d7655e1` |
 | Lifetime fixture sweeps (868, ASan, C and LLVM legs of both front ends; not a CI gate) | Locally on WSL on `fix/llvm-leg-memory`: the only memory errors left are endless recursion (`inout_cycle_*`); C-leg [evidence](../evidence/2026-11-15_selfhost_lifetime_fixture_admissions.md); LLVM IR is linked through `/root/fx_llvm.sh` with a use-after-free witness |
 | LSP hover registry (`make self-host-lsp` first; not in a CI shard) | PASS locally on WSL at `751e5dd05` (language=27, builtin=7) |
+| Entrypoint exit status on four legs (`entrypoint_exit_status_leg_owner.sh`, core shard) | 2026-11-15: PASS locally on WSL (`/root/mx-exit`, branch `claude/jovial-austin-8f780a`); FAIL on `a7d7655e1` binaries (native C exited 0 for `return 3`); not yet on CI |
 
 Job times at `a7d7655e1`: seed part 22 min (limit 60), native oracle
 13 min, build-linux 18 min, join 11 min, codegen bootstrap 19 min,

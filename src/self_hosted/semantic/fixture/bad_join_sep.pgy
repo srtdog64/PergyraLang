@@ -1,4 +1,8 @@
-func Main() -> String {
+func Probe() -> String {
     let parts: Array<String> = Split("a,b", ",");
     return Join(parts, 1);
+}
+
+func Main() -> Void {
+    let probe: String = Probe();
 }

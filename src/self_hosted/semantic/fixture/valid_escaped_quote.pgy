@@ -1,4 +1,8 @@
-func Main() -> String {
+func Probe() -> String {
     let q: String = Concat("a", "\"");
     return q;
+}
+
+func Main() -> Void {
+    let probe: String = Probe();
 }

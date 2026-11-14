@@ -122,9 +122,8 @@ func SemanticReason(code: String) -> String {
     if code == "ast_artifact_invalid" {
         return "parser-owned AST artifact does not satisfy the shared HIR contract";
     }
-    if code == "entrypoint_cardinality" {
-        return "program entrypoint cardinality does not match the compilation boundary";
-    }
+    if code == "entrypoint_cardinality" { return "program entrypoint cardinality does not match the compilation boundary"; }
+    if code == "entrypoint_result_type" { return "the entrypoint's result is the process exit status; only Void, Int and Never are admitted"; }
     if code == "function_signature_invalid" {
         return "function signature rows are incomplete in the shared AST artifact";
     }
@@ -277,9 +276,8 @@ func SemanticFix(code: String) -> String {
     if code == "ast_artifact_invalid" {
         return "repair the parser artifact producer instead of reconstructing syntax downstream";
     }
-    if code == "entrypoint_cardinality" {
-        return "declare one Main function, or one lowercase main when Main is absent";
-    }
+    if code == "entrypoint_cardinality" { return "declare one Main function, or one lowercase main when Main is absent"; }
+    if code == "entrypoint_result_type" { return "return Int as the exit status, or return Void and end with Exit(code) for another status"; }
     if code == "function_signature_invalid" {
         return "repair the parser-owned function signature fact instead of inferring it in codegen";
     }

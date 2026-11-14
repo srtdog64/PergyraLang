@@ -1,4 +1,8 @@
-func Main() -> Float {
+func Probe() -> Float {
     let value: Float = Sin("0");
     return value;
+}
+
+func Main() -> Void {
+    let probe: Float = Probe();
 }

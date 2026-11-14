@@ -186,12 +186,24 @@ llvm_main_emit_event_initializers(LLVMGenCtx *ctx)
     return true;
 }
 
-static void
-llvm_main_emit_user_main(LLVMGenCtx *ctx, LLVMFuncEntry *main_user)
+/* Calls the user entrypoint. An Int result is the process exit status
+ * (MIR_MAIN_EXIT_INT_RESULT) and is returned as i32; otherwise NULL. */
+static LLVMValueRef
+llvm_main_emit_user_main(LLVMGenCtx *ctx, LLVMFuncEntry *main_user,
+                         MIRMainExitKind exit_kind)
 {
-    if (main_user != NULL)
+    if (main_user == NULL)
+        return NULL;
+    if (exit_kind != MIR_MAIN_EXIT_INT_RESULT) {
         LLVMBuildCall2(ctx->builder, main_user->fn_type,
                        main_user->fn, NULL, 0, "");
+        return NULL;
+    }
+    LLVMValueRef result = LLVMBuildCall2(ctx->builder, main_user->fn_type,
+                                         main_user->fn, NULL, 0,
+                                         "pgy.main.result");
+    return LLVMBuildIntCast2(ctx->builder, result, ctx->type_i32, 1,
+                             "pgy.main.status");
 }
 
 /* Detached async blocks finish before the program exits. Only a module
@@ -308,6 +320,19 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
             emitted_main_name != NULL ? emitted_main_name : "Main");
         return;
     }
+    MIRMainExitKind main_exit_kind = mir_program_main_exit_kind(
+        llvm_active_mir_identity(ctx));
+    if (has_main_function
+        && (main_exit_kind == MIR_MAIN_EXIT_UNSUPPORTED
+            || main_exit_kind == MIR_MAIN_EXIT_NONE
+            || (main_exit_kind == MIR_MAIN_EXIT_INT_RESULT
+                && LLVMGetTypeKind(LLVMGetReturnType(main_user->fn_type))
+                       != LLVMIntegerTypeKind))) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path has no process exit status for entrypoint '%s'",
+            emitted_main_name != NULL ? emitted_main_name : "Main");
+        return;
+    }
     bool has_top_level = has_top_level_exec
         || has_main_function;
     if (!has_top_level)
@@ -334,6 +359,7 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     LLVMLexicalRegistrySnapshot lexical_snapshot =
         llvm_lexical_registry_snapshot(ctx);
     bool scope_pushed = false;
+    LLVMValueRef main_status = NULL;
 
     LLVMSetLinkage(main_fn, LLVMExternalLinkage);
     ctx->current_function = main_fn;
@@ -371,7 +397,7 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     if (!llvm_main_emit_event_initializers(ctx))
         goto restore_state;
     if (has_main_function)
-        llvm_main_emit_user_main(ctx, main_user);
+        main_status = llvm_main_emit_user_main(ctx, main_user, main_exit_kind);
     if (!llvm_main_emit_top_level_exec(ctx, has_top_level_exec))
         goto restore_state;
 
@@ -383,7 +409,8 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
             goto restore_state;
         if (!llvm_main_emit_thread_pool_shutdown(ctx, needs_thread_pool))
             goto restore_state;
-        LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0));
+        LLVMBuildRet(ctx->builder, main_status != NULL
+            ? main_status : LLVMConstInt(ctx->type_i32, 0, 0));
     }
     llvm_mark_function_as_used(ctx, "main");
 

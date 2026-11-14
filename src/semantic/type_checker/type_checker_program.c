@@ -90,6 +90,47 @@ program_report_resolution_oom(SemanticContext *ctx,
     return false;
 }
 
+/* The entrypoint's result is the process exit status
+ * (docs/truth/decisions/2026-11-15_main_int_result_is_exit_status.md), so
+ * it returns Void, Never or Int. The entrypoint is the top-level Main, or
+ * the top-level main when there is no Main, as MIR selects it. */
+static void
+program_check_entrypoint_result(ASTNode *program, SemanticContext *ctx)
+{
+    ASTNode *upper = NULL;
+    ASTNode *lower = NULL;
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
+        const char *name = stmt != NULL && stmt->type == AST_FUNC_DECL
+            ? ast_declaration_name(stmt) : NULL;
+        if (name != NULL && strcmp(name, "Main") == 0 && upper == NULL)
+            upper = stmt;
+        else if (name != NULL && strcmp(name, "main") == 0 && lower == NULL)
+            lower = stmt;
+    }
+    ASTNode *entry = upper != NULL ? upper : lower;
+    if (entry == NULL)
+        return;
+    Type *result = program_lookup_dag_func_return_type_or_void(entry, ctx);
+    if (result == TYPE_UNKNOWN || type_equals(result, TYPE_VOID)
+        || type_equals(result, TYPE_NEVER) || type_equals(result, TYPE_INT))
+        return;
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_TYPE_MISMATCH,
+        PGY_CAUSE_ENTRYPOINT_RESULT_TYPE,
+        PGY_FIX_RETURN_INT_OR_VOID_FROM_MAIN,
+        entry,
+        "Entrypoint '%s' returns '%s', which is not a process exit status.\n"
+        "Reason:\n"
+        "- the value the entrypoint returns becomes the process exit status\n"
+        "- only Void (status 0), Int (the status) and Never are admitted\n"
+        "Fix:\n"
+        "- return Int and use it as the exit status\n"
+        "- or return Void and end the process with Exit(code) for another status",
+        ast_declaration_name(entry),
+        result->name != NULL ? result->name : "<unknown>");
+}
+
 bool
 type_check_program(ASTNode *program, SemanticContext *ctx)
 {
@@ -513,6 +554,10 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             }
         }
     }
+
+    /* Before the bodies, as the self-host entrypoint verdict precedes its
+     * body checks: a program's first diagnostic is the same on both. */
+    program_check_entrypoint_result(program, ctx);
 
     if (timing) {
         t_pass1 = program_timing_now() - t_mark;

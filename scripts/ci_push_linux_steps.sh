@@ -60,6 +60,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/ownership/text_conversion_argument_owner.sh'
     run 'bash tests/self_hosted/parity/semantic/default_route_scalar_value_owner.sh'
     run 'bash tests/self_hosted/parity/codegen/runtime_panic_leg_owner.sh'
+    run 'bash tests/self_hosted/parity/codegen/entrypoint_exit_status_leg_owner.sh'
     run 'bash tests/self_hosted/parity/one_mir/one_mir_string_case_math_projection.sh'
     run 'bash tests/self_hosted/parity/semantic/default_route_method_receiver_order_owner.sh'
     run 'bash tests/self_hosted/parity/driver/parent_relative_output_path_owner.sh'

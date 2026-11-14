@@ -1,3 +1,7 @@
-func Main() -> Long {
+func Probe() -> Long {
     return 1L + L;
+}
+
+func Main() -> Void {
+    let probe: Long = Probe();
 }

@@ -285,6 +285,16 @@ emit_program(TranspilerCtx *ctx)
             main_function_name != NULL ? main_function_name : "Main");
         return;
     }
+    MIRMainExitKind main_exit_kind = mir_program_main_exit_kind(
+        transpiler_active_mir_identity(ctx));
+    if (has_main_function
+        && main_exit_kind != MIR_MAIN_EXIT_ZERO
+        && main_exit_kind != MIR_MAIN_EXIT_INT_RESULT) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path has no process exit status for entrypoint '%s'",
+            main_function_name);
+        return;
+    }
 
     /* File header */
     codebuf_write(ctx->out,
@@ -613,8 +623,15 @@ emit_program(TranspilerCtx *ctx)
             codebuf_write(ctx->out, "__pgy_top_level_exec();\n");
         }
 
-        /* If Main() exists and no top-level statements, call it */
-        if (has_main_function) {
+        /* An Int result of Main is the process exit status; it is returned
+         * after the runtime below has drained and shut down. */
+        bool main_status = has_main_function
+            && main_exit_kind == MIR_MAIN_EXIT_INT_RESULT;
+        if (main_status) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "int32_t pgy_main_status = %s();\n",
+                transpiler_c_user_callable_symbol(ctx, main_function_name));
+        } else if (has_main_function) {
             write_indent(ctx);
             codebuf_write(ctx->out, "%s();\n",
                 transpiler_c_user_callable_symbol(ctx, main_function_name));
@@ -633,7 +650,8 @@ emit_program(TranspilerCtx *ctx)
         }
 
         write_indent(ctx);
-        codebuf_write(ctx->out, "return 0;\n");
+        codebuf_write(ctx->out, main_status
+            ? "return (int)pgy_main_status;\n" : "return 0;\n");
         ctx->indent--;
         codebuf_write(ctx->out, "}\n");
     }

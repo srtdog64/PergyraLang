@@ -1,3 +1,7 @@
-func Main() -> Bool {
+func Probe() -> Bool {
     return 1 && 2;
+}
+
+func Main() -> Void {
+    let probe: Bool = Probe();
 }

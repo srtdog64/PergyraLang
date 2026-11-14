@@ -1,5 +1,9 @@
-func Main() -> String {
+func Probe() -> String {
     Print("prefix:");
     Print("body");
     return "ok";
+}
+
+func Main() -> Void {
+    let probe: String = Probe();
 }

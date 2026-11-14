@@ -1,5 +1,9 @@
-func Main() -> String {
+func Probe() -> String {
     let source: String = "func Fake() -> Void { MissingSymbol(); }";
     let tail: String = "return \"ok\";";
     return Concat(source, tail);
+}
+
+func Main() -> Void {
+    let probe: String = Probe();
 }

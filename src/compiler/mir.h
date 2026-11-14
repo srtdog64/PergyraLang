@@ -286,6 +286,14 @@ const MIRDeclHeader *mir_find_decl_header_of_type(
                 const char *name);
 bool        mir_program_has_main_function(const MIRProgram *mir);
 const char *mir_program_main_function_name(const MIRProgram *mir);
+typedef enum
+{
+    MIR_MAIN_EXIT_NONE,
+    MIR_MAIN_EXIT_ZERO,
+    MIR_MAIN_EXIT_INT_RESULT,
+    MIR_MAIN_EXIT_UNSUPPORTED
+} MIRMainExitKind;
+MIRMainExitKind mir_program_main_exit_kind(const MIRProgram *mir);
 bool        mir_program_has_top_level_exec(const MIRProgram *mir);
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);
 bool        mir_run_dce_pass(MIRProgram *mir, char **error_message);

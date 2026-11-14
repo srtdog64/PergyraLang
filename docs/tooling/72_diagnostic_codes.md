@@ -114,6 +114,15 @@ Assignment or pass-site where the source type is not assignable to the target ty
 - **Reason**: static type rule — `from` is not a subtype of `to` and no coercion applies.
 - **Fix**: change one side so types align, or introduce an explicit conversion.
 
+The same code refuses an entrypoint (`Main`, or `main` when there is no
+`Main`) whose result type is not `Void`, `Int` or `Never`, because the
+entrypoint's result is the process exit status. Both front ends report it
+before checking function bodies, so it is a program's first diagnostic on
+both.
+
+- **cause_ir**: `semantic:entrypoint:result_type`
+- **fix_source**: `return-int-or-void-from-main`
+
 #### `PGY_SEM_BINOP_TYPE_MISMATCH`
 
 Binary operator applied to operands of incompatible types where the operator does not define a mixed-type rule (e.g. `Int + Bool` without overload).

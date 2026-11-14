@@ -82,6 +82,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "collection_ownership_unresolved",
         "ast_artifact_invalid",
         "entrypoint_cardinality",
+        "entrypoint_result_type",
         "function_signature_invalid",
         "input_missing",
         "local_binding_invalid",
@@ -135,7 +136,8 @@ func SemanticDiagnosticPublicLayer(code: String) -> String {
 // span stays `none`. Every other registered code names a construct, and the
 // publishing boundary takes its span from that construct's AST node.
 func SemanticDiagnosticSpanIsProgramWide(code: String) -> Bool {
-    return code == "entrypoint_cardinality" || code == "input_missing" ||
+    return code == "entrypoint_cardinality" ||
+        code == "entrypoint_result_type" || code == "input_missing" ||
         code == "unregistered_diagnostic_code" ||
         code == "capability_fact_invalid" || code == "ast_artifact_invalid";
 }
@@ -152,6 +154,7 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "move_from_released" { return "PGY_SEM_MOVE_FROM_RELEASED"; }
     if code == "single_owner_handle_not_consumed" { return "PGY_SEM_OWNER_NOT_CONSUMED"; }
     if code == "single_owner_handle_boundary" { return "PGY_SEM_TYPE_MISMATCH"; }
+    if code == "entrypoint_result_type" { return "PGY_SEM_TYPE_MISMATCH"; }
     if code == "generic_constraint_unsatisfied" { return "PGY_SEM_CLASS_CONTRACT_INVALID"; }
     if code == "zone_contract_invalid" { return "PGY_SEM_ZONE_CONTRACT_INVALID"; }
     if code == "undefined_symbol" {

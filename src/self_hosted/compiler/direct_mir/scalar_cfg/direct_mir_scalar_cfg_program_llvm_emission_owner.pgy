@@ -200,7 +200,21 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
                 DirectMirScalarProgramLlvmStringArrayCleanup(plan, lifetime, routine));
             TextBuilderAppend(output, DirectMirOwnedLocalExitCleanup(plan, lifetime, routine, block, true));
             if routine == plan.routines.entrypoint_ordinal {
-                TextBuilderAppend(output, "  ret i32 0\n");
+                // The entrypoint's Int result is the process exit status.
+                if expression.type_name != CompilerAbiLayoutIntTypeName() {
+                    Die("direct MIR scalar CFG LLVM entrypoint result has no exit status");
+                }
+                let status_type: String =
+                    DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+                        expression.type_name, plan.program.logical_record,
+                        plan.program.payload_free_enum,
+                        plan.program.referenced_enum);
+                if status_type == "i32" {
+                    TextBuilderAppend(output, "  ret i32 ${return_value}\n");
+                } else {
+                    TextBuilderAppend(output,
+                        "  %pgy.main.status.${block} = trunc ${status_type} ${return_value} to i32\n  ret i32 %pgy.main.status.${block}\n");
+                }
             } else {
                 TextBuilderAppend(output, "  ret ");
                 TextBuilderAppend(output,

@@ -115,6 +115,14 @@ func SemanticAstArtifactEntrypointVerdict(artifact: AstTreeArtifact,
             requires_entrypoint
         );
     }
+    // The entrypoint's result is the process exit status.
+    let entry: Option<Int> = SemanticAstEntrypointSignatureIndex(
+        signatures.entrypoint_selection, SemanticAstFunctionSignatureCount(signatures));
+    if IsSome(entry) && !SemanticAstEntrypointResultTypeAdmitted(signatures.return_types[UnwrapOption(entry)]) {
+        return SemanticAstArtifactVerdictError("entrypoint_result_type", SemanticError2("entrypoint_result_type",
+            "function", signatures.names[UnwrapOption(entry)], "result", signatures.return_types[UnwrapOption(entry)]),
+            artifact.count, artifact.identity_digest, main_count, requires_entrypoint);
+    }
     return SemanticAstArtifactVerdictOk(
         artifact.count, artifact.identity_digest, main_count,
         requires_entrypoint

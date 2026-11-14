@@ -230,6 +230,7 @@
 
 /* --- Semantic: control flow / patterns --- */
 #define PGY_CAUSE_CFG_MISSING_RETURN            "semantic:cfg:missing_return_path"
+#define PGY_CAUSE_ENTRYPOINT_RESULT_TYPE        "semantic:entrypoint:result_type"
 #define PGY_CAUSE_CFG_UNREACHABLE_STATEMENT     "semantic:cfg:unreachable_statement"
 #define PGY_CAUSE_CONDITION_NON_BOOL            "semantic:condition:non_bool"
 #define PGY_CAUSE_LOOP_CONTROL                  "semantic:loop_control"
@@ -380,6 +381,7 @@
 #define PGY_FIX_ADD_ANNOTATION_OR_INITIALIZER   "add-annotation-or-initializer"
 #define PGY_FIX_INITIALIZE_AT_BINDING           "initialize-at-binding"
 #define PGY_FIX_ADD_RETURN_ON_ALL_PATHS         "add-return-on-all-paths"
+#define PGY_FIX_RETURN_INT_OR_VOID_FROM_MAIN    "return-int-or-void-from-main"
 #define PGY_FIX_REMOVE_OR_MOVE_BEFORE_TERMINATOR \
     "remove-or-move-before-terminator"
 #define PGY_FIX_BIND_THE_MOVED_VALUE_ONCE       "bind-the-moved-value-once"

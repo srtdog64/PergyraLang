@@ -1,5 +1,9 @@
-func Main() -> Long {
+func Probe() -> Long {
     let base: Long = 7L;
     let narrowed: Int = base as Int;
     return ((narrowed as Long) + 2L) % 5L;
+}
+
+func Main() -> Void {
+    let probe: Long = Probe();
 }

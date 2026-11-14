@@ -117,8 +117,13 @@ func DirectMirScalarCfgProgramCBlockExit(
             DirectMirScalarProgramCStringArrayCleanup(plan, lifetime, routine));
         TextBuilderAppend(output, DirectMirOwnedLocalExitCleanup(plan, lifetime, routine, block, false));
         if routine == plan.routines.entrypoint_ordinal {
+            // The entrypoint's Int result is the process exit status.
+            if plan.routines.return_types[routine] !=
+                    CompilerAbiLayoutIntTypeName() {
+                Die("direct MIR scalar C entrypoint result has no exit status");
+            }
             TextBuilderAppend(output,
-                "    (void)pgy_return_${block};\n    return 0;\n");
+                "    return (int)pgy_return_${block};\n");
         } else {
             TextBuilderAppend(output, "    return pgy_return_${block};\n");
         }

@@ -1,4 +1,4 @@
-func Main() -> String {
+func Probe() -> String {
     let parts: Array<String> = StringSplit("red,green,blue", ",");
     let joined: String = Join(parts, "|");
     let has: Bool = StringContains(joined, "green");
@@ -6,4 +6,8 @@ func Main() -> String {
         return joined;
     }
     return StringJoin(parts, ",");
+}
+
+func Main() -> Void {
+    let probe: String = Probe();
 }
