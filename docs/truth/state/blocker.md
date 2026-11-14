@@ -1,12 +1,13 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-14 on `ci/all-green` at `cdb65d798`;
-CI run 43554588799 at that SHA is green with every required job executed.
+Owner: Claude root lane. Checked 2026-11-14 on `reorg/folders` at
+`360ff8cf0`, the folder reorganization on top of the green `cdb65d798`.
 
 ## Objective card
 
 - Objective: keep required CI green on one published commit, with the
-  bootstrap and installed-driver jobs executed (met at `cdb65d798`).
+  bootstrap and installed-driver jobs executed (met at `cdb65d798`; the
+  reorganization must hold it).
 - Priority: memory safety of what either front end admits; one fact owner;
   fail-closed admission; C/LLVM parity; fixed point; exact-SHA CI.
 - Forbidden: a larger job or gate timeout, a reduced canonical input, a
@@ -14,37 +15,44 @@ CI run 43554588799 at that SHA is green with every required job executed.
 
 ## Open, in dependency order
 
-1. User request (2026-11-13): reorganize the folder tree right after CI is
-   green (tests, docs, parity, src; merge `editor/` and `editors/`), with
-   every reference updated in the same change and the full gate set run.
-2. Native admits 28 negative fixtures that fail under ASan
+1. Required CI on the published reorganization commit.
+2. Generator drift no required job checks (all older than the
+   reorganization): `builtin_effect_projection_owner.pgy` lacks the
+   registry's `ArraySetOwnedString` row; the hover projection says `var`
+   where its renderer emits `let`; the language-word implementation
+   inventory counts are stale.
+3. Native admits 28 negative fixtures that fail under ASan
    ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md)).
-3. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
+4. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
    root); a pass-through `wslpath` shim makes it pass.
-4. The self-host MIR route carries no compiler `Clone`; native lands one for
+5. The self-host MIR route carries no compiler `Clone`; native lands one for
    `collection_field_use_after_move`, the self-host refuses it.
 
-## Done since `d78654846`
+## Done since `cdb65d798`
 
-- `85c05361d`, `0d35d1238`: typed routine refusals; field restore, CFG
-  shallow mutation and borrowed or unknown binding moves on the direct-MIR
-  route. CI at `59e40856b`: build-linux green.
-- `6283b8aa3`, `c7c9c9153`, `d4f601885`, `2b377d955`: subject receiver
-  stores as in-place `assign`; native moves of unowned elements; ownership
-  gate sections; policy corpus in the join job. CI at `ac0205b71`: every
-  job green except contracts.
-- `87d3223b6`: the native landing fixed point keeps its copy plan across
-  store growth; the semantic owner probe takes 12 analyses instead of 51
-  ([record](../evidence/2026-11-14_landing_copy_plan_retention.md)).
-- `08d7301f9`: the identity probe is one program of the shared build.
-- CI at `cdb65d798` (run 43554588799): every required job green; the
-  contracts shard took 15.4 min.
+- Folder reorganization (user decision 2026-11-13): `editors/` holds both
+  extensions; parity scripts in twelve family directories; loose `tests/`
+  gates in subject directories; loose `docs/` documents in their facade
+  areas; large flat `src/` directories split by file prefix (codegen `c/`
+  and `llvm/`, compiler IR families, `type_checker/`, `direct_mir/`,
+  `driver/`, `ast_collection/`, `ast_expression/`).
+- Gates kept their coverage across the moves: depth-limited scans
+  (`semantic_tu_size`, `test_inc_size`, numbered-doc uniqueness, inc
+  sentinel) read the new directories, and the semantic 599-line cap covers
+  `ast_collection/` and `ast_expression/`.
+- The codegen seed prebuild key hashed three shared legs at paths that no
+  longer existed into empty fields; it now refuses a missing input.
+- Locally at `360ff8cf0` (WSL): native build, semantic tests 3394/3394,
+  seed, driver, seed-side intent gates, CLI mode, core shard, contracts
+  shard. Branch CI at `d29fda1bb` (run 43578035229): 32 of 33 jobs green,
+  fixed point included; contracts failed only on two line caps that
+  `360ff8cf0` fits.
 
 ## Falsifiers kept
 
 - A drop on one branch still refuses the read after the join; own
   transfers of storage a constructor kept stay refused natively.
-- A struct read after its String field moved into an `own` formal is
-  refused by the self-host.
 - A field restore whose MIR row names another field, and a binding move
   whose destination row names itself, are refused with no artifact.
+- A 600-line unregistered owner in `src/self_hosted/semantic/ast_collection/`
+  is refused; a missing shared leg refuses the seed prebuild key.
