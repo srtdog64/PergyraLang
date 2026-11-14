@@ -238,7 +238,7 @@ def render(rows: list[HoverRow]) -> str:
         f"    if LspHoverPresentationBuiltinCount() != {builtin_count} {{",
         "        return false;",
         "    }",
-        "    let index: Int = 0;",
+        "    var index: Int = 0;",
         "    while index < LspHoverPresentationCount() {",
         "        let word: String = LspHoverPresentationWordAt(index);",
         "        let text: String = LspHoverPresentationTextAt(index);",

@@ -97,6 +97,7 @@ func SemanticBuiltinFixedEffectMask(name: String) -> Int {
     if name == "ArrayPushOwnedString" { return SemanticEffectMaskForWord("local"); }
     if name == "ArrayReverse" { return SemanticEffectMaskForWord("local"); }
     if name == "ArraySet" { return SemanticEffectMaskForWord("local"); }
+    if name == "ArraySetOwnedString" { return SemanticEffectMaskForWord("local"); }
     if name == "ArraySort" { return SemanticEffectMaskForWord("local"); }
     if name == "CompilerRetireArrayStorage" { return SemanticEffectMaskForWord("local"); }
     if name == "ListGet" { return SemanticEffectMaskForWord("local"); }

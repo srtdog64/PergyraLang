@@ -80,6 +80,8 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make build-source-inventory-test-smoke'
     run 'make gate-subject-declaration-test-smoke'
     run 'make gate-script-reachability-test-smoke'
+    run 'make builtin-effect-registry-test-smoke'
+    run 'make language-keyword-registry-test-smoke'
     run 'make long-literal-exactness-test-smoke'
     run 'make string-window-extent-test-smoke'
     run 'make call-argument-evaluation-order-test-smoke'
