@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 /* Shared by the two parallel capture reach owners:
  * parallel_capture_storage_reach.c owns the host field model below, and

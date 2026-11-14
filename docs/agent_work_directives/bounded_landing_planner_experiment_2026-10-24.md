@@ -259,7 +259,7 @@ rules are paused until the experiment reports.
 - Exact canonical evidence used product binary SHA-256
   `bb4f272fac96beee2b06ce383e60309a46a002de4cd9ef2510471699a86600ae6`
   and the unchanged command `bin/pgy --native-pipeline --mir-json
-  --error-format=json src/self_hosted/compiler/driver_bootstrap_main.pgy` in
+  --error-format=json src/self_hosted/compiler/driver/driver_bootstrap_main.pgy` in
   `/home/c/pgy-validation/v1-batch-20261028-2dE4h5`.  It preserved rounds 0
   through 28, reached round 34, then exited 124 at 30:00.14 with no MIR and a
   2331992 KiB maximum resident set.  This is six generations of additional

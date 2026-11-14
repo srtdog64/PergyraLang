@@ -1,0 +1,266 @@
+// Semantic value-category facts for expression graph nodes.
+//
+// Addressability is decided here after local/iteration type fixpoint. Codegen
+// consumes the carried place kind and must not rebuild it from names or C
+// bindings.
+
+import "../ast_artifact_verdict_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
+import "ast_expression_graph_receiver_type_owner.pgy";
+import "../ast_initializer_iteration_refinement_owner.pgy";
+import "../ast_match_binding_environment_owner.pgy";
+import "ast_expression_function_table_fact_owner.pgy";
+import "../ast_intent_expression_environment_owner.pgy";
+import "../ast_body_analysis_admission_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "../env_value_owner.pgy";
+
+func SemanticExpressionPlaceKindForNode(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
+) -> Int {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind) { return SemanticExpressionPlaceUnknown(); }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        let text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, node_id
+        );
+        if !IsSome(text) || !IsIdentifier(UnwrapOption(text)) ||
+            !EnvValueContainsName(names, enum_values, UnwrapOption(text)) {
+            return SemanticExpressionPlaceValue();
+        }
+        let mode: String = EnvValueMode(names, modes, enum_values, UnwrapOption(text));
+        if mode == "enum_value" || mode == "" {
+            return SemanticExpressionPlaceValue();
+        }
+        if mode == "ref_param" {
+            return SemanticExpressionPlaceReadonlyRefBinding();
+        }
+        return SemanticExpressionPlaceBinding();
+    }
+    if UnwrapOption(kind) != AstExpressionNodeMemberAccess() {
+        return SemanticExpressionPlaceValue();
+    }
+    let member: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, node_id);
+    if !member.ok || member.receiver_node < 0 ||
+        member.receiver_node >= node_id ||
+        !SemanticExpressionPlaceKindAddressable(
+            graph.arena.place_kinds[member.receiver_node]
+        ) || !IsSome(SemanticExpressionGraphReceiverTypeName(
+            graph, node_id, constructors, names, types, enum_values
+        )) {
+        return SemanticExpressionPlaceValue();
+    }
+    return SemanticExpressionPlaceMember();
+}
+
+func SemanticExpressionGraphPlaceKindsReady(
+    ref graph: SemanticExpressionGraphFacts
+) -> Bool {
+    if !SemanticExpressionGraphFactsReady(
+        graph, ArrayLength(graph.roots)
+    ) {
+        return false;
+    }
+    var i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.place_kinds[i] ==
+            SemanticExpressionPlaceUnknown() {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    if !initializer_types.ok || !iteration_types.ok ||
+        !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
+        ArrayLength(initializer_types.inferred_type_names) !=
+            SemanticAstLocalBindingCount(analysis.local_bindings) {
+        return false;
+    }
+    if !SemanticAstIntentSignatureFactsAdmittedReady(
+        artifact, analysis.intent_signatures
+    ) {
+        return false;
+    }
+    var iteration_function_node_ids: Array<Int> = [];
+    var iteration_binding_names: Array<String> = [];
+    var iteration_index: Int = 0;
+    while iteration_index < SemanticAstIterationTypeCount(iteration_types) {
+        let statement_index: Option<Int> =
+            SemanticAstStatementIndexForNode(
+                analysis.statements, iteration_types.node_ids[iteration_index]
+            );
+        if !IsSome(statement_index) { return false; }
+        let row: Int = UnwrapOption(statement_index);
+        ArrayPush(
+            iteration_function_node_ids,
+            analysis.statements.function_node_ids[row]
+        );
+        ArrayPush(
+            iteration_binding_names, analysis.statements.payload_texts[row]
+        );
+        iteration_index = iteration_index + 1;
+    }
+
+    var last_root: Int = -1;
+    var root_slot: Int = 0;
+    var valid: Bool = true;
+    while root_slot < ArrayLength(
+        analysis.expression_surfaces.expression_graph.roots
+    ) && valid {
+        if analysis.expression_surfaces.expression_graph.has_roots[root_slot] {
+            let root_id: Int =
+                analysis.expression_surfaces.expression_graph.roots[root_slot];
+            let surface_index: Int = root_slot / 3;
+            if surface_index < 0 || surface_index >= ArrayLength(
+                analysis.expression_surfaces.node_ids
+            ) || root_id <= last_root {
+                valid = false;
+            } else {
+                var names: Array<String> = [];
+                var types: Array<String> = [];
+                var modes: Array<String> = [];
+                let use_node_id: Int =
+                    analysis.expression_surfaces.node_ids[surface_index];
+                let function_node_id: Option<Int> =
+                    SemanticAstExpressionFunctionNodeAt(
+                        analysis.expression_surfaces,
+                        analysis.signatures, surface_index
+                    );
+                let intent_node_id: Option<Int> =
+                    SemanticAstExpressionIntentNodeAt(
+                        analysis.expression_surfaces, analysis.intent_signatures, surface_index);
+                var environment_ok: Bool = SemanticAstEnumValueRowsReady(analysis.enums);
+                if environment_ok && IsSome(function_node_id) {
+                        environment_ok =
+                            SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
+                            analysis.signatures, analysis.constructors,
+                            UnwrapOption(function_node_id), names, types, modes
+                        ) && SemanticAstExpressionSeedParameters(
+                            analysis.signatures, analysis.constructors, UnwrapOption(function_node_id),
+                            names, types
+                        ) && SemanticAstExpressionSeedParameterModes(
+                            analysis.signatures, UnwrapOption(function_node_id),
+                            modes
+                        ) && SemanticAstExpressionSeedVisibleLocals(
+                            artifact, analysis.local_bindings,
+                            initializer_types.inferred_type_names,
+                            UnwrapOption(function_node_id), use_node_id,
+                            names, types, modes
+                        ) && SemanticAstExpressionSeedVisibleIterationRows(
+                            artifact, iteration_types.node_ids,
+                            iteration_function_node_ids,
+                            iteration_binding_names,
+                            iteration_types.binding_type_names,
+                            iteration_types.verified,
+                            UnwrapOption(function_node_id), use_node_id,
+                            names, types, modes
+                        ) && SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+                            artifact, analysis.statements,
+                            analysis.expression_surfaces,
+                            analysis.constructors, analysis.enums,
+                            analysis.function_scopes,
+                            UnwrapOption(function_node_id), use_node_id,
+                            names, types, modes, function_tables
+                        );
+                } else if environment_ok && IsSome(intent_node_id) {
+                    environment_ok = SemanticAstIntentExpressionSeedEnvironment(
+                        artifact, analysis.signatures,
+                        analysis.intent_signatures,
+                        analysis.intent_transitions,
+                        UnwrapOption(intent_node_id), use_node_id,
+                        names, types, modes, analysis.enums.value_scope
+                    );
+                } else {
+                    environment_ok = false;
+                }
+                if !environment_ok ||
+                    ArrayLength(names) != ArrayLength(types) ||
+                    ArrayLength(names) != ArrayLength(modes) {
+                    valid = false;
+                }
+                if valid {
+                    var node_id: Int = last_root + 1;
+                    while node_id <= root_id && valid {
+                        let place_kind: Int =
+                            SemanticExpressionPlaceKindForNode(
+                                analysis.expression_surfaces.expression_graph,
+                                node_id, analysis.constructors,
+                                names, types, modes, analysis.enums.value_scope
+                            );
+                        if place_kind == SemanticExpressionPlaceUnknown() {
+                            valid = false;
+                        } else {
+                            analysis.expression_surfaces.expression_graph.arena.place_kinds[node_id] =
+                                place_kind;
+                        }
+                        node_id = node_id + 1;
+                    }
+                }
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
+            }
+            last_root = root_id;
+        }
+        root_slot = root_slot + 1;
+    }
+    if last_root + 1 != SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    ) {
+        valid = false;
+    }
+    return valid && ArrayLength(
+        analysis.expression_surfaces.expression_graph.arena.place_kinds
+    ) == SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    );
+}
+
+func SemanticAstAnalysisResolveExpressionPlacesFromBody(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) ||
+        !SemanticAstExpressionSurfaceBorrowReady(
+        artifact, analysis.expression_surfaces
+    ) || !SemanticAstIntentSignatureFactsReady(
+        artifact, analysis.intent_signatures
+    ) {
+        return false;
+    }
+    return SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
+        artifact, analysis, initializer_types, iteration_types,
+        function_tables
+    );
+}
+
+func SemanticExpressionPlaceKindContractReady() -> Bool {
+    return !SemanticExpressionPlaceKindAddressable(
+        SemanticExpressionPlaceValue()
+    ) && SemanticExpressionPlaceKindDirectBinding(
+        SemanticExpressionPlaceBinding()
+    ) && SemanticExpressionPlaceKindDirectBinding(
+        SemanticExpressionPlaceReadonlyRefBinding()
+    ) && !SemanticExpressionPlaceKindDirectBinding(
+        SemanticExpressionPlaceMember()
+    ) && SemanticExpressionPlaceKindAddressable(
+        SemanticExpressionPlaceMember()
+    );
+}

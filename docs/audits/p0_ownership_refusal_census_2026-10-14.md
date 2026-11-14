@@ -23,7 +23,7 @@ the remaining set.
    assignment and statement facts) all verify. The refusal comes later in the
    bundle assembly, from
    `SemanticAstCollectionOwnershipScanIntoVerdict`
-   (`src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy`). That
+   (`src/self_hosted/semantic/ast_collection/ast_collection_ownership_scan_owner.pgy`). That
    scan walks every expression root in order and returns at its first refusal.
 3. **Instrument a scratch copy of that owner** (script below; never committed).
    - Each of its 26 `verdict = ...; return;` refusal sites now logs the
@@ -36,7 +36,7 @@ the remaining set.
      unpatched run.
 4. Run the instrumented gen0 with unbuffered stdout on two inputs:
    - `src/self_hosted/codegen/main.pgy`, the gen1 input;
-   - `src/self_hosted/compiler/driver_bootstrap_main.pgy`, the installed-driver
+   - `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`, the installed-driver
      input.
 
 ## Result
@@ -145,7 +145,7 @@ shared tree.
 
 1. Build `bin/pgy`.
 2. Apply the transformation below to
-   `src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy`.
+   `src/self_hosted/semantic/ast_collection/ast_collection_ownership_scan_owner.pgy`.
 3. Build gen0, then `git checkout` the owner file.
 4. Run `stdbuf -o0 gen0 --source <input>`.
 5. Collect the `[p0-census]` lines.

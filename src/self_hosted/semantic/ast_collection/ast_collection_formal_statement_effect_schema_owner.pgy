@@ -1,0 +1,18 @@
+// Formal statement-effect schema.
+
+import "ast_collection_formal_effect_fact_owner.pgy";
+import "../ast_expression/ast_expression_graph_view_owner.pgy";
+import "../ast_statement_fact_owner.pgy";
+import "../ast_owned_string_call_result_admission_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+
+struct SemanticAstCollectionFormalStatementEffects {
+    ok: Bool;
+    owned_formals: HashMap<String, Int>;
+    shallow_formals: HashMap<String, Int>;
+    target_rows: HashMap<String, Int>;
+    // Exact parser-statement mutation site for a formal. A negative value
+    // records more than one site and cannot seed the owned-mutation chain.
+    owned_site_nodes: HashMap<String, Int>;
+}
+

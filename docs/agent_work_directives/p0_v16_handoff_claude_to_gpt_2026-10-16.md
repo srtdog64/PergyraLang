@@ -114,7 +114,7 @@ DRV-2 MIR. Each one hid the next.
 - **The DRV-2 MIR.** It is 374 MB. A native-built driver's `ReadFile` stops
   at 64 MiB. For scratch diagnosis only, build a driver with
   `PGY_CC=<wrapper adding -DPGY_RUNTIME_MAX_FILE_BYTES=1073741824u>`:
-  `./bin/pgy src/self_hosted/compiler/driver_bootstrap_main.pgy --native-pipeline --backend=c -o <exe>`.
+  `./bin/pgy src/self_hosted/compiler/driver/driver_bootstrap_main.pgy --native-pipeline --backend=c -o <exe>`.
   Then run `<exe> --mir-json driver_source.mir.json -o gen2.c`.
 - **A 1-second reproduction of a round-trip refusal.** Write
   `import "../../<module>"; func Main() -> Int { return 0; }` into a file,

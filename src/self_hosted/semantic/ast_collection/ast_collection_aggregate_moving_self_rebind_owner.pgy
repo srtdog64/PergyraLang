@@ -1,0 +1,139 @@
+// Exact assignment and call-edge proof for an aggregate moving self-rebind.
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_collection_ownership_member_root_identity_owner.pgy";
+import "../ast_assignment_fact_owner.pgy";
+import "../ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "../ast_statement_fact_owner.pgy";
+import "../ast_expression/ast_expression_graph_receiver_type_owner.pgy";
+import "ast_collection_member_path_type_owner.pgy";
+import "ast_collection_argument_permission_effect_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
+import "../ast_local_binding_identity_owner.pgy";
+import "ast_collection_constructor_storage_escape_owner.pgy";
+import "ast_collection_exclusive_value_consumption_owner.pgy";
+import "ast_collection_exclusive_value_owner.pgy";
+import "../ast_expression/ast_expression_storage_place_identity_owner.pgy";
+import "../ast_body_flow_verdict_owner.pgy";
+
+// `x = F(x)` may replace the old storage instead of returning that exact
+// descriptor.  This is still a complete transfer when the existing
+// exclusive-value owner proves one default formal carries the argument into
+// the result, the argument is the exact destination place, and this call is
+// the old value's last use.  A second matching argument or a ref/inout/own
+// formal is not this implicit default-aggregate move.
+func SemanticAstCollectionAggregateMovingSelfRebind(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref facts: SemanticAstCollectionExclusiveValueFacts,
+    function_id: Int, syntax_id: Int,
+    target_node: Int, value_node: Int
+) -> Bool {
+    if !facts.ok || target_node < 0 || value_node < 0 {
+        return false;
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, value_node);
+    if !call.ok || call.call_node < 0 {
+        return false;
+    }
+    var aliases: Int = 0;
+    var admitted: Int = 0;
+    var argument: Int = 0;
+    while argument < ArrayLength(call.argument_nodes) {
+        let argument_node: Int = call.argument_nodes[argument];
+        if SemanticAstExpressionStoragePlaceEqual(
+                artifact, locals, inferred_types, function_id,
+                syntax_id, target_node, syntax_id, argument_node,
+                surfaces.expression_graph) {
+            aliases = aliases + 1;
+            let formal: SemanticAstCollectionArgumentFormalTarget =
+                SemanticAstCollectionArgumentFormalTargetForArgument(
+                    signatures, surfaces.expression_graph,
+                    call.call_node, argument);
+            var mode: Option<Int> = None;
+            if formal.ok {
+                mode = SemanticAstFunctionParamModeAt(
+                    signatures, formal.signature_row, formal.ordinal);
+            }
+            if formal.ok && IsSome(mode) && UnwrapOption(mode) == 0 &&
+                MapHas(facts.carrying, ToString(formal.syntax_id)) {
+                let no_fields: Array<String> = [];
+                let no_sources: Array<Int> = [];
+                let no_field_ids: Array<Int> = [];
+                var recovery_only: Bool = false;
+                let allow_storage_free_reads: Bool = true;
+                if SemanticAstCollectionExclusivePlaceConsumed(
+                        artifact, signatures, constructors, locals,
+                        inferred_types, surfaces, assignments,
+                        facts.surface_starts, facts.surface_ends,
+                        facts.field_reads, facts.copies,
+                        function_id, syntax_id, argument_node,
+                        no_fields, no_sources, no_field_ids,
+                        allow_storage_free_reads, recovery_only) {
+                    admitted = admitted + 1;
+                }
+            }
+        }
+        argument = argument + 1;
+    }
+    return aliases == 1 && admitted == 1;
+}
+
+// The assignment pass proves `x = F(x)` as one complete move, but the later
+// call-edge pass sees the same argument independently. Reuse the assignment's
+// exact proof only for the one physical edge that names the destination place;
+// another argument of the same call does not inherit this authority.
+func SemanticAstCollectionAggregateMovingSelfRebindEdge(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref facts: SemanticAstCollectionExclusiveValueFacts,
+    function_id: Int, syntax_id: Int,
+    edge: SemanticCallArgumentEdgeView
+) -> Bool {
+    if !facts.ok || !edge.ok || function_id <= 0 || syntax_id <= 0 {
+        return false;
+    }
+    var matches: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        if assignments.function_node_ids[row] == function_id &&
+            assignments.node_ids[row] == syntax_id {
+            let target: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, syntax_id, AstExpressionLaneAtom());
+            let value: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, syntax_id, AstExpressionLaneValue());
+            if IsSome(target) && IsSome(value) {
+                let call: SemanticCallSpineView =
+                    SemanticCallSpineViewFromGraph(
+                        surfaces.expression_graph, UnwrapOption(value));
+                if call.ok && call.call_node == edge.call_node &&
+                    SemanticAstExpressionStoragePlaceEqual(
+                        artifact, locals, inferred_types, function_id,
+                        syntax_id, UnwrapOption(target), syntax_id,
+                        edge.argument_node, surfaces.expression_graph) &&
+                    SemanticAstCollectionAggregateMovingSelfRebind(
+                        artifact, signatures, constructors, locals,
+                        inferred_types, surfaces, assignments, facts,
+                        function_id, syntax_id, UnwrapOption(target),
+                        UnwrapOption(value)) {
+                    matches = matches + 1;
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return matches == 1;
+}

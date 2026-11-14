@@ -21,7 +21,7 @@ compiler or runtime semantics and does not claim whole-language async safety.
   authority; prove trace-level containment and fail-closed CFG merge behavior;
   prove exact context carriage and restoration; bind both models to their live
   owners; retain the kernel axiom budget; then minimize the patch.
-- Fact owners: `src/semantic/type_checker_future_lifecycle.c` and the Future
+- Fact owners: `src/semantic/type_checker/type_checker_future_lifecycle.c` and the Future
   state in `src/semantic/symbol_table.h` own lifecycle;
   `src/runtime/pgy_runtime_context.h` owns task-context capture. The Rocq files
   are bounded models of those facts, not replacement authorities.

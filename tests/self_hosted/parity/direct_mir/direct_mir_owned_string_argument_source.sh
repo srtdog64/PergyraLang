@@ -16,9 +16,9 @@ BUILD_TIMEOUT="${PGY_SELFHOST_PROBE_BUILD_TIMEOUT:-300}s"
 STEP_TIMEOUT="${PGY_SELFHOST_PROBE_TIMEOUT:-45}s"
 PROBE="tests/self_hosted/fixtures/direct_mir_owned_string_scalar_projection_probe.pgy"
 FIXTURES="tests/self_hosted/parity/fixture/owned_string_argument_sources"
-OWNER="src/self_hosted/compiler/direct_mir_scalar_program_owned_string_argument_source_owner.pgy"
-CALLER="src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy"
-LITERAL_OWNER="src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy"
+OWNER="src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_argument_source_owner.pgy"
+CALLER="src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy"
+LITERAL_OWNER="src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy"
 IDENTITY_MUTATOR="tests/self_hosted/parity/direct_mir/direct_mir_owned_string_literal_identity_mutations.py"
 POSITIVES=(existing binary_field_positive nary_field_positive)
 NEGATIVES=(borrowed_local_negative borrowed_member_negative default_formal_negative
@@ -47,7 +47,7 @@ run_checked() {
 cp -- "$MANIFEST" "$WORK_DIR/machine-layer.json"
 cmp -s "$MANIFEST" "$WORK_DIR/machine-layer.json" || fail "issued declaration copy changed"
 sha256sum "$PGY" "$MANIFEST" "$PROBE" "$OWNER" "$CALLER" "$LITERAL_OWNER" "$IDENTITY_MUTATOR" \
-    src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy \
     tests/self_hosted/fixtures/direct_mir_owned_string_parameter.pgy \
     "$FIXTURES"/*.pgy >"$WORK_DIR/inputs.sha256"
 find src/self_hosted -type f -name '*.pgy' -print0 | sort -z | \

@@ -1,0 +1,100 @@
+import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
+import "direct_mir_scalar_program_llvm_additional_materialization_owner.pgy";
+import "direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "direct_mir_scalar_program_llvm_bool_to_string_materialization_owner.pgy";
+func DirectMirScalarProgramLlvmAsciiCaseMaterialization(fact: CompilerRuntimeCallAbiFact,
+    range_low: Int, range_high: Int, delta: Int
+) -> String {
+    var output: String = Concat("define internal ptr @", fact.symbol);
+    output = Concat(output, "(ptr %source) {\nentry:\n");
+    output = Concat(output, "  %length = call i64 @strlen(ptr %source)\n");
+    output = Concat(output, "  %size = add i64 %length, 1\n");
+    output = Concat(output, "  %result = call ptr @malloc(i64 %size)\n");
+    output = Concat(output, "  br label %loop\n\nloop:\n");
+    output = Concat(output, "  %index = phi i64 [ 0, %entry ], [ %next, %body ]\n");
+    output = Concat(output, "  %more = icmp ult i64 %index, %length\n");
+    output = Concat(output, "  br i1 %more, label %body, label %done\n\nbody:\n");
+    output = Concat(output, "  %source.at = getelementptr inbounds i8, ptr %source, i64 %index\n");
+    output = Concat(output, "  %byte = load i8, ptr %source.at, align 1\n");
+    output = Concat(output, Concat("  %at.low = icmp uge i8 %byte, ",
+        Concat(ToString(range_low), "\n")));
+    output = Concat(output, Concat("  %at.high = icmp ule i8 %byte, ",
+        Concat(ToString(range_high), "\n")));
+    output = Concat(output, "  %in.range = and i1 %at.low, %at.high\n");
+    output = Concat(output, Concat("  %shifted = add i8 %byte, ",
+        Concat(ToString(delta), "\n")));
+    output = Concat(output, "  %mapped = select i1 %in.range, i8 %shifted, i8 %byte\n");
+    output = Concat(output, "  %result.at = getelementptr inbounds i8, ptr %result, i64 %index\n");
+    output = Concat(output, "  store i8 %mapped, ptr %result.at, align 1\n");
+    output = Concat(output, "  %next = add i64 %index, 1\n  br label %loop\n\ndone:\n");
+    output = Concat(output, "  %nul = getelementptr inbounds i8, ptr %result, i64 %length\n");
+    output = Concat(output, "  store i8 0, ptr %nul, align 1\n  ret ptr %result\n}\n\n");
+    return output;
+}
+
+func DirectMirScalarProgramLlvmBuiltinMaterialization(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> String {
+    let requires_print: Bool = DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprPrintString());
+    if !DirectMirScalarProgramRuntimeRequiresMaterialization(
+        plan.program.runtime_abi
+    ) && !requires_print { return ""; }
+    if !DirectMirScalarProgramRuntimeAbiProjectionReady(
+        runtime, plan.program.runtime_abi
+    ) {
+        Die("direct MIR scalar program LLVM builtin ABI is invalid");
+    }
+    if requires_print && (!formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print")) {
+        Die("direct MIR scalar program LLVM Print materialization ABI is invalid");
+    }
+    var output: String = "";
+    if requires_print {
+        output = Concat(output,
+            "@.pgy.scalar.print.format = private unnamed_addr constant [3 x i8] c\"%s\\00\", align 1\n");
+        output = Concat(output, Concat("define internal void @",
+            runtime.string_print.symbol));
+        output = Concat(output,
+            "(ptr %value) {\nentry:\n  %ignored = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output,
+            "(ptr getelementptr inbounds ([3 x i8], ptr @.pgy.scalar.print.format, i64 0, i64 0), ptr %value)\n  ret void\n}\n\n");
+    }
+    if plan.program.runtime_abi.string_to_string_id != 0 {
+        output = Concat(output,
+            "@.pgy.scalar.tostr.format = private unnamed_addr constant [5 x i8] c\"%lld\\00\", align 1\n");
+        output = Concat(output,
+            "declare i32 @snprintf(ptr, i64, ptr, ...)\n\n");
+        output = Concat(output, Concat("define internal ptr @",
+            runtime.string_to_string.symbol));
+        output = Concat(output, "(i64 %value) {\nentry:\n");
+        output = Concat(output,
+            "  %result = call ptr @malloc(i64 24)\n");
+        output = Concat(output,
+            "  %written = call i32 (ptr, i64, ptr, ...) @snprintf(ptr %result, i64 24, ptr getelementptr inbounds ([5 x i8], ptr @.pgy.scalar.tostr.format, i64 0, i64 0), i64 %value)\n");
+        output = Concat(output, "  ret ptr %result\n}\n\n");
+    }
+    if plan.program.runtime_abi.bool_to_string_id != 0 {
+        output = Concat(output,
+            DirectMirScalarProgramLlvmBoolToStringMaterialization(
+                runtime.bool_to_string));
+    }
+    if plan.program.runtime_abi.string_to_upper_id != 0 {
+        output = Concat(output,
+            DirectMirScalarProgramLlvmAsciiCaseMaterialization(
+                runtime.string_to_upper, 97, 122, -32));
+    }
+    if plan.program.runtime_abi.string_to_lower_id != 0 {
+        output = Concat(output,
+            DirectMirScalarProgramLlvmAsciiCaseMaterialization(
+                runtime.string_to_lower, 65, 90, 32));
+    }
+    output = Concat(output,
+        DirectMirScalarProgramLlvmAdditionalMaterialization(plan, runtime));
+    return output;
+}

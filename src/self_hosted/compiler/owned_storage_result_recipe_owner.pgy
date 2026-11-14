@@ -1,10 +1,10 @@
 // Grounded result/storage proofs consume sealed use and collection facts.
 import "owned_storage_release_plan_owner.pgy";
 import "owned_storage_parameter_recipe_owner.pgy";
-import "direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy";
-import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "owned_payload_enum_match_binding_owner.pgy";
-import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 
 func DirectMirOwnedLocalFreshOrigin(inout origins: Array<Int>, node: Int) -> Bool {

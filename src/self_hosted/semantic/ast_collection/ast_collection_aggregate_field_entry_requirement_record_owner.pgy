@@ -1,0 +1,145 @@
+// Joins an admitted aggregate member entry obligation to the function formal
+// that owns the member root. The fact schema and validation remain with the
+// requirement owner; this owner alone mutates its indexed row set.
+
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "../ast_assignment_fact_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_commit_owner.pgy";
+import "ast_collection_aggregate_field_entry_formal_owner.pgy";
+
+func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, use_syntax_id: Int,
+    local_id: Int, effect_mask: Int,
+    inout facts: SemanticAstCollectionAggregateFieldEntryRequirements
+) -> Bool {
+    let signature_count: Int = ArrayLength(signatures.function_node_ids);
+    let local_count: Int = ArrayLength(locals.node_ids);
+    if !signatures.ok || !SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts) ||
+        ArrayLength(signatures.param_starts) != signature_count ||
+        ArrayLength(signatures.param_counts) != signature_count ||
+        ArrayLength(signatures.param_node_ids) != ArrayLength(signatures.param_modes) ||
+        !locals.ok || ArrayLength(locals.function_node_ids) != local_count ||
+        ArrayLength(inferred_types) != local_count ||
+        !assignments.ok ||
+        ArrayLength(assignments.node_ids) !=
+            ArrayLength(assignments.function_node_ids) ||
+        ArrayLength(assignments.node_ids) !=
+            ArrayLength(assignments.target_is_indexed) ||
+        ArrayLength(assignments.node_ids) !=
+            ArrayLength(assignments.target_texts) ||
+        ArrayLength(assignments.node_ids) !=
+            ArrayLength(assignments.target_root_names) ||
+        ArrayLength(resolved_leaf_types) !=
+            SemanticExpressionGraphArenaNodeCount(
+                surfaces.expression_graph.arena) {
+        return false;
+    }
+    let destination: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, local_id);
+    if !IsSome(destination) ||
+        locals.function_node_ids[UnwrapOption(destination)] != function_id {
+        return false;
+    }
+    let formal: SemanticAstCollectionAggregateFieldEntryFormal =
+        SemanticAstCollectionAggregateFieldEntryFormalForFunction(
+            signatures, function_id);
+    if !formal.ok || use_syntax_id <= 0 || local_id <= 0 ||
+        (effect_mask != SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() &&
+         effect_mask != SemanticAstCollectionAggregateFieldEntryEffectOwnedPush()) {
+        return false;
+    }
+
+    // Fold only an exact chain of initializer definitions with no preceding
+    // whole-binding assignment. A reassigned carrier is a different
+    // generation and receives no entry grant; the ordinary call verdict then
+    // rejects it fail-closed. Each
+    // initializer path comes from the existing exact member-identity owner at
+    // that definition's typed value node. This joins owned facts; it neither
+    // scans program roots nor invents a second path authority.
+    var reversed_path: Array<Int> = [];
+    var cursor_id: Int = local_id;
+    var root_id: Int = 0;
+    var remaining: Int = local_count + 1;
+    while root_id == 0 && remaining > 0 {
+        let cursor: Option<Int> =
+            SemanticAstLocalBindingIndexForNode(locals, cursor_id);
+        if !IsSome(cursor) { root_id = cursor_id; }
+        else {
+            let cursor_row: Int = UnwrapOption(cursor);
+            if locals.function_node_ids[cursor_row] != function_id {
+                return false;
+            }
+            // Query assignment facts only for this candidate chain. A global
+            // definition prepass would repeat the ownership scan over every
+            // surface just to prove these few declaration generations.
+            var assignment_row: Int = 0;
+            while assignment_row < ArrayLength(assignments.node_ids) {
+                if assignments.function_node_ids[assignment_row] ==
+                        function_id &&
+                    assignments.node_ids[assignment_row] < use_syntax_id &&
+                    assignments.target_is_indexed[assignment_row] == 0 &&
+                    assignments.target_texts[assignment_row] ==
+                        assignments.target_root_names[assignment_row] {
+                    let assignment_target: Option<Int> =
+                        SemanticAstExpressionGraphRootForNode(
+                            surfaces,
+                            assignments.node_ids[assignment_row],
+                            AstExpressionLaneAtom());
+                    if !IsSome(assignment_target) { return false; }
+                    let assigned: SemanticAstLocalBindingIdentity =
+                        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                            artifact, locals, inferred_types, function_id,
+                            assignments.node_ids[assignment_row],
+                            surfaces.expression_graph,
+                            UnwrapOption(assignment_target));
+                    if assigned.ok && assigned.declaration_node_id ==
+                            cursor_id {
+                        return true;
+                    }
+                }
+                assignment_row = assignment_row + 1;
+            }
+            let value_node: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, cursor_id, AstExpressionLaneValue());
+            if !IsSome(value_node) {
+                return true;
+            }
+            let identity: SemanticAstCollectionMemberMoveIdentity =
+                SemanticAstCollectionMemberMoveIdentityForNode(
+                    artifact, signatures, constructors, locals,
+                    inferred_types, resolved_leaf_types, function_id,
+                    cursor_id, surfaces.expression_graph,
+                    UnwrapOption(value_node));
+            if !identity.ok ||
+                ArrayLength(identity.field_path_ids) == 0 {
+                return true;
+            }
+            var path_index: Int =
+                ArrayLength(identity.field_path_ids) - 1;
+            while path_index >= 0 {
+                let field_id: Int = identity.field_path_ids[path_index];
+                if field_id <= 0 { return false; }
+                ArrayPush(reversed_path, field_id);
+                path_index = path_index - 1;
+            }
+            cursor_id = identity.source_binding_syntax_id;
+        }
+        remaining = remaining - 1;
+    }
+    if root_id <= 0 || ArrayLength(reversed_path) == 0 {
+        return true;
+    }
+    return SemanticAstCollectionAggregateFieldEntryRequirementCommit(
+        signatures, formal.signature_row, formal.parameter_count,
+        root_id, reversed_path,
+        function_id, local_id, effect_mask, facts);
+}

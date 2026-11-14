@@ -2455,7 +2455,7 @@ cross-seal한다. Stage-0 self C와 native C/LLVM compensation gate는 green이�
   `definition:done:2432`에 멈췄고, 첫 expression epoch는
   `definitions:done:6716`까지 전진했다. 현재 call/member lifetime epoch까지
   포함한 Pergyra-built codegen은 typed
-  `--observe-source-pressure src/self_hosted/compiler/driver_bootstrap_main.pgy`
+  `--observe-source-pressure src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`
   를 128.609초, peak private 3066.5MiB로 exit 0 완료해
   `definitions:done:6718`, `support-blocks:done`, `output:finished`를 기록했다.
   9,840,366-byte C artifact(SHA-256

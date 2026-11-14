@@ -53,11 +53,11 @@ func CompilerArtifactZoneOwnerPath() -> String {
 }
 
 func CompilerTestHarnessOwnerPath() -> String {
-    return "src/self_hosted/compiler/test_harness_owner.pgy";
+    return "src/self_hosted/compiler/test_harness/test_harness_owner.pgy";
 }
 
 func CompilerTestHarnessManifestPath() -> String {
-    return "src/self_hosted/compiler/test_harness_manifest.pgy";
+    return "src/self_hosted/compiler/test_harness/test_harness_manifest.pgy";
 }
 
 func CompilerSubprocessRunnerOwnerPath() -> String {
@@ -89,35 +89,35 @@ func CompilerStageArtifactOwnerPath() -> String {
 }
 
 func CompilerDriverPipelineOwnerPath() -> String {
-    return "src/self_hosted/compiler/driver_pipeline_owner.pgy";
+    return "src/self_hosted/compiler/driver/driver_pipeline_owner.pgy";
 }
 
 func CompilerDriverBootstrapMainPath() -> String {
-    return "src/self_hosted/compiler/driver_bootstrap_main.pgy";
+    return "src/self_hosted/compiler/driver/driver_bootstrap_main.pgy";
 }
 
 func CompilerDriverRung0OwnerPath() -> String {
-    return "src/self_hosted/compiler/driver_rung0_owner.pgy";
+    return "src/self_hosted/compiler/driver/driver_rung0_owner.pgy";
 }
 
 func CompilerDriverRung0MainPath() -> String {
-    return "src/self_hosted/compiler/driver_rung0_main.pgy";
+    return "src/self_hosted/compiler/driver/driver_rung0_main.pgy";
 }
 
 func CompilerDriverCliOwnerPath() -> String {
-    return "src/self_hosted/compiler/driver_cli_owner.pgy";
+    return "src/self_hosted/compiler/driver/driver_cli_owner.pgy";
 }
 
 func CompilerDriverRung1MainPath() -> String {
-    return "src/self_hosted/compiler/driver_rung1_main.pgy";
+    return "src/self_hosted/compiler/driver/driver_rung1_main.pgy";
 }
 
 func CompilerDriverRung2OwnerPath() -> String {
-    return "src/self_hosted/compiler/driver_rung2_owner.pgy";
+    return "src/self_hosted/compiler/driver/driver_rung2_owner.pgy";
 }
 
 func CompilerDriverRung2MainPath() -> String {
-    return "src/self_hosted/compiler/driver_rung2_main.pgy";
+    return "src/self_hosted/compiler/driver/driver_rung2_main.pgy";
 }
 
 func CompilerAuthorityOwnerPath() -> String {

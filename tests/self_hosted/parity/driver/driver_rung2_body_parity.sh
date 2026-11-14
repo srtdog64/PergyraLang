@@ -129,7 +129,7 @@ if [[ -n "$PREBUILT_DRIVER" ]]; then
     C_DRIVER="$PREBUILT_DRIVER"
     MANIFEST_DRIVER="$BUILD_DIR/driver_fixture_manifest.exe"
     compile_driver c "$MANIFEST_DRIVER" \
-        "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_fixture_manifest_main.pgy"
+        "$ROOT_DIR/src/self_hosted/compiler/driver/driver_rung2_fixture_manifest_main.pgy"
 else
     compile_driver c "$C_DRIVER"
 fi

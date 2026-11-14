@@ -37,9 +37,9 @@ owns exact identities, all six measurements, validation and artifact paths.
 
 - Producer: the already typed constant Array literal and its element count.
 - Current native C owner: `emit_array_literal_expression` in
-  `src/codegen/transpiler_expr_composite_literal_emit.c`, especially the
+  `src/codegen/c/transpiler_expr_composite_literal_emit.c`, especially the
   per-element push emission. Its frozen and current source hashes are equal.
-- Native LLVM sibling: `src/codegen/llvm_expr_aggregate.c`; it zeroes the
+- Native LLVM sibling: `src/codegen/llvm/llvm_expr_aggregate.c`; it zeroes the
   Array descriptor and emits one push per element without preallocation.
   Its frozen and current source hashes are also equal. No LLVM speedup was
   measured in this follow-up.

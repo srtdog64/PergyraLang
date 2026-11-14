@@ -1,0 +1,84 @@
+#include <string.h>
+
+#include "type_checker_internal.h"
+#include "type_checker_builtins_internal.h"
+#include "../diag_codes.h"
+#include "../function_param_flow/function_param_publication_owner.h"
+
+static const char *
+secure_token_slot_name_or_unknown(const Symbol *slot_sym)
+{
+    return (slot_sym != NULL && slot_sym->name != NULL)
+        ? slot_sym->name
+        : "<slot>";
+}
+
+bool
+builtin_validate_secure_token_arg(ASTNode *token_arg,
+                                  Symbol *slot_sym,
+                                  Type *slot_type,
+                                  SemanticContext *ctx, ASTNode *call, size_t ordinal)
+{
+    Symbol *token_sym;
+    Type *expected_token_type;
+    Type *token_args[1];
+    const char *token_name;
+
+    if (token_arg == NULL || slot_sym == NULL || slot_type == NULL
+        || !type_slot_is_secure(slot_type)) {
+        return false;
+    }
+
+    if (token_arg->type != AST_IDENTIFIER
+        || ast_identifier_name(token_arg) == NULL) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE, token_arg,
+            "SecureSlot '%s' requires a named paired token identifier",
+            secure_token_slot_name_or_unknown(slot_sym));
+        return false;
+    }
+
+    token_name = ast_identifier_name(token_arg);
+    token_sym = lookup_identifier_symbol(token_arg, ctx);
+    if (token_sym == NULL || token_sym->kind != SYMBOL_TOKEN) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE, token_arg,
+            "'%s' is not a capability token for slot '%s'",
+            token_name, secure_token_slot_name_or_unknown(slot_sym));
+        return false;
+    }
+
+    if (slot_sym->slot_info.paired_token_name == NULL
+        || strcmp(slot_sym->slot_info.paired_token_name, token_name) != 0) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE, token_arg,
+            "Token '%s' is not paired with slot '%s'",
+            token_name, secure_token_slot_name_or_unknown(slot_sym));
+        return false;
+    }
+
+    token_args[0] = type_slot_inner_type(slot_type) != NULL
+        ? type_slot_inner_type(slot_type)
+        : TYPE_UNKNOWN;
+    expected_token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+    if (token_sym->type != NULL && expected_token_type != NULL
+        && !type_equals(token_sym->type, expected_token_type)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE, token_arg,
+            "Token '%s' does not match SecureSlot '%s' capability type",
+            token_name, secure_token_slot_name_or_unknown(slot_sym));
+        return false;
+    }
+
+    if (semantic_param_publication_pending(ctx) && ast_node_stable_id(call) != 0 &&
+        !semantic_param_publication_record_slot_token_operand(ctx, call, ordinal, slot_sym, token_sym, slot_type)) {
+        if (!ctx->has_error)
+            semantic_error(ctx, token_arg, "Checked secure token operand publication failed");
+        return false;
+    }
+    return true;
+}

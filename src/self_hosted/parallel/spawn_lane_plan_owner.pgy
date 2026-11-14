@@ -286,11 +286,11 @@ func SpawnLanePlanLlvmDriverPath() -> String {
 }
 
 func SpawnLanePlanCEmitterPath() -> String {
-    return "src/codegen/transpiler_spawn_channel_emit.c";
+    return "src/codegen/c/transpiler_spawn_channel_emit.c";
 }
 
 func SpawnLanePlanLlvmEmitterPath() -> String {
-    return "src/codegen/llvm_expr_spawn_call_helpers.c";
+    return "src/codegen/llvm/llvm_expr_spawn_call_helpers.c";
 }
 
 func SpawnLanePlanRequiredCount() -> Int {

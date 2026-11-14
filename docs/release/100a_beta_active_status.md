@@ -539,92 +539,92 @@ than a loose split artifact.
 
 Current semantic owner cleanup (2026-05-15): overlay nominal type creation and
 overlay field count/type lookup now live in
-`src/semantic/type_checker_host_overlay.c`. `type_checker_host_helpers.c` is
+`src/semantic/type_checker/type_checker_host_overlay.c`. `type_checker_host_helpers.c` is
 reduced to host-boundary lookup, subject-slot/authority checks, and
 movable-resource helper facts; `test_semantic`, `semantic_core_shape_smoke`,
 `build-source-inventory`, and `test_inc_size_smoke` gate the split.
 
 Current C backend owner cleanup (2026-05-15): `Option<T>` let constructors and
 `HashMap<String,T>` / `List<T>` / `Queue<T>` constructor lowering now live in
-`src/codegen/transpiler_let_collection_emit.h`. `transpiler_let_emit.c` is back
+`src/codegen/c/transpiler_let_collection_emit.h`. `transpiler_let_emit.c` is back
 to the let orchestration path, while collection constructor dispatch has a
 responsibility-named owner. `test_transpile`, source inventory, and owner-size
 smokes gate the split.
 
 Current C backend implementation-header cleanup (2026-05-19): generated
 Result/collection/tuple specialization registry logic now lives in
-`src/codegen/transpiler_specialization_registry.c`. The header is
+`src/codegen/c/transpiler_specialization_registry.c`. The header is
 declaration-only, and AST statement scanning is isolated in
-`src/codegen/transpiler_specialization_scan.c`. Result suffix parsing and `Result<T,E>` specialization
-discovery now live in `src/codegen/transpiler_type_result_mapping_helpers.c`
+`src/codegen/c/transpiler_specialization_scan.c`. Result suffix parsing and `Result<T,E>` specialization
+discovery now live in `src/codegen/c/transpiler_type_result_mapping_helpers.c`
 instead of an implementation header. HashMap stdlib builtin dispatch and
-lowering now live in `src/codegen/transpiler_expr_stdlib_map_builtin.c`, with
+lowering now live in `src/codegen/c/transpiler_expr_stdlib_map_builtin.c`, with
 HashMap metadata validation owned by the shared collection support owner. The
 Queue stdlib builtin follows the same policy in
-`src/codegen/transpiler_expr_stdlib_queue_builtin.c`, with unary collection
+`src/codegen/c/transpiler_expr_stdlib_queue_builtin.c`, with unary collection
 metadata validation also owned by collection support. Result/Option builtin
 dispatch and lowering moved to
-`src/codegen/transpiler_call_result_option_builtin_emit.c`, and
-`src/codegen/transpiler_option_context.h` now provides the narrow Option context
+`src/codegen/c/transpiler_call_result_option_builtin_emit.c`, and
+`src/codegen/c/transpiler_option_context.h` now provides the narrow Option context
 declarations needed by linked owners. Intent observability builtin lowering now
-lives in `src/codegen/transpiler_intent_observability_builtin_emit.c`, while the
+lives in `src/codegen/c/transpiler_intent_observability_builtin_emit.c`, while the
 header is declaration-only. Projection/world lookup seams also moved into the
-compiled projection owner: `src/codegen/transpiler_projection.c` owns overlay
+compiled projection owner: `src/codegen/c/transpiler_projection.c` owns overlay
 domain-slot lookup, projection-target detection, and world-state lookup, and
 `build-source-inventory-test-smoke` rejects the old implementation-header local
 helper names. Domain query builtins (`HasProjection`, `HasLayer`, `HasState`,
 `HasZone`, `HasZoneProjection`, `HasZoneLayer`, and `HasZoneState`) now lower
-through `src/codegen/transpiler_expr_domain_query_builtin.c`, leaving
+through `src/codegen/c/transpiler_expr_domain_query_builtin.c`, leaving
 `transpiler_expr_builtin_dispatch.h` as builtin-family routing rather than a
 mixed zone/world/projection lowering body. I/O and time builtins (`FileOpen`,
 `FileExists`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`,
 `Input`, `Print`, `ReadLine`, `Now`, and `Sleep`) now lower through
-`src/codegen/transpiler_expr_io_builtin.c` for the same reason. Domain
+`src/codegen/c/transpiler_expr_io_builtin.c` for the same reason. Domain
 constructor bodies now live in
-`src/codegen/transpiler_domain_constructor_emit.c`: class compound literals,
+`src/codegen/c/transpiler_domain_constructor_emit.c`: class compound literals,
 party/roster/relation/effect/zone/world designated initializers, projection
 dirty defaults, world dirty defaults, and enum variant constructor call strings
 are no longer embedded in `transpiler_call_constructor_result_emit.h`; the
 remaining dispatch wrapper now lives in `transpiler_call_constructor_result_emit.c`
 and the header is declaration-only. Generic class specialization lookup/ensure
-now lives in `src/codegen/transpiler_generic_class_specialization_emit.c`;
+now lives in `src/codegen/c/transpiler_generic_class_specialization_emit.c`;
 `transpiler_generic_class_specialization_emit.h` is declaration-only and
 `transpiler_func_class_flow_emit.h` no longer injects specialization bodies
 through include order. Function declaration fallback emission, with-slot
 lowering, and return lowering now live in
-`src/codegen/transpiler_func_class_flow_emit.c`, so
+`src/codegen/c/transpiler_func_class_flow_emit.c`, so
 `transpiler_func_class_flow_emit.h` is also declaration-only. Expression core,
 composite literal, and array access
 lowering also moved into linked owners:
-`src/codegen/transpiler_expr_core_emit.c` owns binary/operator, coalescing, and
-checked div/mod lowering; `src/codegen/transpiler_expr_composite_literal_emit.c`
+`src/codegen/c/transpiler_expr_core_emit.c` owns binary/operator, coalescing, and
+checked div/mod lowering; `src/codegen/c/transpiler_expr_composite_literal_emit.c`
 owns tuple and Array literal lowering; and
-`src/codegen/transpiler_expr_array_access_emit.c` owns Array/Slice checked
-access lowering. `src/codegen/transpiler_let_channel_emit.c` owns Channel let
+`src/codegen/c/transpiler_expr_array_access_emit.c` owns Array/Slice checked
+access lowering. `src/codegen/c/transpiler_let_channel_emit.c` owns Channel let
 lowering and channel metadata registration.
-`src/codegen/transpiler_future_type_query.c` owns spawn/Future/RemoteFuture type
+`src/codegen/c/transpiler_future_type_query.c` owns spawn/Future/RemoteFuture type
 queries that were previously static forward-helper bodies, and
-`src/codegen/transpiler_let_type_register_emit.c` owns post-let type
+`src/codegen/c/transpiler_let_type_register_emit.c` owns post-let type
 registration.
-`src/codegen/transpiler_let_box_emit.c` owns `Box<T>`, `Box<Array<T>>`, and
+`src/codegen/c/transpiler_let_box_emit.c` owns `Box<T>`, `Box<Array<T>>`, and
 `Rc<T>` let-constructor lowering.
-`src/codegen/transpiler_let_collection_emit.c` now owns `Option<T>` `Some`/`None`
+`src/codegen/c/transpiler_let_collection_emit.c` now owns `Option<T>` `Some`/`None`
 let lowering plus stable `HashMap<String,T>`, `List<T>`, and `Queue<T>`
-constructor lowering. `src/codegen/transpiler_zone_specialization_emit.c` is
+constructor lowering. `src/codegen/c/transpiler_zone_specialization_emit.c` is
 also source-inventory linked for required zone specialization discovery. Their
 headers are declaration-only. The redundant `transpiler_mir_emit_predicates.h`
 wrapper header is deleted; C function/intent emitters call the canonical
 `*_with_reason(...)` MIR contract APIs directly. `pergyra_ast_type_to_c_copy(...)`
-now lives in `src/codegen/transpiler_type_render.c`, so shared AST type-to-C
+now lives in `src/codegen/c/transpiler_type_render.c`, so shared AST type-to-C
 copy ownership matches the public type-render API instead of the forward-helper
-include. `src/codegen/transpiler_expr_builtin_dispatch.c` now owns the
+include. `src/codegen/c/transpiler_expr_builtin_dispatch.c` now owns the
 `BuiltinKind` routing switch for expression builtins instead of carrying that
 body in the expression-emitter include chain.
-`src/codegen/transpiler_control_flow_emit.c` now owns C `if`/`for`/
+`src/codegen/c/transpiler_control_flow_emit.c` now owns C `if`/`for`/
 `while` lowering, loop-label lookup, and the condition-head formatter shared
 with MIR branch terminator emission; its header is declaration-only. The split
 also moved MIR CFG control rendering to
-`src/codegen/transpiler_mir_cfg_control_emit.c`, leaving the MIR CFG-control
+`src/codegen/c/transpiler_mir_cfg_control_emit.c`, leaving the MIR CFG-control
 header declaration-only for loop init, for-in binding, backedge increment,
 branch-condition rendering, and select readiness rendering. The split
 also removed a hidden
@@ -640,19 +640,19 @@ declarations they consume directly. Gates: `test-transpile` (`770/0`),
 
 Current C type mapping cleanup (2026-05-15): constructed type argument parsing,
 inner-type extraction, suffix sanitization, and capped string copy helpers now
-live in `src/codegen/transpiler_type_name_utils.c`. `transpiler_type_mapping.c`
+live in `src/codegen/c/transpiler_type_name_utils.c`. `transpiler_type_mapping.c`
 is reduced to mapping policy, which narrows the later ABI/type-layout-first
 mapping pass.
 
 Current LLVM task/channel owner cleanup (2026-05-15): task-runtime builtins
-(`Cancel`, `IsCancelled`) now live in `src/codegen/llvm_expr_task_calls.c`.
-`src/codegen/llvm_expr_task_channel_calls.c` is reduced to `Channel<T>`
+(`Cancel`, `IsCancelled`) now live in `src/codegen/llvm/llvm_expr_task_calls.c`.
+`src/codegen/llvm/llvm_expr_task_channel_calls.c` is reduced to `Channel<T>`
 metadata, send/receive, timeout, close, and query lowering, keeping task
 cancellation separate from channel dispatch before deeper LLVM parity work.
 
 Current LLVM MIR CFG owner cleanup (2026-05-15): match subject discovery and
 Option/Result destructor-pattern condition lowering now live in
-`src/codegen/llvm_mir_match_condition.c`. `llvm_mir_cfg_control.c` is reduced to
+`src/codegen/llvm/llvm_mir_match_condition.c`. `llvm_mir_cfg_control.c` is reduced to
 CFG-container classification, select readiness, and channel receive DEF
 lowering, so match semantics no longer share the channel/select control owner.
 2026-05-16 follow-up: the match-condition owner now includes `llvm_internal.h`
@@ -661,7 +661,7 @@ translation unit with complete `ASTNode`, `LLVMGenCtx`, and LLVM-C types.
 Gate: `LLVM_ENABLED=1 pgy`.
 
 Current LLVM statement owner cleanup (2026-05-15): select statement readiness
-and round-robin lowering now lives in `src/codegen/llvm_stmt_select.c`.
+and round-robin lowering now lives in `src/codegen/llvm/llvm_stmt_select.c`.
 `llvm_stmt_parallel_async.c` keeps parallel and async wrapper emission, so
 select policy no longer shares the parallel/async owner.
 
@@ -673,17 +673,17 @@ family later without duplicating diagnostic strings.
 
 Current LLVM List/Map collection split (2026-05-15): `ListPush`, `ListGet`,
 `ListSet`, `ListSize`, and `ListRemove` lowering now live in
-`src/codegen/llvm_expr_call_list_extended.c`. The mixed extended collection
+`src/codegen/llvm/llvm_expr_call_list_extended.c`. The mixed extended collection
 owner delegates queue and List first, then owns HashMap extended calls, keeping
 List and Map policy from growing in one owner.
 
 Current C expression owner cleanup (2026-05-15): scalar literal expression
-emission now lives in `src/codegen/transpiler_expr_literal_emit.h`.
+emission now lives in `src/codegen/c/transpiler_expr_literal_emit.h`.
 `transpiler_expr_dispatch_emit.c` dispatches literals through that owner and
 keeps the remaining dispatcher focused on expression-form routing.
 
 Current C composite literal owner cleanup (2026-05-15): tuple and Array literal
-emission now lives in `src/codegen/transpiler_expr_composite_literal_emit.h`.
+emission now lives in `src/codegen/c/transpiler_expr_composite_literal_emit.h`.
 The expression dispatcher no longer owns tuple layout name construction or
 Array builder emission directly; `test_transpile` gates the split.
 
@@ -716,11 +716,11 @@ normalization has its own owner.
 
 Current LLVM collection owner cleanup (2026-05-15): extended collection
 diagnostics now live with collection-require helpers in
-`src/codegen/llvm_expr_call_collections_require.c`. The List/HashMap dispatcher
+`src/codegen/llvm/llvm_expr_call_collections_require.c`. The List/HashMap dispatcher
 is smaller and has a shared diagnostic seam ready for a later List-vs-Map split.
 
 Current C expression owner cleanup (2026-05-15): number/string/bool literal
-rendering now lives in `src/codegen/transpiler_expr_literal_emit.h`.
+rendering now lives in `src/codegen/c/transpiler_expr_literal_emit.h`.
 `transpiler_expr_dispatch_emit.c` is reduced to expression-family dispatch and
 non-literal lowering while preserving `test_transpile` behavior.
 
@@ -810,7 +810,7 @@ Operational mode:
   Function declaration names are also closed across semantic, compiler, C
   backend, and LLVM consumers through `ast_declaration_name(...)`; the only raw
   `data.func_decl.name` access left is parser-owned destruction in
-  `src/compiler/hir_destroy.c`. Parameter, return, and body payloads remain
+  `src/compiler/hir/hir_destroy.c`. Parameter, return, and body payloads remain
   separate closure work. The parser-owned seam for that next slice now exists:
   `ast_func_param_count(...)`, `ast_func_params(...)`, `ast_func_param(...)`,
   `ast_func_generic_params(...)`, `ast_func_where_clause(...)`,
@@ -1058,7 +1058,7 @@ Operational mode:
   runtime-none scans, CFG lowering, debugger traversal, and C/LLVM block,
   async, select, local-binding, projection invalidation, and specialization
   paths. The only remaining raw `data.block.*` access is the explicit
-  parser-owned HIR teardown slot in `src/compiler/hir_destroy.c`; the shape
+  parser-owned HIR teardown slot in `src/compiler/hir/hir_destroy.c`; the shape
   smoke rejects all other semantic/compiler/codegen block payload reads.
   Match subject/case/default and match-case pattern/guard/body facts now use
   parser-owned accessors across semantic flow/coverage/lambda/DAG/intent checks,
@@ -1423,7 +1423,7 @@ Operational mode:
   applies the policy by replacing parallel missing-type-argument and
   missing-runtime-export helpers with one enum-driven
   `llvm_stmt_diag_collection(...)` path. Syntax gate:
-  `gcc -DPGY_LLVM_ENABLED -fsyntax-only src/codegen/llvm_stmt_let_collections.c`.
+  `gcc -DPGY_LLVM_ENABLED -fsyntax-only src/codegen/llvm/llvm_stmt_let_collections.c`.
 - 2026-05-02 CFG/MIR root identity validation:
   MIR validation now rejects overlapping entry, cleanup, rollback, and
   invalidation roots. This closes a cleanup-chain shape hole where a corrupted
@@ -1891,7 +1891,7 @@ Operational mode:
   sufficient beta evidence unless the named MIR cleanup fact inventory is
   preserved.
 - 2026-05-04 cleanup fact vocabulary gate:
-  `src/compiler/mir_cleanup_fact_names.h` now owns the cleanup-edge,
+  `src/compiler/mir/mir_cleanup_fact_names.h` now owns the cleanup-edge,
   rollback/invalidation cleanup-edge, `pin-unpin-cleanup-edge`, cleanup anchor,
   and read/write pin cleanup labels. MIR cleanup generation, MIR validation,
   AIR evidence collection, and C emission contract validation consume the same
@@ -2128,8 +2128,8 @@ Operational mode:
   evidence only from the exact `AwaitLocal` or `AwaitRemote` operation attached
   to the same AST boundary; a generic scope named `await` is rejected. It still
   requires HIR/CFG evidence for the implementation boundary.
-  The AIR boundary AST walk now lives in `src/compiler/air_boundary_walk.c`,
-  leaving `src/compiler/air_boundary.c` focused on boundary taxonomy/policy.
+  The AIR boundary AST walk now lives in `src/compiler/air/air_boundary_walk.c`,
+  leaving `src/compiler/air/air_boundary.c` focused on boundary taxonomy/policy.
 - 2026-04-29 AIR task-group boundary update:
   `AST_TASK_GROUP` is now synthesized as a stable AIR `parallel` boundary source
   named `task-group`. Strict AIR now requires both HIR/CFG evidence and matching
@@ -2175,7 +2175,7 @@ Operational mode:
   from let initializer` regression and `make air-drift-test-smoke`.
 - 2026-04-29 HIR intent CFG evidence update:
   parsed-source intent routines now get a minimal ordered clause CFG from
-  `src/compiler/hir_lower_intent_cfg.c`. `hir_lower_cfg.c` remains focused on
+  `src/compiler/hir/hir_lower_intent_cfg.c`. `hir_lower_cfg.c` remains focused on
   function-body CFG at 598 LOC; the intent owner is 184 LOC and materializes
   priority/success/failure expressions plus each intent step's `where`,
   `using`, `intent`, contract, `on`, and `compensate` clauses as HIR CFG
@@ -2337,37 +2337,37 @@ Operational mode:
   Windows/Git Bash.
 - 2026-05-15 AIR runtime evidence owner split: observability-schema and runtime
   frontier-policy evidence collection moved to
-  `src/compiler/air_evidence_runtime.c`. `air_evidence.c` now stays focused on
+  `src/compiler/air/air_evidence_runtime.c`. `air_evidence.c` now stays focused on
   HIR/MIR evidence collection at 509 LOC, while `test_air` keeps singleton
   global evidence behavior and diagnostics unchanged.
 - 2026-05-16 AIR boundary evidence validator owner split:
-  `src/compiler/air_validate_boundary_evidence.c` now owns boundary-scoped
+  `src/compiler/air/air_validate_boundary_evidence.c` now owns boundary-scoped
   evidence shape validation and provider/same-boundary matching.
   `air_validate_evidence.c` remains focused on inventory traversal, duplicate
   detection, and count checks. This keeps EvidenceNode inventory as the source
   of truth while preventing boundary policy from growing inside the inventory
   owner. Gates: `test-air`, `air-drift-test-smoke`, and
   `air-json-schema-test-smoke`.
-- 2026-05-16 AIR drift storage owner split: `src/compiler/air_drift.c` now owns
+- 2026-05-16 AIR drift storage owner split: `src/compiler/air/air_drift.c` now owns
   drift allocation, clearing, and formatted append. `air_verify.c` remains the
   strict rule owner instead of managing AIRProgram drift capacity directly.
   Gates: `test-air`, `air-drift-test-smoke`,
   `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - 2026-05-16 CFG parallel/defer owner split:
-  `src/semantic/type_checker_flow_parallel.c` now owns defer cleanup boundary
+  `src/semantic/type_checker/type_checker_flow_parallel.c` now owns defer cleanup boundary
   checks and parallel task resource joins. The former implementation header is
   removed, keeping CFG body-flow dispatch linked through a semantic owner
   instead of including body code. Gates: `test-semantic` and
   `cfg-body-dataflow-test-smoke`.
 - 2026-05-16 type-resolution program-stats owner split:
-  `src/semantic/type_checker_program_stats.c` now owns `PGY_TYPE_RES_STATS`
+  `src/semantic/type_checker/type_checker_program_stats.c` now owns `PGY_TYPE_RES_STATS`
   formatting, duplicate-label counting, in-degree reporting, and DAG evidence
   counter output. `type_checker_program.c` is reduced to top-level semantic
   orchestration plus graph validation/worklist sequencing. Gates:
   `test-semantic` and `type-resolution-dag-test-smoke`.
 - LLVM MIR CFG control owner debt is partially closed: CFG-expanded range
   `for`, `select`, and `match` lowering now lives in
-  `src/codegen/llvm_mir_cfg_control.c`, and `llvm_mir_block_emit.h` is below
+  `src/codegen/llvm/llvm_mir_cfg_control.c`, and `llvm_mir_block_emit.h` is below
   the 600 LOC threshold. This does not close the wider LLVM owner queue because
   declaration inventory bootstrap still has AST-carried seams and several
   backend emitters remain in the review band.
@@ -2431,7 +2431,7 @@ Operational mode:
   backend-local `ASTNodeType -> mir->...` switches. This tightens the future
   dedicated declaration-IR migration boundary, but it does not close the
   remaining debt that the current inventory payloads are still AST-carried.
-  Inventory/query/pass wrappers now live in `src/compiler/mir_public_surface.c`
+  Inventory/query/pass wrappers now live in `src/compiler/mir/mir_public_surface.c`
   rather than the MIR lowering implementation header, and `mir_lower(...)`
   now lives directly in `src/compiler/mir.c`.
   Gate: `make mir-declaration-inventory-test-smoke`.

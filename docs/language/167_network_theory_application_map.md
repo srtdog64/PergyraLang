@@ -54,7 +54,7 @@ depth-bound 착지). 이건 "intent parent 그래프는 forest다"라는 **위�
 
 | 자산 | 위치 | 노드/엣지 | 상태 |
 |---|---|---|---|
-| AIR 그래프 | `src/compiler/air_dump_json.c`, schema `pgy.air.graph.v1` | intents · boundaries · evidence(+provider/subject/boundary 참조) · drifts | **직렬화 됨** — 이 세션에서 `pgy --air-json` 실출력 확인 |
+| AIR 그래프 | `src/compiler/air/air_dump_json.c`, schema `pgy.air.graph.v1` | intents · boundaries · evidence(+provider/subject/boundary 참조) · drifts | **직렬화 됨** — 이 세션에서 `pgy --air-json` 실출력 확인 |
 | type-resolution DAG | dag_metadata evidence (AIR에 fact_count로 노출) | 선언 의존 | 존재, JSON엔 요약만 |
 | capability call graph | `src/semantic/capability_analyze*` | 함수 노드, cap-mask 전파 엣지 | interproc 전파 **구현됨**(정적 call graph에 sound, 잔차=동적 디스패치/FFI) |
 | intent parent forest | 런타임 레지스트리 `parent_handle` | intent 트리 | F1 depth-bound 착지(2026-07-05) |
@@ -191,7 +191,7 @@ advisory만 근미래)**.
 ## Related
 
 docs/19 §✦(선언으로 결정가능화 — 이 문서의 존재 근거) · `pgy.air.graph.v1`
-(`src/compiler/air_dump_json.c`) · docs/140(advisory 배관 + "어떤 smell을
+(`src/compiler/air/air_dump_json.c`) · docs/140(advisory 배관 + "어떤 smell을
 승격하나" 병목) · docs/146(SEA lane = 증거-gated) · docs/15+161(capability
 sandbox / W-4 서명 로더) · docs/160(SEM rung — D축의 검증 대상) · docs/162
 (T4-0 divergence 측정 — D축 합류점) · docs/142(amortized-cost — 성능 클레임

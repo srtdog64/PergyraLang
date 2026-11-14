@@ -19,12 +19,12 @@
 #include <string.h>
 
 #include "diag_codes.h"
-#include "function_param_publication_internal.h"
-#include "function_param_publication_owner.h"
+#include "function_param_flow/function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_owner.h"
 #include "loan_copy_landing_owner.h"
 #include "slot_summary.h"
-#include "type_checker_call_constructor_internal.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_call_constructor_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 void move_walk_copy_changed_at(MoveWalk *walk, MoveState *state,
     const ASTNode *path, uint32_t binding, const char *fields,

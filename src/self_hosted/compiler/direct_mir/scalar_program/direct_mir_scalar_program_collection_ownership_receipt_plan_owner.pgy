@@ -1,0 +1,129 @@
+// One bounded instruction scan aligns collection receipts with MIR operations.
+
+import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy";
+import "../../../mir_lower/routine_fact_index_schema_owner.pgy";
+
+struct DirectMirCollectionOwnershipInstructionReceipt {
+    let valid: Bool;
+    let present: Bool;
+    let effect_kind: Int;
+    let receiver_binding_syntax_id: Int;
+    let source_binding_syntax_id: Int;
+}
+
+struct DirectMirCollectionOwnershipRoutineReceiptPlan {
+    let valid: Bool;
+    let effect_kinds: Array<Int>;
+    let receiver_binding_syntax_ids: Array<Int>;
+    let source_binding_syntax_ids: Array<Int>;
+}
+
+func DirectMirCollectionOwnershipInstructionReceiptInvalid(
+) -> DirectMirCollectionOwnershipInstructionReceipt {
+    return DirectMirCollectionOwnershipInstructionReceipt(
+        false, false, 0, 0, 0);
+}
+
+func DirectMirCollectionOwnershipInstructionReceiptFromJson(
+    ref instruction: JsonObjectFactTable
+) -> DirectMirCollectionOwnershipInstructionReceipt {
+    let kind_opt: Option<String> = JsonObjectFactValueKind(
+        instruction, "collection_ownership_receipt");
+    if !IsSome(kind_opt) {
+        return DirectMirCollectionOwnershipInstructionReceiptInvalid();
+    }
+    if UnwrapOption(kind_opt) == "null" {
+        return DirectMirCollectionOwnershipInstructionReceipt(
+            true, false, 0, 0, 0);
+    }
+    if UnwrapOption(kind_opt) != "object" {
+        return DirectMirCollectionOwnershipInstructionReceiptInvalid();
+    }
+    let receipt: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "collection_ownership_receipt");
+    let kind: Option<String> = JsonObjectFactStringFieldOpt(receipt, "kind");
+    let receiver: Option<String> = JsonObjectFactNumberFieldOpt(
+        receipt, "receiver_binding_syntax_id");
+    let source: Option<String> = JsonObjectFactNumberFieldOpt(
+        receipt, "source_binding_syntax_id");
+    if !JsonObjectFactTableReady(receipt) || JsonObjectFactCount(receipt) != 3 ||
+        !IsSome(kind) || !IsSome(receiver) || !IsSome(source) ||
+        ToString(ToInt(UnwrapOption(receiver))) != UnwrapOption(receiver) ||
+        ToString(ToInt(UnwrapOption(source))) != UnwrapOption(source) ||
+        ToInt(UnwrapOption(receiver)) <= 0 || ToInt(UnwrapOption(source)) < 0 {
+        return DirectMirCollectionOwnershipInstructionReceiptInvalid();
+    }
+    var effect: Int = 0;
+    if UnwrapOption(kind) == "owned-string-push" { effect = 1; }
+    else if UnwrapOption(kind) == "shallow-mutation" { effect = 2; }
+    else if UnwrapOption(kind) == "drop" { effect = 3; }
+    else if UnwrapOption(kind) == "owned-string-set" { effect = 4; }
+    else if UnwrapOption(kind) == "owned-string-pop" { effect = 5; }
+    if effect == 0 || (ToInt(UnwrapOption(source)) != 0 && effect != 1) {
+        return DirectMirCollectionOwnershipInstructionReceiptInvalid();
+    }
+    return DirectMirCollectionOwnershipInstructionReceipt(
+        true, true, effect, ToInt(UnwrapOption(receiver)),
+        ToInt(UnwrapOption(source)));
+}
+
+func DirectMirCollectionOwnershipRoutineReceiptPlanFromJson(
+    json: String, json_extent: Int, ref index: MirRoutineFactIndex,
+    expected_operation_count: Int
+) -> DirectMirCollectionOwnershipRoutineReceiptPlan {
+    var effects: Array<Int> = [];
+    var receivers: Array<Int> = [];
+    var sources: Array<Int> = [];
+    var instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let instruction_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            json, json_extent, index.instruction_facts.starts[instruction],
+            index.instruction_facts.ends[instruction]);
+        let kind: Option<String> = JsonObjectFactStringFieldOpt(
+            instruction_object, "kind");
+        let receipt: DirectMirCollectionOwnershipInstructionReceipt =
+            DirectMirCollectionOwnershipInstructionReceiptFromJson(
+                instruction_object);
+        if !JsonObjectFactTableReady(instruction_object) || !IsSome(kind) ||
+            !receipt.valid {
+            return DirectMirCollectionOwnershipRoutineReceiptPlan(
+                false, effects, receivers, sources);
+        }
+        if DirectMirCollectionOwnershipOperationKindProducesRow(UnwrapOption(kind)) {
+            if ArrayLength(effects) >= expected_operation_count {
+                return DirectMirCollectionOwnershipRoutineReceiptPlan(
+                    false, effects, receivers, sources);
+            }
+            var effect: Int = 0; var receiver: Int = 0; var source: Int = 0;
+            if receipt.present {
+                effect = receipt.effect_kind;
+                receiver = receipt.receiver_binding_syntax_id;
+                source = receipt.source_binding_syntax_id;
+            }
+            ArrayPush(effects, effect); ArrayPush(receivers, receiver);
+            ArrayPush(sources, source);
+        } else if receipt.present {
+            return DirectMirCollectionOwnershipRoutineReceiptPlan(
+                false, effects, receivers, sources);
+        }
+        instruction = instruction + 1;
+    }
+    return DirectMirCollectionOwnershipRoutineReceiptPlan(
+        ArrayLength(effects) == expected_operation_count,
+        effects, receivers, sources);
+}
+
+func DirectMirCollectionOwnershipReceiptPlanHasReceiver(
+    ref plan: DirectMirCollectionOwnershipRoutineReceiptPlan,
+    binding_syntax_id: Int
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(plan.effect_kinds) {
+        if plan.effect_kinds[row] != 0 &&
+            plan.receiver_binding_syntax_ids[row] == binding_syntax_id {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}

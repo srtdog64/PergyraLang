@@ -2,11 +2,11 @@
 // Clone landings for inout-formal stores and for every later store into a
 // fresh local whose first push established owned elements.  ArraySet's stored
 // value lives in the auxiliary lane; its value lane is the index.
-import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection/ast_collection_ownership_identity_owner.pgy";
 import "ast_owned_string_expression_domain_owner.pgy";
-import "ast_collection_exclusive_compiler_clone_owner.pgy";
+import "ast_collection/ast_collection_exclusive_compiler_clone_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
-import "ast_collection_formal_effect_fact_owner.pgy";
+import "ast_collection/ast_collection_formal_effect_fact_owner.pgy";
 import "ast_owned_string_literal_transfer_owner.pgy";
 import "diagnostic_span_owner.pgy";
 

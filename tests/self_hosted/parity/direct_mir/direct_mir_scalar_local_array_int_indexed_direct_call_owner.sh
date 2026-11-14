@@ -13,7 +13,7 @@ CC="${PGY_SELFHOST_CC:-gcc}"; CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/direct_mir_local_array_int_indexed_direct_call"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_local_array_int_indexed_direct_call.pgy"
-OWNER_REL="src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy"
+OWNER_REL="src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_indexed_assignment_route_owner.pgy"
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir/direct_mir_scalar_local_array_int_indexed_direct_call_mutations.py"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }

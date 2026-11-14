@@ -8,7 +8,7 @@ import re
 
 
 def render(root: Path) -> str:
-    source = (root / "src/semantic/type_checker_collection_policy.c").read_text(encoding="utf-8")
+    source = (root / "src/semantic/type_checker/type_checker_collection_policy.c").read_text(encoding="utf-8")
     match = re.search(r"type_checker_stable_scalar_key_supported\(const Type \*key_type\)\s*\{([^}]+)\}", source)
     if match is None:
         raise ValueError("stable scalar key owner is missing")

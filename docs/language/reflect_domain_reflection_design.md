@@ -21,7 +21,7 @@ reflection wants facts that live at two different phases:
   same way the current fields do.
 - AIR-graph intent facts: per-boundary provenance, `authority_required`,
   sync class, evidence linkage. These are produced by the AIR back-end IR
-  (`src/compiler/air_dump_json.c`, schema `pgy.air.graph.v1`), which does not
+  (`src/compiler/air/air_dump_json.c`, schema `pgy.air.graph.v1`), which does not
   exist yet when the semantic fold runs.
 
 That phase gap is the whole reason this is not just "more helper branches." A
@@ -45,7 +45,7 @@ Intent declarations (`src/parser/ast_domain_api.h`):
 Effects (already wired): `type_function_effects` + `effect_mask_to_string`,
 including the `authority` flag (`EFFECT_AUTHORITY`).
 
-AIR graph (`src/compiler/air_dump_json.c`, `pgy.air.graph.v1`):
+AIR graph (`src/compiler/air/air_dump_json.c`, `pgy.air.graph.v1`):
 
 - summary: `intent_count`, `boundary_count`, `evidence_count`, `drift_count`,
   `rir_boundary_evidence_count`, `rir_authority_evidence_count`.

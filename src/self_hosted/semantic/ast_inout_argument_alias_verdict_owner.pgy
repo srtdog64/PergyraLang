@@ -13,14 +13,14 @@
 // call and owns the resulting refusal.
 
 import "ast_signature_fact_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
-import "ast_expression_graph_node_view_owner.pgy";
-import "ast_expression_place_fact_owner.pgy";
-import "ast_expression_place_kind_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_graph_node_view_owner.pgy";
+import "ast_expression/ast_expression_place_fact_owner.pgy";
+import "ast_expression/ast_expression_place_kind_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_local_binding_identity_owner.pgy";
-import "ast_expression_call_identity_owner.pgy";
-import "ast_expression_graph_view_owner.pgy";
+import "ast_expression/ast_expression_call_identity_owner.pgy";
+import "ast_expression/ast_expression_graph_view_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
 
 struct SemanticAstInoutArgumentRefusal {

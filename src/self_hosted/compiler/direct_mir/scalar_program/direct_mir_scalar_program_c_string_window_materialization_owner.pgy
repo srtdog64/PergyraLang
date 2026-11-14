@@ -1,0 +1,40 @@
+// C definitions required by scalar-program String length/window ABI facts.
+
+import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
+import "../../../codegen/runtime_abi/string_runtime_owner.pgy";
+
+func DirectMirScalarProgramCStringWindowMaterialization(
+    ref abi: DirectMirScalarProgramRuntimeAbiFact
+) -> String {
+    var output: String = "";
+    if abi.string_length_id != 0 {
+        output = Concat(output, StringRuntimeCStringLengthBlock());
+    }
+    if abi.string_char_code_id != 0 {
+        output = Concat(output, StringRuntimeCCharCodeBlock());
+    }
+    if abi.string_char_at_n_id != 0 {
+        output = Concat(output, StringRuntimeCCharAtNBlock());
+    }
+    if abi.string_substring_id != 0 {
+        output = Concat(output, StringRuntimeCSubstringBlock());
+    }
+    if abi.string_substring_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubstringWithLenBlock());
+    }
+    if abi.string_sub_index_with_len_id != 0 ||
+            abi.string_sub_contains_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubIndexOfWithLenBlock());
+    }
+    if abi.string_sub_equals_with_len_id != 0 ||
+            abi.string_sub_starts_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubEqualsWithLenBlock());
+    }
+    if abi.string_sub_contains_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubContainsWithLenBlock());
+    }
+    if abi.string_sub_starts_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubStartsWithLenBlock());
+    }
+    return output;
+}

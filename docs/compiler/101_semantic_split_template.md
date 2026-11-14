@@ -32,7 +32,7 @@ declaration kind `X` 를 분리할 때 두 경우가 있다. `X` 가 type graph 
 - 기존 owner 에 `type_check_X_decl(ASTNode*, SemanticContext*)` body 만 들어있거나, 새 declaration kind 가 body-only 로 시작함
 - forward declaration 이 이미 `type_checker.h` 에 존재
 
-**예시**: [relation](../../src/semantic/type_checker_relation_decl.c), [effect](../../src/semantic/type_checker_effect_decl.c) — 1차 slice 에서 분리됨
+**예시**: [relation](../../src/semantic/type_checker/type_checker_relation_decl.c), [effect](../../src/semantic/type_checker/type_checker_effect_decl.c) — 1차 slice 에서 분리됨
 
 ### 템플릿 B — DAG-linked split (type graph 연결)
 
@@ -40,7 +40,7 @@ declaration kind `X` 를 분리할 때 두 경우가 있다. `X` 가 type graph 
 - `X` 의 field/param/method type 이 type resolution graph 에서 노드로 등록되어야 함
 - `semantic_type_resolution_precollect_X_inventory(ASTNode*, SemanticContext*)` 함수가 필요
 
-**예시**: [enum](../../src/semantic/type_checker_resolution_graph_decl.c), event, role, class, ability — 모두 [src/semantic/type_checker_resolution_graph_decl.c](../../src/semantic/type_checker_resolution_graph_decl.c) 에 공존
+**예시**: [enum](../../src/semantic/type_checker/type_checker_resolution_graph_decl.c), event, role, class, ability — 모두 [src/semantic/type_checker/type_checker_resolution_graph_decl.c](../../src/semantic/type_checker/type_checker_resolution_graph_decl.c) 에 공존
 
 > 현재 convention: DAG precollect 함수들은 **kind-per-file 로 쪼개지 않고** `resolution_graph_decl.c` 에 집중. 이 파일은 "DAG 인벤토리 레이어" 의 단일 TU. 본격적 kind-per-file DAG 분리는 별도 slice 로 미래 결정.
 
@@ -107,7 +107,7 @@ mingw32-make llvm-test-backend-compare   # C/LLVM parity 회귀
 
 ### Step 1.5 — DAG precollect 함수 추가
 
-`src/semantic/type_checker_resolution_graph_decl.c` 에 함수 append (enum/event/role/class/ability 옆에):
+`src/semantic/type_checker/type_checker_resolution_graph_decl.c` 에 함수 append (enum/event/role/class/ability 옆에):
 
 ```c
 void
@@ -123,7 +123,7 @@ semantic_type_resolution_precollect_X_inventory(ASTNode *x_decl,
 
 ### Step 1.6 — DAG inventory dispatch 에 호출 추가
 
-`src/semantic/type_checker_resolution_graph_inventory.c` 안의 kind switch 에 X 케이스 추가:
+`src/semantic/type_checker/type_checker_resolution_graph_inventory.c` 안의 kind switch 에 X 케이스 추가:
 
 ```c
 case AST_X_DECL:
@@ -161,10 +161,10 @@ core 모델(`intent/subject/world/zone/slot/vessel` 등) 외의 새 paradigm 지
 
 Production `.inc` 제거는 완료됐다. 이 템플릿이 지금 커버하지 않는 영역은 `.inc` migration 이 아니라 **큰 owner TU 를 더 작은 책임 단위로 나누는 작업**이다:
 
-- [type_checker_decls_domain_helpers.c](../../src/semantic/type_checker_decls_domain_helpers.c) — semantic domain helper families; helper-axis split 필요.
-- [type_checker_intent_helpers.c](../../src/semantic/type_checker_intent_helpers.c) — intent inheritance/derivation helpers; semantic owner 는 명확하지만 600 LOC review threshold 초과.
-- [type_checker_zone_decl.c](../../src/semantic/type_checker_zone_decl.c) — zone declaration semantic; coherent owner 이지만 600 LOC threshold 초과.
-- [type_checker_builtins_stdlib_body.c](../../src/semantic/type_checker_builtins_stdlib_body.c) — stdlib builtin body dispatch; semantic owner 로는 닫혔지만 더 작은 builtin-family owner 로 나눌 수 있다.
+- [type_checker_decls_domain_helpers.c](../../src/semantic/type_checker/type_checker_decls_domain_helpers.c) — semantic domain helper families; helper-axis split 필요.
+- [type_checker_intent_helpers.c](../../src/semantic/type_checker/type_checker_intent_helpers.c) — intent inheritance/derivation helpers; semantic owner 는 명확하지만 600 LOC review threshold 초과.
+- [type_checker_zone_decl.c](../../src/semantic/type_checker/type_checker_zone_decl.c) — zone declaration semantic; coherent owner 이지만 600 LOC threshold 초과.
+- [type_checker_builtins_stdlib_body.c](../../src/semantic/type_checker/type_checker_builtins_stdlib_body.c) — stdlib builtin body dispatch; semantic owner 로는 닫혔지만 더 작은 builtin-family owner 로 나눌 수 있다.
 
 codegen / runtime / compiler 의 남은 대형 파일도 같은 원칙을 따른다. 600 LOC 이상은 split-review threshold, 1,000 LOC 이상은 legacy debt 또는 hard-cap violation 으로 본다. 다만 semantic 과 codegen/runtime 는 TU boundary 기준이 다르므로 이 템플릿을 그대로 복사하지 않는다.
 
@@ -172,27 +172,27 @@ codegen / runtime / compiler 의 남은 대형 파일도 같은 원칙을 따른
 
 | Slice | 대상 | 파일 | 템플릿 | LOC 이동 |
 |---|---|---|---|---|
-| 1 차 | relation | [type_checker_relation_decl.c](../../src/semantic/type_checker_relation_decl.c) | A | 94 |
-| 1 차 | effect | [type_checker_effect_decl.c](../../src/semantic/type_checker_effect_decl.c) | A | 66 |
-| 2 차 | zone | [type_checker_zone_decl.c](../../src/semantic/type_checker_zone_decl.c) | A | 1076 |
-| 3 차 | ability | [type_checker_ability_decl.c](../../src/semantic/type_checker_ability_decl.c) | A | 80 (type_checker.c 에서 추출) |
-| 4 차 | world | [type_checker_world_decl.c](../../src/semantic/type_checker_world_decl.c) | A (내부 static helpers 포함) | 856 |
-| 4-B | intent | [type_checker_intent_decl.c](../../src/semantic/type_checker_intent_decl.c) | A + **helper externalization** ([type_checker_intent_helpers_internal.h](../../src/semantic/type_checker_intent_helpers_internal.h)) | 919 |
-| 3-B | role | [type_checker_role_decl.c](../../src/semantic/type_checker_role_decl.c) | A + externalization ([type_checker_decls_a_helpers_internal.h](../../src/semantic/type_checker_decls_a_helpers_internal.h), type_checker_internal.h 확장) | 383 |
-| 3-B | party | [type_checker_party_decl.c](../../src/semantic/type_checker_party_decl.c) | A (3-B 공유 header) | 147 |
-| 3-B | roster | [type_checker_roster_decl.c](../../src/semantic/type_checker_roster_decl.c) | A (3-B 공유 header) | 80 |
-| 5-F | async | [type_checker_async_decl.c](../../src/semantic/type_checker_async_decl.c) | A (helper 없음) | 72 |
-| 5-D | builtins stdlib dispatch | [type_checker_builtins_stdlib_body.c](../../src/semantic/type_checker_builtins_stdlib_body.c) | A + externalization ([type_checker_builtins_internal.h](../../src/semantic/type_checker_builtins_internal.h)) | 1131 |
-| 5-A | decls_domain_helpers 전체 | [type_checker_decls_domain_helpers.c](../../src/semantic/type_checker_decls_domain_helpers.c) | A + externalization (type_checker_internal.h 로 5 helper 승격) | 1559 |
-| 이전 | enum | [resolution_graph_decl.c](../../src/semantic/type_checker_resolution_graph_decl.c) | B | — |
-| 이전 | event | [resolution_graph_decl.c](../../src/semantic/type_checker_resolution_graph_decl.c) | B | — |
-| 이전 | role / class / ability (precollect) | [resolution_graph_decl.c](../../src/semantic/type_checker_resolution_graph_decl.c) | B (precollect only) | — |
+| 1 차 | relation | [type_checker_relation_decl.c](../../src/semantic/type_checker/type_checker_relation_decl.c) | A | 94 |
+| 1 차 | effect | [type_checker_effect_decl.c](../../src/semantic/type_checker/type_checker_effect_decl.c) | A | 66 |
+| 2 차 | zone | [type_checker_zone_decl.c](../../src/semantic/type_checker/type_checker_zone_decl.c) | A | 1076 |
+| 3 차 | ability | [type_checker_ability_decl.c](../../src/semantic/type_checker/type_checker_ability_decl.c) | A | 80 (type_checker.c 에서 추출) |
+| 4 차 | world | [type_checker_world_decl.c](../../src/semantic/type_checker/type_checker_world_decl.c) | A (내부 static helpers 포함) | 856 |
+| 4-B | intent | [type_checker_intent_decl.c](../../src/semantic/type_checker/type_checker_intent_decl.c) | A + **helper externalization** ([type_checker_intent_helpers_internal.h](../../src/semantic/type_checker/type_checker_intent_helpers_internal.h)) | 919 |
+| 3-B | role | [type_checker_role_decl.c](../../src/semantic/type_checker/type_checker_role_decl.c) | A + externalization ([type_checker_decls_a_helpers_internal.h](../../src/semantic/type_checker/type_checker_decls_a_helpers_internal.h), type_checker_internal.h 확장) | 383 |
+| 3-B | party | [type_checker_party_decl.c](../../src/semantic/type_checker/type_checker_party_decl.c) | A (3-B 공유 header) | 147 |
+| 3-B | roster | [type_checker_roster_decl.c](../../src/semantic/type_checker/type_checker_roster_decl.c) | A (3-B 공유 header) | 80 |
+| 5-F | async | [type_checker_async_decl.c](../../src/semantic/type_checker/type_checker_async_decl.c) | A (helper 없음) | 72 |
+| 5-D | builtins stdlib dispatch | [type_checker_builtins_stdlib_body.c](../../src/semantic/type_checker/type_checker_builtins_stdlib_body.c) | A + externalization ([type_checker_builtins_internal.h](../../src/semantic/type_checker/type_checker_builtins_internal.h)) | 1131 |
+| 5-A | decls_domain_helpers 전체 | [type_checker_decls_domain_helpers.c](../../src/semantic/type_checker/type_checker_decls_domain_helpers.c) | A + externalization (type_checker_internal.h 로 5 helper 승격) | 1559 |
+| 이전 | enum | [resolution_graph_decl.c](../../src/semantic/type_checker/type_checker_resolution_graph_decl.c) | B | — |
+| 이전 | event | [resolution_graph_decl.c](../../src/semantic/type_checker/type_checker_resolution_graph_decl.c) | B | — |
+| 이전 | role / class / ability (precollect) | [resolution_graph_decl.c](../../src/semantic/type_checker/type_checker_resolution_graph_decl.c) | B (precollect only) | — |
 
 **4-B 에서 확립된 helper externalization 패턴**:
 
 legacy `decls_intent.inc` 가 legacy `decls_a.inc` 의 11 개 `static` 함수를 cross-include 로 호출하던 의존이 있었음. 해결책:
 
-1. `src/semantic/type_checker_intent_helpers_internal.h` — 11 개 함수의 **external linkage** 선언 (헤더)
+1. `src/semantic/type_checker/type_checker_intent_helpers_internal.h` — 11 개 함수의 **external linkage** 선언 (헤더)
 2. legacy include owner 의 해당 함수 정의에서 `static` 키워드 제거 (총 12 개 site — 11 정의 + 1 forward decl)
 3. 새 TU 가 내부 헤더를 include 해서 link-time 에 해결
 

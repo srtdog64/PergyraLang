@@ -1,6 +1,6 @@
-#include "dir_internal.h"
+#include "dir/dir_internal.h"
 #include "hir.h"
-#include "hir_cfg.h"
+#include "hir/hir_cfg.h"
 
 #include <stdarg.h>
 #include <stdio.h>

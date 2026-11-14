@@ -1,0 +1,20 @@
+// Binds each expression node to its admitted routine-instance call ordinal.
+import "../direct_mir_routine_instance_inventory_owner.pgy";
+import "../../../mir_lower/expression_graph_sequence_owner.pgy";
+
+func DirectMirScalarProgramBindCallOrdinals(
+    inout sequence: MirExpressionGraphSequence,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    caller_ordinal: Int, global_row: Int, lane: Int
+) -> Void {
+    var bound_calls: Array<Int> = [];
+    var node: Int = 0;
+    while node < sequence.ready_node_count {
+        let target: Int = DirectMirRoutineInstanceCallOrdinal(
+            routine_instances, caller_ordinal, global_row, lane, node,
+            sequence.arena.identities.call_target_syntax_ids[node]);
+        ArrayPush(bound_calls, target);
+        node = node + 1;
+    }
+    sequence.program_call_ordinals = bound_calls;
+}

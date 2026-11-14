@@ -126,10 +126,10 @@ Root's host production-C scan also reported the same5 sizes, log
 | src/runtime/pgy_runtime_lib_raw_map_exports.h | 656 | 600 |
 | src/runtime/pgy_runtime_lib_raw_map_key_exports.h | 772 | 600 |
 | src/runtime/pgy_runtime_map_string_inline.h | 880 | 600 |
-| src/codegen/llvm_expr_call_dispatch.c | 701 | 699 |
-| src/codegen/transpiler_expr_call_member_emit.c | 812 | 699 |
-| src/compiler/mir_branch_source_facts.c | 877 | 699 |
-| src/compiler/mir_json_dump.c | 711 | 699 |
+| src/codegen/llvm/llvm_expr_call_dispatch.c | 701 | 699 |
+| src/codegen/c/transpiler_expr_call_member_emit.c | 812 | 699 |
+| src/compiler/mir/mir_branch_source_facts.c | 877 | 699 |
+| src/compiler/mir/mir_json_dump.c | 711 | 699 |
 | src/semantic/collection_ownership_fact.c | 839 | 699 |
 
 ## Limits and retained falsifiers

@@ -1,0 +1,266 @@
+// Array-literal topology and declared-type checks over parser-owned graph rows.
+
+import "ast_expression_graph_fact_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_type_owner.pgy";
+import "../ast_nominal_constructor_fact_owner.pgy";
+import "../array_type_shape_owner.pgy";
+import "../expr_type_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+
+struct SemanticArrayLiteralView {
+    ok: Bool;
+    element_nodes: Array<Int>;
+}
+
+struct SemanticArrayLiteralElementEdge {
+    ok: Bool;
+    previous_node: Int;
+    element_node: Int;
+}
+
+// Both literal readers and storage admission consume this parser-owned edge.
+// The decreasing spine admits one element without materializing the literal.
+func SemanticArrayLiteralElementEdgeFromGraph(
+    ref graph: SemanticExpressionGraphFacts, node: Int
+) -> SemanticArrayLiteralElementEdge {
+    let invalid: SemanticArrayLiteralElementEdge = SemanticArrayLiteralElementEdge(false, -1, -1);
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeArrayElement() { return invalid; }
+    let previous: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+    let element: Option<Int> = SemanticExpressionGraphRightChild(graph, node);
+    if !IsSome(previous) || !IsSome(element) || UnwrapOption(previous) < 0 ||
+        UnwrapOption(previous) >= node || UnwrapOption(element) < 0 || UnwrapOption(element) >= node { return invalid; }
+    let previous_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, UnwrapOption(previous));
+    if !IsSome(previous_kind) || !AstExpressionNodeIsArrayLiteralSpine(UnwrapOption(previous_kind)) { return invalid; }
+    return SemanticArrayLiteralElementEdge(true, UnwrapOption(previous), UnwrapOption(element));
+}
+
+func SemanticExpressionGraphArrayLiteralTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
+) -> Option<String> {
+    let view: SemanticArrayLiteralView =
+        SemanticArrayLiteralViewFromGraph(graph, root_id);
+    if !view.ok { return None; }
+    if ArrayLength(view.element_nodes) == 0 {
+        return Some("Array<Unknown>");
+    }
+    var element_type: String = "";
+    var i: Int = 0;
+    while i < ArrayLength(view.element_nodes) {
+        let element: Int = view.element_nodes[i];
+        var actual: String = "Unknown";
+        let nested: Option<String> =
+            SemanticExpressionGraphArrayLiteralTypeName(
+                graph, element, constructors, names, types,
+                function_names, function_returns, enum_values
+            );
+        if IsSome(nested) {
+            actual = UnwrapOption(nested);
+        } else {
+            actual = SemanticExpressionGraphScalarTypeName(
+                graph, element, constructors, names, types,
+                function_names, function_returns, enum_values
+            );
+            if actual == "Unknown" || actual == "" {
+                let intrinsic: Option<String> =
+                    SemanticExpressionGraphIntrinsicTypeName(
+                        graph, element, function_names, function_returns
+                    );
+                if IsSome(intrinsic) { actual = UnwrapOption(intrinsic); }
+            }
+        }
+        if actual == "Unknown" || actual == "" { return None; }
+        if element_type == "" {
+            element_type = actual;
+        } else if element_type != actual {
+            return None;
+        }
+        i = i + 1;
+    }
+    return Some(Concat("Array<", Concat(element_type, ">")));
+}
+
+func SemanticArrayLiteralViewFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> SemanticArrayLiteralView {
+    var reversed: Array<Int> = [];
+    var node: Int = root_id;
+    var kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    while IsSome(kind) &&
+        UnwrapOption(kind) == AstExpressionNodeArrayElement() {
+        let edge: SemanticArrayLiteralElementEdge = SemanticArrayLiteralElementEdgeFromGraph(graph, node);
+        if !edge.ok {
+            return SemanticArrayLiteralView(false, reversed);
+        }
+        ArrayPush(reversed, edge.element_node);
+        node = edge.previous_node;
+        kind = SemanticExpressionGraphNodeKind(graph, node);
+    }
+    if !IsSome(kind) ||
+        UnwrapOption(kind) != AstExpressionNodeArrayLiteral() {
+        return SemanticArrayLiteralView(false, reversed);
+    }
+    var elements: Array<Int> = [];
+    var i: Int = ArrayLength(reversed) - 1;
+    while i >= 0 {
+        ArrayPush(elements, reversed[i]);
+        i = i - 1;
+    }
+    return SemanticArrayLiteralView(true, elements);
+}
+
+func SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    declared_type: String,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
+) -> Bool {
+    let element_type_opt: Option<String> =
+        SemanticSequenceElementType(declared_type);
+    if !IsSome(element_type_opt) { return false; }
+    let view: SemanticArrayLiteralView =
+        SemanticArrayLiteralViewFromGraph(graph, root_id);
+    if !view.ok { return false; }
+    let element_type: String = UnwrapOption(element_type_opt);
+    var i: Int = 0;
+    while i < ArrayLength(view.element_nodes) {
+        let element: Int = view.element_nodes[i];
+        let nested_type: Option<String> =
+            SemanticSequenceElementType(element_type);
+        if IsSome(nested_type) &&
+            SemanticArrayLiteralViewFromGraph(graph, element).ok {
+            if !SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+                graph, element, element_type, constructors, names, types,
+                function_names, function_returns, enum_values
+            ) {
+                return false;
+            }
+            i = i + 1;
+            continue;
+        }
+        var actual: String = SemanticExpressionGraphScalarTypeName(
+            graph, element, constructors, names, types,
+            function_names, function_returns, enum_values
+        );
+        if actual == "Unknown" || actual == "" {
+            let intrinsic: Option<String> =
+                SemanticExpressionGraphIntrinsicTypeName(
+                    graph, element, function_names, function_returns
+                );
+            if IsSome(intrinsic) { actual = UnwrapOption(intrinsic); }
+        }
+        let element_text: Option<String> =
+            SemanticExpressionGraphNodeText(graph, element);
+        if !IsSome(element_text) || actual == "Unknown" || actual == "" ||
+            !ExpressionElementAssignableTo(
+                element_type, actual, UnwrapOption(element_text)
+            ) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
+    let source: String = "[1, 2]";
+    let source_extent: Int = StringLength(source);
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, source_extent, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) { return false; }
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()],
+                [AstExpressionLaneValue()], [fact.root], fact.arena
+            ), [0], 1
+        );
+    let nested_source: String = "[[1], [2]]";
+    let nested_source_extent: Int = StringLength(nested_source);
+    let nested_cursor: Array<Int> = [0];
+    let nested_fact: ParserExpressionFact = ParseExprFact(
+        nested_source, nested_source_extent, 0, nested_cursor
+    );
+    if !nested_fact.ok ||
+        nested_cursor[0] != StringLength(nested_source) {
+        return false;
+    }
+    let nested_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()],
+                [AstExpressionLaneValue()], [nested_fact.root],
+                nested_fact.arena
+            ), [0], 1
+        );
+    let call_source: String = "[TypedAstKindBareCallStmtTag()]";
+    let call_source_extent: Int = StringLength(call_source);
+    let call_cursor: Array<Int> = [0];
+    let call_fact: ParserExpressionFact = ParseExprFact(
+        call_source, call_source_extent, 0, call_cursor
+    );
+    if !call_fact.ok || call_cursor[0] != StringLength(call_source) {
+        return false;
+    }
+    let call_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()],
+                [AstExpressionLaneValue()], [call_fact.root],
+                call_fact.arena
+            ), [0], 1
+        );
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let empty: Array<String> = [];
+    let call_names: Array<String> = ["TypedAstKindBareCallStmtTag"];
+    let call_returns: Array<String> = ["Int"];
+    let empty_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(empty);
+    let inferred: Option<String> =
+        SemanticExpressionGraphArrayLiteralTypeName(
+            graph, fact.root, constructors,
+            empty, empty, empty_callables, empty, no_enum_values
+        );
+    let nested_inferred: Option<String> =
+        SemanticExpressionGraphArrayLiteralTypeName(
+            nested_graph, nested_fact.root, constructors,
+            empty, empty, empty_callables, empty, no_enum_values
+        );
+    let call_names_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(call_names);
+    let call_inferred: Option<String> =
+        SemanticExpressionGraphArrayLiteralTypeName(
+            call_graph, call_fact.root, constructors,
+            empty, empty, call_names_callables, call_returns, no_enum_values
+        );
+    return IsSome(inferred) && UnwrapOption(inferred) == "Array<Int>" &&
+        IsSome(call_inferred) &&
+        UnwrapOption(call_inferred) == "Array<Int>" &&
+        IsSome(nested_inferred) &&
+        UnwrapOption(nested_inferred) == "Array<Array<Int>>" &&
+        SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+            graph, fact.root, "Array<Int>", constructors,
+            empty, empty, empty_callables, empty, no_enum_values
+        ) && !SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+            graph, fact.root, "Array<String>", constructors,
+            empty, empty, empty_callables, empty, no_enum_values
+        ) && SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+            nested_graph, nested_fact.root, "Array<Array<Int>>",
+            constructors, empty, empty, empty_callables, empty, no_enum_values
+        );
+}

@@ -39,31 +39,31 @@ func CompilerBackendEmitterRequiredCount() -> Int {
 }
 
 func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
-    if index == 0 { return "src/codegen/transpiler_mir_resource_op_core.c"; }
-    if index == 1 { return "src/codegen/llvm_runtime.c"; }
-    if index == 2 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
-    if index == 3 { return "src/codegen/llvm_expr_slot_device_calls.c"; }
+    if index == 0 { return "src/codegen/c/transpiler_mir_resource_op_core.c"; }
+    if index == 1 { return "src/codegen/llvm/llvm_runtime.c"; }
+    if index == 2 { return "src/codegen/llvm/llvm_runtime_secure_slot_decl.c"; }
+    if index == 3 { return "src/codegen/llvm/llvm_expr_slot_device_calls.c"; }
     // Slot auto-release is owned by the block emitter; llvm_stmt.c only
     // dispatches statements and must not be treated as the ABI-row consumer.
-    if index == 4 { return "src/codegen/llvm_stmt_block.c"; }
-    if index == 5 { return "src/codegen/transpiler_block_emit.c"; }
-    if index == 6 { return "src/codegen/transpiler_expr_call_member_emit.c"; }
-    if index == 7 { return "src/codegen/transpiler_let_slot_emit.c"; }
-    if index == 8 { return "src/codegen/transpiler_func_class_flow_emit.c"; }
-    if index == 9 { return "src/codegen/transpiler_mir_destructure_emit.c"; }
-    if index == 10 { return "src/codegen/transpiler_class_decl_emit.c"; }
-    if index == 11 { return "src/codegen/transpiler_clone_value_emit.c"; }
-    if index == 12 { return "src/codegen/transpiler_mir_pin_emit.c"; }
-    if index == 13 { return "src/codegen/transpiler_mir_pin_emit.c"; }
-    if index == 14 { return "src/codegen/transpiler_block_emit.c"; }
-    if index == 15 { return "src/codegen/transpiler_block_emit.c"; }
-    if index == 16 { return "src/codegen/llvm_mir_pin_region.c"; }
-    if index == 17 { return "src/codegen/llvm_mir_pin_region.c"; }
-    if index == 18 { return "src/codegen/llvm_runtime.c"; }
-    if index == 19 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
-    if index == 20 { return "src/codegen/llvm_expr_identifier_slot_helpers.c"; }
-    if index == 21 { return "src/codegen/llvm_runtime_row.c"; }
-    if index == 22 { return "src/codegen/llvm_runtime_row.c"; }
+    if index == 4 { return "src/codegen/llvm/llvm_stmt_block.c"; }
+    if index == 5 { return "src/codegen/c/transpiler_block_emit.c"; }
+    if index == 6 { return "src/codegen/c/transpiler_expr_call_member_emit.c"; }
+    if index == 7 { return "src/codegen/c/transpiler_let_slot_emit.c"; }
+    if index == 8 { return "src/codegen/c/transpiler_func_class_flow_emit.c"; }
+    if index == 9 { return "src/codegen/c/transpiler_mir_destructure_emit.c"; }
+    if index == 10 { return "src/codegen/c/transpiler_class_decl_emit.c"; }
+    if index == 11 { return "src/codegen/c/transpiler_clone_value_emit.c"; }
+    if index == 12 { return "src/codegen/c/transpiler_mir_pin_emit.c"; }
+    if index == 13 { return "src/codegen/c/transpiler_mir_pin_emit.c"; }
+    if index == 14 { return "src/codegen/c/transpiler_block_emit.c"; }
+    if index == 15 { return "src/codegen/c/transpiler_block_emit.c"; }
+    if index == 16 { return "src/codegen/llvm/llvm_mir_pin_region.c"; }
+    if index == 17 { return "src/codegen/llvm/llvm_mir_pin_region.c"; }
+    if index == 18 { return "src/codegen/llvm/llvm_runtime.c"; }
+    if index == 19 { return "src/codegen/llvm/llvm_runtime_secure_slot_decl.c"; }
+    if index == 20 { return "src/codegen/llvm/llvm_expr_identifier_slot_helpers.c"; }
+    if index == 21 { return "src/codegen/llvm/llvm_runtime_row.c"; }
+    if index == 22 { return "src/codegen/llvm/llvm_runtime_row.c"; }
     return "";
 }
 
@@ -107,7 +107,7 @@ func CompilerBackendEmitterRequiredRowKnown(path: String, term: String) -> Bool 
 }
 
 func CompilerBackendEmitterPrimaryRequiredPath() -> String {
-    return "src/codegen/transpiler_mir_resource_op_core.c";
+    return "src/codegen/c/transpiler_mir_resource_op_core.c";
 }
 
 func CompilerBackendEmitterPrimaryRequiredTerm() -> String {
@@ -119,18 +119,18 @@ func CompilerBackendEmitterForbiddenCount() -> Int {
 }
 
 func CompilerBackendEmitterForbiddenPathAt(index: Int) -> String {
-    if index == 0 { return "src/codegen/llvm_runtime.c"; }
-    if index == 1 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
-    if index == 2 { return "src/codegen/llvm_stmt.c"; }
-    if index == 3 { return "src/codegen/llvm_expr_call_methods_domain_slice.c"; }
-    if index == 4 { return "src/codegen/llvm_expr_identifier_slot_helpers.c"; }
-    if index == 5 { return "src/codegen/transpiler_mir_resource_op_core.c"; }
-    if index == 6 { return "src/codegen/transpiler_expr_call_member_emit.c"; }
-    if index == 7 { return "src/codegen/transpiler_func_class_flow_emit.c"; }
-    if index == 8 { return "src/codegen/transpiler_mir_destructure_emit.c"; }
-    if index == 9 { return "src/codegen/transpiler_class_decl_emit.c"; }
-    if index == 10 { return "src/codegen/transpiler_clone_value_emit.c"; }
-    if index == 11 { return "src/codegen/llvm_runtime_row.c"; }
+    if index == 0 { return "src/codegen/llvm/llvm_runtime.c"; }
+    if index == 1 { return "src/codegen/llvm/llvm_runtime_secure_slot_decl.c"; }
+    if index == 2 { return "src/codegen/llvm/llvm_stmt.c"; }
+    if index == 3 { return "src/codegen/llvm/llvm_expr_call_methods_domain_slice.c"; }
+    if index == 4 { return "src/codegen/llvm/llvm_expr_identifier_slot_helpers.c"; }
+    if index == 5 { return "src/codegen/c/transpiler_mir_resource_op_core.c"; }
+    if index == 6 { return "src/codegen/c/transpiler_expr_call_member_emit.c"; }
+    if index == 7 { return "src/codegen/c/transpiler_func_class_flow_emit.c"; }
+    if index == 8 { return "src/codegen/c/transpiler_mir_destructure_emit.c"; }
+    if index == 9 { return "src/codegen/c/transpiler_class_decl_emit.c"; }
+    if index == 10 { return "src/codegen/c/transpiler_clone_value_emit.c"; }
+    if index == 11 { return "src/codegen/llvm/llvm_runtime_row.c"; }
     return "";
 }
 
@@ -163,7 +163,7 @@ func CompilerBackendEmitterForbiddenRowKnown(path: String, term: String) -> Bool
 }
 
 func CompilerBackendEmitterPrimaryForbiddenPath() -> String {
-    return "src/codegen/llvm_runtime.c";
+    return "src/codegen/llvm/llvm_runtime.c";
 }
 
 func CompilerBackendEmitterPrimaryForbiddenTerm() -> String {
@@ -189,57 +189,57 @@ func CompilerBackendEmitterContractReady() -> Bool {
             CompilerBackendEmitterPrimaryRequiredPath(),
             CompilerBackendEmitterPrimaryRequiredTerm()) &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/llvm_runtime.c",
+            "src/codegen/llvm/llvm_runtime.c",
             "llvm_runtime_declaration_row(") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/llvm_runtime_row.c",
+            "src/codegen/llvm/llvm_runtime_row.c",
             "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/llvm_runtime_row.c",
+            "src/codegen/llvm/llvm_runtime_row.c",
             "row->call_shape") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/llvm_runtime_secure_slot_decl.c",
+            "src/codegen/llvm/llvm_runtime_secure_slot_decl.c",
             "llvm_runtime_declaration_row(") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/llvm_expr_slot_device_calls.c",
+            "src/codegen/llvm/llvm_expr_slot_device_calls.c",
             "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/llvm_expr_identifier_slot_helpers.c",
+            "src/codegen/llvm/llvm_expr_identifier_slot_helpers.c",
             "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/transpiler_mir_pin_emit.c",
+            "src/codegen/c/transpiler_mir_pin_emit.c",
             "transpiler_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/transpiler_mir_pin_emit.c",
+            "src/codegen/c/transpiler_mir_pin_emit.c",
             "row->call_shape") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/transpiler_block_emit.c",
+            "src/codegen/c/transpiler_block_emit.c",
             "transpiler_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/transpiler_block_emit.c",
+            "src/codegen/c/transpiler_block_emit.c",
             "row->call_shape") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/llvm_mir_pin_region.c",
+            "src/codegen/llvm/llvm_mir_pin_region.c",
             "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/llvm_mir_pin_region.c",
+            "src/codegen/llvm/llvm_mir_pin_region.c",
             "row->call_shape") &&
         CompilerBackendEmitterRequiredRowKnown(
-            "src/codegen/llvm_runtime_secure_slot_decl.c",
+            "src/codegen/llvm/llvm_runtime_secure_slot_decl.c",
             "row->call_shape") &&
         CompilerBackendEmitterForbiddenRowKnown(
             CompilerBackendEmitterPrimaryForbiddenPath(),
             CompilerBackendEmitterPrimaryForbiddenTerm()) &&
         CompilerBackendEmitterForbiddenRowKnown(
-            "src/codegen/llvm_runtime_row.c",
+            "src/codegen/llvm/llvm_runtime_row.c",
             "llvm_runtime_slot_name") &&
         CompilerBackendEmitterForbiddenRowKnown(
-            "src/codegen/llvm_expr_call_methods_domain_slice.c",
+            "src/codegen/llvm/llvm_expr_call_methods_domain_slice.c",
             "llvm_domain_slot_format_runtime_name") &&
         CompilerBackendEmitterForbiddenRowKnown(
-            "src/codegen/transpiler_mir_resource_op_core.c",
+            "src/codegen/c/transpiler_mir_resource_op_core.c",
             "strncmp(fn, \"pgy_claim_secure_\"") &&
         CompilerBackendEmitterForbiddenRowKnown(
-            "src/codegen/transpiler_clone_value_emit.c",
+            "src/codegen/c/transpiler_clone_value_emit.c",
             "mir_abi_resource_runtime_fn_by_kind(");
 }

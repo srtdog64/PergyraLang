@@ -1,6 +1,6 @@
 // Mutate only the derived context; supplied source is never emitted or run.
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_formal_execution_context_owner.pgy";
 
 func InspectCollectionExecutionContextGeneration(artifact: AstTreeArtifact,
     ref analysis: SemanticAstArtifactAnalysis) -> Bool {

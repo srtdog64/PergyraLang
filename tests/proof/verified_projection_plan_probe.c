@@ -3,8 +3,8 @@
 #include <string.h>
 
 #include "common/intent_observability_abi.h"
-#include "compiler/mir_surface_usage.h"
-#include "compiler/air_evidence_certificate.h"
+#include "compiler/mir/mir_surface_usage.h"
+#include "compiler/air/air_evidence_certificate.h"
 #include "compiler/machine_layer_manifest.h"
 #include "compiler/compiler_internal.h"
 #include "compiler/verified_projection_plan.h"

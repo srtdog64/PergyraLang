@@ -40,7 +40,7 @@ for required in \
     "PGY_CODE_SEM_TASK_LIFECYCLE"; do
     if ! grep -R -Fq "$required" \
         "$ROOT_DIR/src/semantic/symbol_table.h" \
-        "$ROOT_DIR/src/semantic/type_checker_future_lifecycle.c" \
+        "$ROOT_DIR/src/semantic/type_checker/type_checker_future_lifecycle.c" \
         "$ROOT_DIR/src/semantic/diag_codes.h"; then
         echo "[structured-spawn] missing semantic owner pin: $required" >&2
         exit 1

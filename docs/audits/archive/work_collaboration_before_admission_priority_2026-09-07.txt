@@ -5294,7 +5294,7 @@ now released; this list is historical overlap evidence:
 - `src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy`
 - `src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy`
 - `src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy`
-- `src/self_hosted/compiler/driver_rung2_owner.pgy`
+- `src/self_hosted/compiler/driver/driver_rung2_owner.pgy`
 - `src/self_hosted/codegen/emission/intent_*emit_owner.pgy`
 - `src/self_hosted/codegen/emission/program_{emit,entry,admitted_semantic_owner}.pgy`
 - `tests/self_hosted/parity/intent_{mode,priority}_nested_observability_owner.sh`

@@ -22,7 +22,7 @@ define zone move/return/embedding semantics or invent a fixed lifetime.
   diagnostics and existing fresh-local lifecycle.
 - Production entrypoints: current-source
   `pgy-self-driver --emit-c-artifact-verified SOURCE OUTPUT` and the DRV-2 build
-  rooted at `src/self_hosted/compiler/driver_bootstrap_main.pgy`.
+  rooted at `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`.
 - Fact owners: `SemanticAstFunctionSignatureFacts` owns callable parameter type
   and mode; `SemanticAstNominalConstructorFacts` owns zone kind.
   `SemanticAstZoneParameterBoundaryVerdict` is a subordinate decision inside

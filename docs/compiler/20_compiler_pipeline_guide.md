@@ -46,7 +46,7 @@
 - backend 정책상 LLVM/native가 primary path이고, C backend는 reference/bootstrap/debug path로 취급한다. 자세한 역할 정의는 [51_c_backend_reference_policy.md](/mnt/e/PergyraLang/docs/compiler/51_c_backend_reference_policy.md), 전환 계획은 [52_llvm_native_first_roadmap.md](/mnt/e/PergyraLang/docs/compiler/52_llvm_native_first_roadmap.md)에 둔다.
 - `driver_run_pipeline_timed()`는 같은 파이프라인을 phase별로 계측한다. ABI benchmark harness는 이 timing을 읽어 CI에서는 hard upper bound, 로컬에서는 comparative metric으로 사용한다. backend timing은 다시 `codegen`, `native_compile`, `link`로 분해된다.
 - HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.
-- compiler 구현 파일은 점진적으로 역할 분리 중이다. 최근에는 `mir.c`가 `mir_lower(...)`와 block construction만 소유하고, instruction insertion primitive는 [`mir_base_helpers.c`](../../src/compiler/mir_base_helpers.c), RIR resource/fallback population은 [`mir_lower_population.c`](../../src/compiler/mir_lower_population.c), program validation은 [`mir_program_validate.c`](../../src/compiler/mir_program_validate.c), public MIR query/surface refresh는 [`mir_public_surface.c`](../../src/compiler/mir_public_surface.c)로 분리했다. `mir_lower_public_api.h`는 declaration-only wrapper로 남고, pass-through `mir_public.inc` shim은 제거됐다. `rir.c`도 named owner header로 flow 분석, scope 수집, dump/validation 표면을 갈라놓았다.
+- compiler 구현 파일은 점진적으로 역할 분리 중이다. 최근에는 `mir.c`가 `mir_lower(...)`와 block construction만 소유하고, instruction insertion primitive는 [`mir_base_helpers.c`](../../src/compiler/mir/mir_base_helpers.c), RIR resource/fallback population은 [`mir_lower_population.c`](../../src/compiler/mir/mir_lower_population.c), program validation은 [`mir_program_validate.c`](../../src/compiler/mir/mir_program_validate.c), public MIR query/surface refresh는 [`mir_public_surface.c`](../../src/compiler/mir/mir_public_surface.c)로 분리했다. `mir_lower_public_api.h`는 declaration-only wrapper로 남고, pass-through `mir_public.inc` shim은 제거됐다. `rir.c`도 named owner header로 flow 분석, scope 수집, dump/validation 표면을 갈라놓았다.
 - parser domain constructors also follow the same owner rule: base domain constructors stay in `ast_domain_constructors.c`, while world / intent / zone constructors live in `ast_world_constructors.c`, `ast_intent_constructors.c`, and `ast_zone_constructors.c`.
 
 ## 2. 어디서 시작하나
@@ -311,9 +311,9 @@
 관련 파일:
 
 - `src/compiler/mir.h`
-- `src/compiler/mir_program.h`
-- `src/compiler/mir_types.h`
-- `src/compiler/mir_decl.h`
+- `src/compiler/mir/mir_program.h`
+- `src/compiler/mir/mir_types.h`
+- `src/compiler/mir/mir_decl.h`
 - `src/compiler/mir.c`
 
 MIR 헤더 책임은 다음처럼 분리한다. `mir_types.h`는 instruction, block,
@@ -459,8 +459,8 @@ public operation API/umbrella이며 저장 구조를 다시 선언하지 않는�
 
 - `src/compiler/compiler.h`
 - `src/compiler/compiler.c`
-- `src/codegen/llvm_backend.h`
-- `src/codegen/llvm_backend.c`
+- `src/codegen/llvm/llvm_backend.h`
+- `src/codegen/llvm/llvm_backend.c`
 - `src/codegen/transpiler.h`
 - `src/codegen/transpiler.c`
 
@@ -559,7 +559,7 @@ docs/          설계 문서와 상태 문서
    `src/codegen/transpiler.c`에 해당 노드 emit 추가.
 
 7. LLVM 백엔드
-   `src/codegen/llvm_backend.c`에 동일 기능 추가.
+   `src/codegen/llvm/llvm_backend.c`에 동일 기능 추가.
 
 8. 런타임
    새 builtin, 메모리 모델, ABI가 필요하면 `src/runtime/*` 수정.
@@ -644,7 +644,7 @@ LLVM이 object를 만들어도 최종 실행 파일은 런타임 C 구현과 링
 4. `src/semantic/semantic.h`
 5. `src/semantic/type_checker.*`
 6. `src/compiler/hir.h`
-7. `src/codegen/llvm_backend.c`
+7. `src/codegen/llvm/llvm_backend.c`
 8. `src/codegen/transpiler.c`
 9. `src/compiler/compiler.c`
 10. `tests/backend/compare_backends.sh`

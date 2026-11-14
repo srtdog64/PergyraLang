@@ -88,7 +88,7 @@ action-only 규칙이다. **이 문법 거절 자체를 새로운 정적 정리�
 현재 의미 owner는
 `src/self_hosted/semantic/ast_action_contract_fact_owner.pgy:166`의 subject owner
 검사와 `:244`의 action-only within 처리다. Native
-`src/semantic/type_checker_func_action_contract.c:76`은 실제 Zone 존재를,
+`src/semantic/type_checker/type_checker_func_action_contract.c:76`은 실제 Zone 존재를,
 `:170` 이후는 subject slot/authority 적합성을 검사한다. 마지막 계약 consumer는
 MIR method contract admission이며, call-site 권한과 runtime 승인 증거는 별도다.
 [docs/200 §4.1](../language/200_object_to_action_boundary_patterns.md#41-actioncontract-sot-패턴)이
@@ -110,7 +110,7 @@ native C/LLVM 실행 및 DRV-2 MIR admission을 관측했다.
 
 [Ability/Witness 정전 §4.1](../semantics/10_ability_witness_evidence.md#41-coherence--role-scoped-ambiguity--설계로-우회됨-audit-2026-06-20)은
 explicit named binding을 coherence 규칙으로 고정한다. 실제 native owner
-`src/semantic/type_checker_role_decl.c:203`은 한 role/ability의 중복 impl을
+`src/semantic/type_checker/type_checker_role_decl.c:203`은 한 role/ability의 중복 impl을
 거절한다. 설치 self-host의
 `src/self_hosted/semantic/ast_bind_statement_type_fact_owner.pgy:14`는 slot의
 ability type과 해당 role의 구현을 함께 판정하고,
@@ -154,7 +154,7 @@ Zone 사이의 정상 intent transfer이며 native MIR admission, native C 실�
 transfer에 건네고 native semantic 단계에서 거절된다. 이 쌍은 서로 다른 소유
 경계의 판정 차이를 보이며, 같은 계약을 보존하는 World 삭제 실험은 아니다.
 
-Native owner는 `src/semantic/type_checker_world_embedding.c:217`의 live member
+Native owner는 `src/semantic/type_checker/type_checker_world_embedding.c:217`의 live member
 escape 판정이다. Self-host에는
 `src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy:169`의
 `world_zone` resource path와

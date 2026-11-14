@@ -1,0 +1,131 @@
+// May-alias lattice for indexed String borrow sources. Zero is proved
+// independent, positive values are exact storage SyntaxIds, and -1 is an
+// unresolved or multi-source loan that every deep drop may invalidate.
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_map_payload_loan_state_owner.pgy";
+import "ast_collection_indexed_string_borrow_index_source_owner.pgy";
+import "../ast_expression/ast_expression_graph_member_view_owner.pgy";
+import "../builtin_argument_retention_projection_owner.pgy";
+
+func SemanticAstIndexedStringBorrowUnknownSource() -> Int { return -1; }
+
+// Native String Clone and ToString return the original text pointer. This is
+// result-loan propagation, never a call-duration retention or copy grant.
+func SemanticAstIndexedStringBorrowResultCarriesArgument(
+    ref graph: SemanticExpressionGraphFacts, call: Int, ordinal: Int
+) -> Bool {
+    return ordinal == 0 && (SemanticAstCollectionOwnershipBuiltinCall(graph, call, "ToString") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call, "Clone"));
+}
+
+func SemanticAstIndexedStringBorrowSourceJoin(
+    current: Int, incoming: Int
+) -> Int {
+    if current == 0 { return incoming; }
+    if incoming == 0 || current == incoming { return current; }
+    if current < -1 || incoming < -1 { return -2; }
+    return SemanticAstIndexedStringBorrowUnknownSource();
+}
+
+func SemanticAstIndexedStringBorrowInvalidatedByDrop(
+    borrow_source: Int, dropped_source: Int
+) -> Bool {
+    return borrow_source == SemanticAstIndexedStringBorrowUnknownSource() || borrow_source == -2 ||
+        dropped_source == SemanticAstIndexedStringBorrowUnknownSource() ||
+        borrow_source == dropped_source;
+}
+
+func SemanticAstIndexedStringBorrowSourceForRoot(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>,
+    ref borrow_sources: Array<Int>,
+    map_sources: HashMap<String, Int>, surface_row: Int, root: Int
+) -> Int {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        surfaces.expression_graph, root
+    );
+    if !IsSome(kind) {
+        return SemanticAstIndexedStringBorrowUnknownSource();
+    }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        let alias: SemanticAstLocalBindingIdentity =
+            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                artifact, locals, inferred_types,
+                surfaces.function_node_ids[surface_row],
+                surfaces.node_ids[surface_row],
+                surfaces.expression_graph, root
+            );
+        if alias.ok && alias.type_name == "String" &&
+            alias.row < ArrayLength(borrow_sources) {
+            return borrow_sources[alias.row];
+        }
+        if alias.ok && alias.row < ArrayLength(borrow_sources) && borrow_sources[alias.row] < -1 {
+            return borrow_sources[alias.row];
+        }
+        return 0;
+    }
+    if UnwrapOption(kind) == AstExpressionNodeMemberAccess() && MapSize(map_sources) > 0 {
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, root);
+        if member.ok {
+            let carried: Int = SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types, surfaces,
+                definitions, storage, current_definitions, borrow_sources, map_sources, surface_row, member.receiver_node);
+            if carried < -1 { return carried; }
+        }
+        return SemanticAstIndexedStringBorrowUnknownSource();
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, root
+    );
+    if MapHas(map_sources, ToString(root)) { return SemanticAstMapStringPayloadLoanSource(root); }
+    if call.ok && ArrayLength(call.argument_nodes) == 1 &&
+        SemanticAstIndexedStringBorrowResultCarriesArgument(surfaces.expression_graph, call.call_node, 0) {
+        return SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types, surfaces,
+            definitions, storage, current_definitions, borrow_sources, map_sources, surface_row, call.argument_nodes[0]);
+    }
+    if call.ok &&
+        (SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "Concat") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "StringConcat") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "StringJoin") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "TextBuilderFinish")) {
+        return 0;
+    }
+    // Any other call may return what a map payload loan argument points at,
+    // except a builtin argument the retention registry borrows for the call
+    // only (StringLength, Substring, MapHas, ...).
+    if call.ok && MapSize(map_sources) > 0 {
+        var identity: String = "";
+        let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
+        if IsSome(name) {
+            let found: Option<String> = SemanticBuiltinArgumentRetentionIdentityForSourceName(UnwrapOption(name));
+            if IsSome(found) { identity = UnwrapOption(found); }
+        }
+        var carried: Int = 0;
+        var argument: Int = 0;
+        while argument < ArrayLength(call.argument_nodes) {
+            if !SemanticBuiltinArgumentBorrowedForIdentity(identity, argument) {
+                let incoming: Int = SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types, surfaces,
+                    definitions, storage, current_definitions, borrow_sources, map_sources, surface_row,
+                    call.argument_nodes[argument]);
+                if incoming < -1 { carried = SemanticAstIndexedStringBorrowSourceJoin(carried, incoming); }
+            }
+            argument = argument + 1;
+        }
+        if carried < -1 { return carried; }
+    }
+    if UnwrapOption(kind) != AstExpressionNodeIndex() {
+        return SemanticAstIndexedStringBorrowUnknownSource();
+    }
+    let source_id: Int = SemanticAstIndexedStringBorrowIndexSource(artifact, locals, inferred_types,
+        surfaces, definitions, storage, current_definitions, surface_row, root);
+    if source_id <= 0 { return SemanticAstIndexedStringBorrowUnknownSource(); }
+    return source_id;
+}

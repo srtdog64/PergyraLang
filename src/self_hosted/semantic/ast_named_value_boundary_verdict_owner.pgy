@@ -5,10 +5,10 @@
 // boundary from source text or a projected type name.
 
 import "ast_signature_fact_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
-import "ast_expression_call_target_fact_owner.pgy";
-import "ast_expression_graph_generic_call_owner.pgy";
-import "ast_expression_place_fact_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_call_target_fact_owner.pgy";
+import "ast_expression/ast_expression_graph_generic_call_owner.pgy";
+import "ast_expression/ast_expression_place_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "diagnostic_owner.pgy";

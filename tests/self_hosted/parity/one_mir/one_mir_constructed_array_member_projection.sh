@@ -31,23 +31,23 @@ assert_owner_ratchet() {
         [[ "$lines" -le 220 ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/220"
         total=$((total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_member_specialization_pair_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_member_variant_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_specialization_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_substitution_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_signature_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_method_graph_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_main_graph_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_program_identity_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_method_instruction_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_main_instruction_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_abi_admission_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_representation_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_c_emission_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_llvm_emission_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_projection_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_member_specialization_pair_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_member_variant_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_specialization_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_substitution_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_signature_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_method_graph_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_main_graph_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_program_identity_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_method_instruction_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_main_instruction_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_abi_admission_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_representation_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_plan_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_c_emission_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_llvm_emission_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_array_member_projection_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_projection_owner.pgy
 EOF
     [[ "$total" -le 2160 ]] || fail "constructed Array member family cap exceeded: $total/2160"
     for shared_owner in direct_mir_array_storage_layout_contract_owner.pgy direct_mir_array_storage_abi_projection_owner.pgy direct_mir_array_storage_symbol_owner.pgy direct_mir_array_storage_c_assertion_owner.pgy; do

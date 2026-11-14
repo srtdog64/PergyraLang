@@ -3,10 +3,10 @@
  * the recording half owns how those rows were observed. */
 #include "callable_capability_equations_internal.h"
 #include "capability_analyze.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "diag_codes.h"
-#include "function_param_publication_owner.h"
-#include "function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_publication_owner.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
 
 #include <stdlib.h>
 #include <string.h>

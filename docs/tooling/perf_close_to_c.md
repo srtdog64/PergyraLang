@@ -94,13 +94,13 @@ transforms it applies to hand-written C.
    after the host compiler. The benchmarks show the emitted C is clean.
 
 2. The LLVM backend was ~2-3x slower than the C backend - root-caused and fixed.
-   `llvm_run_optimization` (src/codegen/llvm_api.c) was a stub: it called
+   `llvm_run_optimization` (src/codegen/llvm/llvm_api.c) was a stub: it called
    `llvm_apply_target_machine` and `(void)release_opt;` and ran zero passes, so
    the module was emitted at -O0 (allocas never promoted). The fix wires the
    standard pipeline: `LLVMRunPasses(module, "default<O2>", machine, opts)`
    (`default<O3>` for release). After the fix (re-measured on the rebuilt pgy):
 
-   The fix has two parts, both in `llvm_run_optimization` (src/codegen/llvm_api.c):
+   The fix has two parts, both in `llvm_run_optimization` (src/codegen/llvm/llvm_api.c):
 
    1. Run the pipeline: `LLVMRunPasses(module, "default<O2>", machine, opts)`
       (`default<O3>` for release).
@@ -299,7 +299,7 @@ header-inlined runtime and is expected to close most of the remaining ~1.8x.
 
 ### Runtime bitcode inlining (on by default)
 
-`llvm_link_runtime_bitcode` (in `src/codegen/llvm_api.c`) loads a runtime bitcode
+`llvm_link_runtime_bitcode` (in `src/codegen/llvm/llvm_api.c`) loads a runtime bitcode
 module and `LLVMLinkModules2` links it into the program module immediately before
 the O2 pass; the existing internalize step then gives the merged runtime
 definitions internal linkage, so the inliner folds the hot ones and dead-strips

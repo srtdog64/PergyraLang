@@ -41,9 +41,9 @@ generic helper와 결합만 늘어난다.
 
 ### 1. 연산자 규칙은 단순 함수 중복이 아니라 다중 의미 authority다
 
-- `src/semantic/type_checker_expr_ops.c:17,37`
-- `src/codegen/transpiler_operator.c:16,36`
-- `src/codegen/llvm_domain_method_helpers.c:13,33`
+- `src/semantic/type_checker/type_checker_expr_ops.c:17,37`
+- `src/codegen/c/transpiler_operator.c:16,36`
+- `src/codegen/llvm/llvm_domain_method_helpers.c:13,33`
 
 세 경로가 `+`부터 비교 연산까지의 접미사와 `Add`/`add`/
 `OperatorAdd` 같은 별칭 목록을 각각 가진다. 이것은 C와 LLVM의 출력 차이가
@@ -60,8 +60,8 @@ overload가 의미 검사, C 실행, LLVM 실행에서 같은 target과 결과�
 ### 2. 문자열 포맷은 기존 공통 구현으로 수렴 가능한 실제 재사용 누락이다
 
 - 공통 구현: `src/common/string_compat.h:39`
-- MIR 복제 예: `src/compiler/mir_base_helpers.c:68`
-- 의미 분석 복제 예: `src/semantic/type_checker_resolution_graph_body.c:8`
+- MIR 복제 예: `src/compiler/mir/mir_base_helpers.c:68`
+- 의미 분석 복제 예: `src/semantic/type_checker/type_checker_resolution_graph_body.c:8`
 
 `pergyra_strdup_vprintf`는 길이 계산 뒤 두 번째 `vsnprintf`의 음수 결과와 기대
 길이 불일치를 검사하고 실패 시 버퍼를 해제한다. `resolution_body_strdup_fmt`는
@@ -75,8 +75,8 @@ text scan은 만들지 않는다.
 
 ### 3. 타입별 direct-MIR 중복은 추출보다 삭제가 목표다
 
-- `src/self_hosted/compiler/direct_mir_scalar_program_array_int_empty_literal_admission_owner.pgy:12`
-- `src/self_hosted/compiler/direct_mir_scalar_program_array_bool_empty_literal_admission_owner.pgy:12`
+- `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_empty_literal_admission_owner.pgy:12`
+- `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_bool_empty_literal_admission_owner.pgy:12`
 
 두 함수는 기대 ABI type과 expression kind만 다르고, `facts`의 병렬 배열을 모두
 꺼내 노드를 추가한 뒤 다시 집계하는 절차는 같다. 그러나 V1 계약은
@@ -116,8 +116,8 @@ loan을 찾는 질의다. 몸체가 닮았다고 함수 전체를 합치면 muta
 
 ### 5. LLVM은 region 활성화 검증만 공유 후보이고 lowering은 별개다
 
-- Clone: `src/codegen/llvm_expr_clone_value.c:32-57`
-- String concat: `src/codegen/llvm_expr_scalar_core.c:428-462`
+- Clone: `src/codegen/llvm/llvm_expr_clone_value.c:32-57`
+- String concat: `src/codegen/llvm/llvm_expr_scalar_core.c:428-462`
 
 두 경로 모두 verified region plan 조회, active scope id, region alloca, 현재 function,
 runtime symbol을 검사한다. 반면 Clone은 빈 문자열과 결합해 독립 String을 만들고,

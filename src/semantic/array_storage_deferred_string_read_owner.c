@@ -7,9 +7,9 @@
 #include <stdlib.h>
 
 #include "diag_codes.h"
-#include "function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
 #include "indexed_string_borrow_owner.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 static bool
 deferred_assignment_source(const IndexedStringDeferredAssignment *event,

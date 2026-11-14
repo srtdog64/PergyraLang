@@ -1,0 +1,162 @@
+// Formal Array<String> entry obligations for reachable element deep-release.
+// Container `own` transfers storage; it does not by itself prove that String
+// elements may be released.
+
+import "../ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "../ast_expression/ast_expression_graph_view_owner.pgy";
+import "../ast_expression/ast_expression_surface_fact_owner.pgy";
+import "ast_collection_owned_parameter_identity_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_record_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "../ast_statement_fact_owner.pgy";
+import "../ast_assignment_fact_owner.pgy";
+import "ast_collection_owned_element_call_requirement_owner.pgy";
+
+func SemanticAstCollectionOwnedElementParameterRequirements(
+    artifact: AstTreeArtifact,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref roots: SemanticCallSpineRoots,
+    owned_push_leaf_formals: HashMap<String, Int>,
+    inout field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements
+) -> HashMap<String, Int> {
+    var required: HashMap<String, Int> = MapNew();
+    let count: Int = ArrayLength(locals.node_ids);
+    if ArrayLength(locals.function_node_ids) != count || ArrayLength(inferred_types) != count ||
+        ArrayLength(resolved_leaf_types) !=
+            SemanticExpressionGraphArenaNodeCount(
+                surfaces.expression_graph.arena) ||
+        !statements.ok || ArrayLength(statements.node_ids) != ArrayLength(statements.kind_tags) ||
+        ArrayLength(statements.node_ids) != ArrayLength(statements.function_node_ids) ||
+        !assignments.ok {
+        field_requirements.ok = false; return required;
+    }
+    // An inout or own Array<String> pop destroys one caller-owned element.
+    // Seed the obligation on the exact formal, then propagate it through
+    // recursive and forwarding calls below.
+    var statement_row: Int = 0;
+    while statement_row < ArrayLength(statements.node_ids) {
+        if statements.kind_tags[statement_row] ==
+                TypedAstKindArrayPopStmtTag() {
+            let target_root: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, statements.node_ids[statement_row],
+                    AstExpressionLaneAtom());
+            if !IsSome(target_root) {
+                field_requirements.ok = false; return required;
+            }
+            let formal: SemanticAstCollectionFormalStorageIdentity =
+                SemanticAstCollectionStringArrayFormalIdentity(
+                    signatures,
+                    statements.function_node_ids[statement_row],
+                    surfaces.expression_graph,
+                    UnwrapOption(target_root));
+            if formal.ok && (formal.mode == 1 || formal.mode == 2) {
+                MapSet(required, ToString(formal.syntax_id), 1);
+            }
+        }
+        statement_row = statement_row + 1;
+    }
+    var forwarding_sources: Array<Int> = []; var forwarding_targets: Array<Int> = [];
+    var last_root: Int = -1;
+    var root_slot: Int = 0;
+    while root_slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[root_slot] {
+            let root_id: Int = surfaces.expression_graph.roots[root_slot];
+            var node: Int = last_root + 1;
+            while node <= root_id {
+                let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                    surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) ==
+                        AstExpressionNodeCall() {
+                    let call: SemanticCallSpineView =
+                        SemanticCallSpineViewFromGraph(
+                            surfaces.expression_graph,
+                            roots.root_nodes[node]);
+                    let deep_drop: Bool = call.ok &&
+                        call.call_node == node &&
+                        SemanticAstCollectionOwnershipBuiltinCall(
+                            surfaces.expression_graph, node,
+                            "ArrayDropOwnedStrings") &&
+                        ArrayLength(call.argument_nodes) == 1;
+                    let owned_push: Bool = call.ok &&
+                        call.call_node == node &&
+                        SemanticAstCollectionOwnershipBuiltinCall(
+                            surfaces.expression_graph, node,
+                            "ArrayPushOwnedString") &&
+                        ArrayLength(call.argument_nodes) == 2;
+                    if deep_drop || owned_push {
+                        let binding: SemanticExpressionBindingIdentityFact =
+                            SemanticExpressionGraphBindingIdentity(
+                                surfaces.expression_graph,
+                                call.argument_nodes[0]);
+                        if deep_drop && binding.ok && binding.kind ==
+                                SemanticExpressionBindingFormalParameter() &&
+                            binding.syntax_id > 0 {
+                            MapSet(required, ToString(binding.syntax_id), 1);
+                        }
+                        var effect: Int =
+                            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop();
+                        if owned_push {
+                            effect =
+                                SemanticAstCollectionAggregateFieldEntryEffectOwnedPush();
+                        }
+                        let member_binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                            artifact, locals, inferred_types, surfaces, root_slot / 3, call.argument_nodes[0]);
+                        if member_binding.ok &&
+                            !SemanticAstCollectionAggregateFieldEntryRequirementRecord(
+                                artifact, signatures, constructors, locals,
+                                inferred_types, resolved_leaf_types, surfaces,
+                                assignments,
+                                locals.function_node_ids[member_binding.row],
+                                surfaces.node_ids[root_slot / 3],
+                                locals.node_ids[member_binding.row], effect,
+                                field_requirements) {
+                            field_requirements.ok = false;
+                            return required;
+                        }
+                    }
+                    if call.ok && call.call_node == node {
+                        if !SemanticAstCollectionOwnedElementCallRequirements(
+                                artifact, signatures, constructors, locals,
+                                inferred_types, resolved_leaf_types, surfaces,
+                                assignments, owned_push_leaf_formals,
+                                root_slot, node, call, field_requirements,
+                                forwarding_sources, forwarding_targets) {
+                            field_requirements.ok = false;
+                            return required;
+                        }
+                    }
+                }
+                node = node + 1;
+            }
+            last_root = root_id;
+        }
+        root_slot = root_slot + 1;
+    }
+    // Build edges once, then propagate monotonically. At most one new source
+    // per edge can be admitted; cycles without a deep-drop seed grant nothing.
+    var remaining: Int = ArrayLength(forwarding_sources) + 1;
+    var changed: Bool = true;
+    while changed && remaining > 0 {
+        changed = false;
+        var edge: Int = 0;
+        while edge < ArrayLength(forwarding_sources) {
+            let source: String = ToString(forwarding_sources[edge]);
+            if MapHas(required, ToString(forwarding_targets[edge])) &&
+                !MapHas(required, source) {
+                MapSet(required, source, 1);
+                changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    return required;
+}

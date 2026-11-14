@@ -82,7 +82,7 @@ policy.
 
 The deletion matrix's one sequential source pair has equal output. That does
 not establish the broader no-semantic-effect claim. Current native owners
-`src/semantic/type_checker_unsafe_block.c` and
+`src/semantic/type_checker/type_checker_unsafe_block.c` and
 `type_checker_flow_statement_kinds.c` record `EFFECT_UNSAFE` and refuse unsafe
 blocks in parallel task bodies. The parser retains a distinct unsafe AST node
 and optional capability label.

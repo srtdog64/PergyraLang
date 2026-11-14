@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 #include "mir.h"
-#include "air_evidence_certificate.h"
+#include "air/air_evidence_certificate.h"
 #include "../common/execution_lane_kind.h"
 
 typedef enum PgyProjectionTarget {

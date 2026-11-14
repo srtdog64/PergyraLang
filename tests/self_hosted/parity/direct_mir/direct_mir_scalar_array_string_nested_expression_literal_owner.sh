@@ -11,9 +11,9 @@ CC="${PGY_SELFHOST_CC:-gcc}"; CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/direct_mir_array_string_nested_expression_literal"; WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_array_string_nested_expression_literal.pgy"; MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_nested_expression_literal_mutations.py"
-SEED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_nested_array_literal_seed_owner.pgy"; NESTED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_nested_literal_owner.pgy"
-READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy"
-PARAMETER_CARRIAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_parameter_carriage_owner.pgy"; C_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy"; LLVM_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy"
+SEED="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_nested_array_literal_seed_owner.pgy"; NESTED="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_nested_literal_owner.pgy"
+READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy"
+PARAMETER_CARRIAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_literal_parameter_carriage_owner.pgy"; C_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy"; LLVM_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"

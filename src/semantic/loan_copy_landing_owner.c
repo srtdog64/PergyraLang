@@ -7,11 +7,11 @@
 #include <stdlib.h>
 
 #include "builtin_kind.h"
-#include "function_param_flow_summary_internal.h"
-#include "function_param_publication_owner.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_publication_owner.h"
 #include "slot_summary.h"
-#include "type_checker_internal.h"
-#include "type_checker_ownership_internal.h"
+#include "type_checker/type_checker_internal.h"
+#include "type_checker/type_checker_ownership_internal.h"
 #include "../parser/ast_api.h"
 
 /* The call changes no storage it shares with its caller through any

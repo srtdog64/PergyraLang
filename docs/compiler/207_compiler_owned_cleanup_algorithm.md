@@ -267,9 +267,9 @@ active variant, 초기화된 원소를 실제로 순회하는 코드를 증명�
 
 현재 [native MIR 진입점](../../src/compiler/driver_app.c)은
 [`mir_lower`](../../src/compiler/mir.c)를 사용하고,
-[`mir_cleanup.c`](../../src/compiler/mir_cleanup.c)에는 RIR resource/intent cleanup
+[`mir_cleanup.c`](../../src/compiler/mir/mir_cleanup.c)에는 RIR resource/intent cleanup
 경로가 있다. 이것을 범용 collection/value 자동 cleanup pass로 세면 안 된다.
-[`llvm_expr_aggregate.c`](../../src/codegen/llvm_expr_aggregate.c)의 nested-array
+[`llvm_expr_aggregate.c`](../../src/codegen/llvm/llvm_expr_aggregate.c)의 nested-array
 경로에는 아직 no-free 전제의 shallow backing 공유가 명시되어 있다.
 여기에 drop만 붙이는 것은 올바른 이행이 아니다.
 

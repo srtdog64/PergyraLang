@@ -42,7 +42,7 @@ fixtures.
 Pergyra currently uses an explicit tagged representation for `Option<T>`:
 `{ tag: int32_t, value: T }` plus target padding. The source of truth is
 `src/runtime/pgy_abi_spec.h`, and `src/runtime/pgy_abi_spec_asserts.h` freezes
-the current sizes and offsets. `src/compiler/mir_abi_layout.c` mirrors that
+the current sizes and offsets. `src/compiler/mir/mir_abi_layout.c` mirrors that
 runtime ABI into `MIRTypeLayout` facts. This means:
 
 - `Option<Int>`, `Option<Float>`, and `Option<Bool>` are 8 bytes today.
@@ -55,7 +55,7 @@ runtime ABI into `MIRTypeLayout` facts. This means:
 - ABI lookup is exact-row only. Layout-level runtime function spelling is
   payload carried by a `MIRTypeLayout` row, not an alternate key that can
   reconstruct or select a layout. Slot-like resource operation spellings are
-  carried by `src/compiler/mir_abi_resource_runtime.c` rows keyed by ABI type
+  carried by `src/compiler/mir/mir_abi_resource_runtime.c` rows keyed by ABI type
   name and operation.
 - `Array<T>` layout includes allocator provenance as a fourth field:
   `{ data, length, capacity, allocator }`. The ABI owner models the real

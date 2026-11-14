@@ -46,13 +46,13 @@ hash_file() {
 }
 
 assert_owner_ratchet() {
-    local graph="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_return_graph_fact_owner.pgy"
-    local identity="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy"
-    local plan="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy"
-    local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy"
-    local multi="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
-    local backend="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
-    local abi_fact="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy"
+    local graph="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_return_graph_fact_owner.pgy"
+    local identity="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_return_program_identity_owner.pgy"
+    local plan="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_return_plan_owner.pgy"
+    local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_return_emission_owner.pgy"
+    local multi="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy"
+    local backend="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_backend_projection_owner.pgy"
+    local abi_fact="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_int_abi_fact_owner.pgy"
     local owner cap lines
     while IFS='|' read -r owner cap; do
         require_file "$owner"

@@ -115,7 +115,7 @@
 진입점:
 
 - [slot_analyzer.c](/mnt/e/PergyraLang/src/semantic/slot_analyzer.c)
-- [type_checker_flow.c](/mnt/e/PergyraLang/src/semantic/type_checker_flow.c)
+- [type_checker_flow.c](/mnt/e/PergyraLang/src/semantic/type_checker/type_checker_flow.c)
 
 ### 4.2 MIR / backend
 
@@ -132,8 +132,8 @@
 진입점:
 
 - [transpiler.c](/mnt/e/PergyraLang/src/codegen/transpiler.c)
-- [llvm_stmt.c](/mnt/e/PergyraLang/src/codegen/llvm_stmt.c)
-- [llvm_expr.c](/mnt/e/PergyraLang/src/codegen/llvm_expr.c)
+- [llvm_stmt.c](/mnt/e/PergyraLang/src/codegen/llvm/llvm_stmt.c)
+- [llvm_expr.c](/mnt/e/PergyraLang/src/codegen/llvm/llvm_expr.c)
 
 ### 4.3 runtime
 

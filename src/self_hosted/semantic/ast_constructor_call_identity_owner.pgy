@@ -1,8 +1,8 @@
 // The admitted nominal declaration owns constructor identity. Consumers must
 // not infer a constructor from a zero callable ID or an unbound type spelling.
 import "ast_nominal_constructor_lookup_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
-import "ast_expression_call_identity_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_call_identity_owner.pgy";
 
 func SemanticExpressionGraphNominalConstructorRow(
     ref constructors: SemanticAstNominalConstructorFacts,

@@ -33,7 +33,7 @@ if [[ -n "${PGY_SELFHOST_PREBUILT_DRIVER:-}" ]]; then
     [[ -x "$DRIVER" ]] || fail "prebuilt driver is not runnable: $DRIVER"
 else
     (cd "$ROOT_DIR" && "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_main.pgy")" \
+        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/compiler/driver/driver_rung2_main.pgy")" \
         --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER")" \
         >"$BUILD_DIR/driver.compile.log" 2>&1) \
         || { cat "$BUILD_DIR/driver.compile.log" >&2; fail "driver build failed"; }

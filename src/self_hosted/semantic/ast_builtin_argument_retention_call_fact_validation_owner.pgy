@@ -1,7 +1,7 @@
 // Linear completeness and identity validation for sealed builtin retention facts.
 
-import "ast_collection_ownership_identity_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
+import "ast_collection/ast_collection_ownership_identity_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
 import "builtin_argument_retention_projection_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "builtin_argument_retention_selection_owner.pgy";

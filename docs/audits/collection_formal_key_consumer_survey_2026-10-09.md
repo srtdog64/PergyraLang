@@ -32,13 +32,13 @@ Paths below are repository-relative; line numbers bind to the surveyed source.
 
 | Boundary | Observed owner/consumer |
 |---|---|
-| Installed source request | `src/self_hosted/compiler/driver_bootstrap_main.pgy:7` admits argv and constructs the route world. `driver_source_mir_execution_owner.pgy:33` constructs the AST, calls typed semantic analysis, and hands the admitted analysis to DRV-2. |
-| Body admission | `src/self_hosted/compiler/driver_rung2_owner.pgy:38` checks artifact/admission, creates one body bundle, and checks its receipt. `src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy:230` produces and retains formal effects once; line 249 passes that same result into collection ownership. |
-| Identity and occurrence producers | `src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:33` builds exact formal syntax-id/function/ordinal/mode/body rows from signatures. `ast_expression_graph_surface_order_owner.pgy:11` validates a disjoint occurrence partition, child order and explicitly carried synthetic roots. `ast_collection_formal_execution_context_owner.pgy:40` consumes `order.ok` and binds callable coverage to the artifact digest and node count. |
-| Formal-use owner | `src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:30` owns expression-use arrays and forwarding edges. The temporary key at line 126 only supports the formal-row lookup; the temporary key at line 366 only supports statement-target lookup. Neither key is retained in the result. |
-| Fixed point and retained facts | `src/self_hosted/semantic/ast_collection_formal_effect_fixed_point_owner.pgy:5` checks array/edge shape and resolves acyclic then recursive effects. `ast_collection_formal_effect_fact_owner.pgy:5` carries `ok`, inventory, effects, owned-push leaves, execution contexts and borrowed-text formals. |
+| Installed source request | `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy:7` admits argv and constructs the route world. `driver_source_mir_execution_owner.pgy:33` constructs the AST, calls typed semantic analysis, and hands the admitted analysis to DRV-2. |
+| Body admission | `src/self_hosted/compiler/driver/driver_rung2_owner.pgy:38` checks artifact/admission, creates one body bundle, and checks its receipt. `src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy:230` produces and retains formal effects once; line 249 passes that same result into collection ownership. |
+| Identity and occurrence producers | `src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_identity_owner.pgy:33` builds exact formal syntax-id/function/ordinal/mode/body rows from signatures. `ast_expression_graph_surface_order_owner.pgy:11` validates a disjoint occurrence partition, child order and explicitly carried synthetic roots. `ast_collection_formal_execution_context_owner.pgy:40` consumes `order.ok` and binds callable coverage to the artifact digest and node count. |
+| Formal-use owner | `src/self_hosted/semantic/ast_collection/ast_collection_formal_use_owner.pgy:30` owns expression-use arrays and forwarding edges. The temporary key at line 126 only supports the formal-row lookup; the temporary key at line 366 only supports statement-target lookup. Neither key is retained in the result. |
+| Fixed point and retained facts | `src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_fixed_point_owner.pgy:5` checks array/edge shape and resolves acyclic then recursive effects. `ast_collection_formal_effect_fact_owner.pgy:5` carries `ok`, inventory, effects, owned-push leaves, execution contexts and borrowed-text formals. |
 | Last effect/permission consumers | `ast_collection_formal_effect_readiness_owner.pgy:21` validates signature joins and effect ranges; lines 108/123 derive count/digest. `ast_body_type_bundle_admission_receipt_owner.pgy:6` records them and line 35 rechecks them. `ast_collection_ownership_verdict_owner.pgy:301` refuses failed effects, then passes existing rows/modes/effects into call effects and the ownership scan. `ast_collection_argument_permission_effect_owner.pgy:17` derives negative storage effects; `ast_collection_call_argument_verdict_owner.pgy:9` applies the selected formal permission. |
-| MIR, JSON, backend projection | `src/self_hosted/compiler/driver_rung2_owner.pgy:111` rechecks the retained receipt before lowering the admitted collection verdict, not another effect table. `src/self_hosted/mir/artifact_lower_owner.pgy:210` appends ownership rows and line 226 appends receipts; line 424 refuses unconsumed ownership rows. `mir/json_projection_owner.pgy:385` and `mir/program_json_artifact_writer_owner.pgy:248` serialize the same rows. `mir_lower/collection_ownership_fact_owner.pgy:1` is the fail-closed JSON reader; `compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:175` requires its validity and checks transition receipts/source identity. |
+| MIR, JSON, backend projection | `src/self_hosted/compiler/driver/driver_rung2_owner.pgy:111` rechecks the retained receipt before lowering the admitted collection verdict, not another effect table. `src/self_hosted/mir/artifact_lower_owner.pgy:210` appends ownership rows and line 226 appends receipts; line 424 refuses unconsumed ownership rows. `mir/json_projection_owner.pgy:385` and `mir/program_json_artifact_writer_owner.pgy:248` serialize the same rows. `mir_lower/collection_ownership_fact_owner.pgy:1` is the fail-closed JSON reader; `compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:175` requires its validity and checks transition receipts/source identity. |
 
 The source-C branch independently builds a body bundle through the same
 owner (`src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy:32`)
@@ -131,11 +131,11 @@ The preceding producer edit is now present with formal-use source SHA256
 Its parity results were reported by main, not rerun in this survey. The
 following newly reached sources were inspected without modification:
 
-- `src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy`:
+- `src/self_hosted/semantic/ast_collection/ast_collection_member_read_permission_owner.pgy`:
   `4d450aca490a14970dc622b7ddd977bc23fd96c279fee6182d4b93d20808cf80`.
-- `src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy`:
+- `src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_transition_owner.pgy`:
   `064fb6936d7e5215c99492c14446fc137584a78012b214f50f8297ff326e9676`.
-- `src/self_hosted/semantic/ast_collection_execution_context_fact_owner.pgy`:
+- `src/self_hosted/semantic/ast_collection/ast_collection_execution_context_fact_owner.pgy`:
   `7294c7ed895e8a2c84f180a7609b26c3bdf4afa7b8004b022abbcf9404814a10`.
 
 ### Observed obstruction, not dominance

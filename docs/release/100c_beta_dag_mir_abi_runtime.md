@@ -155,7 +155,7 @@
   and host-method metadata split into dedicated helper owners, leaving
   `llvm_internal.h` as context declarations plus public backend contracts.
 - MIR slot/claim type helper extraction now lives in
-  `src/compiler/mir_type_helpers.c` / `.h`, reducing `src/compiler/mir.c`
+  `src/compiler/mir/mir_type_helpers.c` / `.h`, reducing `src/compiler/mir.c`
   without changing lowering behavior. `make test-mir` and
   `make mir-declaration-inventory-test-smoke` cover the split.
 - C MIR block emission is no longer a replacement mega-header: destructuring
@@ -164,12 +164,12 @@
   `transpiler_mir_preserved_let_emit.h`, and
   `transpiler_mir_block_schedule_emit.h`. The main block statement owner is
   `transpiler_mir_block_emit.c` behind a declaration-only header.
-- 2026-05-04 with-slot source-order repair: `src/compiler/mir_stmt_population.h`
+- 2026-05-04 with-slot source-order repair: `src/compiler/mir/mir_stmt_population.h`
   now propagates `source_statement_index` onto matched `MIR_INST_RESOURCE_OP`
   facts, including residual `with slot` Claim/Write/Read facts, before C
-  backend source-order scheduling. `src/codegen/transpiler_mir_resource_op_emit.h`
+  backend source-order scheduling. `src/codegen/c/transpiler_mir_resource_op_emit.h`
   also emits `AST_WITH_STMT` Claim facts by AST kind rather than requiring a
-  nonzero wrapper source location, and `src/codegen/llvm_mir_block_emit.h`
+  nonzero wrapper source location, and `src/codegen/llvm/llvm_mir_block_emit.h`
   uses the same AST-kind criterion for LLVM with-slot claim setup. The LLVM
   block-entry Claim prepass was also removed, so both backends now consume
   with-slot setup through the main MIR instruction order rather than a
@@ -207,11 +207,11 @@
   `transpiler_expr_call_member_emit.c`, leaving `transpiler_expr_call_spawn_emit.h`
   as the call-dispatch shim.
 - MIR cleanup/rollback/invalidation edge ownership now lives in
-  `src/compiler/mir_cleanup.c` / `.h`. Cleanup block creation, rollback-policy
+  `src/compiler/mir/mir_cleanup.c` / `.h`. Cleanup block creation, rollback-policy
   invalidation, and cleanup edge materialization are no longer mixed into
   `src/compiler/mir.c`; `make test-mir` and
   `make mir-declaration-inventory-test-smoke` cover the split.
-- HIR analysis extraction now lives in `src/compiler/hir_analysis.c` / `.h`.
+- HIR analysis extraction now lives in `src/compiler/hir/hir_analysis.c` / `.h`.
   Type-reference, direct-call, and control-flow-presence analysis no longer
   lives in the top-level HIR lowering owner. `make test-hir`, `make test-rir`,
   `make test-mir`, and `make air-drift-test-smoke` cover the split.
@@ -577,8 +577,8 @@ grep -R "resolve_type_node" -n src/semantic
   through active inventory and lookup helpers.
 - LLVM routine traversal in pipeline/domain/intent now goes through `llvm_active_routine_inventory(...)`; direct `mir->routine_count` / `mir->routines` traversal is confined to the helper owner.
 - LLVM intent MIR metadata readers now live in
-  `src/codegen/llvm_intent_mir_meta.c`, with the private owner seam declared in
-  `src/codegen/llvm_intent_internal.h`. `llvm_intent.c` no longer owns the
+  `src/codegen/llvm/llvm_intent_mir_meta.c`, with the private owner seam declared in
+  `src/codegen/llvm/llvm_intent_internal.h`. `llvm_intent.c` no longer owns the
   who/authorized/participant MIR statement readers and drops to 2,118 LOC while
   backend compare remains green.
 - LLVM host method lookup now uses `llvm_find_host_decl_header_in_context(...)` / `llvm_host_decl_methods(...)` metadata-first. When MIR is active, missing host declaration metadata fails closed instead of falling through to the compatibility active-inventory loop; the AST-shaped compatibility loop remains only for no-MIR paths.
@@ -836,34 +836,34 @@ grep -R "resolve_type_node" -n src/semantic
 - LLVM domain sync/event/role ownership is no longer concentrated in `llvm_domain.c`: method/provenance helpers live in `llvm_domain_method_helpers.c`, event type/helper lowering lives in `llvm_domain_event.c`, role method/operator/vtable emission lives in `llvm_domain_role_emit.c`, domain sync/method body emission lives in `llvm_domain_method_emit.c`, world sync lives in `llvm_domain_world_sync.c`, zone sync lives in `llvm_domain_zone_sync.c`, and the declaration/projection/zone-binding helper families are split into focused owner headers. `llvm_domain.c` is now 895 LOC and remains backend-compare green.
 - LLVM statement ownership is now split by real TU owner: type inference lives in `llvm_stmt_type_infer.c`, let helper/type rendering lives in `llvm_stmt_let_helpers.c`, let lowering lives in `llvm_stmt_let_with.c`, collection/channel/array let specializations live in `llvm_stmt_let_collections.c`, callable/lambda let registration lives in `llvm_stmt_let_callable.c`, with lowering lives in `llvm_stmt_with.c`, `while`/`for`/`match` lowering lives in `llvm_stmt_loop_match.c`, `parallel`/`async`/`select` lowering lives in `llvm_stmt_parallel_async.c`, zone-action effect propagation lives in `llvm_stmt_zone_action.c`, and generic type-argument rendering lives in `llvm_stmt_type_render.c`. `llvm_stmt.c` is now 573 LOC, `llvm_stmt_let_with.c` is now 562 LOC, and both dispatcher and let owners are below the 600 LOC split-review threshold.
 - MIR cleanup/rollback/invalidation CFG edge ownership is split into
-  `src/compiler/mir_cleanup.c`. This does not complete MIR declaration debt,
+  `src/compiler/mir/mir_cleanup.c`. This does not complete MIR declaration debt,
   but it removes another execution-flow owner family from `src/compiler/mir.c`
   before the larger SSA/liveness/DCE split.
 - MIR intent instruction materialization is split into
-  `src/compiler/mir_intent.c`. Intent participant, step, zone alias,
+  `src/compiler/mir/mir_intent.c`. Intent participant, step, zone alias,
   authority, check/eval, dispatch, compensation, and invalidation marker
   lowering no longer lives in the MIR orchestration file.
 - MIR CFG/body ownership is split further: SSA rename materialization lives in
-  `src/compiler/mir_ssa_rename.c`, versioned use-edge population lives in
-  `src/compiler/mir_ssa_use_edges.c`, liveness/value summaries and DCE live in
-  `src/compiler/mir_liveness_dce.c` / `src/compiler/mir_dce.c`, and
+  `src/compiler/mir/mir_ssa_rename.c`, versioned use-edge population lives in
+  `src/compiler/mir/mir_ssa_use_edges.c`, liveness/value summaries and DCE live in
+  `src/compiler/mir/mir_liveness_dce.c` / `src/compiler/mir/mir_dce.c`, and
   source-order statement population lives in
-  `src/compiler/mir_stmt_population.c`. `src/compiler/mir.c` is now an
+  `src/compiler/mir/mir_stmt_population.c`. `src/compiler/mir.c` is now an
   orchestration owner for block construction plus pass ordering.
   `cfg-body-dataflow-test-smoke` keeps every MIR CFG/body owner below the 600
   LOC split-review threshold.
 - AIR evidence collection is split into `src/compiler/air_evidence.c`, with
-  shared internal name/error ownership declared in `src/compiler/air_internal.h`.
+  shared internal name/error ownership declared in `src/compiler/air/air_internal.h`.
   HIR/RIR evidence matching no longer lives in the AIR synthesis/drift owner.
   `air-drift-test-smoke` now treats `air.c + air_evidence.c` as the AIR
   implementation inventory. DAG evidence is further split into
-  `src/compiler/air_evidence_dag.c`, so `SemanticResult` DAG counters and
+  `src/compiler/air/air_evidence_dag.c`, so `SemanticResult` DAG counters and
   metadata dead-end facts enter AIR through a single source-of-truth owner.
-- AIR boundary traversal is split into `src/compiler/air_boundary.c`. AST
+- AIR boundary traversal is split into `src/compiler/air/air_boundary.c`. AST
   boundary classification, boundary source derivation, sync-class mapping,
   step boundary counting, and boundary node append now have a dedicated owner.
   `src/compiler/air.c` is now below the 600 LOC split-review threshold.
-- AIR verification is split into `src/compiler/air_verify.c`. Inventory shape,
+- AIR verification is split into `src/compiler/air/air_verify.c`. Inventory shape,
   authority participant shape, evidence provenance invariants, drift emission,
   and strict evidence failures no longer live in the synthesis owner.
   `air-drift-test-smoke` treats `air.c + air_boundary.c + air_dump.c +
@@ -996,19 +996,19 @@ analysis owner below the 600 LOC split-review threshold. Local gates:
 `test-parser`, `test-mir`, `build-source-inventory-test-smoke`, and
 `test_inc_size_smoke`.
 
-2026-04-26 C backend structure update: `src/codegen/transpiler_context.c` now owns the output/context primitive layer that had been carried by `transpiler_helpers_core_a_part_a.inc`: `CodeBuf`, `TranspilerCtx` create/destroy, indentation, backend error/hint allocation, and scratch arena string helpers. The private seam is `src/codegen/transpiler_context.h`; the remaining forward declarations were folded into `transpiler_helpers_core_a.inc`, so `transpiler_helpers_core_a_part_a.inc` has been deleted.
+2026-04-26 C backend structure update: `src/codegen/c/transpiler_context.c` now owns the output/context primitive layer that had been carried by `transpiler_helpers_core_a_part_a.inc`: `CodeBuf`, `TranspilerCtx` create/destroy, indentation, backend error/hint allocation, and scratch arena string helpers. The private seam is `src/codegen/c/transpiler_context.h`; the remaining forward declarations were folded into `transpiler_helpers_core_a.inc`, so `transpiler_helpers_core_a_part_a.inc` has been deleted.
 
-2026-04-27 LLVM domain owner update: `src/codegen/llvm_domain_zone_sync.c` now owns zone bounded-frontier sync lowering, `src/codegen/llvm_domain_world_sync.c` owns world sync lowering, and `src/codegen/llvm_domain.c` is reduced to the remaining domain declaration/type orchestration. The old broad `llvm_domain_core_helpers.h` static-helper include was replaced with focused owner headers so `make -B pgy ...` is warning-clean under `-Wall -Wextra`, and `make -B pgy llvm-test-backend-compare` remains 53/53 green.
+2026-04-27 LLVM domain owner update: `src/codegen/llvm/llvm_domain_zone_sync.c` now owns zone bounded-frontier sync lowering, `src/codegen/llvm/llvm_domain_world_sync.c` owns world sync lowering, and `src/codegen/llvm/llvm_domain.c` is reduced to the remaining domain declaration/type orchestration. The old broad `llvm_domain_core_helpers.h` static-helper include was replaced with focused owner headers so `make -B pgy ...` is warning-clean under `-Wall -Wextra`, and `make -B pgy llvm-test-backend-compare` remains 53/53 green.
 
-2026-04-27 LLVM domain event owner update: `src/codegen/llvm_domain_event.c` now owns event type registration and `INIT` / `SUBSCRIBE` / `UNSUBSCRIBE` / `INVOKE` helper lowering. `llvm_domain.c` delegates event lowering through `llvm_emit_domain_event_helpers(...)`, drops to 1,356 LOC, and the old fixed 8-entry event handler parameter array is replaced by full-arity scratch materialization. `make LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy llvm-test-backend-compare` remains green with 196 ABI checks and backend compare 53/53.
+2026-04-27 LLVM domain event owner update: `src/codegen/llvm/llvm_domain_event.c` now owns event type registration and `INIT` / `SUBSCRIBE` / `UNSUBSCRIBE` / `INVOKE` helper lowering. `llvm_domain.c` delegates event lowering through `llvm_emit_domain_event_helpers(...)`, drops to 1,356 LOC, and the old fixed 8-entry event handler parameter array is replaced by full-arity scratch materialization. `make LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy llvm-test-backend-compare` remains green with 196 ABI checks and backend compare 53/53.
 
-2026-04-27 LLVM domain role owner update: `src/codegen/llvm_domain_role_emit.c` now owns role method body emission, role operator thunk emission, and role vtable global materialization. The helper returns `bool` so MIR-routine-missing diagnostics still abort the domain pass immediately. `llvm_domain.c` drops to 1,125 LOC, and `make LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy llvm-test-backend-compare` remains green with 196 ABI checks and backend compare 53/53.
+2026-04-27 LLVM domain role owner update: `src/codegen/llvm/llvm_domain_role_emit.c` now owns role method body emission, role operator thunk emission, and role vtable global materialization. The helper returns `bool` so MIR-routine-missing diagnostics still abort the domain pass immediately. `llvm_domain.c` drops to 1,125 LOC, and `make LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy llvm-test-backend-compare` remains green with 196 ABI checks and backend compare 53/53.
 
-2026-04-27 LLVM domain method/sync owner update: `src/codegen/llvm_domain_method_emit.c` now owns domain sync helper dispatch and domain method body emission, keeping projection sync helper include-order local to the owner TU. `llvm_domain.c` drops below the 1,000 LOC hard cap to 895 LOC. `make LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy llvm-test-backend-compare` remains warning-clean and green with 196 ABI checks and backend compare 53/53.
+2026-04-27 LLVM domain method/sync owner update: `src/codegen/llvm/llvm_domain_method_emit.c` now owns domain sync helper dispatch and domain method body emission, keeping projection sync helper include-order local to the owner TU. `llvm_domain.c` drops below the 1,000 LOC hard cap to 895 LOC. `make LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy llvm-test-backend-compare` remains warning-clean and green with 196 ABI checks and backend compare 53/53.
 
-2026-04-27 LLVM statement owner update: `src/codegen/llvm_stmt_type_infer.c`, `src/codegen/llvm_stmt_let_helpers.c`, `src/codegen/llvm_stmt_let_with.c`, `src/codegen/llvm_stmt_with.c`, `src/codegen/llvm_stmt_loop_match.c`, and `src/codegen/llvm_stmt_parallel_async.c` now own the statement subfamilies that were previously concentrated in `llvm_stmt.c`. The full backend compare suite remains 53/53 green after the split, so let/with, expression type inference, break/continue, collection iteration, range loops, Option/Result match destructuring, parallel, async, and select lowering keep parity across C/LLVM.
+2026-04-27 LLVM statement owner update: `src/codegen/llvm/llvm_stmt_type_infer.c`, `src/codegen/llvm/llvm_stmt_let_helpers.c`, `src/codegen/llvm/llvm_stmt_let_with.c`, `src/codegen/llvm/llvm_stmt_with.c`, `src/codegen/llvm/llvm_stmt_loop_match.c`, and `src/codegen/llvm/llvm_stmt_parallel_async.c` now own the statement subfamilies that were previously concentrated in `llvm_stmt.c`. The full backend compare suite remains 53/53 green after the split, so let/with, expression type inference, break/continue, collection iteration, range loops, Option/Result match destructuring, parallel, async, and select lowering keep parity across C/LLVM.
 
-2026-04-27 HIR owner update: `src/compiler/hir_analysis.c` owns signature type-reference collection, direct-call discovery, and control-flow presence detection. `src/compiler/hir_lower_cfg.c` owns AST-body to basic-block CFG construction. `src/compiler/hir_cfg.c` owns CFG finalization, reachability, dominator/frontier, dominator tree, natural loop marking, local-def collection, phi candidates, phi materialization, and CFG summary. `src/compiler/hir_routines.c` owns declaration/routine construction and hidden method routine extraction behind `src/compiler/hir_internal.h`. `src/compiler/hir_destroy.c` owns `hir_destroy()` and synthetic executable teardown, keeping free/cleanup ownership out of lowering orchestration. Current HIR owner sizes are `hir.c` 421 LOC, `hir_routines.c` 419 LOC, `hir_destroy.c` 72 LOC, `hir_lower_cfg.c` 598 LOC, and `hir_cfg.c` 599 LOC, so the active HIR owner set is under the 600 LOC split-review threshold. `make test-hir test-rir test-mir air-drift-test-smoke backend-inc-size-test-smoke production-header-size-test-smoke` remains the owner gate.
+2026-04-27 HIR owner update: `src/compiler/hir/hir_analysis.c` owns signature type-reference collection, direct-call discovery, and control-flow presence detection. `src/compiler/hir/hir_lower_cfg.c` owns AST-body to basic-block CFG construction. `src/compiler/hir/hir_cfg.c` owns CFG finalization, reachability, dominator/frontier, dominator tree, natural loop marking, local-def collection, phi candidates, phi materialization, and CFG summary. `src/compiler/hir/hir_routines.c` owns declaration/routine construction and hidden method routine extraction behind `src/compiler/hir/hir_internal.h`. `src/compiler/hir/hir_destroy.c` owns `hir_destroy()` and synthetic executable teardown, keeping free/cleanup ownership out of lowering orchestration. Current HIR owner sizes are `hir.c` 421 LOC, `hir_routines.c` 419 LOC, `hir_destroy.c` 72 LOC, `hir_lower_cfg.c` 598 LOC, and `hir_cfg.c` 599 LOC, so the active HIR owner set is under the 600 LOC split-review threshold. `make test-hir test-rir test-mir air-drift-test-smoke backend-inc-size-test-smoke production-header-size-test-smoke` remains the owner gate.
 
 2026-04-28 driver scaffold owner update: `src/compiler/driver_scaffold.c` now
 owns `pgy scaffold` / `pgy new` file and project generation. `src/compiler/driver_app.c`
@@ -1030,18 +1030,18 @@ parameter summary facts. `src/semantic/slot_analyzer.c` is now 434 LOC and owns
 only pass lifecycle plus function/block/if/parallel traversal and diagnostics.
 `make test-semantic` remains green at 2357/0 after the split.
 
-2026-04-28 HIR public surface owner update: `src/compiler/hir_public.c` now
+2026-04-28 HIR public surface owner update: `src/compiler/hir/hir_public.c` now
 owns HIR dump modes, declaration/routine queries, and routine/block pass
 runners. `src/compiler/hir.c` is now 926 LOC and remains the top-level
 classification, hidden routine materialization, synthetic executable lowering,
 and reachability propagation owner. `make test-hir test-rir test-mir
 air-drift-test-smoke` remains green after the split.
 
-2026-04-28 DIR owner update: `src/compiler/dir_collect.c` now owns node, role,
-party, roster, world, and intent collection; `src/compiler/dir_collect_domain.c`
+2026-04-28 DIR owner update: `src/compiler/dir/dir_collect.c` now owns node, role,
+party, roster, world, and intent collection; `src/compiler/dir/dir_collect_domain.c`
 owns zone / relation / effect slot and projection contract collection;
-`src/compiler/dir_validate.c` owns validation/dump/public naming; and
-`src/compiler/dir_internal.h` keeps the lowering-local builder/find seam
+`src/compiler/dir/dir_validate.c` owns validation/dump/public naming; and
+`src/compiler/dir/dir_internal.h` keeps the lowering-local builder/find seam
 explicit. `src/compiler/dir.c` is now 467 LOC, `dir_collect.c` is 546 LOC, and
 `dir_collect_domain.c` is 274 LOC, so the DIR family is below the 600 LOC
 split-review threshold. `make test-dir test-air test-rir` remains green after
@@ -1054,64 +1054,64 @@ inference, unification, and generic instantiation. `make test-semantic` remains
 green at 2357/0 after the split.
 
 2026-04-28 LLVM backend owner update: the stale `#if 0` copy of the pre-split
-`LLVMGenCtx` inventory was removed from `src/codegen/llvm_backend.c`, and
-`src/codegen/llvm_backend_generic.c` now owns temp names, generic template
+`LLVMGenCtx` inventory was removed from `src/codegen/llvm/llvm_backend.c`, and
+`src/codegen/llvm/llvm_backend_generic.c` now owns temp names, generic template
 lookup, monomorphization tracking, suffix mapping, and entry-block alloca
-creation. `src/codegen/llvm_backend.c` is now 999 LOC and `make pgy` remains
+creation. `src/codegen/llvm/llvm_backend.c` is now 999 LOC and `make pgy` remains
 green after the split.
 
 2026-04-28 LLVM domain sync frontier owner update:
-`src/codegen/llvm_domain_sync_frontier.c` now owns sync-generation increments,
+`src/codegen/llvm/llvm_domain_sync_frontier.c` now owns sync-generation increments,
 frontier overflow abort lowering, and post-sync builder restoration.
-`src/codegen/llvm_domain_zone_sync.c` is now 997 LOC and remains focused on zone
+`src/codegen/llvm/llvm_domain_zone_sync.c` is now 997 LOC and remains focused on zone
 bounded-frontier sync body emission. `make pgy llvm-test-smoke
 production-header-size-test-smoke` remains green after the split.
 
 2026-04-28 stdlib semantic builtin owner update:
-`src/semantic/type_checker_builtins_stdlib_scalar.c` now owns scalar, string,
+`src/semantic/type_checker/type_checker_builtins_stdlib_scalar.c` now owns scalar, string,
 and math builtin checks, while
-`src/semantic/type_checker_builtins_stdlib_map.c` owns `HashMap` builtin checks.
-`src/semantic/type_checker_builtins_stdlib_body.c` is now 415 LOC after the
+`src/semantic/type_checker/type_checker_builtins_stdlib_map.c` owns `HashMap` builtin checks.
+`src/semantic/type_checker/type_checker_builtins_stdlib_body.c` is now 415 LOC after the
 follow-up variant/channel transport split. `make test-semantic pgy` remains
 green at 2500/0 after the split.
 
 2026-05-04 stdlib HashMap dispatch tightening:
-`src/semantic/type_checker_builtins_stdlib_map.c` now resolves stable `Map*`
+`src/semantic/type_checker/type_checker_builtins_stdlib_map.c` now resolves stable `Map*`
 builtins through a `StdlibMapBuiltinSpec` table and enum dispatch, keeping the
 HashMap stable-surface owner from growing another local `strcmp` branch chain.
-`src/semantic/type_checker_builtins_stdlib_channel_transport.c` routes the
+`src/semantic/type_checker/type_checker_builtins_stdlib_channel_transport.c` routes the
 stable channel transport family (`TryRecv`, `RecvTimeout`, `TrySend`,
 `SendTimeout`, `TrySendStatus`, `SendTimeoutStatus`) through a
 `StdlibChannelTransportSpec` table before calling the channel transport typing
-helpers. `src/semantic/type_checker_builtins_stdlib_variant.c` routes
+helpers. `src/semantic/type_checker/type_checker_builtins_stdlib_variant.c` routes
 Option/Result variant builtins (`Some`, `None`, `IsSome`, `IsNone`, `IsOk`,
 `IsErr`, `UnwrapOption`, `Unwrap`, `UnwrapOr`) through
 `StdlibVariantBuiltinSpec`, keeping variant typing policy in one dispatch table
 instead of a branch-local name chain.
-`src/semantic/type_checker_builtins_stdlib_collections.c` also routes the
+`src/semantic/type_checker/type_checker_builtins_stdlib_collections.c` also routes the
 stable List/Set/Queue/Array builtin names through
 `StdlibCollectionBuiltinSpec`; the per-family semantic checks remain unchanged,
 but name classification is now table-owned.
 `make stdlib-test-smoke LLVM_ENABLED=0` and `make pgy LLVM_ENABLED=0` passed.
 
 2026-04-28 zone declaration owner update:
-`src/semantic/type_checker_zone_decl_authority.c` now owns zone authority
+`src/semantic/type_checker/type_checker_zone_decl_authority.c` now owns zone authority
 ability validation, duplicate authority diagnostics, layer-slot type
 validation, and relation/effect pool beta rejects. `type_checker_zone_decl.c`
 is now 929 LOC and remains the zone lifecycle/state rule validation owner.
 `make test-semantic pgy` remains green at 2357/0 after the split.
 
 2026-04-28 intent helper owner update:
-`src/semantic/type_checker_intent_role_fields.c` now owns role require-field
+`src/semantic/type_checker/type_checker_intent_role_fields.c` now owns role require-field
 validation plus intent transfer/zone-binding derivation helpers, and
-`src/semantic/type_checker_intent_control.c` owns intent-clause control-transfer
+`src/semantic/type_checker/type_checker_intent_control.c` owns intent-clause control-transfer
 rejection. `type_checker_intent_helpers.c` is now 883 LOC, and both new owners
 stay below the 600 LOC split-review threshold. `make test-semantic pgy`
 remains green at 2357/0 after the split.
 
 2026-04-28 domain helper owner update:
-`src/semantic/type_checker_domain_projection.c` now owns projection contract
-diagnostics, and `src/semantic/type_checker_overlay_common.c` owns overlay
+`src/semantic/type_checker/type_checker_domain_projection.c` now owns projection contract
+diagnostics, and `src/semantic/type_checker/type_checker_overlay_common.c` owns overlay
 symbol/shared-field/hosted-method scope setup.
 The former `type_checker_decls_domain_helpers.c` large-owner queue has since
 been closed; projection and contract responsibilities live in named semantic
@@ -1170,8 +1170,8 @@ split, and the active 1,000+ production `.c` owner queue is now AST-only:
   rejection without changing existing slot layouts.
 - C source-block emission now consumes pin-block metadata by emitting a typed
   wrapper local with `pgy_unpin_cleanup_*` / `pgy_secure_unpin_cleanup_*` cleanup
-  hooks. The implementation owner is `src/codegen/transpiler_block_emit.c`;
-  `src/codegen/transpiler_block_emit.h` is declaration-only.
+  hooks. The implementation owner is `src/codegen/c/transpiler_block_emit.c`;
+  `src/codegen/c/transpiler_block_emit.h` is declaration-only.
 - Source-level typed-view pin now rejects `Release(source_slot)` and
   `Move(source_slot)` while a `ReadView<T>` / `WriteView<T>` over that source is
   live. This closes the immediate marketing-vs-implementation drift for
@@ -1638,6 +1638,6 @@ instead of independently walking inventory for each usage bit. Gates:
 
 Current MIR statement population cleanup (2026-05-15): source statement index
 tagging and source-inventory count/items accessors now live in
-`src/compiler/mir_stmt_source_inventory.c`. `mir_stmt_population.c` keeps the
+`src/compiler/mir/mir_stmt_source_inventory.c`. `mir_stmt_population.c` keeps the
 CFG source-order reconstruction algorithm and local inventory lookup, with
 `test_mir` gating the split.

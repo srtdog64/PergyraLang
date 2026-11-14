@@ -16,7 +16,7 @@
 import "../../lib/json.pgy";
 import "../../lib/json_emit.pgy";
 import "../../compiler/artifact_zone_owner.pgy";
-import "../../compiler/test_harness_owner.pgy";
+import "../../compiler/test_harness/test_harness_owner.pgy";
 import "../../compiler/subprocess_runner_owner.pgy";
 
 func AppendMismatchFinding(

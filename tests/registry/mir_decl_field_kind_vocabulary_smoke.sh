@@ -5,7 +5,7 @@ set -euo pipefail
 # selfhost_field_kind_string_table, stale_field_kind_projection.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REGISTRY="$ROOT_DIR/src/compiler/mir_decl_field_kind_vocabulary.def"
+REGISTRY="$ROOT_DIR/src/compiler/mir/mir_decl_field_kind_vocabulary.def"
 PROJECTION="$ROOT_DIR/src/self_hosted/lib/mir_decl_field_kind_vocabulary_projection_owner.pgy"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 

@@ -13,7 +13,7 @@ or public-route verification. Existing dirty source and test work was preserved.
 ## Existing contract
 
 The owner is
-`src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy`.
+`src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy`.
 Its current two admission consumers are collection transition plan readiness
 and owned-String call-result argument admission. Both pass the existing third
 argument as zero.

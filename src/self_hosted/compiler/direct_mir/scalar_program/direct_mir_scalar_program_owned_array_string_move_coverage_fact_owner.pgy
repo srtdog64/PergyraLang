@@ -1,0 +1,49 @@
+// One complete consuming-exit-set receipt for each caller/local owner.
+import "../scalar_cfg/direct_mir_scalar_cfg_hash_owner.pgy";
+
+struct DirectMirScalarProgramOwnedArrayStringMoveCoverageFact {
+    let valid: Bool;
+    let digest: Int;
+    let input_digest: Int;
+    let call_block_rows: Array<Int>;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageInvalid(
+) -> DirectMirScalarProgramOwnedArrayStringMoveCoverageFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramOwnedArrayStringMoveCoverageFact(false, 0, 0, rows);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageDigest(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(311L, fact.input_digest);
+    return DirectMirCfgBoundedDigest(
+        DirectMirScalarCfgHashInts(hash, fact.call_block_rows));
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageReady(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact,
+    count: Int
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramOwnedArrayStringMoveCoverageDigest(fact) ||
+        ((count == 0 && fact.input_digest != 0) || (count > 0 && fact.input_digest == 0)) ||
+        count != ArrayLength(fact.call_block_rows) { return false; }
+    var row: Int = 0;
+    while row < count {
+        if fact.call_block_rows[row] < 0 { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageCanonicalEmpty(
+) -> DirectMirScalarProgramOwnedArrayStringMoveCoverageFact {
+    let rows: Array<Int> = [];
+    let source: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact =
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageFact(true, 0, 0, rows);
+    return DirectMirScalarProgramOwnedArrayStringMoveCoverageFact(
+        true, DirectMirScalarProgramOwnedArrayStringMoveCoverageDigest(source), 0, rows);
+}

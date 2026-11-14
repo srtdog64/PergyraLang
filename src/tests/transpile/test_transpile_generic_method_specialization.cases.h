@@ -1,4 +1,4 @@
-#include "../../codegen/llvm_backend.h"
+#include "../../codegen/llvm/llvm_backend.h"
 
 static void
 test_generic_method_specialization_fact(void)

@@ -139,11 +139,11 @@ Native는 다른 세션의 rebuild 결과다. base commit의 CI binary와 같다
 후속 source 작업의 가장 작은 조사 후보는 Capability다. Primary가 읽은
 [manifest owner](../../src/self_hosted/compiler/capability_manifest_owner.pgy)는
 `SemanticAstCapabilityFactsFromAdmittedBody`와 readiness/contract verdict를 소비한다.
-반면 확인한 [rung-2 admission 함수](../../src/self_hosted/compiler/driver_rung2_owner.pgy)는
+반면 확인한 [rung-2 admission 함수](../../src/self_hosted/compiler/driver/driver_rung2_owner.pgy)는
 analysis/body receipt를 검사한 뒤 projection으로 넘어가며 이 capability verdict를
 직접 소비하지 않는다. 이는 root-cause 조사 지점이지 전체 원인 확정이나 구현 완료가
 아니다. 새 정책을 복제하거나 native를 재호출하지 말고 기존 owner와 마지막
-[source-MIR publication consumer](../../src/self_hosted/compiler/driver_source_mir_execution_owner.pgy)를
+[source-MIR publication consumer](../../src/self_hosted/compiler/driver/driver_source_mir_execution_owner.pgy)를
 연결하는 하나의 실행 경계를 먼저 검증해야 한다.
 
 다른 red 항목을 동시에 구현하는 track은 열지 않았다. 단일 enum 실행 rung의

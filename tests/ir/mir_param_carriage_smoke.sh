@@ -85,17 +85,17 @@ if not any(
 PY
 
 grep -Fq "MIRParamAbiFact   *param_abi_facts" \
-    "$ROOT_DIR/src/compiler/mir_types.h"
+    "$ROOT_DIR/src/compiler/mir/mir_types.h"
 grep -Fq "records parameters without carriage facts" \
-    "$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
+    "$ROOT_DIR/src/compiler/mir/mir_program_fact_validate.c"
 grep -Fq "mir_routine_param_carriage" \
-    "$ROOT_DIR/src/codegen/transpiler_inventory_view.c"
+    "$ROOT_DIR/src/codegen/c/transpiler_inventory_view.c"
 grep -Fq "llvm_mir_routine_param_carriage" \
-    "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"
+    "$ROOT_DIR/src/codegen/llvm/llvm_inventory_internal.c"
 grep -Fq "Parameter carriage controls physical ABI only" \
-    "$ROOT_DIR/src/codegen/llvm_decl.c"
+    "$ROOT_DIR/src/codegen/llvm/llvm_decl.c"
 if grep -Eq 'param_attr|carriage[[:space:]]*==[[:space:]]*MIR_PARAM_CARRIAGE_OWNER_HANDLE.*noalias' \
-        "$ROOT_DIR/src/codegen/llvm_decl.c"; then
+        "$ROOT_DIR/src/codegen/llvm/llvm_decl.c"; then
     echo "[mir-param-carriage] carriage must not imply LLVM pointer attributes" >&2
     exit 1
 fi

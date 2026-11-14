@@ -27,22 +27,22 @@ while IFS='|' read -r owner cap; do
     lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$owner")" || fail "source-size measurement failed"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <<'EOF'
-src/self_hosted/compiler/direct_mir_collection_local_context_fact_owner.pgy|100
-src/self_hosted/compiler/direct_mir_collection_program_route_fact_owner.pgy|100
-src/self_hosted/compiler/direct_mir_collection_program_identity_owner.pgy|130
-src/self_hosted/compiler/direct_mir_collection_program_graph_fact_owner.pgy|185
-src/self_hosted/compiler/direct_mir_collection_program_routine_fact_owner.pgy|190
-src/self_hosted/compiler/direct_mir_collection_program_producer_admission_owner.pgy|210
-src/self_hosted/compiler/direct_mir_collection_program_consumer_admission_owner.pgy|230
-src/self_hosted/compiler/direct_mir_collection_program_entrypoint_admission_owner.pgy|135
-src/self_hosted/compiler/direct_mir_collection_program_local_plan_owner.pgy|250
-src/self_hosted/compiler/direct_mir_collection_program_local_join_owner.pgy|90
-src/self_hosted/compiler/direct_mir_collection_program_edge_fact_owner.pgy|135
-src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy|220
-src/self_hosted/compiler/direct_mir_collection_program_c_emission_owner.pgy|140
-src/self_hosted/compiler/direct_mir_collection_program_llvm_emission_owner.pgy|180
-src/self_hosted/compiler/direct_mir_collection_program_projection_owner.pgy|45
-src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy|35
+src/self_hosted/compiler/direct_mir/direct_mir_collection_local_context_fact_owner.pgy|100
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_route_fact_owner.pgy|100
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_identity_owner.pgy|130
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_graph_fact_owner.pgy|185
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_routine_fact_owner.pgy|190
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_producer_admission_owner.pgy|210
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_consumer_admission_owner.pgy|230
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_entrypoint_admission_owner.pgy|135
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_local_plan_owner.pgy|250
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_local_join_owner.pgy|90
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_edge_fact_owner.pgy|135
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_plan_owner.pgy|220
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_c_emission_owner.pgy|140
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_llvm_emission_owner.pgy|180
+src/self_hosted/compiler/direct_mir/direct_mir_collection_program_projection_owner.pgy|45
+src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_terminal_projection_owner.pgy|35
 EOF
 
 mkdir -p "$WORK_DIR"

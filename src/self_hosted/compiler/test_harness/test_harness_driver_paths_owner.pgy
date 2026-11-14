@@ -1,0 +1,110 @@
+// TestHarness driver-rung path owner.
+//
+// Owns the driver/parser source paths used by the DRV parity runners.
+// Fixture rows remain owned by driver_rung0_owner.pgy.
+
+func CompilerHarnessDriverRung0SuiteName() -> String {
+    return "driver-rung0-paths";
+}
+
+func CompilerHarnessDriverRung1SuiteName() -> String {
+    return "driver-rung1-paths";
+}
+
+func CompilerHarnessDriverRung2SuiteName() -> String {
+    return "driver-rung2-paths";
+}
+
+func CompilerHarnessDriverRung0SourcePath() -> String {
+    return "src/self_hosted/compiler/driver/driver_rung0_main.pgy";
+}
+
+func CompilerHarnessDriverRung1SourcePath() -> String {
+    return "src/self_hosted/compiler/driver/driver_rung1_main.pgy";
+}
+
+func CompilerHarnessDriverRung2SourcePath() -> String {
+    return "src/self_hosted/compiler/driver/driver_rung2_main.pgy";
+}
+
+func CompilerHarnessDriverBootstrapSourcePath() -> String {
+    return "src/self_hosted/compiler/driver/driver_bootstrap_main.pgy";
+}
+
+func CompilerHarnessDriverParserSourcePath() -> String {
+    return "src/self_hosted/parser/main.pgy";
+}
+
+func CompilerHarnessDriverRung0PathCount() -> Int { return 2; }
+func CompilerHarnessDriverRung1PathCount() -> Int { return 2; }
+func CompilerHarnessDriverRung2PathCount() -> Int { return 1; }
+
+func CompilerHarnessDriverRung0PathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessDriverRung0SourcePath(); }
+    if index == 1 { return CompilerHarnessDriverParserSourcePath(); }
+    return "";
+}
+
+func CompilerHarnessDriverRung1PathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessDriverRung1SourcePath(); }
+    if index == 1 { return CompilerHarnessDriverParserSourcePath(); }
+    return "";
+}
+
+func CompilerHarnessDriverRung2PathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessDriverRung2SourcePath(); }
+    return "";
+}
+
+func CompilerHarnessDriverRung0Ready() -> Bool {
+    if CompilerHarnessDriverRung0PathCount() != 2 {
+        return false;
+    }
+    var i: Int = 0;
+    while i < CompilerHarnessDriverRung0PathCount() {
+        if CompilerHarnessDriverRung0PathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessDriverRung0SuiteName() != "";
+}
+
+func CompilerHarnessDriverRung1Ready() -> Bool {
+    if CompilerHarnessDriverRung1PathCount() != 2 {
+        return false;
+    }
+    var i: Int = 0;
+    while i < CompilerHarnessDriverRung1PathCount() {
+        if CompilerHarnessDriverRung1PathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessDriverRung1SuiteName() != "";
+}
+
+func CompilerHarnessDriverRung2Ready() -> Bool {
+    if CompilerHarnessDriverRung2PathCount() != 1 {
+        return false;
+    }
+    var i: Int = 0;
+    while i < CompilerHarnessDriverRung2PathCount() {
+        if CompilerHarnessDriverRung2PathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessDriverRung2SuiteName() != "";
+}
+
+func CompilerHarnessDriverPathsReady() -> Bool {
+    return CompilerHarnessDriverRung0Ready() &&
+        CompilerHarnessDriverRung1Ready() &&
+        CompilerHarnessDriverRung2Ready() &&
+        CompilerHarnessDriverBootstrapSourcePath() != "" &&
+        CompilerHarnessDriverParserSourcePath() ==
+            CompilerHarnessDriverRung0PathAt(1) &&
+        CompilerHarnessDriverParserSourcePath() ==
+            CompilerHarnessDriverRung1PathAt(1);
+}

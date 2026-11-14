@@ -2,7 +2,7 @@
 // default policy. Refuse an effect that could survive a later failure.
 import "ast_body_verdict_owner.pgy";
 import "ast_intent_signature_fact_owner.pgy";
-import "ast_expression_surface_fact_owner.pgy";
+import "ast_expression/ast_expression_surface_fact_owner.pgy";
 import "ast_kind_surface_fact_owner.pgy";
 
 func SemanticAstIntentPredicateCanFail(ref surfaces: SemanticAstExpressionSurfaceFacts,

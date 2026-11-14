@@ -56,7 +56,7 @@ from the semantic stage to the route stage.
 ## The first family's target bytes
 
 `Slice<T>` is the cheapest entry and the native producer already carries its
-rows (`src/compiler/mir_abi_layout.c` around line 268), so the self-hosted row
+rows (`src/compiler/mir/mir_abi_layout.c` around line 268), so the self-hosted row
 has an exact target rather than a design question. Dumped from
 `PGY_NATIVE_PIPELINE=1 pgy --mir-json tests/cases/backend_compare/slice_copy/main.pgy`:
 
@@ -72,12 +72,12 @@ so the self-hosted row's field-order classification is internal and does not
 need a vocabulary agreed with the native producer. The runtime layout is
 `{ data: ptr, length: i64 }` on both legs: C `PgySlice_<Suffix>`
 (`src/runtime/pgy_runtime_memory_array_slot_inline.h` around line 209) and LLVM
-`%PgySlice_<Suffix>` (`src/codegen/llvm_backend.c` around line 350).
+`%PgySlice_<Suffix>` (`src/codegen/llvm/llvm_backend.c` around line 350).
 
 Its two source operations are `Array<T>.Slice(start: Int, len: Int) -> Slice<T>`
-(`src/semantic/type_checker_expr_call.c` around line 278) and
+(`src/semantic/type_checker/type_checker_expr_call.c` around line 278) and
 `SliceCopy(Slice<T>) -> Array<T>`
-(`src/semantic/type_checker_builtins_stdlib_array.c` around line 300).
+(`src/semantic/type_checker/type_checker_builtins_stdlib_array.c` around line 300).
 
 ## What this revision closed
 

@@ -21,10 +21,10 @@
 #include "diag_codes.h"
 #include "indexed_string_definition_recipe.h"
 #include "loan_copy_landing_owner.h"
-#include "function_param_flow_summary_internal.h"
-#include "function_param_publication_owner.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_publication_owner.h"
 #include "slot_summary.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 typedef struct {
     ASTNode *expression, *call, *callee, *routine;

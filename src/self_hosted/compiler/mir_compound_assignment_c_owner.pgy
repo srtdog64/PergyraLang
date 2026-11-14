@@ -1,6 +1,6 @@
 import "mir_compound_assignment_readiness_owner.pgy";
 import "mir_compound_arithmetic_projection_owner.pgy";
-import "direct_mir_scalar_program_c_expression_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_c_expression_owner.pgy";
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 
 func MirCompoundAssignmentC(ref plan: DirectMirScalarCfgGraphPlan,

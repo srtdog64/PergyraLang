@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "compiler/mir_parallel_capture_facts.h"
+#include "compiler/mir/mir_parallel_capture_facts.h"
 #include "semantic/semantic.h"
 
 static size_t calloc_call_count;

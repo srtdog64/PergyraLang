@@ -6,7 +6,7 @@ cd "$ROOT_DIR"
 MODE="${1:-all}"
 case "$MODE" in all|--static-only|--behavior-only) ;; *) echo 'unknown binding-move gate mode' >&2; exit 2 ;; esac
 if [[ "$MODE" != --behavior-only ]]; then
-    python3 - src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy <<'PY'
+    python3 - src/self_hosted/semantic/ast_collection/ast_collection_ownership_binding_move_use_owner.pgy <<'PY'
 import pathlib, re, sys
 
 def prefix_placement_admitted(source):

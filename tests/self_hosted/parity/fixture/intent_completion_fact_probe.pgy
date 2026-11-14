@@ -1,4 +1,4 @@
-import "../../../../src/self_hosted/compiler/direct_mir_intent_completion_fact_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/direct_mir_intent_completion_fact_owner.pgy";
 
 func Main() -> Void {
     let truth = DirectMirIntentCompletionFact(true, 0, 0, 0);

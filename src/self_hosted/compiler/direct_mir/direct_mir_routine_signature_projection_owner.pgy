@@ -1,0 +1,135 @@
+// Direct-MIR routine signature projection.
+
+import "direct_mir_routine_param_fact_owner.pgy";
+import "direct_mir_routine_parameter_set_admission_owner.pgy";
+import "direct_mir_intent_parameter_binding_admission_owner.pgy";
+import "../../mir_lower/program_routine_index_owner.pgy";
+import "../../mir_lower/routine_inventory_owner.pgy";
+import "../symbol_table_owner.pgy";
+import "../../mir_lower/intent_routine_carrier_projection_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "direct_mir_routine_signature_schema_owner.pgy";
+import "direct_mir_routine_method_signature_projection_owner.pgy";
+
+func DirectMirRoutineSignatureWithGenericEnvelopeAt(
+    ref routines: MirProgramRoutineIndex,
+    row: Int,
+    expected_instruction_count: Int,
+    ref generic_names: Array<String>,
+    ref intent_bindings: MirIntentBindingProjection
+) -> DirectMirRoutineSignatureFact {
+    if row < 0 || expected_instruction_count < 0 ||
+        !MirProgramRoutineIndexRowReady(routines, row) ||
+        MirProgramRoutineIndexBlockInstructionCountAt(routines, row, 0) != expected_instruction_count {
+        return InvalidDirectMirRoutineSignatureFact();
+    }
+    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row]);
+    var param_bounds: Array<Int> = [0, 0];
+    if !MirRoutineHeaderSignatureEnvelopeReady(
+            routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
+            routines.names[row], routines.kinds[row], routines.source_syntax_ids[row],
+            routines.receiver_carriages[row], header, param_bounds) {
+        return InvalidDirectMirRoutineSignatureFact();
+    }
+    var param_count: Int = ArrayLength(header.param_names);
+    if ArrayLength(header.generic_names) != ArrayLength(generic_names) ||
+        !MirRoutineHeaderParameterRowsReady(header) {
+        return InvalidDirectMirRoutineSignatureFact();
+    }
+    var generic: Int = 0;
+    while generic < ArrayLength(generic_names) {
+        if generic_names[generic] == "" || header.generic_names[generic] != generic_names[generic] {
+            return InvalidDirectMirRoutineSignatureFact();
+        }
+        generic = generic + 1;
+    }
+    var receiver_type: String = "";
+    var receiver_owner: Int = -1;
+    var source_parameter_offset: Int = 0;
+    var parameters: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFactInvalid();
+    if routines.kinds[row] == "method" {
+        let method: DirectMirRoutineMethodSignatureProjection =
+            DirectMirRoutineMethodSignatureFromBounds(
+                routines, row, header.param_names, header.param_types,
+                header.param_carriages, header.param_resources,
+                header.param_pass_shapes, param_bounds[0], param_bounds[1]);
+        if !method.valid { return InvalidDirectMirRoutineSignatureFact(); }
+        receiver_type = method.receiver_type;
+        receiver_owner = method.receiver_owner_row;
+        source_parameter_offset = method.source_parameter_offset;
+        parameters = method.parameters;
+    } else if routines.kinds[row] == "intent" {
+        if param_count != 0 || ArrayLength(generic_names) != 0 ||
+            intent_bindings.intent_source_syntax_id != ToInt(routines.source_syntax_ids[row]) ||
+            !DirectMirExactJsonArrayCursorAtEnd(routines.source_json, routines.source_json_extent, param_bounds[0] + 1, param_bounds[1]) {
+            return InvalidDirectMirRoutineSignatureFact();
+        }
+        parameters = DirectMirRoutineIntentParameterSetFromBindings(routines.declarations, intent_bindings);
+        param_count = ArrayLength(parameters.names);
+    } else {
+        if intent_bindings.ok { return InvalidDirectMirRoutineSignatureFact(); }
+        parameters = DirectMirRoutineParameterSetFactFromBounds(
+            routines.source_json, routines.source_json_extent, param_bounds[0], param_bounds[1],
+            header.param_names, header.param_types,
+            header.param_carriages, header.param_resources,
+            header.param_pass_shapes, "");
+    }
+    if !DirectMirRoutineParameterSetFactReady(parameters) { return InvalidDirectMirRoutineSignatureFact(); }
+    param_count = ArrayLength(parameters.names);
+    var param: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
+    if param_count > 0 { param = parameters.first; }
+    var symbol: String = routines.names[row];
+    if receiver_type != "" {
+        symbol = CompilerSymbolCQualifiedName(routines.owners[row], symbol);
+    }
+    if header.return_type == "Unknown" || header.return_type == "<unknown>" { return InvalidDirectMirRoutineSignatureFact(); }
+    let return_type: String = SemanticCanonicalTypeName(header.return_type);
+    if return_type == "" || return_type == "Unknown" || return_type == "<unknown>" { return InvalidDirectMirRoutineSignatureFact(); }
+    let fact: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(
+        true, 0, row, symbol, routines.kinds[row],
+        ToInt(routines.source_syntax_ids[row]), source_parameter_offset,
+        routines.receiver_carriages[row],
+        receiver_owner, receiver_type,
+        return_type, param_count, parameters, param
+    );
+    let verified: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactWithDigest(
+            fact, DirectMirRoutineSignatureFactDigest(fact)
+        );
+    if !DirectMirRoutineSignatureFactReady(verified) {
+        return InvalidDirectMirRoutineSignatureFact();
+    }
+    return verified;
+}
+
+func DirectMirRoutineSignatureFactAt(
+    ref routines: MirProgramRoutineIndex,
+    row: Int,
+    expected_instruction_count: Int
+) -> DirectMirRoutineSignatureFact {
+    let no_generics: Array<String> = [];
+    var bindings: MirIntentBindingProjection = MirIntentBindingProjectionInvalid();
+    if MirProgramRoutineIndexRowReady(routines, row) && routines.kinds[row] == "intent" {
+        let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, row);
+        let carriers: MirIntentRoutineCarrierProjection = MirIntentRoutineCarrierProjectionFromRoutine(
+            routines, index, row, routines.names[row]);
+        if !carriers.valid { return InvalidDirectMirRoutineSignatureFact(); }
+        bindings = MirIntentParameterBindingsFromCarriers(
+            carriers,
+            routines.names[row], ToInt(routines.source_syntax_ids[row]));
+    }
+    return DirectMirRoutineSignatureWithGenericEnvelopeAt(
+        routines, row, expected_instruction_count, no_generics, bindings);
+}
+
+func DirectMirRoutineNoParamSignatureReady(
+    ref routines: MirProgramRoutineIndex,
+    row: Int,
+    expected_return: String,
+    expected_instruction_count: Int
+) -> Bool {
+    let fact: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(routines, row, expected_instruction_count);
+    return DirectMirRoutineSignatureFactReady(fact) &&
+        fact.return_type == expected_return && fact.param_count == 0;
+}
+

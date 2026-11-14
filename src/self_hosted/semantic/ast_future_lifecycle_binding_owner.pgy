@@ -3,8 +3,8 @@
 // require local binding IDs. These joins die at common source admission.
 import "ast_body_verdict_owner.pgy";
 import "ast_body_analysis_shape_owner.pgy";
-import "ast_expression_environment_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_environment_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 
 struct SemanticFutureBindings {

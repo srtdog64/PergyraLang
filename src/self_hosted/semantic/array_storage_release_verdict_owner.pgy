@@ -1,10 +1,10 @@
 // Public release over resolved local/formal identities, never a raw-free alias.
 import "array_storage_element_lifetime_owner.pgy";
-import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection/ast_collection_ownership_identity_owner.pgy";
 import "ast_body_flow_verdict_owner.pgy";
 import "ast_assignment_type_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
-import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression/ast_expression_graph_array_literal_owner.pgy";
 import "array_storage_release_parameter_requirement_owner.pgy";
 
 func SemanticArrayStorageBinding(artifact: AstTreeArtifact,

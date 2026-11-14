@@ -5,8 +5,8 @@
 // binding index; it may not join later facts by name.
 
 import "ast_local_binding_fact_owner.pgy";
-import "ast_expression_environment_owner.pgy";
-import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression/ast_expression_environment_owner.pgy";
+import "ast_expression/ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticAstLocalBindingIdentity {
     ok: Bool;

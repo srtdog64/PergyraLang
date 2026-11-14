@@ -3,7 +3,7 @@
 #ifndef PGY_INDEXED_STRING_NONOWNER_RISK_INTERNAL_H
 #define PGY_INDEXED_STRING_NONOWNER_RISK_INTERNAL_H
 
-#include "function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
 
 typedef struct {
     const ASTNode *call, *statement;

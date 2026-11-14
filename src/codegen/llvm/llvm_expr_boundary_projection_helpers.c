@@ -1,0 +1,405 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ */
+
+#ifdef PGY_LLVM_ENABLED
+
+#include "llvm_expr_boundary_projection_helpers.h"
+
+#include <string.h>
+
+#include "../codegen_subject_argument_policy.h"
+#include "llvm_boundary_slot_param.h"
+#include "llvm_backend_type_map_internal.h"
+#include "llvm_expr_member_lvalue.h"
+#include "llvm_internal_api.h"
+#include "llvm_mir_signature.h"
+#include "llvm_mir_store_coercion.h"
+
+static LLVMValueRef
+llvm_boundary_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
+{
+    if (ctx == NULL || slot_var == NULL)
+        return NULL;
+    if (slot_var->type != NULL
+        && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
+        return LLVMBuildLoad2(ctx->builder, slot_var->type, slot_var->alloca,
+                              llvm_tmp_name(ctx));
+    }
+    return slot_var->alloca;
+}
+
+static bool
+llvm_boundary_param_uses_pointer_self(LLVMGenCtx *ctx, FuncParam *param)
+{
+    return param != NULL && llvm_ast_type_uses_pointer_self(ctx, param->type);
+}
+
+static bool
+llvm_boundary_name_is_generic_param(ASTNode *decl, const char *type_name)
+{
+    GenericParams *params;
+
+    if (decl == NULL || type_name == NULL)
+        return false;
+    params = ast_declaration_generic_params(decl);
+    for (size_t i = 0; i < ast_generic_param_count(params); i++) {
+        GenericParam *param = ast_generic_param_at(params, i);
+        const char *param_name = ast_generic_param_name(param);
+        if (param_name != NULL && strcmp(param_name, type_name) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
+llvm_boundary_type_mentions_generic_param(ASTNode *decl, ASTNode *type_node)
+{
+    GenericParams *args;
+
+    if (type_node == NULL)
+        return false;
+    if (type_node->type == AST_TYPE
+        && llvm_boundary_name_is_generic_param(decl,
+            ast_type_name(type_node))) {
+        return true;
+    }
+    if (type_node->type != AST_TYPE)
+        return false;
+    args = ast_type_generic_args(type_node);
+    for (size_t i = 0; i < ast_generic_param_count(args); i++) {
+        GenericParam *arg = ast_generic_param_at(args, i);
+        if (llvm_boundary_name_is_generic_param(decl,
+                ast_generic_param_name(arg))) {
+            return true;
+        }
+        if (llvm_boundary_type_mentions_generic_param(decl,
+                ast_generic_param_constraint(arg))) {
+            return true;
+        }
+        if (llvm_boundary_type_mentions_generic_param(decl,
+                ast_generic_param_default_type(arg))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static LLVMValueRef *
+llvm_boundary_args_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM boundary call argument lowering failed");
+    }
+    return NULL;
+}
+
+LLVMValueRef *
+llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
+                              const MIRRoutine *bound_routine,
+                              ASTNode **arg_nodes, size_t argc,
+                              const LLVMValueRef *evaluated_values,
+                              unsigned *out_count)
+{
+    LLVMValueRef *args;
+    unsigned emitted_count = 0;
+    const MIRRoutine *routine = bound_routine;
+    bool allow_ast_compat = false;
+    const char *decl_name = NULL;
+    bool decl_is_generic = false;
+    bool decl_is_extern = false;
+    size_t param_count;
+
+    if (out_count != NULL)
+        *out_count = 0;
+    if (ctx == NULL || (bound_routine == NULL
+        && (decl == NULL || decl->type != AST_FUNC_DECL)))
+        return NULL;
+
+    decl_name = bound_routine != NULL
+        ? llvm_mir_routine_name(bound_routine)
+        : ast_declaration_name(decl);
+    decl_is_extern = bound_routine == NULL && llvm_decl_is_extern_function(ctx, decl);
+    if (bound_routine == NULL && llvm_active_has_mir(ctx) && !decl_is_extern)
+        routine = llvm_active_function_routine_by_name(ctx, decl_name);
+    decl_is_generic = bound_routine == NULL && llvm_mir_or_ast_function_is_generic(routine, decl);
+    if (llvm_active_has_mir(ctx) && !decl_is_generic && !decl_is_extern) {
+        if (routine == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing boundary call routine for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-function)");
+            return NULL;
+        }
+        if (!llvm_mir_routine_signature_metadata_complete_for(ctx,
+                routine, decl,
+                LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES,
+                "MIR-only LLVM path missing boundary call signature metadata for '%s'",
+                NULL,
+                "MIR-only LLVM path missing boundary call parameter type-name metadata for '%s'")) {
+            return NULL;
+        }
+    }
+    allow_ast_compat = routine == NULL
+        && (decl_is_generic || decl_is_extern);
+
+    if (allow_ast_compat)
+        param_count = ast_func_param_count(decl);
+    else
+        param_count = llvm_mir_routine_param_count(routine);
+    if (argc != param_count)
+        return llvm_boundary_args_error(ctx, decl,
+            "LLVM boundary call source argument count does not match function signature");
+
+    for (size_t i = 0; i < param_count; i++) {
+        bool is_secure = false;
+        MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
+        FuncParam *p;
+        const char *inner = NULL;
+
+        if (allow_ast_compat) {
+            p = ast_func_param(decl, i);
+        } else {
+            p = llvm_mir_routine_param(routine, i);
+        }
+        emitted_count++;
+        if (allow_ast_compat) {
+            inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        } else {
+            inner = llvm_mir_boundary_resource_inner_name(
+                ctx, routine, i, &resource_kind);
+            is_secure = resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
+        }
+        if (ctx->has_error)
+            return NULL;
+        if (inner != NULL && is_secure)
+            emitted_count++;
+    }
+
+    args = pgy_arena_calloc(&ctx->scratch,
+                            (emitted_count > 0 ? emitted_count : 1) * sizeof(LLVMValueRef));
+    if (args == NULL)
+        return llvm_boundary_args_error(ctx, decl,
+            "LLVM boundary call argument allocation failed");
+
+    unsigned arg_idx = 0;
+    unsigned emitted_idx = 0;
+    for (size_t i = 0; i < param_count && arg_idx < argc; i++) {
+        bool is_secure = false;
+        MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
+        FuncParam *p;
+        const char *param_type_name;
+        const MIRCallableSig *param_callable_sig = NULL;
+        const char *inner = NULL;
+        ASTNode *arg_node = arg_nodes[arg_idx++];
+        bool pointer_self = false;
+        MIRParamCarriage carriage = MIR_PARAM_CARRIAGE_VALUE;
+        bool pass_indirect = false;
+
+        if (allow_ast_compat) {
+            p = ast_func_param(decl, i);
+            param_type_name = NULL;
+        } else {
+            p = llvm_mir_routine_param(routine, i);
+            param_type_name = llvm_mir_routine_param_type_name(routine, i);
+            param_callable_sig = llvm_mir_routine_param_callable_sig(
+                routine, i);
+        }
+        if (p != NULL) {
+            carriage = allow_ast_compat
+                ? mir_param_carriage_from_source_mode(p->mode)
+                : llvm_mir_routine_param_carriage(routine, i);
+            pass_indirect = !allow_ast_compat
+                && llvm_mir_routine_param_passes_indirect(routine, i);
+        }
+        if (allow_ast_compat) {
+            inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        } else {
+            inner = llvm_mir_boundary_resource_inner_name(
+                ctx, routine, i, &resource_kind);
+            is_secure = resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
+        }
+        if (param_callable_sig != NULL)
+            pointer_self = false;
+        else if (param_type_name != NULL)
+            pointer_self = llvm_type_name_uses_pointer_self(ctx,
+                param_type_name);
+        else if (allow_ast_compat)
+            pointer_self = llvm_boundary_param_uses_pointer_self(ctx, p);
+        else {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing boundary call parameter ABI fact for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-function)");
+            return NULL;
+        }
+        pointer_self = pointer_self || pass_indirect;
+
+        if (ctx->has_error)
+            return NULL;
+        /* A caller may already have evaluated a value operand to resolve its
+         * operator. That value cannot substitute for an addressable binding. */
+        if (evaluated_values != NULL && evaluated_values[i] != NULL
+            && (pointer_self || carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT))
+            return llvm_boundary_args_error(ctx, arg_node,
+                "LLVM boundary indirect argument requires original storage, not an evaluated value");
+
+        if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT
+            && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
+            LLVMVarEntry mr_var;
+            if (llvm_scope_lookup_snapshot(ctx,
+                    ast_identifier_name(arg_node), &mr_var)) {
+                args[emitted_idx++] = mr_var.alloca;
+                continue;
+            }
+        }
+
+        if (inner != NULL && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
+            const char *source_name = ast_identifier_name(arg_node);
+            LLVMVarEntry slot_var;
+            bool has_slot_var =
+                llvm_scope_lookup_snapshot(ctx, source_name, &slot_var);
+            args[emitted_idx++] = has_slot_var
+                ? llvm_boundary_slot_runtime_arg(ctx, &slot_var)
+                : llvm_emit_expression(arg_node, ctx);
+            if (args[emitted_idx - 1] == NULL)
+                return llvm_boundary_args_error(ctx, arg_node,
+                    "LLVM boundary slot argument could not be lowered");
+            if (is_secure) {
+                LLVMVarEntry token_var;
+                char source_base_name[128];
+                bool has_token_var =
+                    llvm_lookup_secure_token_var(ctx, source_name,
+                        &token_var);
+                if (!has_token_var
+                    && llvm_mir_base_name_from_versioned(source_name,
+                        source_base_name, sizeof(source_base_name))) {
+                    has_token_var = llvm_lookup_secure_token_var(ctx,
+                        source_base_name, &token_var);
+                }
+                if (has_token_var) {
+                    LLVMTypeRef token_ty = token_var.type;
+                    args[emitted_idx++] = LLVMBuildLoad2(ctx->builder, token_ty,
+                        token_var.alloca, llvm_tmp_name(ctx));
+                } else {
+                    return llvm_boundary_args_error(ctx, arg_node,
+                        "LLVM secure boundary slot argument requires paired token binding");
+                }
+            }
+            continue;
+        }
+
+        if (pointer_self && arg_node != NULL) {
+            if (arg_node->type == AST_IDENTIFIER) {
+                const char *source_name = ast_identifier_name(arg_node);
+                LLVMVarEntry var;
+                if (llvm_scope_lookup_snapshot(ctx, source_name, &var)) {
+                    args[emitted_idx++] = LLVMGetTypeKind(var.type) == LLVMPointerTypeKind
+                        ? LLVMBuildLoad2(ctx->builder, var.type, var.alloca, llvm_tmp_name(ctx))
+                        : var.alloca;
+                    continue;
+                }
+                /* Not a local: an implicit host field, such as a world's
+                 * zone member named inside a world method. */
+                LLVMClassTypeEntry *param_cls = param_type_name != NULL
+                    ? llvm_lookup_class(ctx, param_type_name) : NULL;
+                LLVMValueRef address = param_cls != NULL
+                    ? llvm_subject_argument_address(ctx, arg_node, param_cls)
+                    : NULL;
+                if (address != NULL) {
+                    args[emitted_idx++] = address;
+                    continue;
+                }
+            } else if (arg_node->type == AST_MEMBER_ACCESS) {
+                LLVMValueRef ptr = llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
+                if (ptr != NULL) {
+                    args[emitted_idx++] = ptr;
+                    continue;
+                }
+            }
+            bool fresh_subject = carriage != MIR_PARAM_CARRIAGE_VALUE_RESULT
+                && pgy_codegen_is_subject_constructor(
+                    llvm_active_mir_identity(ctx), arg_node);
+            if (!fresh_subject
+                && !(carriage == MIR_PARAM_CARRIAGE_VALUE && !pass_indirect
+                    && arg_node->type == AST_CALL)) {
+                return llvm_boundary_args_error(ctx, arg_node,
+                    "LLVM boundary subject argument requires addressable storage");
+            }
+        }
+
+        {
+            LLVMTypeRef saved_ret = ctx->current_ret_type;
+            LLVMTypeRef expected_ty;
+            if (param_callable_sig != NULL)
+                expected_ty = llvm_mir_callable_sig_to_llvm(
+                    ctx, param_callable_sig);
+            else if (param_type_name != NULL)
+                expected_ty = pergyra_type_to_llvm(ctx, param_type_name);
+            else if (allow_ast_compat && p != NULL && p->type != NULL
+                && !llvm_boundary_type_mentions_generic_param(decl, p->type))
+                expected_ty = ast_type_to_llvm(ctx, p->type);
+            else {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing boundary call parameter ABI fact for '%s'",
+                    decl_name != NULL ? decl_name : "(anonymous-function)");
+                ctx->current_ret_type = saved_ret;
+                return NULL;
+            }
+            if (ctx->has_error) {
+                ctx->current_ret_type = saved_ret;
+                return llvm_boundary_args_error(ctx, arg_node,
+                    "LLVM boundary call parameter type could not be lowered");
+            }
+            if (expected_ty != NULL)
+                ctx->current_ret_type = expected_ty;
+            /* The parameter type is the argument's expected type, as on the
+             * C backend: an empty collection literal lowers to it. */
+            const char *saved_expected_type_name = ctx->expected_type_name;
+            if (param_type_name != NULL)
+                ctx->expected_type_name = param_type_name;
+            LLVMValueRef value = evaluated_values != NULL
+                    && evaluated_values[i] != NULL
+                ? evaluated_values[i] : llvm_emit_expression(arg_node, ctx);
+            ctx->expected_type_name = saved_expected_type_name;
+            /* MIR's admitted parameter type owns numeric widening, including
+             * nonliteral Int values. Pointer/resource carriage is unchanged. */
+            if (value != NULL && !pointer_self) {
+                value = llvm_mir_coerce_value_for_store(ctx, value, expected_ty);
+                if (expected_ty == NULL || LLVMTypeOf(value) != expected_ty) {
+                    ctx->current_ret_type = saved_ret;
+                    return llvm_boundary_args_error(ctx, arg_node,
+                        "LLVM boundary value argument does not match its admitted ABI");
+                }
+            }
+            if (value != NULL && pointer_self) {
+                if (LLVMTypeOf(value) == expected_ty) {
+                    LLVMValueRef temporary = llvm_create_entry_alloca(
+                        ctx, expected_ty, "call.argument");
+                    LLVMBuildStore(ctx->builder, value, temporary);
+                    value = temporary;
+                } else if (LLVMGetTypeKind(LLVMTypeOf(value)) != LLVMPointerTypeKind) {
+                    ctx->current_ret_type = saved_ret;
+                    return llvm_boundary_args_error(ctx, arg_node,
+                        "LLVM boundary nominal argument does not match its admitted ABI");
+                }
+            }
+            args[emitted_idx++] = value;
+            ctx->current_ret_type = saved_ret;
+        }
+        if (args[emitted_idx - 1] == NULL)
+            return llvm_boundary_args_error(ctx, arg_node,
+                "LLVM boundary call argument could not be lowered");
+    }
+
+    if (out_count != NULL)
+        *out_count = emitted_idx;
+    return args;
+}
+
+#endif

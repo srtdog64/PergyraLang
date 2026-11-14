@@ -1,8 +1,8 @@
 // The exit producer must include bare returns with no expression surface.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_exclusive_value_exit_facts_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_exclusive_value_exit_reachability_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_exit_facts_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_exit_reachability_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();

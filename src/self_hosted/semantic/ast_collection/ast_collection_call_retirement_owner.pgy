@@ -1,0 +1,107 @@
+// Conservative syntax-order bounds, not graph-row invocation order.
+// 0 means retirement may repeat/reorder; -1 means no admitted retirement site.
+import "../../hir/ast_text_arena_projection_owner.pgy";
+
+func SemanticAstCollectionCallRetirementSite(ref artifact: AstTreeArtifact, syntax_id: Int) -> Int {
+    return SemanticAstCollectionCallRetirementSiteForOrigin(artifact, syntax_id, -1);
+}
+
+func SemanticAstCollectionNodeEnclosedBy(
+    ref artifact: AstTreeArtifact, node: Int, ancestor_candidate: Int
+) -> Bool {
+    var ancestor: Int = node;
+    var remaining: Int = artifact.count;
+    while ancestor >= 0 && remaining > 0 {
+        if ancestor == ancestor_candidate { return true; }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+        if !IsSome(parent) { return false; }
+        ancestor = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+// A call inside a loop releases one generation per iteration when the
+// aggregate it releases is declared inside that same loop: every loop around
+// the call must also enclose the origin. A defer still never retires.
+func SemanticAstCollectionCallRetirementBound(
+    ref artifact: AstTreeArtifact, syntax_id: Int, origin_syntax_id: Int,
+    function_id: Int, ends_routine: Bool
+) -> Int {
+    if ArrayLength(artifact.arena.kinds) != artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count { return -1; }
+    var ancestor: Int = syntax_id;
+    var remaining: Int = artifact.count;
+    while ancestor >= 0 && ancestor < artifact.count && remaining > 0 {
+        let kind: Int = artifact.arena.kinds[ancestor];
+        if kind == TypedAstKindDeferStmtTag() || (function_id > 0 &&
+            (kind == TypedAstKindAsyncBlockTag() || kind == TypedAstKindParallelBlockTag())) { return -1; }
+        if (kind == TypedAstKindWhileStmtTag() || kind == TypedAstKindForStmtTag()) &&
+            !ends_routine && !SemanticAstCollectionNodeEnclosedBy(artifact, origin_syntax_id, ancestor) { return -1; }
+        let callable: Bool = TypedAstKindIsCallableDecl(kind) || kind == TypedAstKindOverrideFuncTag();
+        if function_id > 0 && callable && ancestor != function_id { return -1; }
+        if function_id > 0 && callable && ancestor == function_id { return syntax_id; }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+        if !IsSome(parent) && function_id == 0 { return syntax_id; }
+        if !IsSome(parent) { return -1; }
+        ancestor = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return -1;
+}
+
+func SemanticAstCollectionCallRetirementSiteForOrigin(
+    ref artifact: AstTreeArtifact, syntax_id: Int, origin_syntax_id: Int
+) -> Int {
+    let site: Int = SemanticAstCollectionCallRetirementBound(artifact, syntax_id, origin_syntax_id, 0, false);
+    if site < 0 { return 0; }
+    return site;
+}
+
+func SemanticAstCollectionAggregateDemandRetirementSiteForOrigin(
+    ref artifact: AstTreeArtifact, syntax_id: Int, origin_syntax_id: Int,
+    function_id: Int, ends_routine: Bool
+) -> Int {
+    if artifact.count <= 0 || artifact.identity_digest == 0 ||
+        syntax_id <= 0 || syntax_id >= artifact.count || origin_syntax_id <= 0 || origin_syntax_id > syntax_id ||
+        function_id <= 0 || function_id >= artifact.count ||
+        SemanticAstCollectionCallRetirementBound(artifact, origin_syntax_id, origin_syntax_id, function_id, true) != origin_syntax_id { return 0; }
+    return SemanticAstCollectionCallRetirementBound(artifact, syntax_id, origin_syntax_id, function_id, ends_routine);
+}
+
+func SemanticAstCollectionMutableCallMayBeRetired(
+    ref artifact: AstTreeArtifact, syntax_id: Int, first_retiring_syntax_id: Int
+) -> Bool {
+    if first_retiring_syntax_id < 0 { return false; }
+    return first_retiring_syntax_id <= syntax_id || syntax_id < 0 || syntax_id >= artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count ||
+        SemanticAstCollectionCallRetirementBound(artifact, syntax_id, syntax_id, 0, true) < 0;
+}
+
+func SemanticAstCollectionMutationMayBeRetired(
+    ref artifact: AstTreeArtifact, syntax_id: Int,
+    first_retiring_site: Int, first_non_deep_drop_site: Int
+) -> Bool {
+    // A deferred/repeated mutation can execute after a lexically later drop.
+    // Ordinary mutation still precedes a known future deferred cleanup.
+    if first_retiring_site >= 0 && SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0 {
+        return SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id, first_retiring_site);
+    }
+    return SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id, first_non_deep_drop_site);
+}
+
+// A proved shallow mutation owns its exact straight-line event. It invalidates
+// sibling descriptors after that event, but must not reject the mutation call
+// merely because the precomputed bound includes the call itself. A repeated or
+// reordered site has bound zero and cannot claim this exception.
+func SemanticAstCollectionShallowMutationHasPriorEffect(
+    ref artifact: AstTreeArtifact, syntax_id: Int,
+    first_retiring_site: Int, first_non_deep_site: Int
+) -> Bool {
+    let current_site: Int = SemanticAstCollectionCallRetirementSite(
+        artifact, syntax_id);
+    if current_site == 0 {
+        return first_retiring_site >= 0 || first_non_deep_site >= 0;
+    }
+    return first_non_deep_site >= 0 && first_non_deep_site < current_site;
+}

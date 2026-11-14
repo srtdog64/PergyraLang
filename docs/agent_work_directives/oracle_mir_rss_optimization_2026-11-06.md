@@ -10,7 +10,7 @@ producer optimization. Main owns carrier-restoration consumption and release.
 - Priority: exact semantic input/output and ownership safety, existing owner,
   removal of repeated allocation/copy, then wall time and patch size.
 - Entrypoint: native-produced `driver_oracle.exe --emit-mir-json-verified
-  src/self_hosted/compiler/driver_bootstrap_main.pgy
+  src/self_hosted/compiler/driver/driver_bootstrap_main.pgy
   --pressure-owned-full-fixpoint -o ...`.
 - Original observation: carrier47 `full_mir_oracle.time`, 21,250,796 KiB RSS,
   exit 0, 225.98 s. The unit is KiB, not a decimal GB measurement.

@@ -79,7 +79,7 @@ The narrower compile/run request already has a production equivalent:
 `c_runner_execute_installed_self_host_c`, which materializes C through the
 installed Pergyra driver (`src/compiler/c_runner.c:21-92`). Missing
 `PGY_SELF_DRIVER_BIN` fails explicitly in
-`src/compiler/self_host_driver.c:196-202`.
+`src/compiler/self_host/self_host_driver.c:196-202`.
 
 Therefore:
 

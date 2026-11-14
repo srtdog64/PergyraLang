@@ -206,8 +206,8 @@ on the rwlock. Direct `struct->__sync_generation` access from generated
 code is a regression bug; the compiler must emit the macro or the
 atomic-RMW path instead. See
 `src/runtime/pgy_runtime_zone_result_option_inline.h`,
-`src/codegen/llvm_domain_sync_frontier.c`, and
-`src/codegen/llvm_domain_world_frontier_zones.c` for the current
+`src/codegen/llvm/llvm_domain_sync_frontier.c`, and
+`src/codegen/llvm/llvm_domain_world_frontier_zones.c` for the current
 contract owners.
 
 ## Channel Contract
@@ -252,7 +252,7 @@ contract owners.
 - A task condition-variable wait failure is an internal invariant violation;
   `await` must not continue as if the task completed normally.
 
-Implementation checkpoint: `src/semantic/type_checker_future_lifecycle.c`
+Implementation checkpoint: `src/semantic/type_checker/type_checker_future_lifecycle.c`
 owns admission, retirement, transfer, and scope-exit rejection.
 `ResourceConsumeSnapshot` carries the state across if/match/loop/parallel flow;
 alternative paths must agree, while a structured parallel join combines the

@@ -1,6 +1,6 @@
 /* Role-admitted implementation edges for the callable capability equation owner. */
 #include "callable_capability_equations_internal.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 Type *
 callable_capability_record_abstract_method(SemanticContext *ctx,

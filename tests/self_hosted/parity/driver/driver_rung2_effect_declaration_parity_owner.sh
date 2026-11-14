@@ -6,7 +6,7 @@
 
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 "$PYTHON_BIN" "$ROOT_DIR/scripts/render_mir_decl_field_kind_vocabulary.py" \
-    "$ROOT_DIR/src/compiler/mir_decl_field_kind_vocabulary.def" \
+    "$ROOT_DIR/src/compiler/mir/mir_decl_field_kind_vocabulary.def" \
     "$ROOT_DIR/src/self_hosted/lib/mir_decl_field_kind_vocabulary_projection_owner.pgy" \
     --check
 

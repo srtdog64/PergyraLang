@@ -1,10 +1,10 @@
 #include "indexed_string_result_inputs.h"
-#include "function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
 #include "indexed_string_borrow_owner.h"
 #include "indexed_string_option_payload.h"
 #include "indexed_string_permanent_element.h"
 #include "loan_copy_landing_owner.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include <stdlib.h>
 #include <string.h>
 

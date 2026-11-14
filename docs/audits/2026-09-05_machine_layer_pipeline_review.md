@@ -26,7 +26,7 @@ evidence. CORRECTED preserves the supported claim while narrowing its scope.
 `RIRMachineContactKind` explicitly declares CLAIM, READ, WRITE, RELEASE and
 SUBMIT_READ (`src/compiler/rir.h:116`). The native walker maps `DeviceRead`,
 `DeviceWrite`, `ReleaseDeviceSlot` and `SubmitDeviceRead` to those contact facts
-at `src/compiler/rir_builder_walk.c:82`; `ClaimDeviceSlot` is recognized at a
+at `src/compiler/rir/rir_builder_walk.c:82`; `ClaimDeviceSlot` is recognized at a
 let initializer at line 217. SubmitRead is carried by `RIR_OP_AWAIT_REMOTE`;
 the contact identity is distinct from that general resource-operation kind.
 
@@ -36,8 +36,8 @@ that every current self-host source route first builds this native RIR object.
 
 ### Explicit MIR facts — CONFIRMED
 
-`src/compiler/mir_types.h:206` owns the instruction fields. The native attachment
-at `src/compiler/mir_machine_layer.c:8` copies the RIR contact and resolves its
+`src/compiler/mir/mir_types.h:206` owns the instruction fields. The native attachment
+at `src/compiler/mir/mir_machine_layer.c:8` copies the RIR contact and resolves its
 abstract operation and selected physical grant from the manifest owner. The
 validator at line 92 compares identity, base, size, mode, runtime operation and
 the authority/live-lease requirements against that owner.
@@ -50,9 +50,9 @@ non-null machine object.
 
 ### AIR machine sites — CORRECTED: validation beside execution lowering
 
-`src/compiler/air_evidence_mir_facts.c:318` collects machine sites from MIR
+`src/compiler/air/air_evidence_mir_facts.c:318` collects machine sites from MIR
 resource instructions and rejects invalid MIR machine facts before copying
-their fields. `src/compiler/air_validate_machine_layer.c:9` then verifies site
+their fields. `src/compiler/air/air_validate_machine_layer.c:9` then verifies site
 completeness and calls the manifest's site validator.
 
 The site's `authority_required` and `live_lease_required` fields are requirement
@@ -100,13 +100,13 @@ partial implementation of the projection boundary, not whole-backend closure.**
 
 The cited C guard is real: `slot_builtin_require_machine_fact` finds the
 source-stable-ID instruction, requires a bound projection, and validates its
-contact kind and machine fact (`src/codegen/transpiler_slot_builtin_emit.c:111`).
+contact kind and machine fact (`src/codegen/c/transpiler_slot_builtin_emit.c:111`).
 LLVM has the equivalent boundary
-(`src/codegen/llvm_expr_slot_device_calls.c:105`), with a separate claim-let
-check (`src/codegen/llvm_stmt_let_slots.c:143`).
+(`src/codegen/llvm/llvm_expr_slot_device_calls.c:105`), with a separate claim-let
+check (`src/codegen/llvm/llvm_stmt_let_slots.c:143`).
 
 However, LLVM still has a call-name dispatch table at
-`src/codegen/llvm_expr_slot_device_calls.c:46` and selects it at line 184 before
+`src/codegen/llvm/llvm_expr_slot_device_calls.c:46` and selects it at line 184 before
 requiring the corresponding MIR fact. The self-host semantic C emitter also
 dispatches from a carried call-target name
 (`src/self_hosted/codegen/emission/expr_semantic_machine_call_emit_owner.pgy:11`)
@@ -131,7 +131,7 @@ contracts, not proof of a deployed MMIO/address-space implementation.
 The native serializer remains the physical declaration source. Public
 `--machine-manifest-json` dispatches to verified replay of the installed
 self-host companion (`src/pgy_driver.c:263`,
-`src/compiler/self_host_machine_manifest_artifact_owner.c:12`). Missing binary
+`src/compiler/self_host/self_host_machine_manifest_artifact_owner.c:12`). Missing binary
 or companion is rejected. The Pergyra consumer parses and validates that
 artifact (`src/self_hosted/compiler/machine_layer_declaration_consumer.pgy:189`,
 line 220); it does not discover hardware.
@@ -167,7 +167,7 @@ identity differing from the built-in host-sim identity
 The self-host C startup serializer applies the same distinction
 (`src/self_hosted/compiler/machine_layer_runtime_binding_owner.pgy:13`). C and
 LLVM startup emit the carried window and fail on refusal
-(`src/codegen/transpiler.c:162`, `src/codegen/llvm_main_wrapper.c:71`).
+(`src/codegen/transpiler.c:162`, `src/codegen/llvm/llvm_main_wrapper.c:71`).
 
 Crucially, provider acceptance does not install a device-operation implementation
 or turn the bound integer base into MMIO storage. The shipped DeviceSlot runtime

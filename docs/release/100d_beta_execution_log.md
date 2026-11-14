@@ -1286,7 +1286,7 @@ on linux/windows/macos with garbage bytes between `[` and `]` for the
 empty `findings` array. Root cause traced to LLVM MIR-mode versioned-
 alloca binding; closure #88 (below) fixes it.
 
-- Closure #88 in `src/codegen/llvm_mir_block_scope.c`
+- Closure #88 in `src/codegen/llvm/llvm_mir_block_scope.c`
   (`llvm_mir_bind_versioned_local_scope`): when an MIR block's entry
   SSA-value list references a phi-result version (e.g. `findings.5`)
   but that version has no allocated alloca (because MIR routine
@@ -1357,7 +1357,7 @@ backend bug, not introduced by the closures in this session.
 ## Progress Log - 2026-06-08 Examples LLVM Cluster: Min/Max Precedence + Slot Builtin Guard
 
 - Closure #86: `llvm_mir_emit_borrow_view_alias`
-  (`src/codegen/llvm_mir_resource_view.c:229`) now returns success
+  (`src/codegen/llvm/llvm_mir_resource_view.c:229`) now returns success
   silently when the source slot's inner-type metadata isn't yet
   registered. The strict "cannot resolve owner slot" error previously
   fired in `pin_mixed_read_view_sequence`, where MIR places a
@@ -1375,7 +1375,7 @@ backend bug, not introduced by the closures in this session.
   `source-stmt-emit` flag on the secure-slot claim.
 
 - Closure #87 (a–d): four small ordering / fallback corrections in
-  `src/codegen/llvm_stmt_type_infer.c` that together recover five
+  `src/codegen/llvm/llvm_stmt_type_infer.c` that together recover five
   previously-failing LLVM-only examples (battle_simulator,
   biome_simulator, campaign_graph_fsm, graph_fsm_dispatch,
   shopping_mall_checkout_refund).
@@ -1430,7 +1430,7 @@ backend bug, not introduced by the closures in this session.
 ## Progress Log - 2026-06-08 Resource Layout For Function Parameter Facts
 
 - Closure #85: `mir_resource_layout_from_fact` (in
-  `src/compiler/mir_lower_population.c`) now handles
+  `src/compiler/mir/mir_lower_population.c`) now handles
   `AST_FUNC_DECL` resource facts. Function parameters get a RIR resource
   fact whose `ast` points at the function declaration (not at a
   let/with). The previous code only knew how to pull a type node from
@@ -2185,11 +2185,11 @@ one before relying on the strict-mode contract elsewhere.
 
 ## Progress Log — 2026-04-28 LLVM Backend Type Map Split
 
-- `src/codegen/llvm_backend.c` is reduced to context lifecycle and backend
+- `src/codegen/llvm/llvm_backend.c` is reduced to context lifecycle and backend
   entry ownership. AST/Pergyra type-name rendering, generic container type
   extraction, `pergyra_type_to_llvm`, `ast_type_to_llvm`, and early
   forward-declare eligibility now live in
-  `src/codegen/llvm_backend_type_map.c`.
+  `src/codegen/llvm/llvm_backend_type_map.c`.
 - Verified with `make pgy` and `make llvm-test-smoke`.
 - Remaining LLVM blocker focus: `llvm_domain_zone_sync.c` / domain frontier
   parity and declaration inventory/bootstrap seams, not the generic backend
@@ -2198,9 +2198,9 @@ one before relying on the strict-mode contract elsewhere.
 ## Progress Log — 2026-04-28 LLVM Zone Frontier State Split
 
 - Zone sync bounded-frontier bookkeeping now has a named LLVM owner:
-  `src/codegen/llvm_domain_zone_frontier_state.c` owns previous-state
+  `src/codegen/llvm/llvm_domain_zone_frontier_state.c` owns previous-state
   allocation, snapshotting, reset, and change-detection continuation updates.
-- `src/codegen/llvm_domain_zone_sync.c` is reduced to zone propagation
+- `src/codegen/llvm/llvm_domain_zone_sync.c` is reduced to zone propagation
   orchestration for projection sync, action-caused effects, apply/maintain,
   detach, link, relation maintain, and unlink.
 - Verified with `make runtime-frontier-contract-test-smoke` and

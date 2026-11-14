@@ -190,8 +190,8 @@ cmp -s "$BUILD_DIR/multi.expected.run" "$BUILD_DIR/multi.llvm.run" \
     || { diff -u "$BUILD_DIR/multi.expected.run" "$BUILD_DIR/multi.llvm.run" >&2; fail "LLVM reverse compensation order drifted"; }
 
 for owner in \
-    "$ROOT_DIR/src/codegen/transpiler_intent_typed_execution.c" \
-    "$ROOT_DIR/src/codegen/llvm_intent_typed_execution.c"; do
+    "$ROOT_DIR/src/codegen/c/transpiler_intent_typed_execution.c" \
+    "$ROOT_DIR/src/codegen/llvm/llvm_intent_typed_execution.c"; do
     grep -Fq 'row->outcome_expression' "$owner" \
         || fail "typed consumer lost sealed outcome expression read: $owner"
     grep -Fq 'terminal->expression' "$owner" \

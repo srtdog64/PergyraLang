@@ -40,7 +40,7 @@
 
 ### ✅ P0-6: `defer` 블록 스코프 버그 — 변수가 보이지 않음
 
-**수정 파일:** `src/semantic/type_checker_flow.c`
+**수정 파일:** `src/semantic/type_checker/type_checker_flow.c`
 **변경 내용:** `type_check_statement_flow`의 `AST_DEFER_STMT` 케이스에서 defer body 처리 전 slot 상태 저장, 처리 후 복원. defer의 `Release()`가 현재 스코프의 slot 추적에 영향을 주지 않도록 함.
 **검증:** 시맨틱 검증 통과 (0 error) — defer body의 Release 이후에도 동일 slot의 Read 가능
 

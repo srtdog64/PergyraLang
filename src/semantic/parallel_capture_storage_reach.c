@@ -2,8 +2,8 @@
 #include <string.h>
 #include "parallel_capture_storage_reach.h"
 #include "parallel_capture_reach_internal.h"
-#include "type_checker_flow_internal.h"
-#include "type_checker_resolution_internal.h"
+#include "type_checker/type_checker_flow_internal.h"
+#include "type_checker/type_checker_resolution_internal.h"
 #include "compiler/decl_field_model.h"
 
 /*

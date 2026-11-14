@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 /*
  * What a parallel task can reach through a captured binding beyond the

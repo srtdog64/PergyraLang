@@ -25,11 +25,11 @@ Source SHA-256 values at observation, before the implementation candidate:
 | `docs/language/00_vision.md` | CAA40E5F5C03A088117465A9800FC8601D77C91727F7002B5D7ADA9DFCEA177E |
 | `docs/self_hosted/14_target_compiler_world.md` | B270F38629EC9CD4A81C34C0E8977FD055D0462629B2674B14430CFC1DC91DCE |
 | `src/self_hosted/compiler/world.pgy` | 08D3913013D83FFFB2FA437C2C98F03F4E701A396A8B56BF2F4544D2A47F8EAD |
-| `src/self_hosted/compiler/driver_rung2_owner.pgy` | 1CE67A4D01649A8A71AA471DFF7CC640D86AC46560C6ED204C263AE0269D4A5E |
-| `src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy` | 4B3D4508720ECC22EA78D4F1C9466F1D90BE4FB11F19C9576964463B78FC9DF6 |
+| `src/self_hosted/compiler/driver/driver_rung2_owner.pgy` | 1CE67A4D01649A8A71AA471DFF7CC640D86AC46560C6ED204C263AE0269D4A5E |
+| `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy` | 4B3D4508720ECC22EA78D4F1C9466F1D90BE4FB11F19C9576964463B78FC9DF6 |
 | `src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy` | 62B9F4034C36B4123DA12EB065951B7A99C8F5AF0976E6466BCCD14D49C1E447 |
 | `src/semantic/collection_ownership_fact.c` | 7310FEC8E9255B9BD8C7CA12CEEC5530E3EE0DA35740B02830373032CA6AA317 |
-| `src/semantic/type_checker_func_decl.c` | 46D4E11FB263E9D971776D5B3FF1C09CA423F5473DC7F919D9BD5D949D764CBA |
+| `src/semantic/type_checker/type_checker_func_decl.c` | 46D4E11FB263E9D971776D5B3FF1C09CA423F5473DC7F919D9BD5D949D764CBA |
 
 Runtime probes deliberately use the existing copied audit packet, not the
 shared installed sibling and not a fresh-HEAD candidate:

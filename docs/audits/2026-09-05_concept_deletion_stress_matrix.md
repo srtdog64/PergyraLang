@@ -96,9 +96,9 @@ single global lifecycle is inferred from that coincidence.
   entry is pinned.
 - `src/semantic/slot_analyzer.c:384-439` classifies per-task Slot access and
   rejects write/write and read/write overlap in `parallel`.
-- `src/semantic/type_checker_slot_view_boundary.c:28-65` rejects a live pinned
+- `src/semantic/type_checker/type_checker_slot_view_boundary.c:28-65` rejects a live pinned
   view crossing an owned boundary, and
-  `src/semantic/type_checker_slot_view_active.c:106-145` prevents the owner
+  `src/semantic/type_checker/type_checker_slot_view_active.c:106-145` prevents the owner
   handle from escaping around that lease.
 
 ### Deletion attacks across distinct workloads
@@ -166,7 +166,7 @@ of implementation completeness.
 - The sandbox contract separates declaration, inferred manifest, runtime gate,
   and static proof (`docs/semantics/15_capability_sandbox.md:12-31`).
 - Native semantic analysis checks transitive `used` against declared caps at
-  `src/semantic/type_checker_func_decl.c:361-387`.
+  `src/semantic/type_checker/type_checker_func_decl.c:361-387`.
 - The self-host owner computes the call-graph fixed point and fails closed on
   non-convergence or missing declarations
   (`src/self_hosted/semantic/ast_capability_fact_owner.pgy:377-460`).
@@ -211,7 +211,7 @@ would also erase the repository's deliberate coarse/fine distinction.
   and `zone`, but no `"scope"` row
   (`src/lexer/language_keyword_registry.def:63,78,343,473,483,608,613,698,738-748`).
 - Named Future lifecycle is owned by
-  `src/semantic/type_checker_future_lifecycle.c:173-227`; live handles are
+  `src/semantic/type_checker/type_checker_future_lifecycle.c:173-227`; live handles are
   rejected at lexical or function exit, while `await`/explicit `own` transfer
   retires the obligation.
 - `parallel` owns a join-before-continuation boundary

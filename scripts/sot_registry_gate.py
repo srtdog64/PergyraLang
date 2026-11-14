@@ -371,9 +371,9 @@ def validate_layer_inputs(root: pathlib.Path) -> None:
             rel = path.relative_to(root).as_posix()
             fail(f"{rel}: backend reads verification-only AIR")
     for rel in (
-        "src/codegen/transpiler_entry.c",
+        "src/codegen/c/transpiler_entry.c",
         "src/codegen/transpiler_entry.h",
-        "src/codegen/llvm_api.c",
+        "src/codegen/llvm/llvm_api.c",
         "src/codegen/llvm_api.h",
     ):
         path = root / rel

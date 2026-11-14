@@ -1,0 +1,55 @@
+// C projection of external runtime calls carried by typed scalar expression facts.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_c_runtime_value_expression_owner.pgy";
+import "direct_mir_scalar_program_c_external_runtime_declaration_owner.pgy";
+import "direct_mir_scalar_program_task_builtin_owner.pgy";
+import "../../../lib/intent_observability_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCTaskObservationExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<String> {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprTaskIsCancelled() { return None; }
+    let task: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramTaskRuntimeFact();
+    if !CompilerRuntimeCallAbiTaskIsCancelledFactReady(task) ||
+        expressions.node_runtime_call_abi_ids[node] != task.runtime_call_abi_id {
+        Die("direct MIR C task-observation ABI is invalid");
+    }
+    return Some(Concat(task.symbol, "()"));
+}
+
+func DirectMirScalarProgramCIntentObservabilityExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
+    left: String, right: String
+) -> Option<String> {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprIntentObservabilityCall() { return None; }
+    let row: IntentObservabilityAbiRow = IntentObservabilityAbiRowForId(
+        expressions.node_runtime_call_abi_ids[node]);
+    if !row.valid { Die("direct MIR C intent-observability ABI is invalid"); }
+    var arguments: String = "";
+    if row.argument_count == 1 { arguments = left; }
+    else if row.argument_count == 2 {
+        arguments = Concat(left, Concat(", ", right));
+    } else if row.argument_count != 0 {
+        Die("direct MIR C intent-observability arity is invalid");
+    }
+    return Some(Concat(row.runtime_name, Concat("(", Concat(arguments, ")"))));
+}
+
+func DirectMirScalarProgramCExternalRuntimeExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
+    left: String, right: String
+) -> Option<String> {
+    let task: Option<String> =
+        DirectMirScalarProgramCTaskObservationExpressionAt(expressions, node);
+    if IsSome(task) { return task; }
+    let observability: Option<String> =
+        DirectMirScalarProgramCIntentObservabilityExpressionAt(
+            expressions, node, left, right);
+    if IsSome(observability) { return observability; }
+    return DirectMirScalarProgramCRuntimeValueExpressionAt(
+        expressions, node, left, right);
+}

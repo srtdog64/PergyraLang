@@ -67,8 +67,8 @@ def main():
             print(build.stdout.decode(errors="replace") + build.stderr.decode(errors="replace"))
             return 1
     old_route = root / "src/self_hosted/compiler/direct_mir_scalar_program_single_string_route_owner.pgy"
-    route = root / "src/self_hosted/compiler/direct_mir_scalar_program_control_flow_route_owner.pgy"
-    admission_owner = root / "src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy"
+    route = root / "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_control_flow_route_owner.pgy"
+    admission_owner = root / "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_admission_owner.pgy"
     check("control-flow-owner", not old_route.exists() and
           "DirectMirScalarControlFlowProgramRouteClaimed(admitted)" in admission_owner.read_text() and
           "DirectMirScalarSingleStringProgramRouteClaimed" not in admission_owner.read_text() and

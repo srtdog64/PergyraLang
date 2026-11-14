@@ -34,10 +34,10 @@ assert_owner_ratchet() {
         [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
         total=$((total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_plan_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_target_projection_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_c_emission_owner.pgy|90
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_llvm_emission_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_mutable_nominal_identity_plan_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_mutable_nominal_identity_target_projection_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_mutable_nominal_identity_c_emission_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_mutable_nominal_identity_llvm_emission_owner.pgy|90
 EOF
     [[ "$total" -le 384 ]] || fail "mutable nominal identity owner cap exceeded: $total/384"
 }

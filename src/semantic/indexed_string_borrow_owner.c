@@ -6,8 +6,8 @@
 #include <string.h>
 #include "diag_codes.h"
 #include "indexed_string_borrow_owner.h"
-#include "function_param_publication_internal.h"
-#include "function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
 #include "array_storage_deferred_preservation_owner.h"
 #include "array_storage_element_lifetime_owner.h"
 #include "collection_owned_element_requirement_owner.h"
@@ -16,7 +16,7 @@
 #include "indexed_string_named_call_owner.h"
 #include "loan_copy_landing_owner.h"
 #include "formal_string_store_landing_owner.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 #define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
 

@@ -4,7 +4,7 @@
 // admitted MIR boundary.  Codegen sees only this canonical-routine keyed view
 // and must not reopen AST children or invent a missing policy row.
 
-import "../../semantic/ast_expression_graph_fact_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_fact_owner.pgy";
 import "../../semantic/ast_intent_signature_fact_owner.pgy";
 import "../text/text_owner.pgy";
 

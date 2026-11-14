@@ -7,9 +7,9 @@
 #include "array_storage_deferred_preservation_owner.h"
 #include "array_storage_release_owner.h"
 #include "default_aggregate_move_rule.h"
-#include "function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
 #include "symbol_table.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "../parser/ast_api.h"
 
 bool

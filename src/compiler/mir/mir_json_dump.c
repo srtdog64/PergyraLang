@@ -1,0 +1,714 @@
+#include "../mir.h"
+#include "mir_abi_layout.h"
+#include "mir_decl_headers.h"
+#include "mir_json_dump_flow.h"
+#include "mir_json_dump_decl.h"
+#include "mir_json_dump_domain_topology.h"
+#include "mir_json_dump_domain_runtime.h"
+#include "mir_json_expression_graph.h"
+#include "mir_json_local_ref.h"
+#include "mir_json_generic_method_specialization.h"
+#include "../../common/match_variant_policy.h"
+#include "mir_json_dump_internal.h"
+#include "mir_json_dump_runtime_abi.h"
+#include "mir_json_dump_intent_execution.h"
+#include "mir_parallel_capture_facts.h"
+
+#include <stdio.h>
+#include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../../parser/ast_api.h"
+
+/* --- Lossless MIR JSON serialization (schema pgy.mir.v1) ------------------- */
+
+void
+mir_json_emit_str(FILE *out, const char *s)
+{
+    fputc('"', out);
+    if (s != NULL) {
+        for (const unsigned char *p = (const unsigned char *)s; *p != '\0'; p++) {
+            switch (*p) {
+            case '"':  fputs("\\\"", out); break;
+            case '\\': fputs("\\\\", out); break;
+            case '\n': fputs("\\n", out); break;
+            case '\r': fputs("\\r", out); break;
+            case '\t': fputs("\\t", out); break;
+            default:
+                if (*p < 0x20)
+                    fprintf(out, "\\u%04x", (unsigned)*p);
+                else
+                    fputc((int)*p, out);
+                break;
+            }
+        }
+    }
+    fputc('"', out);
+}
+
+void
+mir_json_emit_str_or_null(FILE *out, const char *s)
+{
+    if (s == NULL)
+        fputs("null", out);
+    else
+        mir_json_emit_str(out, s);
+}
+
+static void
+mir_json_emit_expr_or_null(FILE *out, ASTNode *expr)
+{
+    char *text;
+
+    if (expr == NULL) {
+        fputs("null", out);
+        return;
+    }
+    text = ast_capture_inline(expr);
+    mir_json_emit_str_or_null(out, text);
+    free(text);
+}
+
+static void
+mir_json_emit_defer_body(FILE *out, ASTNode *body)
+{
+    size_t count = ast_block_statement_count(body);
+
+    fputs(",\"defer_body\":[", out);
+    for (size_t i = 0; i < count; i++) {
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_expr_or_null(out, ast_block_statement(body, i));
+    }
+    fputc(']', out);
+}
+
+static const char *
+mir_json_identifier_name(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_IDENTIFIER)
+        return NULL;
+    return ast_identifier_name(node);
+}
+
+/* Semantic's subject family for a match case; consumers branch on it instead
+ * of the variant spelling (docs/205 section 2.3). Other instructions carry no
+ * such key. */
+static void
+mir_json_emit_match_subject_family(FILE *out, const MIRInstruction *inst)
+{
+    if (inst == NULL || mir_instruction_match_pattern_count(inst) == 0)
+        return;
+    fputs(",\"match_subject_family\":", out);
+    mir_json_emit_str_or_null(out, pgy_match_subject_family_name(
+        (PgyMatchSubjectFamily)inst->match_subject_family));
+}
+
+static void
+mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
+{
+    ASTNode *pattern;
+    ASTNode *callee;
+    const char *variant = NULL;
+
+    fputs(",\"match_variant\":", out);
+    if (inst == NULL || mir_instruction_match_pattern_count(inst) != 1) {
+        fputs("null,\"match_bindings\":[],\"match_binding_types\":[]", out);
+        mir_json_emit_match_subject_family(out, inst);
+        return;
+    }
+
+    pattern = mir_instruction_match_pattern_at(inst, 0);
+    if (pattern != NULL && pattern->type == AST_CALL) {
+        callee = ast_call_callee(pattern);
+        variant = mir_json_identifier_name(callee);
+    } else {
+        const char *name = mir_json_identifier_name(pattern);
+        if (name != NULL && strcmp(name, "None") == 0)
+            variant = name;
+    }
+
+    if (variant == NULL) {
+        fputs("null,\"match_bindings\":[],\"match_binding_types\":[]", out);
+        mir_json_emit_match_subject_family(out, inst);
+        return;
+    }
+
+    mir_json_emit_str(out, variant);
+    fputs(",\"match_bindings\":[", out);
+    if (pattern != NULL && pattern->type == AST_CALL) {
+        size_t emitted = 0;
+        for (size_t i = 0; i < ast_call_arg_count(pattern); i++) {
+            const char *binding =
+                mir_json_identifier_name(ast_call_argument(pattern, i));
+            if (binding == NULL)
+                continue;
+            if (emitted > 0)
+                fputc(',', out);
+            mir_json_emit_str(out, binding);
+            emitted++;
+        }
+    }
+    fputc(']', out);
+    fputs(",\"match_binding_types\":[", out);
+    for (size_t i = 0; i < inst->match_binding_type_count; i++) {
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_str_or_null(
+            out, mir_instruction_match_binding_type_at(inst, i));
+    }
+    fputc(']', out);
+    mir_json_emit_match_subject_family(out, inst);
+}
+
+
+void
+mir_json_emit_abi_layout_value(FILE *out, const MIRTypeLayout *layout);
+
+static void
+mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
+{
+    if (!mir_routine_has_signature(routine))
+        return;
+    fputs(",\"generics\":[", out);
+    for (size_t g = 0; g < mir_routine_generic_param_count(routine); g++) {
+        if (g > 0)
+            fputc(',', out);
+        mir_json_emit_str_or_null(out,
+            mir_routine_generic_param_name(routine, g));
+    }
+    fputc(']', out);
+    if (mir_routine_generic_param_count(routine) > 0) {
+        fputs(",\"generic_constraints\":[", out);
+        for (size_t g = 0; g < mir_routine_generic_param_count(routine); g++) {
+            if (g > 0)
+                fputc(',', out);
+            fputs("{\"name\":", out);
+            mir_json_emit_str_or_null(out,
+                mir_routine_generic_param_name(routine, g));
+            fputs(",\"constraint\":", out);
+            mir_json_emit_str_or_null(out,
+                mir_routine_generic_param_constraint(routine, g));
+            fputc('}', out);
+        }
+        fputc(']', out);
+    }
+    fputs(",\"params\":[", out);
+    for (size_t p = 0; p < mir_routine_param_count(routine); p++) {
+        FuncParam *fp = mir_routine_param(routine, p);
+        const char *param_type = mir_routine_param_type_name(routine, p);
+        const MIRTypeLayout *param_layout =
+            mir_routine_param_abi_layout(routine, p);
+        if (p > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, fp != NULL ? fp->name : NULL);
+        fprintf(out, ",\"source_syntax_id\":%u",
+                ast_func_param_stable_id(fp));
+        fputs(",\"type\":", out);
+        mir_json_emit_str_or_null(out, param_type);
+        fputs(",\"carriage\":", out);
+        mir_json_emit_str(out, mir_param_carriage_name(
+            mir_routine_param_carriage(routine, p)));
+        fputs(",\"resource\":", out);
+        mir_json_emit_str(out, mir_param_resource_kind_name(
+            mir_routine_param_resource_kind(routine, p)));
+        fputs(",\"pass\":", out);
+        mir_json_emit_str(out,
+            mir_routine_param_passes_indirect(routine, p)
+                ? "indirect"
+                : "direct");
+        fputs(",\"abi_type_name\":", out);
+        mir_json_emit_str_or_null(out, param_type);
+        fprintf(out, ",\"abi_layout_id\":%u,\"abi_layout_required\":%s",
+                mir_routine_param_abi_layout_id(routine, p),
+                param_layout != NULL ? "true" : "false");
+        fputs(",\"abi_layout\":", out);
+        mir_json_emit_abi_layout_value(out, param_layout);
+        fputc('}', out);
+    }
+    fputs("],\"return\":", out);
+    mir_json_emit_str_or_null(out, mir_routine_return_type_name(routine));
+}
+
+static void
+mir_json_emit_instruction_abi_layout(FILE *out, const MIRInstruction *inst)
+{
+    const MIRTypeLayout *layout = inst != NULL ? inst->type_layout : NULL;
+    const char *abi_type_name = inst != NULL && inst->abi_type_name != NULL
+        ? inst->abi_type_name
+        : layout != NULL ? layout->abi_type_name : NULL;
+
+    fputs(",\"abi_type_name\":", out);
+    mir_json_emit_str_or_null(out, abi_type_name);
+    fprintf(out, ",\"abi_layout_id\":%u,\"abi_layout_required\":%s",
+            inst != NULL ? inst->abi_layout_id : 0,
+            layout != NULL ? "true" : "false");
+    fputs(",\"abi_layout\":", out);
+    mir_json_emit_abi_layout_value(out, layout);
+}
+
+static void
+mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
+                          const MIRInstruction *inst, bool emit_local_refs)
+{
+    fprintf(out, "{\"id\":%zu,\"kind\":", inst->id);
+    mir_json_emit_str(out, mir_inst_kind_name(inst->kind));
+    fprintf(out, ",\"binding_syntax_id\":%u", inst->binding_syntax_id);
+    fputs(",\"name\":", out);
+    mir_json_emit_str_or_null(out, inst->name);
+    fputs(",\"result\":", out);
+    mir_json_emit_str_or_null(out, inst->result_name);
+    fputs(",\"arg0\":", out);
+    mir_json_emit_str_or_null(out, inst->arg0);
+    fputs(",\"arg1\":", out);
+    mir_json_emit_str_or_null(out, inst->arg1);
+    fputs(",\"slot_anchor\":", out);
+    mir_json_emit_str_or_null(out, inst->slot_anchor);
+    mir_json_emit_instruction_abi_layout(out, inst);
+    fputs(",\"machine_layer\":", out);
+    if (inst->machine_layer_fact_present) {
+        fputs("{\"operation\":", out);
+        mir_json_emit_str(out,
+            rir_machine_contact_kind_name(inst->machine_contact_kind));
+        fputs(",\"manifest\":", out);
+        mir_json_emit_str_or_null(out, inst->machine_layer_manifest_id);
+        fputs(",\"physical_grant\":", out);
+        mir_json_emit_str_or_null(out, inst->machine_layer_physical_grant_id);
+        fprintf(out, ",\"physical_base\":%" PRIu64
+                     ",\"physical_size\":%" PRIu64
+                     ",\"physical_mode\":",
+                inst->machine_layer_physical_base,
+                inst->machine_layer_physical_size);
+        mir_json_emit_str_or_null(out, inst->machine_layer_physical_mode);
+        fputs(",\"runtime_operation\":", out);
+        mir_json_emit_str_or_null(out, inst->machine_layer_runtime_operation);
+        fprintf(out, ",\"hardware_adequate\":%s,\"authority_required\":%s,\"live_lease_required\":%s}",
+            inst->machine_layer_hardware_adequate ? "true" : "false",
+            inst->machine_layer_authority_required ? "true" : "false",
+            inst->machine_layer_live_lease_required ? "true" : "false");
+    } else {
+        fputs("null", out);
+    }
+    /* Keep the semantic contact kind explicit even when the rich owner fact
+     * is null.  Self-host MIR consumers can therefore reject a missing
+     * machine-layer object instead of guessing from expression spelling. */
+    fputs(",\"machine_contact_kind\":", out);
+    if (rir_machine_contact_kind_is_present(inst->machine_contact_kind)) {
+        mir_json_emit_str(out,
+            rir_machine_contact_kind_name(inst->machine_contact_kind));
+    } else {
+        fputs("null", out);
+    }
+    fputs(",\"expr0\":", out);
+    mir_json_emit_expr_or_null(out, inst->expr0);
+    fputs(",\"expr0_graph\":", out);
+    mir_json_emit_instruction_expression_graph(out, routine, inst, 0);
+    fputs(",\"expr1\":", out);
+    mir_json_emit_expr_or_null(out, inst->expr1);
+    fputs(",\"expr1_graph\":", out);
+    mir_json_emit_instruction_expression_graph(out, routine, inst, 1);
+    if (inst->kind == MIR_INST_STMT && inst->arg0 != NULL
+        && (strcmp(inst->arg0, "ArrayPush") == 0
+            || strcmp(inst->arg0, "ArraySet") == 0
+            || strcmp(inst->arg0, "ArrayPop") == 0)) {
+        fputs(",\"collection_mutation_target_graph\":", out);
+        mir_json_emit_instruction_expression_graph(out, routine, inst, 2);
+    }
+    fputs(",\"collection_ownership_receipt\":", out);
+    if (inst->has_collection_ownership_receipt) {
+        const char *kind = NULL;
+        switch ((PgyCollectionOwnershipEffectKind)
+                    inst->collection_ownership_effect_kind) {
+        case PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH:
+            kind = "owned-string-push";
+            break;
+        case PGY_COLLECTION_EFFECT_SHALLOW_MUTATION:
+            kind = "shallow-mutation";
+            break;
+        case PGY_COLLECTION_EFFECT_DROP:
+            kind = "drop";
+            break;
+        case PGY_COLLECTION_EFFECT_OWNED_STRING_SET:
+            kind = "owned-string-set";
+            break;
+        case PGY_COLLECTION_EFFECT_OWNED_STRING_POP:
+            kind = "owned-string-pop";
+            break;
+        default:
+            kind = "invalid";
+            break;
+        }
+        fputs("{\"kind\":", out);
+        mir_json_emit_str(out, kind);
+        fprintf(out,
+            ",\"receiver_binding_syntax_id\":%u"
+            ",\"source_binding_syntax_id\":%u}",
+            inst->collection_ownership_receiver_binding_id,
+            inst->collection_ownership_source_binding_id);
+    } else {
+        fputs("null", out);
+    }
+    if (inst->collection_cleanup_kind != 0) {
+        fprintf(out, ",\"collection_cleanup\":{\"binding_syntax_id\":%u,\"kind\":%u,\"target\":",
+            inst->binding_syntax_id, inst->collection_cleanup_kind);
+        if (inst->collection_cleanup_target == SIZE_MAX) fputs("null", out);
+        else fprintf(out, "%zu", inst->collection_cleanup_target);
+        fputs("}", out);
+    }
+    if (emit_local_refs)
+        mir_json_emit_instruction_local_ref(out, routine, inst);
+    if (!mir_json_emit_instruction_runtime_abi(out, inst)
+        && inst->text_builder_runtime_row != NULL) {
+        const MIRTextBuilderRuntimeRow *row =
+            inst->text_builder_runtime_row;
+        fputs(",\"runtime_call_abi\":{\"owner\":", out);
+        mir_json_emit_str_or_null(out, row->owner_name);
+        fputs(",\"source\":", out);
+        mir_json_emit_str_or_null(out, row->source_name);
+        fputs(",\"operation\":", out);
+        mir_json_emit_str_or_null(out, row->operation);
+        fputs(",\"c_symbol\":", out);
+        mir_json_emit_str_or_null(out, row->c_inline_fn);
+        fputs(",\"llvm_symbol\":", out);
+        mir_json_emit_str_or_null(out, row->llvm_export_fn);
+        fputs(",\"c_shape\":", out);
+        mir_json_emit_str(out,
+            mir_text_builder_call_shape_name(row->c_call_shape));
+        fputs(",\"llvm_shape\":", out);
+        mir_json_emit_str(out,
+            mir_text_builder_call_shape_name(row->llvm_call_shape));
+        fputc('}', out);
+    }
+    fputs(",\"speculation\":", out);
+    if (inst->has_speculation_safety_fact) {
+        fprintf(out, "{\"pure\":%s,\"non_trapping\":%s}",
+            inst->speculation_is_pure ? "true" : "false",
+            inst->speculation_is_non_trapping ? "true" : "false");
+    } else {
+        fputs("null", out);
+    }
+    fputs(",\"source_type\":", out);
+    mir_json_emit_str_or_null(out,
+        mir_instruction_source_inline_text(inst) != NULL
+            ? mir_source_node_type_name((ASTNodeType)
+                  mir_instruction_source_node_type_or(inst, AST_PROGRAM))
+            : NULL);
+    if (inst->name != NULL &&
+        (strcmp(inst->name, "IntentBinding") == 0 ||
+         strcmp(inst->name, "IntentParticipant") == 0 ||
+         strcmp(inst->name, "IntentValue") == 0)) {
+        fprintf(out, ",\"binding_source_syntax_id\":%u",
+                mir_instruction_source_stable_id(inst));
+    }
+    if (mir_instruction_source_is_defer_stmt(inst))
+        mir_json_emit_defer_body(out, inst->expr0);
+    fputs(",\"match_patterns\":[", out);
+    for (size_t p = 0; p < mir_instruction_match_pattern_count(inst); p++) {
+        if (p > 0)
+            fputc(',', out);
+        mir_json_emit_expr_or_null(out,
+            mir_instruction_match_pattern_at(inst, p));
+    }
+    fputc(']', out);
+    mir_json_emit_match_variant_facts(out, inst);
+    fputs(",\"destructure_element_type\":", out);
+    mir_json_emit_str_or_null(out, inst->destructure_element_type_name);
+    fputs(",\"destructure_bindings\":[", out);
+    for (size_t d = 0; d < mir_instruction_destructure_binding_count(inst);
+         d++) {
+        if (d > 0)
+            fputc(',', out);
+        mir_json_emit_str_or_null(out,
+            mir_instruction_destructure_binding_name_at(inst, d));
+    }
+    fputc(']', out);
+    fputs(",\"uses\":[", out);
+    size_t wire_use_count = inst->kind == MIR_INST_RETURN
+        ? inst->return_expression_use_count : inst->use_count;
+    for (size_t m = 0; m < wire_use_count; m++) {
+        if (m > 0)
+            fputc(',', out);
+        mir_json_emit_str(out, inst->uses[m]);
+    }
+    fputs("],\"ast\":", out);
+    mir_json_emit_str_or_null(out, mir_instruction_source_inline_text(inst));
+    fputc('}', out);
+}
+
+static void
+mir_json_emit_block(FILE *out, const MIRRoutine *routine,
+                    const MIRBasicBlock *block, size_t index, bool emit_local_refs)
+{
+    fprintf(out, "{\"id\":%zu,\"reachable\":%s,\"instructions\":[",
+            index, block->is_reachable ? "true" : "false");
+    for (size_t k = 0;
+         k < block->instruction_count && block->instructions != NULL; k++) {
+        if (k > 0)
+            fputc(',', out);
+        mir_json_emit_instruction(out, routine, &block->instructions[k], emit_local_refs);
+    }
+    fputs("]", out);
+    if (routine->kind == MIR_SCOPE_INTENT) {
+        const char *role = "body";
+        if (index == routine->entry_block)
+            role = "entry";
+        else if (routine->has_cleanup_block && index == routine->cleanup_block)
+            role = "cleanup";
+        else if (routine->has_rollback_block && index == routine->rollback_block)
+            role = "rollback";
+        else if (routine->has_invalidation_block && index == routine->invalidation_block)
+            role = "invalidation";
+        else if (block->is_intent_execution_plan_block)
+            role = "execution";
+        else if (block->is_intent_legacy_mirror_block)
+            role = "mirror";
+        fputs(",\"intent_block_role\":", out);
+        mir_json_emit_str(out, role);
+    }
+    if (block->has_succ_true)
+        fprintf(out, ",\"succ_true\":%zu", block->succ_true);
+    if (block->has_succ_false)
+        fprintf(out, ",\"succ_false\":%zu", block->succ_false);
+    fputc('}', out);
+}
+
+static void
+mir_json_emit_source_locals(FILE *out, const MIRRoutine *routine)
+{
+    fputs(",\"source_locals\":[", out);
+    for (size_t s = 0; s < mir_routine_source_local_type_count(routine);
+         s++) {
+        if (s > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out,
+            mir_routine_source_local_name_at(routine, s));
+        fputs(",\"type\":", out);
+        mir_json_emit_str_or_null(out,
+            mir_routine_source_local_type_name_at(routine, s));
+        fprintf(out, ",\"binding_syntax_id\":%u",
+                routine->source_local_types[s].binding_syntax_id);
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
+static const char *
+mir_json_collection_ownership_name(PgyStringArrayOwnership ownership)
+{
+    switch (ownership) {
+        case PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN:
+            return "unknown";
+        case PGY_STRING_ARRAY_BORROWED_ELEMENTS:
+            return "borrowed-elements";
+        case PGY_STRING_ARRAY_OWNED_ELEMENTS:
+            return "owned-elements";
+        case PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT:
+            return "map-keys-snapshot";
+    }
+    return "invalid";
+}
+
+static const char *
+mir_json_collection_disposition_name(PgyCollectionDisposition disposition)
+{
+    switch (disposition) {
+        case PGY_COLLECTION_DISPOSITION_LIVE:
+            return "live";
+        case PGY_COLLECTION_DISPOSITION_RETIRED:
+            return "retired";
+        /* This is a transient semantic-checker state. A function-exit check
+         * must restore the empty carrier before HIR/MIR projection, so never
+         * serialize it as an ordinary retired fact. */
+        case PGY_COLLECTION_DISPOSITION_RELEASED_MEMBER_MOVE:
+            return "invalid";
+    }
+    return "invalid";
+}
+
+static const char *
+mir_json_collection_origin_name(PgyCollectionOrigin origin)
+{
+    switch (origin) {
+        case PGY_COLLECTION_ORIGIN_UNKNOWN:
+            return "unknown";
+        case PGY_COLLECTION_ORIGIN_BORROWED_LITERAL:
+            return "borrowed-literal";
+        case PGY_COLLECTION_ORIGIN_MAP_KEYS:
+            return "map-keys";
+        case PGY_COLLECTION_ORIGIN_BINDING:
+            return "binding";
+        case PGY_COLLECTION_ORIGIN_EMPTY_LITERAL:
+            return "empty-literal";
+        case PGY_COLLECTION_ORIGIN_MEMBER_MOVE:
+            return "member-move";
+        case PGY_COLLECTION_ORIGIN_CLONE:
+            return "clone";
+        case PGY_COLLECTION_ORIGIN_CALL_RESULT:
+            return "call-result";
+        case PGY_COLLECTION_ORIGIN_OWNED_LITERAL:
+            return "owned-literal";
+    }
+    return "invalid";
+}
+
+static void
+mir_json_emit_collection_ownership_facts(FILE *out,
+                                         const MIRRoutine *routine)
+{
+    fprintf(out, ",\"collection_ownership_fact_count\":%zu",
+            routine->collection_ownership_fact_count);
+    fputs(",\"collection_ownership_facts\":[", out);
+    for (size_t i = 0; i < routine->collection_ownership_fact_count; i++) {
+        const MIRCollectionOwnershipFact *fact =
+            &routine->collection_ownership_facts[i];
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out,
+            "{\"function_syntax_id\":%u,\"binding_syntax_id\":%u,"
+            "\"origin_syntax_id\":%u,\"source_binding_syntax_id\":%u,"
+            "\"element_ownership\":",
+            fact->function_syntax_id,
+            fact->binding_syntax_id,
+            fact->origin_syntax_id,
+            fact->source_binding_syntax_id);
+        mir_json_emit_str(out,
+            mir_json_collection_ownership_name(fact->element_ownership));
+        fputs(",\"disposition\":", out);
+        mir_json_emit_str(out,
+            mir_json_collection_disposition_name(fact->disposition));
+        fputs(",\"origin\":", out);
+        mir_json_emit_str(out,
+            mir_json_collection_origin_name(fact->origin));
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
+{
+    fputs("{\"name\":", out);
+    mir_json_emit_str_or_null(out, routine->name);
+    fputs(",\"kind\":", out);
+    mir_json_emit_str(out, mir_scope_kind_name(routine->kind));
+    fprintf(out, ",\"source_syntax_id\":%u,\"source_module_path\":",
+            routine->source_syntax_id);
+    mir_json_emit_str_or_null(out,
+        routine->ast != NULL ? routine->ast->origin_path : NULL);
+    fputs(",\"receiver_carriage\":", out);
+    mir_json_emit_str(out,
+        mir_receiver_carriage_name(routine->receiver_carriage));
+    fprintf(out, ",\"function_param_flow_summary_count\":%zu",
+            routine->function_param_flow_summary_count);
+    fputs(",\"function_param_flow_summaries\":[", out);
+    for (size_t i = 0; i < routine->function_param_flow_summary_count; i++) {
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out, "{\"parameter_index\":%zu,\"mask\":%u,\"array_preserved\":%u}",
+                routine->function_param_flow_summaries[i].parameter_index,
+                routine->function_param_flow_summaries[i].mask,
+                routine->function_param_flow_summaries[i].array_preserved);
+    }
+    fputc(']', out);
+    if (routine->owner_name != NULL) {
+        fputs(",\"owner\":", out);
+        mir_json_emit_str(out, routine->owner_name);
+    }
+    mir_json_emit_routine_signature(out, routine);
+    mir_json_emit_resource_flow_symbols(out, routine);
+    mir_json_emit_loop_flow_facts(out, routine);
+    mir_json_emit_iteration_type_facts(out, routine);
+    mir_json_emit_destructure_type_facts(out, routine);
+    mir_json_emit_collection_ownership_facts(out, routine);
+    bool emit_local_refs = mir_json_routine_local_refs_required(routine);
+    fputs(",\"blocks\":[", out);
+    for (size_t j = 0;
+         j < routine->block_count && routine->blocks != NULL; j++) {
+        if (j > 0)
+            fputc(',', out);
+        mir_json_emit_block(out, routine, &routine->blocks[j], j, emit_local_refs);
+    }
+    fputc(']', out);
+    mir_json_emit_source_locals(out, routine);
+    fputc('}', out);
+}
+
+static void
+mir_json_emit_routines(FILE *out, const MIRProgram *mir)
+{
+    if (mir == NULL || mir->routines == NULL)
+        return;
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_routine(out, &mir->routines[i]);
+    }
+}
+
+static const char *
+mir_parallel_capture_kind_name(MIRParallelCaptureDispositionKind kind)
+{
+    switch (kind) {
+    case MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY:
+        return "snapshot_copy";
+    case MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT:
+        return "join_index_disjoint";
+    case MIR_PARALLEL_CAPTURE_JOIN_READONLY:
+        return "join_readonly";
+    }
+    return "unknown";
+}
+
+static void
+mir_json_emit_parallel_capture_boundaries(FILE *out, const MIRProgram *mir)
+{
+    size_t count = mir_parallel_capture_boundary_count(mir);
+
+    for (size_t i = 0; i < count; i++) {
+        const MIRParallelCaptureBoundaryFact *boundary =
+            mir_parallel_capture_boundary_at(mir, i);
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out,
+            "{\"source_stable_id\":%u,\"task_count\":%zu,\"sealed\":%s,\"rows\":[",
+            boundary->source_stable_id,
+            boundary->task_count,
+            boundary->sealed ? "true" : "false");
+        for (size_t j = 0; j < boundary->row_count; j++) {
+            const MIRParallelCaptureDispositionRow *row = &boundary->rows[j];
+            if (j > 0)
+                fputc(',', out);
+            fputs("{\"name\":", out);
+            mir_json_emit_str_or_null(out, row->name);
+            fputs(",\"kind\":", out);
+            mir_json_emit_str(out,
+                mir_parallel_capture_kind_name(row->kind));
+            fprintf(out, ",\"writer_task\":%zu}", row->writer_task);
+        }
+        fputs("]}", out);
+    }
+}
+
+void
+mir_dump_json(const MIRProgram *mir, FILE *out)
+{
+    if (out == NULL)
+        out = stdout;
+    fputs("{\"schema\":\"pgy.mir.v1\",\"decls\":[", out);
+    mir_json_emit_decls(out, mir);
+    fputc(']', out);
+    mir_json_emit_domain_topology(out, mir);
+    mir_json_emit_domain_runtime_assignments(out, mir);
+    fputs(",\"parallel_capture_boundaries\":[", out);
+    mir_json_emit_parallel_capture_boundaries(out, mir);
+    fputc(']', out);
+    mir_json_emit_intent_execution(out, mir);
+    fputs(",\"generic_method_specializations\":[", out);
+    mir_json_emit_generic_method_specializations(out, mir);
+    fputs("],\"routines\":[", out);
+    mir_json_emit_routines(out, mir);
+    fputs("]}\n", out);
+}

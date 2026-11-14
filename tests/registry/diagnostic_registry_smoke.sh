@@ -25,7 +25,7 @@ semantic_root = root / "src" / "semantic"
 callsite_skip = {
     pathlib.Path("src/semantic/diag_codes.h"),
     pathlib.Path("src/semantic/type_checker.h"),
-    pathlib.Path("src/semantic/type_checker_diag.c"),
+    pathlib.Path("src/semantic/type_checker/type_checker_diag.c"),
 }
 
 

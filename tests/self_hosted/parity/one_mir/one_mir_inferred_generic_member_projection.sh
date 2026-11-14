@@ -35,24 +35,24 @@ assert_owner_ratchet() {
         [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
         total=$((total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_shape_owner.pgy|80
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy|120
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy|90
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_routine_array_shape_owner.pgy|50
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_program_admission_owner.pgy|70
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_specialization_fact_owner.pgy|160
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_generic_member_signature_fact_owner.pgy|190
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_declaration_fact_owner.pgy|170
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_host_kind_fact_owner.pgy|60
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_graph_fact_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_program_identity_owner.pgy|190
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_instruction_admission_owner.pgy|220
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_plan_owner.pgy|120
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_member_receiver_target_projection_owner.pgy|90
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_c_emission_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_llvm_emission_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_projection_owner.pgy|40
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_two_routine_shape_owner.pgy|80
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_two_routine_classification_owner.pgy|120
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_exact_json_array_cardinality_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_routine_array_shape_owner.pgy|50
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_program_admission_owner.pgy|70
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_specialization_fact_owner.pgy|160
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_generic_member_signature_fact_owner.pgy|190
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_declaration_fact_owner.pgy|170
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_host_kind_fact_owner.pgy|60
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_graph_fact_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_program_identity_owner.pgy|190
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_instruction_admission_owner.pgy|220
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_representation_fact_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_plan_owner.pgy|120
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_member_receiver_target_projection_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_c_emission_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_llvm_emission_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_projection_owner.pgy|40
 EOF
     [[ "$total" -le 2100 ]] || fail "inferred generic member owner family cap exceeded: $total/2100"
 }

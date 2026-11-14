@@ -1,0 +1,699 @@
+#ifdef PGY_LLVM_ENABLED
+/*
+ * LLVM emission for the join-form parallel block (docs/181 SS1, rungs 0+1):
+ *   parallel (x in xs)     [join with all] { body }   element mode
+ *   parallel (i in lo..hi) [join with all] { body }   index mode (R1)
+ *
+ * The call site allocates per-index capture contexts and chunk handles,
+ * then joins every chunk. Captures are admitted only from the sealed MIR
+ * boundary fact and re-register their scope-local registry bindings.
+ * Induction variables live in allocas so the guard's inserted blocks
+ * never disturb SSA form.
+ */
+
+#include "llvm_internal.h"
+#include "llvm_stmt_parallel_join_capture.h"
+#include "llvm_stmt_parallel_join_chunk.h"
+#include "llvm_stmt_parallel_names.h"
+#include "../../common/execution_lane_kind.h"
+#include "../../parser/ast_analysis.h"
+#include "../../parser/ast_api.h"
+
+#include <string.h>
+/* Shared emission for both forms; expression mode (result_out != NULL)
+ * adds a per-task result slot to the context struct, wires `give` to it
+ * through ctx->pjoin_give_ptr, and materializes an Array<R> value in
+ * index order after the join. */
+static void
+llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
+                               LLVMValueRef *result_out)
+{
+    const char *elem_name = ast_parallel_join_element(node);
+    ASTNode *coll = ast_parallel_join_collection(node);
+    ASTNode *range_end = ast_parallel_join_range_end(node);
+    bool index_mode = range_end != NULL;
+    bool expr_mode = result_out != NULL;
+    const char *give_name = ast_parallel_join_give_type(node);
+    LLVMTypeRef give_type = NULL;
+    ASTNode *body = ast_parallel_task(node, 0);
+
+    if (expr_mode) {
+        *result_out = NULL;
+        if (give_name == NULL || give_name[0] == '\0') {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM parallel join expression lacks the checker-sealed give-result fact%s",
+                "");
+            return;
+        }
+        give_type = pgy_kind_to_llvm(ctx, pgy_classify_type(give_name));
+        if (give_type == NULL) {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM parallel join give result '%s' has no primitive lowering",
+                give_name);
+            return;
+        }
+    }
+    const char *coll_name = NULL;
+    LLVMVarEntry coll_var = {0};
+    LLVMArrayVarEntry *coll_entry = NULL;
+    LLVMTypeRef elem_type;
+    const MIRParallelCaptureBoundaryFact *capture_boundary =
+        mir_parallel_capture_boundary_find(
+            llvm_active_mir_identity(ctx), ast_node_stable_id(node));
+
+    if (capture_boundary == NULL || !capture_boundary->sealed
+        || capture_boundary->task_count != ast_parallel_task_count(node)) {
+        llvm_parallel_join_set_error(ctx, node,
+            "LLVM parallel join block reached the emitter without a matching sealed MIR capture boundary%s",
+            "");
+        return;
+    }
+    if (elem_name == NULL || body == NULL || coll == NULL
+        || (!index_mode && coll->type != AST_IDENTIFIER)) {
+        llvm_parallel_join_set_error(ctx, node,
+            "LLVM parallel join block reached the emitter in a non-admitted shape%s",
+            "");
+        return;
+    }
+    if (index_mode) {
+        /* The binding is the Int index (i32; parity with the C int32_t). */
+        elem_type = ctx->type_i32;
+    } else {
+        coll_name = ast_identifier_name(coll);
+        if (!llvm_scope_lookup_snapshot(ctx, coll_name, &coll_var)
+            || coll_var.alloca == NULL || coll_var.type == NULL) {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM parallel join collection '%s' requires a storage-backed binding",
+                coll_name);
+            return;
+        }
+        coll_entry = llvm_lookup_array_var(ctx, coll_name);
+        if (coll_entry == NULL || coll_entry->elem_type == NULL) {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM parallel join collection '%s' requires concrete Array<T> element metadata",
+                coll_name);
+            return;
+        }
+        elem_type = coll_entry->elem_type;
+    }
+
+    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx,
+        "pgy_lane_spawn_dispatch_export");
+    LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
+    char get_fn_name[64] = "";
+    LLVMFuncEntry *get_fn = NULL;
+    if (!index_mode) {
+        const char *elem_suffix = llvm_type_to_suffix(ctx, elem_type);
+        if (elem_suffix == NULL || strcmp(elem_suffix, "Unknown") == 0) {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM parallel join rung 0 requires a primitive element lowering for '%s'",
+                coll_name);
+            return;
+        }
+        if (snprintf(get_fn_name, sizeof(get_fn_name), "pgy_array_get_%s",
+                     elem_suffix) < (int)sizeof(get_fn_name))
+            get_fn = llvm_lookup_function(ctx, get_fn_name);
+    }
+    if (spawn_fn == NULL || await_fn == NULL
+        || (!index_mode && get_fn == NULL)) {
+        llvm_parallel_join_set_error(ctx, node,
+            "LLVM parallel join requires registered runtime functions (spawn/await/%s); sequential fallback is disabled",
+            get_fn_name);
+        return;
+    }
+
+    LLVMParallelJoinCapture captured[PJOIN_MAX_CAPTURES];
+    size_t n_captured = 0;
+    if (!llvm_parallel_join_collect_captures(ctx, node, body, coll_name,
+            capture_boundary, captured, &n_captured))
+        return;
+
+    /* ---------------------------------------------------------------
+     * Per-element context struct: [captures as i8*..., element value],
+     * plus a give slot (R2) or the shared any-join cell pointers (R3).
+     * --------------------------------------------------------------- */
+    bool is_any = ast_parallel_join_is_any(node);
+    size_t n_fields = n_captured + 1
+        + (expr_mode ? (is_any ? 2 : 1) : 0);
+    LLVMTypeRef ctx_fields[PJOIN_MAX_CAPTURES + 3];
+    for (size_t i = 0; i < n_captured; i++)
+        ctx_fields[i] = ctx->type_i8ptr;
+    ctx_fields[n_captured] = elem_type;
+    if (expr_mode && is_any) {
+        ctx_fields[n_captured + 1] = ctx->type_i8ptr; /* i32* state  */
+        ctx_fields[n_captured + 2] = ctx->type_i8ptr; /* give T* res */
+    } else if (expr_mode) {
+        ctx_fields[n_captured + 1] = give_type;
+    }
+
+    char ctx_name[64];
+    if (!llvm_parallel_counter_name(ctx, ctx_name, sizeof(ctx_name),
+            "_pgy_pjoin_ctx_", ctx->parallel_counter))
+        return;
+    LLVMTypeRef ctx_struct_type = LLVMStructCreateNamed(ctx->context, ctx_name);
+    LLVMStructSetBody(ctx_struct_type, ctx_fields, (unsigned)n_fields, 0);
+
+    /* ---------------------------------------------------------------
+     * The one replicated wrapper.
+     * --------------------------------------------------------------- */
+    LLVMValueRef saved_fn = ctx->current_function;
+    LLVMTypeRef saved_ret = ctx->current_ret_type;
+    LLVMTypeRef saved_function_ret = ctx->current_function_ret_type;
+    const char *saved_return_type_name = ctx->current_return_type_name;
+    ASTNode *saved_return_callable_type = ctx->current_return_callable_type;
+    LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
+
+    LLVMTypeRef wrapper_params[] = { ctx->type_i8ptr };
+    LLVMTypeRef wrapper_type = LLVMFunctionType(ctx->type_i8ptr,
+                                                wrapper_params, 1, 0);
+    char fn_name[64];
+    if (!llvm_parallel_counter_name(ctx, fn_name, sizeof(fn_name),
+            "_pgy_pjoin_", ctx->parallel_counter))
+        return;
+    LLVMValueRef wrapper_fn = LLVMAddFunction(ctx->module, fn_name,
+                                              wrapper_type);
+    LLVMSetLinkage(wrapper_fn, LLVMInternalLinkage);
+    {
+        LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
+            ctx->context, wrapper_fn, "entry");
+        LLVMPositionBuilderAtEnd(ctx->builder, entry);
+
+        ctx->current_function = wrapper_fn;
+        ctx->current_ret_type = ctx->type_i8ptr;
+        ctx->current_function_ret_type = ctx->type_i8ptr;
+        ctx->current_return_type_name = NULL;
+        ctx->current_return_callable_type = NULL;
+
+        LLVMLexicalRegistrySnapshot lexical_snapshot =
+            llvm_lexical_registry_snapshot(ctx);
+        llvm_scope_push(ctx);
+
+        LLVMValueRef arg0 = LLVMGetParam(wrapper_fn, 0);
+        LLVMValueRef ctx_ptr = LLVMBuildBitCast(ctx->builder, arg0,
+            LLVMPointerType(ctx_struct_type, 0), "_pctx");
+
+        for (size_t c = 0; c < n_captured; c++) {
+            LLVMValueRef field_ptr = LLVMBuildStructGEP2(
+                ctx->builder, ctx_struct_type, ctx_ptr, (unsigned)c,
+                llvm_tmp_name(ctx));
+            LLVMValueRef var_ptr = LLVMBuildLoad2(
+                ctx->builder, ctx->type_i8ptr, field_ptr,
+                llvm_tmp_name(ctx));
+            llvm_scope_declare(ctx, captured[c].name, var_ptr,
+                               captured[c].type);
+            if (captured[c].channel_inner != NULL)
+                llvm_register_channel_var_binding(ctx, captured[c].name,
+                    var_ptr, captured[c].channel_inner);
+            if (captured[c].future_inner != NULL)
+                llvm_register_future_var_binding(ctx, captured[c].name,
+                    var_ptr, captured[c].future_inner,
+                    captured[c].future_is_remote);
+            if (captured[c].is_admitted_array)
+                /* The array registry is keyed by the scope alloca, which
+                 * is the loaded pointer inside the wrapper -- re-register
+                 * so indexed get/set resolve element metadata. */
+                llvm_register_array_var_binding(ctx, captured[c].name,
+                    var_ptr, captured[c].array_elem_type,
+                    captured[c].array_elem_name, -1);
+        }
+
+        /* The element binding: a wrapper-local fed from the context. */
+        {
+            LLVMValueRef elem_gep = LLVMBuildStructGEP2(
+                ctx->builder, ctx_struct_type, ctx_ptr,
+                (unsigned)n_captured, llvm_tmp_name(ctx));
+            LLVMValueRef elem_val = LLVMBuildLoad2(
+                ctx->builder, elem_type, elem_gep,
+                llvm_tmp_name(ctx));
+            LLVMValueRef elem_local = LLVMBuildAlloca(
+                ctx->builder, elem_type, elem_name);
+            LLVMBuildStore(ctx->builder, elem_val, elem_local);
+            llvm_scope_declare(ctx, elem_name, elem_local, elem_type);
+        }
+
+        {
+            LLVMValueRef saved_give_ptr = ctx->pjoin_give_ptr;
+            LLVMTypeRef saved_give_type = ctx->pjoin_give_type;
+            LLVMValueRef saved_any_state = ctx->pjoin_any_state_ptr;
+            LLVMValueRef saved_any_res = ctx->pjoin_any_res_ptr;
+
+            if (expr_mode && is_any) {
+                /* R3: the shared decision/result cells travel as i8*
+                 * fields; give redirects through them. The entry safe
+                 * point (docs/181 SS2.4) retires a task that starts
+                 * after the decision. */
+                LLVMValueRef st_gep = LLVMBuildStructGEP2(
+                    ctx->builder, ctx_struct_type, ctx_ptr,
+                    (unsigned)(n_captured + 1), llvm_tmp_name(ctx));
+                LLVMValueRef st_raw = LLVMBuildLoad2(ctx->builder,
+                    ctx->type_i8ptr, st_gep, llvm_tmp_name(ctx));
+                LLVMValueRef st_ptr = LLVMBuildBitCast(ctx->builder,
+                    st_raw, LLVMPointerType(ctx->type_i32, 0),
+                    llvm_tmp_name(ctx));
+                LLVMValueRef rs_gep = LLVMBuildStructGEP2(
+                    ctx->builder, ctx_struct_type, ctx_ptr,
+                    (unsigned)(n_captured + 2), llvm_tmp_name(ctx));
+                LLVMValueRef rs_raw = LLVMBuildLoad2(ctx->builder,
+                    ctx->type_i8ptr, rs_gep, llvm_tmp_name(ctx));
+                LLVMValueRef rs_ptr = LLVMBuildBitCast(ctx->builder,
+                    rs_raw, LLVMPointerType(give_type, 0),
+                    llvm_tmp_name(ctx));
+
+                LLVMValueRef st_val = LLVMBuildLoad2(ctx->builder,
+                    ctx->type_i32, st_ptr, llvm_tmp_name(ctx));
+                LLVMSetOrdering(st_val, LLVMAtomicOrderingAcquire);
+                LLVMValueRef decided = LLVMBuildICmp(ctx->builder,
+                    LLVMIntNE, st_val, LLVMConstInt(ctx->type_i32, 0, 0),
+                    llvm_tmp_name(ctx));
+                LLVMBasicBlockRef retire_bb =
+                    LLVMAppendBasicBlockInContext(ctx->context,
+                        wrapper_fn, "pj.any.retire");
+                LLVMBasicBlockRef body_bb =
+                    LLVMAppendBasicBlockInContext(ctx->context,
+                        wrapper_fn, "pj.any.body");
+                LLVMBuildCondBr(ctx->builder, decided, retire_bb, body_bb);
+                LLVMPositionBuilderAtEnd(ctx->builder, retire_bb);
+                LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->type_i8ptr));
+                LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
+
+                ctx->pjoin_any_state_ptr = st_ptr;
+                ctx->pjoin_any_res_ptr = rs_ptr;
+                ctx->pjoin_give_ptr = NULL;
+                ctx->pjoin_give_type = give_type;
+            } else if (expr_mode) {
+                ctx->pjoin_give_ptr = LLVMBuildStructGEP2(
+                    ctx->builder, ctx_struct_type, ctx_ptr,
+                    (unsigned)(n_captured + 1), "_pj_give");
+                ctx->pjoin_give_type = give_type;
+                ctx->pjoin_any_state_ptr = NULL;
+                ctx->pjoin_any_res_ptr = NULL;
+            } else {
+                ctx->pjoin_give_ptr = NULL;
+                ctx->pjoin_give_type = NULL;
+                ctx->pjoin_any_state_ptr = NULL;
+                ctx->pjoin_any_res_ptr = NULL;
+            }
+            llvm_emit_statement(body, ctx);
+            ctx->pjoin_give_ptr = saved_give_ptr;
+            ctx->pjoin_give_type = saved_give_type;
+            ctx->pjoin_any_state_ptr = saved_any_state;
+            ctx->pjoin_any_res_ptr = saved_any_res;
+        }
+
+        if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder))
+                == NULL)
+            LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->type_i8ptr));
+
+        llvm_scope_pop(ctx);
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
+    }
+
+    ctx->current_function = saved_fn;
+    ctx->current_ret_type = saved_ret;
+    ctx->current_function_ret_type = saved_function_ret;
+    ctx->current_return_type_name = saved_return_type_name;
+    ctx->current_return_callable_type = saved_return_callable_type;
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
+    if (ctx->has_error)
+        return;
+
+    LLVMValueRef chunk_wrapper_fn = llvm_parallel_join_chunk_wrapper_create(
+        node, ctx, wrapper_fn);
+    if (chunk_wrapper_fn == NULL)
+        return;
+    if (!llvm_parallel_join_emit_alias_guard(ctx, node, capture_boundary,
+            captured, n_captured))
+        return;
+
+    /* ---------------------------------------------------------------
+     * Call site: fan-out length, fan-out loop, all-join loop.
+     * --------------------------------------------------------------- */
+    LLVMTypeRef handle_type = LLVMGetReturnType(spawn_fn->fn_type);
+    LLVMValueRef one = LLVMConstInt(ctx->type_i64, 1, 0);
+    LLVMValueRef zero = LLVMConstInt(ctx->type_i64, 0, 0);
+
+    LLVMValueRef n_val;
+    LLVMValueRef range_lo64 = NULL;
+    if (index_mode) {
+        /* n = hi > lo ? hi - lo : 0, in i64 (endpoints are Int/i32). */
+        LLVMValueRef lo = llvm_emit_expression(coll, ctx);
+        LLVMValueRef hi = lo != NULL
+            ? llvm_emit_expression(range_end, ctx)
+            : NULL;
+        if (lo == NULL || hi == NULL) {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM parallel join could not lower a range endpoint expression%s",
+                "");
+            return;
+        }
+        if (LLVMTypeOf(lo) != ctx->type_i64)
+            lo = LLVMBuildSExt(ctx->builder, lo, ctx->type_i64,
+                               llvm_tmp_name(ctx));
+        if (LLVMTypeOf(hi) != ctx->type_i64)
+            hi = LLVMBuildSExt(ctx->builder, hi, ctx->type_i64,
+                               llvm_tmp_name(ctx));
+        range_lo64 = lo;
+        LLVMValueRef diff = LLVMBuildSub(ctx->builder, hi, lo,
+                                         llvm_tmp_name(ctx));
+        LLVMValueRef nonempty = LLVMBuildICmp(ctx->builder, LLVMIntSGT,
+            hi, lo, llvm_tmp_name(ctx));
+        n_val = LLVMBuildSelect(ctx->builder, nonempty, diff, zero,
+                                llvm_tmp_name(ctx));
+    } else {
+        LLVMValueRef aggregate = LLVMBuildLoad2(ctx->builder, coll_var.type,
+            coll_var.alloca, llvm_tmp_name(ctx));
+        n_val = llvm_array_length_i64(ctx, aggregate);
+        if (n_val == NULL) {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM parallel join could not read the collection length%s",
+                "");
+            return;
+        }
+    }
+    LLVMValueRef n_is_zero = LLVMBuildICmp(ctx->builder, LLVMIntEQ, n_val,
+        zero, llvm_tmp_name(ctx));
+    LLVMValueRef n_or_one = LLVMBuildSelect(ctx->builder, n_is_zero, one,
+        n_val, llvm_tmp_name(ctx));
+
+    LLVMParallelJoinChunkPlan chunk_plan;
+    if (!llvm_parallel_join_chunk_plan_init(
+            node, ctx, n_val, zero, one, &chunk_plan))
+        return;
+    LLVMValueRef nch_val = chunk_plan.count;
+
+    LLVMValueRef stack = llvm_stack_scope_save(ctx);
+    LLVMValueRef ctxs = LLVMBuildArrayAlloca(ctx->builder, ctx_struct_type,
+        n_or_one, "_pj_ctxs");
+    LLVMValueRef handles = LLVMBuildArrayAlloca(ctx->builder, handle_type,
+        chunk_plan.allocation_count, "_pj_hs");
+    LLVMValueRef i_slot = llvm_create_entry_alloca(ctx, ctx->type_i64, "_pj_i");
+    LLVMBuildStore(ctx->builder, zero, i_slot);
+
+    /* R3 shared cells: decision (i32, 0 = undecided) and winner result
+     * (zero-initialized only to quiet uninitialized-value passes; it is
+     * read only after a decision, and no decision panics). */
+    LLVMValueRef any_state = NULL;
+    LLVMValueRef any_res = NULL;
+    if (expr_mode && is_any) {
+        any_state = llvm_create_entry_alloca(ctx, ctx->type_i32, "_pj_any");
+        LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0),
+            any_state);
+        any_res = llvm_create_entry_alloca(ctx, give_type, "_pj_any_res");
+        LLVMBuildStore(ctx->builder, LLVMConstNull(give_type), any_res);
+    }
+
+    LLVMBasicBlockRef spawn_cond = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.spawn.cond");
+    LLVMBasicBlockRef spawn_body = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.spawn.body");
+    LLVMBasicBlockRef spawn_done = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.spawn.done");
+    LLVMBuildBr(ctx->builder, spawn_cond);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, spawn_cond);
+    {
+        LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder, ctx->type_i64,
+            i_slot, llvm_tmp_name(ctx));
+        LLVMValueRef cont = LLVMBuildICmp(ctx->builder, LLVMIntULT, i_val,
+            n_val, llvm_tmp_name(ctx));
+        LLVMBuildCondBr(ctx->builder, cont, spawn_body, spawn_done);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, spawn_body);
+    {
+        LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder, ctx->type_i64,
+            i_slot, llvm_tmp_name(ctx));
+        LLVMValueRef ctx_i = LLVMBuildGEP2(ctx->builder, ctx_struct_type,
+            ctxs, &i_val, 1, llvm_tmp_name(ctx));
+        for (size_t c = 0; c < n_captured; c++) {
+            LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
+                ctx_struct_type, ctx_i, (unsigned)c, llvm_tmp_name(ctx));
+            LLVMValueRef addr = LLVMBuildBitCast(ctx->builder,
+                captured[c].alloca, ctx->type_i8ptr, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, addr, field_ptr);
+        }
+        {
+            LLVMValueRef elem_val;
+            if (index_mode) {
+                /* Task index = lo + i, truncated back to the Int/i32
+                 * binding width (index mode pins elem_type to i32). */
+                LLVMValueRef idx64 = LLVMBuildAdd(ctx->builder, range_lo64,
+                    i_val, llvm_tmp_name(ctx));
+                elem_val = LLVMBuildTrunc(ctx->builder, idx64, elem_type,
+                    llvm_tmp_name(ctx));
+            } else {
+                LLVMValueRef get_args[] = { coll_var.alloca, i_val };
+                elem_val = LLVMBuildCall2(ctx->builder,
+                    get_fn->fn_type, get_fn->fn, get_args, 2,
+                    llvm_tmp_name(ctx));
+            }
+            LLVMValueRef elem_ptr = LLVMBuildStructGEP2(ctx->builder,
+                ctx_struct_type, ctx_i, (unsigned)n_captured,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, elem_val, elem_ptr);
+        }
+        if (expr_mode && is_any) {
+            LLVMValueRef st_field = LLVMBuildStructGEP2(ctx->builder,
+                ctx_struct_type, ctx_i, (unsigned)(n_captured + 1),
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMBuildBitCast(ctx->builder, any_state, ctx->type_i8ptr,
+                    llvm_tmp_name(ctx)), st_field);
+            LLVMValueRef rs_field = LLVMBuildStructGEP2(ctx->builder,
+                ctx_struct_type, ctx_i, (unsigned)(n_captured + 2),
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMBuildBitCast(ctx->builder, any_res, ctx->type_i8ptr,
+                    llvm_tmp_name(ctx)), rs_field);
+        }
+        {
+            LLVMValueRef i_val2 = LLVMBuildLoad2(ctx->builder,
+                ctx->type_i64, i_slot, llvm_tmp_name(ctx));
+            LLVMValueRef next = LLVMBuildAdd(ctx->builder, i_val2, one,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, next, i_slot);
+            LLVMBuildBr(ctx->builder, spawn_cond);
+        }
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, spawn_done);
+    LLVMBuildStore(ctx->builder, zero, i_slot);
+
+    const LLVMParallelJoinChunkFanoutInput chunk_input = {
+        .chunk_wrapper_fn = chunk_wrapper_fn,
+        .item_contexts = ctxs,
+        .item_context_type = ctx_struct_type,
+        .handles = handles,
+        .handle_type = handle_type,
+        .loop_slot = i_slot,
+        .item_count = n_val,
+        .zero = zero,
+        .one = one
+    };
+    if (!llvm_parallel_join_chunk_fanout(
+            node, ctx, &chunk_plan, &chunk_input))
+        return;
+
+    if (expr_mode && is_any) {
+        /* R3 slice 2 (docs/182 SS2.1): the slice-1 order-await had a
+         * hole -- a loser parked on a channel at an index BEFORE the
+         * winner stalled the walk forever even though a decision
+         * existed. Repair, twin of the C emitter: wait for the decision
+         * first (bounded by the first give; n==0 falls through to the
+         * empty panic), then cancel every handle (queued tasks skip at
+         * the pool's pre-run safe point, parked tasks wake through the
+         * cancellable channel waits), then the loop below awaits each
+         * exactly once. */
+        LLVMFuncEntry *cancel_fn = llvm_lookup_function(ctx,
+            "pgy_task_cancel_export");
+        if (cancel_fn == NULL) {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM any-join requires the registered task-cancel runtime%s",
+                "");
+            return;
+        }
+        LLVMTypeRef yield_type = LLVMFunctionType(ctx->type_i32, NULL, 0, 0);
+        LLVMValueRef yield_fn = LLVMGetNamedFunction(ctx->module,
+            "sched_yield");
+        if (yield_fn == NULL)
+            yield_fn = LLVMAddFunction(ctx->module, "sched_yield",
+                yield_type);
+
+        LLVMBasicBlockRef spin_cond = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.spin.cond");
+        LLVMBasicBlockRef spin_body = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.spin.body");
+        LLVMBasicBlockRef spin_done = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.spin.done");
+        LLVMBuildBr(ctx->builder, spin_cond);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, spin_cond);
+        {
+            LLVMValueRef st_val = LLVMBuildLoad2(ctx->builder,
+                ctx->type_i32, any_state, llvm_tmp_name(ctx));
+            LLVMSetOrdering(st_val, LLVMAtomicOrderingAcquire);
+            LLVMValueRef undecided = LLVMBuildICmp(ctx->builder,
+                LLVMIntEQ, st_val, LLVMConstInt(ctx->type_i32, 0, 0),
+                llvm_tmp_name(ctx));
+            LLVMValueRef nonempty = LLVMBuildICmp(ctx->builder,
+                LLVMIntNE, n_val, zero, llvm_tmp_name(ctx));
+            LLVMValueRef keep_spinning = LLVMBuildAnd(ctx->builder,
+                undecided, nonempty, llvm_tmp_name(ctx));
+            LLVMBuildCondBr(ctx->builder, keep_spinning, spin_body,
+                spin_done);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, spin_body);
+        {
+            LLVMBuildCall2(ctx->builder, yield_type, yield_fn, NULL, 0,
+                "");
+            LLVMBuildBr(ctx->builder, spin_cond);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, spin_done);
+
+        LLVMBasicBlockRef can_cond = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.cancel.cond");
+        LLVMBasicBlockRef can_body = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.cancel.body");
+        LLVMBasicBlockRef can_done = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.cancel.done");
+        LLVMBuildBr(ctx->builder, can_cond);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, can_cond);
+        {
+            LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder,
+                ctx->type_i64, i_slot, llvm_tmp_name(ctx));
+            /* Handles are the chunk drivers; cancel wakes their
+             * back-edge safe points. */
+            LLVMValueRef cont = LLVMBuildICmp(ctx->builder, LLVMIntULT,
+                i_val, nch_val, llvm_tmp_name(ctx));
+            LLVMBuildCondBr(ctx->builder, cont, can_body, can_done);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, can_body);
+        {
+            LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder,
+                ctx->type_i64, i_slot, llvm_tmp_name(ctx));
+            LLVMValueRef h_ptr = LLVMBuildGEP2(ctx->builder, handle_type,
+                handles, &i_val, 1, llvm_tmp_name(ctx));
+            LLVMValueRef handle = LLVMBuildLoad2(ctx->builder,
+                handle_type, h_ptr, llvm_tmp_name(ctx));
+            LLVMValueRef cancel_args[] = { handle };
+            LLVMBuildCall2(ctx->builder, cancel_fn->fn_type,
+                cancel_fn->fn, cancel_args, 1, "");
+            LLVMValueRef next = LLVMBuildAdd(ctx->builder, i_val, one,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, next, i_slot);
+            LLVMBuildBr(ctx->builder, can_cond);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, can_done);
+        LLVMBuildStore(ctx->builder, zero, i_slot);
+    }
+
+    LLVMBasicBlockRef join_cond = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.join.cond");
+    LLVMBasicBlockRef join_body = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.join.body");
+    LLVMBasicBlockRef join_done = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.join.done");
+    LLVMBuildBr(ctx->builder, join_cond);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, join_cond);
+    {
+        LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder, ctx->type_i64,
+            i_slot, llvm_tmp_name(ctx));
+        LLVMValueRef cont = LLVMBuildICmp(ctx->builder, LLVMIntULT, i_val,
+            nch_val, llvm_tmp_name(ctx));
+        LLVMBuildCondBr(ctx->builder, cont, join_body, join_done);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, join_body);
+    {
+        LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder, ctx->type_i64,
+            i_slot, llvm_tmp_name(ctx));
+        LLVMValueRef h_ptr = LLVMBuildGEP2(ctx->builder, handle_type,
+            handles, &i_val, 1, llvm_tmp_name(ctx));
+        LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, handle_type,
+            h_ptr, llvm_tmp_name(ctx));
+        /* any-mode: cancellation already happened in the pre-join
+         * spin/cancel blocks above; this walk only awaits. */
+        LLVMValueRef await_args[] = { handle };
+        LLVMBuildCall2(ctx->builder, await_fn->fn_type, await_fn->fn,
+            await_args, 1, "");
+        LLVMValueRef next = LLVMBuildAdd(ctx->builder, i_val, one,
+            llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, next, i_slot);
+        LLVMBuildBr(ctx->builder, join_cond);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, join_done);
+    llvm_parallel_join_chunk_plan_dispose(ctx, &chunk_plan);
+
+    /* Expression mode: materialize the result from the per-task give
+     * slots (llvm_stmt_parallel_join_result.c) -- Array<R> for the
+     * all-join, one folded scalar for the R4 reduce combinators, the
+     * winner's value for the R3 any-join. */
+    if (expr_mode && is_any) {
+        LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
+            "pgy_runtime_panic_out_of_bounds_export");
+        if (panic_fn == NULL) {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM any-join requires the registered panic runtime%s",
+                "");
+            return;
+        }
+        LLVMValueRef st_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+            any_state, llvm_tmp_name(ctx));
+        LLVMSetOrdering(st_val, LLVMAtomicOrderingAcquire);
+        LLVMValueRef undecided = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+            st_val, LLVMConstInt(ctx->type_i32, 0, 0),
+            llvm_tmp_name(ctx));
+        LLVMBasicBlockRef empty_bb = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.empty");
+        LLVMBasicBlockRef done_bb = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.done");
+        LLVMBuildCondBr(ctx->builder, undecided, empty_bb, done_bb);
+        LLVMPositionBuilderAtEnd(ctx->builder, empty_bb);
+        {
+            /* "First of nothing" fails closed, same rationale as empty
+             * min/max (docs/181 R4); shared reason with the C twin. */
+            LLVMValueRef panic_args[] = {
+                LLVMBuildGlobalStringPtr(ctx->builder,
+                    "any-join over an empty parallel fan-out",
+                    llvm_tmp_name(ctx))
+            };
+            LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+                panic_args, 1, "");
+            LLVMBuildUnreachable(ctx->builder);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, done_bb);
+        *result_out = LLVMBuildLoad2(ctx->builder, give_type, any_res,
+            "_pj_any_val");
+    } else if (expr_mode) {
+        if (ast_parallel_join_reduce_op(node) != NULL)
+            llvm_pjoin_materialize_reduce(ctx, node, give_name, give_type,
+                ctx_struct_type, ctxs, n_captured, n_val, i_slot,
+                result_out);
+        else
+            llvm_pjoin_materialize_result(ctx, node, give_name, give_type,
+                ctx_struct_type, ctxs, n_captured, n_val, i_slot,
+                result_out);
+    }
+    llvm_stack_scope_restore(ctx, stack);
+}
+
+void
+llvm_emit_parallel_join_block(ASTNode *node, LLVMGenCtx *ctx)
+{
+    llvm_emit_parallel_join_common(node, ctx, NULL);
+}
+
+LLVMValueRef
+llvm_emit_parallel_join_expr(ASTNode *node, LLVMGenCtx *ctx)
+{
+    LLVMValueRef result = NULL;
+
+    llvm_emit_parallel_join_common(node, ctx, &result);
+    return result;
+}
+
+#endif /* PGY_LLVM_ENABLED */

@@ -1,0 +1,46 @@
+// Projects one typed scalar log operation to LLVM text.
+import "../scalar_program/direct_mir_scalar_program_llvm_expression_owner.pgy";
+import "../direct_mir_llvm_text_format_owner.pgy";
+import "../../../mir/runtime_call_abi_fact_owner.pgy";
+import "../../../codegen/runtime_abi/string_runtime_symbol_owner.pgy";
+
+func DirectMirScalarCfgProgramLlvmLogOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, string_line_format: String,
+    expression_row: Int, expression: DirectMirScalarProgramLlvmExpression,
+    instructions: String
+) -> String {
+    var output: String = instructions;
+    var format_name: String = "@.pgy.scalar.cfg.string.format";
+    var line_format: String = string_line_format;
+    var value_type: String = "ptr";
+    var log_value: String = expression.value;
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    if plan.program.expressions.node_types[root] ==
+            CompilerAbiLayoutIntTypeName() ||
+        plan.program.expressions.node_types[root] == CompilerAbiLayoutLongTypeName() {
+        format_name = "@.pgy.scalar.cfg.int.format";
+        line_format = int_line_format;
+        value_type = "i64";
+    } else if plan.program.expressions.node_types[root] == CompilerAbiLayoutFloatTypeName() {
+        format_name = "@.pgy.scalar.cfg.float.format";
+        line_format = StringRuntimeCFloatLineFormat();
+        value_type = "double";
+    } else if plan.program.expressions.node_types[root] == CompilerAbiLayoutBoolTypeName() {
+        log_value = "%pgy.log.bool." + ToString(operation);
+        output = output + "  " + log_value + " = select i1 " + expression.value +
+            ", ptr @.pgy.log.true, ptr @.pgy.log.false\n";
+    }
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    output = Concat(output, "  call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr getelementptr inbounds ([");
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8], ptr ");
+    output = Concat(output, format_name);
+    output = Concat(output, ", i64 0, i64 0), ");
+    output = Concat(output, value_type);
+    output = Concat(output, " ");
+    return Concat(output, Concat(log_value, ")\n"));
+}

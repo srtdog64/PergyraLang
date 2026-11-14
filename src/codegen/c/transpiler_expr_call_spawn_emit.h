@@ -1,0 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H
+#define PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H
+
+#include "../transpiler.h"
+
+#endif /* PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H */

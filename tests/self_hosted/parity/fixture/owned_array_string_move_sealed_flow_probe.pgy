@@ -1,7 +1,7 @@
 // Gate-only mutations of a real issued GraphPlan; production never runs these.
-import "../../../../src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy";
-import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy";
-import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_graph_admission_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_admission_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy";
 import "../../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
 import "../../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
 import "owned_array_string_move_receipt_rewrite_probe.pgy";

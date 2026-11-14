@@ -9,7 +9,7 @@
 - LLVM MIR CFG control lowering now covers CFG-expanded range `for`,
   `select`, and `match` containers instead of falling back to expression or
   opaque AST statement emission. The owner was split into
-  `src/codegen/llvm_mir_cfg_control.c`, keeping `llvm_mir_block_emit.h` at
+  `src/codegen/llvm/llvm_mir_cfg_control.c`, keeping `llvm_mir_block_emit.h` at
   430 LOC. `make llvm-test-smoke` is the current gate for this slice.
 - `parallel { ... }` is intentionally not treated as a CFG-owned MIR control
   container yet. It is AIR-visible and semantic-flow checked, but HIR/MIR does
@@ -36,10 +36,10 @@
   discovery still starts from AST-carried inventory before reaching MIR
   metadata.
 - LLVM zone-authority declaration prelude emission now has its own owner in
-  `src/codegen/llvm_decl_authority.c`; `src/codegen/llvm_decl.c` is limited to
+  `src/codegen/llvm/llvm_decl_authority.c`; `src/codegen/llvm/llvm_decl.c` is limited to
   function declaration/body emission and delegates authority runtime-check
   emission through that seam. Function routine inventory orchestration lives in
-  `src/codegen/llvm_decl_routines.c`.
+  `src/codegen/llvm/llvm_decl_routines.c`.
 - MIR declaration inventory now has a compiler-owned active-read API seam:
   `mir_active_inventory()` and `mir_active_externs()` centralize the current
   `ASTNodeType -> MIRProgram declaration inventory` mapping. C
@@ -47,7 +47,7 @@
   consume that MIR API instead of duplicating backend-local switches. This
   reduces replacement cost for the future dedicated declaration IR, while the
   payload itself remains AST-carried and therefore still beta debt. The public
-  query/pass wrappers now live in `src/compiler/mir_public_surface.c` instead
+  query/pass wrappers now live in `src/compiler/mir/mir_public_surface.c` instead
   of the MIR lowering implementation header, and `mir_lower(...)` now lives
   directly in `src/compiler/mir.c`.
 - LLVM statement ownership is split below the 600 LOC threshold:

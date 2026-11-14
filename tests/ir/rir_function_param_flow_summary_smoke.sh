@@ -20,9 +20,9 @@ fi
 
 OUTPUT="$($RIR_TEST)"
 [[ "$OUTPUT" == *"RIR carries HIR function parameter flow summaries by stable identity"* ]]
-RIR_FLOW="$(< "$ROOT_DIR/src/compiler/rir_flow.c")"
+RIR_FLOW="$(< "$ROOT_DIR/src/compiler/rir/rir_flow.c")"
 RIR_HEADER="$(< "$ROOT_DIR/src/compiler/rir.h")"
-RIR_VALIDATOR="$(< "$ROOT_DIR/src/compiler/rir_validation.c")"
+RIR_VALIDATOR="$(< "$ROOT_DIR/src/compiler/rir/rir_validation.c")"
 [[ "$RIR_FLOW" == *"rir_attach_function_param_flow_summaries"* ]]
 [[ "$RIR_HEADER" == *"function_param_flow_summary_count"* ]]
 [[ "$RIR_HEADER" == *"parameter_count"* ]]

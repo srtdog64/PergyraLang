@@ -228,7 +228,7 @@ Baseline logs: `.tmp/ownership-cutover-2026-10-09/p0-5651c916-7aeb6d7b3bc44252ba
 
 The unchanged production source reaches `driver_run_pipeline` -> semantic ->
 HIR -> DIR -> RIR -> AIR -> `mir_lower` on the full
-`src/self_hosted/compiler/driver_bootstrap_main.pgy` import-composed input.
+`src/self_hosted/compiler/driver/driver_bootstrap_main.pgy` import-composed input.
 The fresh native executable is SHA-256
 `8b26d1d82cf94481ff76a26eaa83b151e6f38c4f3b2099dc4c5c7e17d24af754`.
 Both direct-process pressure runs bound all 2531 tracked self-host sources,

@@ -9,9 +9,9 @@ import "ast_body_verdict_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
 import "nominal_constructor_argument_policy_owner.pgy";
-import "ast_expression_graph_struct_view_owner.pgy";
-import "ast_expression_graph_call_argument_edge_owner.pgy";
-import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression/ast_expression_graph_struct_view_owner.pgy";
+import "ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_expression/ast_expression_call_target_fact_owner.pgy";
 import "diagnostic_owner.pgy";
 
 struct SemanticStringWindowSites {

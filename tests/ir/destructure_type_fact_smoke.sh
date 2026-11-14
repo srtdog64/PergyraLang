@@ -94,7 +94,7 @@ if field_rows:
         f"{field_rows!r}"
     )
 
-source = (root / "src/compiler/mir_source_local_types.c").read_text(
+source = (root / "src/compiler/mir/mir_source_local_types.c").read_text(
     encoding="utf-8"
 )
 case = source.split("case AST_LET_DESTRUCTURE:", 1)[1].split(

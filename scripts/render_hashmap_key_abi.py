@@ -23,7 +23,7 @@ def render(root: Path) -> str:
     if (len({name for name, _, _, _ in rows}) != len(rows)
             or len({infix for _, infix, _, _ in rows}) != len(rows)):
         raise ValueError("duplicated HashMap key ABI name or infix")
-    llvm = (root / "src/codegen/llvm_runtime_raw_collections.c").read_text(encoding="utf-8")
+    llvm = (root / "src/codegen/llvm/llvm_runtime_raw_collections.c").read_text(encoding="utf-8")
     declarations = re.findall(
         r'\{\s*LLVMTypeRef params\[\]\s*=\s*\{([^}]+)\};\s*'
         r'LLVMTypeRef ft = LLVMFunctionType\(ctx->type_void, params, \d+, 0\);\s*'

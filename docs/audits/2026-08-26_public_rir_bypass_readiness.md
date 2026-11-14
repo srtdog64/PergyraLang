@@ -41,7 +41,7 @@ No existing Pergyra artifact owns that complete family.
    with `rir_lower`, enriches it from HIR, validates it, and validates it
    against DIR at `src/compiler/driver_app.c:373-417`. The C owner scans the
    `AST_PROGRAM` and constructs function/method/zone/relation/effect/world/
-   intent scopes at `src/compiler/rir_builder.c:294-409`.
+   intent scopes at `src/compiler/rir/rir_builder.c:294-409`.
 4. The native path then synthesizes AIR and lowers/validates MIR
    (`src/compiler/driver_app.c:419-486`) before allowing either RIR stdout
    projection. Human output calls `rir_dump` at
@@ -57,7 +57,7 @@ The static inventory comes from the two actual dump owners. A bounded probe used
 `examples/slots_simple.pgy:3-29`, which has three routines, two explicit slot
 facts and non-empty resource operations.
 
-Human `--rir` (`src/compiler/rir_public_surface.c:369-526`) emits:
+Human `--rir` (`src/compiler/rir/rir_public_surface.c:369-526`) emits:
 
 - program scope count;
 - per-scope ordinal, scope kind, qualified owner/name, source syntax ID,
@@ -65,7 +65,7 @@ Human `--rir` (`src/compiler/rir_public_surface.c:369-526`) emits:
 - normalized state-summary count, state-error flag and conservative semantic
   flags. The flag vocabulary is authority, projection, world handoff,
   invalidation, authority loss and projection invalidation
-  (`src/compiler/rir_public_surface.c:8-48`);
+  (`src/compiler/rir/rir_public_surface.c:8-48`);
 - function-parameter-flow summary count and each parameter index/mask;
 - resource-flow-symbol count and rows containing name, stable index,
   declaration syntax ID, parameter status and parameter index;
@@ -86,25 +86,25 @@ LF-normalized in memory, was 2,820 UTF-8 bytes with SHA-256
 `5DB65E1ADA7470695308F2ECFACD8A1D3785F48F0B1ED0D64B316ADBC1966507`.
 Default public and explicit native captures were equal and both exited zero.
 
-JSON `--rir-json` (`src/compiler/rir_dump_json.c:27-215`) emits:
+JSON `--rir-json` (`src/compiler/rir/rir_dump_json.c:27-215`) emits:
 
 - top level: `rir_version`, `scope_count`, `scopes`;
 - scope: `index`, `kind`, `source_syntax_id`,
   `resource_identity_verified`, `resource_flow_symbol_count`,
   `function_param_flow_summary_count`, `name`, `owner`, `fact_count`,
   `op_count`, `resource_flow_symbols`, `facts`, `ops`, `summaries`,
-  `has_state_errors` (`src/compiler/rir_dump_json.c:127-165`);
+  `has_state_errors` (`src/compiler/rir/rir_dump_json.c:127-165`);
 - resource-flow symbol: `stable_index`, `declaration_syntax_id`, `line`,
   `column`, `symbol_kind`, `is_parameter`, `parameter_index`, `name`
-  (`src/compiler/rir_dump_json.c:53-68`);
+  (`src/compiler/rir/rir_dump_json.c:53-68`);
 - fact: `kind`, `resource`, `name`, `slot_anchor`, `arg0`, `arg1`, `state`,
   `flow_identity`, with `stable_index` and `declaration_syntax_id` when the
-  identity is present (`src/compiler/rir_dump_json.c:27-49`);
+  identity is present (`src/compiler/rir/rir_dump_json.c:27-49`);
 - operation: `kind`, `subject`, `slot_anchor`, `arg0`, `arg1`,
-  `machine_contact` (`src/compiler/rir_dump_json.c:72-85`);
+  `machine_contact` (`src/compiler/rir/rir_dump_json.c:72-85`);
 - summary: `name`, `slot_anchor`, `kind`, `resource`, `initial_state`,
   `final_state`, `last_op`, `has_error`, `flow_identity`, with stable and
-  declaration IDs when present (`src/compiler/rir_dump_json.c:89-112`).
+  declaration IDs when present (`src/compiler/rir/rir_dump_json.c:89-112`).
 
 Unlike human mode, JSON publishes only the function-parameter-flow count and
 does not publish parameter-flow rows, conservative semantic flags, flow blocks
@@ -120,13 +120,13 @@ Default public and explicit native captures were equal and both exited zero.
   are declared at `src/compiler/rir.h:15-265`, and `RIRProgram` owns its scope
   array and AST root at `src/compiler/rir.h:267-273`. HIR enrichment copies and
   validates routine-local resource-flow and parameter-flow identities at
-  `src/compiler/rir_flow.c:611-668`. These are C-owned production facts, not a
+  `src/compiler/rir/rir_flow.c:611-668`. These are C-owned production facts, not a
   Pergyra producer.
 - The installed Pergyra composition root admits argv once and dispatches its
-  typed request at `src/self_hosted/compiler/driver_bootstrap_main.pgy:7-10`.
+  typed request at `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy:7-10`.
   Its complete request enum has tokens, AST, capability, DIR, machine, C, LLVM
   and MIR variants but no RIR variant
-  (`src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy:8-37`). This is
+  (`src/self_hosted/compiler/driver/driver_rung2_cli_request_owner.pgy:8-37`). This is
   direct evidence that public RIR is not production-root reachable there.
 - `src/self_hosted/tools/machine_layer_rir_validator/main.pgy:1-5` explicitly
   declares itself a consumer that does not recover source meaning. It reads a
@@ -141,7 +141,7 @@ Default public and explicit native captures were equal and both exited zero.
   `has_rir_*_evidence` inputs. Those booleans neither own the ordered RIR scope
   graph nor the dump payload and cannot be promoted into a producer.
 - The authoritative registry row for `rir.resource_transition_graph` still
-  names native `src/compiler/rir_builder.c | rir_lower`, marks the family
+  names native `src/compiler/rir/rir_builder.c | rir_lower`, marks the family
   `BRIDGE`, and says initial AST-owned shape/resource collection and the
   self-hosted RIR producer remain open
   (`docs/semantics/sot_owner_spine_registry.md:67`). This agrees with the

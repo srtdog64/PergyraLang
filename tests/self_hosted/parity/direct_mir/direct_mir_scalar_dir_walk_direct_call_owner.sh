@@ -24,29 +24,29 @@ command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
 grep -Fq 'func DirectMirScalarProgramExprDirWalk() -> Int { return 95; }' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy" ||
     fail "DirWalk expression identity is missing"
 grep -Fq '"host-io", "dir-walk"' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy" ||
     fail "DirWalk does not consume the host-io runtime ABI operation"
 grep -Fq 'HostIORuntimeCDirWalkFn()' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy" ||
     fail "DirWalk does not consume the host-io runtime ABI row"
 grep -Fq 'PgyArray_String source = pgy_dir_walk(root)' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" ||
     fail "C DirWalk does not consume the native runtime owner"
 # C DirWalk consumes projected ArrayString fields and rejects layout drift.
 grep -Fq 'projection.storage.data_field' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" ||
     fail "C DirWalk does not consume the ArrayString target projection"
 ! grep -Fq 'pgy_as out = {(const char **)source.data' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" ||
     fail "C DirWalk restored its positional ArrayString layout"
 grep -Fq 'DirectMirScalarProgramCDirWalkBlock(plan, runtime, projection)' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_materialization_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_string_collection_materialization_owner.pgy" ||
     fail "C DirWalk projection is not carried from the collection materializer"
 grep -Fq '@pgy_dir_walk(ptr %root)' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_dir_walk_materialization_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_dir_walk_materialization_owner.pgy" ||
     fail "LLVM DirWalk does not consume the native runtime owner"
 
 mkdir -p "$WORK_DIR/tree/sub"

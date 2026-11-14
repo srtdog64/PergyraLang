@@ -1,0 +1,111 @@
+// Exclusive static-literal or ArrayLength(ValueId) range stop admission.
+
+import "../direct_mir_cfg_shape_fact_owner.pgy";
+import "direct_mir_scalar_cfg_range_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_length_fact_owner.pgy";
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "../../../mir/local_ref_identity_owner.pgy";
+
+struct DirectMirScalarCfgRangeBoundFact {
+    let valid: Bool;
+    let stop_literal: String;
+    let stop_value_id: String;
+    let stop_local_ref: String;
+    let collection_name: String;
+}
+
+func DirectMirScalarCfgRangeBoundFactInvalid() -> DirectMirScalarCfgRangeBoundFact {
+    return DirectMirScalarCfgRangeBoundFact(false, "", "", "", "");
+}
+
+func DirectMirScalarCfgRangeBoundFactReady(
+    ref fact: DirectMirScalarCfgRangeBoundFact
+) -> Bool {
+    let literal: Bool =
+        DirectMirScalarCfgRangeCanonicalInt(fact.stop_literal) &&
+        fact.stop_value_id == "" && fact.stop_local_ref == "" &&
+        fact.collection_name == "";
+    let array_length: Bool = fact.stop_literal == "" &&
+        fact.stop_value_id != "" && fact.stop_local_ref == "" &&
+        fact.collection_name != "" &&
+        MirSsaNameMatches(fact.stop_value_id, fact.collection_name, true);
+    let local_ref: Bool = fact.stop_literal == "" &&
+        fact.stop_value_id == "" && fact.collection_name == "" &&
+        SelfMirLocalRefValid(fact.stop_local_ref);
+    var shape_count: Int = 0;
+    if literal { shape_count = shape_count + 1; }
+    if array_length { shape_count = shape_count + 1; }
+    if local_ref { shape_count = shape_count + 1; }
+    return fact.valid && shape_count == 1;
+}
+
+func DirectMirScalarCfgRangeBoundFromOwners(
+    ref branch_object: JsonObjectFactTable,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    branch_global: Int, local_instruction: Int
+) -> DirectMirScalarCfgRangeBoundFact {
+    let invalid: DirectMirScalarCfgRangeBoundFact =
+        DirectMirScalarCfgRangeBoundFactInvalid();
+    let use_count: Int = MirRoutineInstructionUseCountAtGlobal(
+        use_facts, branch_global
+    );
+    let sequence: MirExpressionGraphSequence =
+        DirectMirScalarCfgExpressionSequence(branch_object);
+    if sequence.ok && sequence.ready_node_count == 1 {
+        if sequence.arena.topology.node_kinds[0] ==
+                AstExpressionNodeIntegerLiteral() {
+            let literal: String = DirectMirCfgSingleNodeLiteral(
+                branch_object, AstExpressionNodeIntegerLiteral()
+            );
+            let fact: DirectMirScalarCfgRangeBoundFact =
+                DirectMirScalarCfgRangeBoundFact(
+                    true, literal, "", "", "");
+            if use_count == 0 &&
+                DirectMirScalarCfgRangeBoundFactReady(fact) {
+                return fact;
+            }
+            return invalid;
+        }
+        if sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
+            use_count == 0 {
+            let local_ref: String = DirectMirScalarCfgWireExprRefAt(
+                wire, local_instruction, 0);
+            let fact: DirectMirScalarCfgRangeBoundFact =
+                DirectMirScalarCfgRangeBoundFact(
+                    true, "", "", local_ref, "");
+            if sequence.arena.node_texts[0] != "" &&
+                DirectMirScalarCfgRangeBoundFactReady(fact) {
+                return fact;
+            }
+        }
+        return invalid;
+    }
+    if !sequence.ok || sequence.ready_node_count != 4 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 3 {
+        Die("direct MIR scalar CFG ArrayLength envelope is invalid");
+    }
+    let length: DirectMirScalarCfgArrayLengthGraphFact =
+        DirectMirScalarCfgArrayLengthGraphFactAt(sequence, 0, 1, 2, 3);
+    if !length.valid {
+        Die("direct MIR scalar CFG ArrayLength topology is invalid");
+    }
+    if use_count != 1 {
+        Die("direct MIR scalar CFG ArrayLength use count is invalid");
+    }
+    let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, branch_global, 0
+    );
+    if !IsSome(use_opt) || !MirSsaNameMatches(
+        UnwrapOption(use_opt), length.collection_name, true
+    ) { Die("direct MIR scalar CFG ArrayLength ValueId is invalid"); }
+    let fact: DirectMirScalarCfgRangeBoundFact =
+        DirectMirScalarCfgRangeBoundFact(
+            true, "", UnwrapOption(use_opt),
+            "", length.collection_name
+        );
+    if !DirectMirScalarCfgRangeBoundFactReady(fact) {
+        Die("direct MIR scalar CFG ArrayLength bound fact is invalid");
+    }
+    return fact;
+}

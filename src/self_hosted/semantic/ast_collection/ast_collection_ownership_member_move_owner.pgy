@@ -1,0 +1,81 @@
+// Stable direct-field identity and one-pass use-after-move detection for
+// Array<String> extraction. A field-to-local value transfer is a move; Clone
+// is the explicit operation that preserves both source and destination.
+
+import "../ast_expression/ast_expression_graph_member_view_owner.pgy";
+import "../ast_expression/ast_expression_graph_view_owner.pgy";
+import "ast_collection_ownership_member_root_identity_owner.pgy";
+import "../ast_nominal_constructor_lookup_owner.pgy";
+import "../ast_type_name_canonical_owner.pgy";
+
+struct SemanticAstCollectionMemberMoveIdentity {
+    ok: Bool;
+    key: String;
+    source_binding_syntax_id: Int;
+    field_syntax_id: Int;
+    string_array_field: Bool;
+    field_path_ids: Array<Int>;
+}
+
+func SemanticAstCollectionMemberMoveEventKey(identity: SemanticAstCollectionMemberMoveIdentity, syntax_node_id: Int) -> String {
+    return Concat(identity.key, Concat(":", ToString(syntax_node_id)));
+}
+
+func SemanticAstCollectionMemberMoveIdentityForNode(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    function_node_id: Int, use_node_id: Int,
+    ref graph: SemanticExpressionGraphFacts, node_id: Int
+) -> SemanticAstCollectionMemberMoveIdentity {
+    let no_path: Array<Int> = [];
+    let unresolved: SemanticAstCollectionMemberMoveIdentity =
+        SemanticAstCollectionMemberMoveIdentity(false, "", 0, 0, false, no_path);
+    var reversed_members: Array<Int> = [];
+    var current: Int = node_id;
+    var member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, current);
+    while member.ok && ArrayLength(reversed_members) < 64 {
+        ArrayPush(reversed_members, member.member_node);
+        current = member.receiver_node;
+        member = SemanticMemberAccessViewFromGraph(graph, current);
+    }
+    if member.ok || ArrayLength(reversed_members) == 0 { return unresolved; }
+    let root: SemanticAstCollectionMemberRootIdentity =
+        SemanticAstCollectionMemberRootIdentityForNode(
+            artifact, signatures, locals, inferred_types, resolved_leaf_types, function_node_id,
+            use_node_id, graph, current);
+    if !root.ok { return unresolved; }
+    var path: Array<Int> = [];
+    var value_type: String = Concat("", root.type_name);
+    var key: String = Concat(ToString(function_node_id),
+        Concat(":", ToString(root.source_binding_syntax_id)));
+    var index: Int = ArrayLength(reversed_members) - 1;
+    while index >= 0 {
+        let field_name: Option<String> = SemanticExpressionGraphNodeText(
+            graph, reversed_members[index]);
+        let canonical: SemanticCanonicalTypeNameFact =
+            SemanticCanonicalTypeNameFactFrom(value_type);
+        let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(
+            constructors, canonical.nominal_base_name);
+        if !IsSome(field_name) || canonical.nominal_base_name == "" ||
+            !IsSome(constructor) { return unresolved; }
+        let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+            constructors, UnwrapOption(constructor), UnwrapOption(field_name));
+        if !IsSome(field) || UnwrapOption(field) >= ArrayLength(constructors.field_source_syntax_ids) ||
+            UnwrapOption(field) >= ArrayLength(constructors.param_type_names) {
+            return unresolved;
+        }
+        let field_id: Int = constructors.field_source_syntax_ids[UnwrapOption(field)];
+        if field_id <= 0 { return unresolved; }
+        ArrayPush(path, field_id);
+        key = Concat(key, Concat(":", ToString(field_id)));
+        value_type = Concat("", constructors.param_type_names[UnwrapOption(field)]);
+        index = index - 1;
+    }
+    if ArrayLength(path) == 0 { return unresolved; }
+    return SemanticAstCollectionMemberMoveIdentity(true, key, root.source_binding_syntax_id,
+        path[ArrayLength(path) - 1], value_type == "Array<String>", path);
+}

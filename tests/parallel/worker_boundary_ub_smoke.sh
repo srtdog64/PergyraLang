@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 scope_lookup_escape="$(
     grep -R -n --include='*.c' --include='*.h' \
         'llvm_scope_lookup(ctx,' "$ROOT_DIR/src/codegen" \
-        | grep -Fv 'src/codegen/llvm_registry.c:' || true
+        | grep -Fv 'src/codegen/llvm/llvm_registry.c:' || true
 )"
 if [[ -n "$scope_lookup_escape" ]]; then
     echo "[worker-boundary-ub] borrowed LLVM scope lookup escaped the registry owner" >&2

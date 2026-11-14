@@ -5,7 +5,7 @@
 #include "array_storage_defer_release_owner.h"
 #include "array_storage_deferred_preservation_owner.h"
 #include "array_storage_release_owner.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "diag_codes.h"
 #include <stdlib.h>
 

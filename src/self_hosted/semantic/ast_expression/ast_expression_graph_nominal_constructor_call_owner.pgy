@@ -1,0 +1,173 @@
+// Graph-owned admission for direct nominal constructor calls.
+//
+// Nominal constructors accept a positional prefix of their caller-supplied
+// fields. Ordinary functions retain exact arity. Domain-managed zone layer
+// storage is excluded by the nominal constructor argument policy owner.
+
+import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_field_type_owner.pgy";
+import "ast_expression_graph_nominal_constructor_argument_owner.pgy";
+import "../ast_nominal_constructor_lookup_owner.pgy";
+import "ast_expression_carried_callable_identity_owner.pgy";
+import "../nominal_constructor_argument_policy_owner.pgy";
+import "../diagnostic_owner.pgy";
+import "../env_value_owner.pgy";
+
+struct SemanticExpressionGraphNominalConstructorCallFact {
+    applies: Bool;
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    return_type_name: String;
+    actual_argument_count: Int;
+    constructor_source_syntax_id: Int;
+}
+
+func SemanticExpressionGraphNominalConstructorCallNotApplicable(
+) -> SemanticExpressionGraphNominalConstructorCallFact {
+    return SemanticExpressionGraphNominalConstructorCallFact(
+        false, true, "", "", "", 0, 0
+    );
+}
+
+func SemanticExpressionGraphNominalConstructorCallError(
+    code: String,
+    message: String,
+    actual_argument_count: Int
+) -> SemanticExpressionGraphNominalConstructorCallFact {
+    return SemanticExpressionGraphNominalConstructorCallFact(
+        true, false, code, message, "",
+        actual_argument_count, 0
+    );
+}
+
+func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
+    ref graph: SemanticExpressionGraphFacts, root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts, signatures: SemanticAstFunctionSignatureFacts,
+    names: Array<String>, types: Array<String>, ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>, ref enum_values: SemanticAstEnumValueScope
+) -> SemanticExpressionGraphNominalConstructorCallFact {
+    let target: SemanticExpressionCallTargetFact = SemanticExpressionGraphResolvedCallTarget(
+        graph, root_id, constructors, names, types, function_names, function_returns, enum_values);
+    return SemanticExpressionGraphNominalConstructorCallFactFromResolvedTarget(graph, root_id, target,
+        constructors, signatures, names, types, function_names, function_returns, enum_values);
+}
+
+// The same fact for a caller that already resolved this call's target with
+// these inputs.
+func SemanticExpressionGraphNominalConstructorCallFactFromResolvedTarget(
+    ref graph: SemanticExpressionGraphFacts, root_id: Int, target: SemanticExpressionCallTargetFact,
+    ref constructors: SemanticAstNominalConstructorFacts, signatures: SemanticAstFunctionSignatureFacts,
+    names: Array<String>, types: Array<String>, ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>, ref enum_values: SemanticAstEnumValueScope
+) -> SemanticExpressionGraphNominalConstructorCallFact {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, root_id);
+    if !call.ok || ArrayLength(call.generic_actual_type_names) > 0 {
+        return SemanticExpressionGraphNominalConstructorCallNotApplicable();
+    }
+    if !target.ok || target.kind != SemanticCallTargetDirect() {
+        return SemanticExpressionGraphNominalConstructorCallNotApplicable();
+    }
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(graph, call.callee_node);
+    let target_id: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+        graph, call.call_node);
+    let runtime_id: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(
+        graph, call.call_node);
+    if !binding.ok || binding.kind != SemanticExpressionBindingNone() ||
+        binding.syntax_id != 0 ||
+        !IsSome(target_id) ||
+        !IsSome(runtime_id) || UnwrapOption(runtime_id) != 0 ||
+        SemanticAstCallableTypeShapeFromName(EnvValueLookup(names, types, enum_values, target.name)).ok {
+        return SemanticExpressionGraphNominalConstructorCallNotApplicable();
+    }
+    let constructor_index: Option<Int> =
+        SemanticAstNominalConstructorIndexForName(constructors, target.name);
+    if !IsSome(constructor_index) {
+        return SemanticExpressionGraphNominalConstructorCallNotApplicable();
+    }
+    let index: Int = UnwrapOption(constructor_index);
+    // Unsealed initializer analysis has no target yet; a sealed target must
+    // equal the declaration already selected by the nominal owner.
+    if UnwrapOption(target_id) != 0 && UnwrapOption(target_id) != constructors.node_ids[index] {
+        return SemanticExpressionGraphNominalConstructorCallError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "nominal_constructor_target_identity"),
+            ArrayLength(call.argument_nodes));
+    }
+    // Initializer admission precedes identity sealing. Source signatures, not
+    // a not-yet-filled zero call ID, distinguish a declared function here.
+    let declared: Result<Int> = SemanticExpressionDeclaredFunctionSyntaxId(
+        signatures, target.name);
+    if !signatures.ok || IsErr(declared) {
+        return SemanticExpressionGraphNominalConstructorCallError(
+            "ast_artifact_invalid", SemanticError1("ast_artifact_invalid",
+                "owner", "nominal_constructor_callable_identity"),
+            ArrayLength(call.argument_nodes));
+    }
+    if Unwrap(declared) > 0 {
+        return SemanticExpressionGraphNominalConstructorCallNotApplicable();
+    }
+    let maximum_opt: Option<Int> =
+        SemanticAstNominalConstructorArgumentCountAt(
+        constructors, index
+    );
+    let actual_count: Int = ArrayLength(call.argument_nodes);
+    if !IsSome(maximum_opt) || constructors.node_ids[index] <= 0 {
+        return SemanticExpressionGraphNominalConstructorCallError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "nominal_constructor_policy"
+            ), actual_count
+        );
+    }
+    let maximum: Int = UnwrapOption(maximum_opt);
+    // A struct is a plain value record with no default fields: its constructor
+    // takes every field, as in native. Domain nominals may omit trailing fields.
+    let exact: Bool = constructors.nominal_kinds[index] == "struct";
+    if actual_count > maximum || (exact && actual_count != maximum) {
+        var expected: String = Concat("at_most_", ToString(maximum));
+        if exact { expected = Concat("exactly_", ToString(maximum)); }
+        return SemanticExpressionGraphNominalConstructorCallError(
+            "call_arity_mismatch",
+            SemanticError3(
+                "call_arity_mismatch", "func", target.name,
+                "expected", expected,
+                "actual", ToString(actual_count)
+            ), actual_count
+        );
+    }
+    var i: Int = 0;
+    while i < actual_count {
+        let argument: SemanticExpressionGraphNominalConstructorArgumentFact =
+            SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
+                graph, call.argument_nodes[i], constructors, index, i,
+                names, types, function_names, function_returns, enum_values);
+        if !argument.ok {
+            return SemanticExpressionGraphNominalConstructorCallError(
+                "ast_artifact_invalid",
+                SemanticError3(
+                    "ast_artifact_invalid",
+                    "owner", "nominal_constructor_argument_type",
+                    "constructor", target.name,
+                    "argument_index", ToString(i)
+                ), actual_count
+            );
+        }
+        if !argument.assignable {
+            return SemanticExpressionGraphNominalConstructorCallError(
+                "call_arg_type_mismatch",
+                SemanticError3(
+                    "call_arg_type_mismatch", "func", target.name,
+                    "expected", argument.expected_type_name,
+                    "actual", argument.actual_type_name
+                ), actual_count
+            );
+        }
+        i = i + 1;
+    }
+    return SemanticExpressionGraphNominalConstructorCallFact(
+        true, true, "", "", Concat("", constructors.return_type_names[index]),
+        actual_count, constructors.node_ids[index]
+    );
+}

@@ -40,7 +40,7 @@ complete the original LLVM query or full bootstrap.
 ## Edit lease and verification
 
 Primary alone edits the existing constructor in
-`src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_owner.pgy`,
+`src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_expression_owner.pgy`,
 its bounded fixture/manual gate and navigation evidence. Preserve the preceding
 member-shape guards and inherited changes. Fact/digest/ABI owners, expression
 admission, enum owners, schemas and shared binaries are out of edit scope.

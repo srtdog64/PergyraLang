@@ -35,7 +35,7 @@ import "box_array_let_emit_owner.pgy";
 import "result_let_emit_owner.pgy";
 import "tagged_enum_match_owner.pgy";
 import "option_match_owner.pgy";
-import "../../semantic/ast_expression_graph_node_view_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
 import "../input/semantic_body_type_codegen_view_owner.pgy";
 
 struct CodegenStatementBlockEmission {

@@ -376,8 +376,8 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
 <!-- GENERIC-RUNG-BEGIN -->
 | rung | cell | status | artifact | gate |
 | --- | --- | --- | --- | --- |
-| G-1 | return-position + body-local constructed-over-T, C==LLVM run-parity | landed | src/codegen/transpiler_specialization_registry.c | tests/language/generic_nested_failclosed_smoke.sh |
-| G-2 | param-position constructed-over-T, **C-측**: MIR이 확정한 explicit/inferred/default actual 바인딩 소비; 누락·다른 호출 identity 거절 | landed | src/codegen/transpiler_generic_binding_query.c | tests/language/generic_falsification_smoke.sh |
+| G-1 | return-position + body-local constructed-over-T, C==LLVM run-parity | landed | src/codegen/c/transpiler_specialization_registry.c | tests/language/generic_nested_failclosed_smoke.sh |
+| G-2 | param-position constructed-over-T, **C-측**: MIR이 확정한 explicit/inferred/default actual 바인딩 소비; 누락·다른 호출 identity 거절 | landed | src/codegen/c/transpiler_generic_binding_query.c | tests/language/generic_falsification_smoke.sh |
 | G-2L | LLVM 잔여 constructed/aggregate 인자 ABI와 default-arg 조합 전체; scalar 및 단순 subject-bound 실행 증거와 구분 | planned | - | - |
 | G-3 | 중첩·다중 파라미터 (Option<Option<T>>, Result<T,E> 양-파라미터, List<T> 요소) | planned | - | - |
 | G-4 | generic × 축 합성 셀 개방 (§5 표의 Slot/Channel 행 — Decision-0 carriage 규칙 적용) | planned | - | - |

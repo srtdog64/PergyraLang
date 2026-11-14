@@ -1,0 +1,25 @@
+// Scalar-CFG routine identity schema.
+
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_callable_signature_owner.pgy";
+import "direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+
+struct DirectMirScalarCfgProgramRoutineIdentity {
+    let valid: Bool;
+    let roles: Array<Int>;
+    let source_rows: Array<Int>;
+    let source_syntax_ids: Array<Int>;
+    let instance_keys: Array<String>;
+    let names: Array<String>;
+    let return_types: Array<String>;
+    let receiver_carriages: Array<String>;
+    let receiver_owner_rows: Array<Int>;
+    let parameter_counts: Array<Int>;
+    let parameter_starts: Array<Int>;
+    let parameter_types: Array<String>;
+    let parameter_carriages: Array<String>;
+    let signature_digests: Array<Int>;
+    let cfg_digests: Array<Int>;
+}
+

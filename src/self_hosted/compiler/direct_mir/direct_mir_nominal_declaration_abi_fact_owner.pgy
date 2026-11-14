@@ -1,0 +1,215 @@
+// Exact semantic identity plus producer-owned physical receipt for one
+// direct-MIR value-struct declaration.
+import "../../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../../mir_lower/program_declaration_index_owner.pgy";
+import "../../air/mir_cfg_identity_owner.pgy";
+import "direct_mir_nominal_abi_row_equality_owner.pgy";
+struct DirectMirNominalDeclarationAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let row: Int;
+    let name: String;
+    let source_syntax_id: Int;
+    let source_module_path: String;
+    let field_names: Array<String>;
+    let field_types: Array<String>;
+    let field_kinds: Array<String>;
+    let field_source_syntax_ids: Array<Int>;
+    let abi_layout_id: Int;
+    let abi: MirAbiLayoutRowCapture;
+}
+func InvalidDirectMirNominalDeclarationAbiFact() -> DirectMirNominalDeclarationAbiFact {
+    let strings: Array<String> = [];
+    let ints: Array<Int> = [];
+    return DirectMirNominalDeclarationAbiFact(
+        false, 0, 0 - 1, "", 0, "", strings, strings, strings, ints, 0,
+        InvalidMirAbiLayoutRowCapture()
+    );
+}
+func DirectMirNominalDeclarationAbiFactDigest(ref fact: DirectMirNominalDeclarationAbiFact) -> Int {
+    if !fact.valid { return 0; }
+    let count: Int = ArrayLength(fact.field_names);
+    if ArrayLength(fact.field_types) != count || ArrayLength(fact.field_kinds) != count ||
+        ArrayLength(fact.field_source_syntax_ids) != count || ArrayLength(fact.abi.field_names) != count ||
+        ArrayLength(fact.abi.field_offsets) != count || ArrayLength(fact.abi.field_sizes) != count ||
+        ArrayLength(fact.abi.field_aligns) != count {
+        return 0;
+    }
+    var hash: Long = DirectMirCfgHashString(137L, fact.name);
+    hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.source_module_path);
+    var row: Int = 0;
+    while row < count {
+        hash = DirectMirCfgHashString(hash, fact.field_names[row]);
+        hash = DirectMirCfgHashString(hash, fact.field_types[row]);
+        hash = DirectMirCfgHashString(hash, fact.field_kinds[row]);
+        hash = DirectMirCfgHashInt(
+            hash, fact.field_source_syntax_ids[row]
+        );
+        hash = DirectMirCfgHashString(hash, fact.abi.field_names[row]);
+        hash = DirectMirCfgHashInt(
+            hash, ToInt(fact.abi.field_offsets[row])
+        );
+        hash = DirectMirCfgHashInt(
+            hash, ToInt(fact.abi.field_sizes[row])
+        );
+        hash = DirectMirCfgHashInt(
+            hash, ToInt(fact.abi.field_aligns[row])
+        );
+        row = row + 1;
+    }
+    hash = DirectMirCfgHashInt(hash, fact.abi_layout_id);
+    hash = DirectMirCfgHashInt(hash, ToInt(fact.abi.size_text));
+    hash = DirectMirCfgHashInt(hash, ToInt(fact.abi.align_text));
+    return DirectMirCfgBoundedDigest(hash);
+}
+func DirectMirNominalDeclarationAbiFactReady(
+    ref fact: DirectMirNominalDeclarationAbiFact
+) -> Bool {
+    let count: Int = ArrayLength(fact.field_names);
+    if !fact.valid || fact.digest == 0 ||
+        fact.digest != DirectMirNominalDeclarationAbiFactDigest(fact) ||
+        fact.row < 0 || fact.name == "" || fact.source_syntax_id <= 0 ||
+        fact.source_module_path == "" ||
+        count == 0 || count > 8 ||
+        ArrayLength(fact.field_types) != count ||
+        ArrayLength(fact.field_kinds) != count ||
+        ArrayLength(fact.field_source_syntax_ids) != count ||
+        fact.abi_layout_id <= 0 || !fact.abi.valid ||
+        fact.abi.type_name != fact.name ||
+        MirAbiLayoutIdFromCapture(fact.abi) != fact.abi_layout_id ||
+        ArrayLength(fact.abi.field_names) != count {
+        return false;
+    }
+    var row: Int = 0;
+    while row < count {
+        if fact.field_names[row] == "" || fact.field_types[row] == "" ||
+            fact.field_kinds[row] != "field" ||
+            fact.field_source_syntax_ids[row] <= 0 ||
+            fact.abi.field_names[row] != fact.field_names[row] {
+            return false;
+        }
+        var prior: Int = 0;
+        while prior < row {
+            if fact.field_names[prior] == fact.field_names[row] ||
+                fact.field_source_syntax_ids[prior] ==
+                    fact.field_source_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+func DirectMirNominalDeclarationAbiFactFromDocument(
+    json: String, json_extent: Int,
+    ref declarations: MirProgramDeclarationIndex,
+    row: Int
+) -> DirectMirNominalDeclarationAbiFact {
+    if !declarations.valid || row < 0 ||
+        row >= MirProgramDeclarationIndexCount(declarations) ||
+        declarations.kinds[row] != "struct" ||
+        declarations.nominal_kinds[row] != "struct" {
+        return InvalidDirectMirNominalDeclarationAbiFact();
+    }
+    let start: Int = declarations.starts[row];
+    let end: Int = declarations.ends[row];
+    let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, json_extent, start, end
+    );
+    let keys: Array<String> = [
+        "kind", "nominal_kind", "name", "source_syntax_id",
+        "source_module_path", "fields", "abi_layout_id",
+        "abi_layout_required", "abi_layout"
+    ];
+    var starts: Array<Int> = [
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
+    ];
+    var ends: Array<Int> = [
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
+    ];
+    if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 9 ||
+        !MirAbiSelectedObjectBoundsWithin(
+            json, json_extent, start, end, keys, starts, ends
+        ) || !MirAbiAllBoundsPresent(starts, ends) {
+        return InvalidDirectMirNominalDeclarationAbiFact();
+    }
+    let name: Option<String> = MirAbiStringValueAtBounds(
+        json, json_extent, starts[2], ends[2], false
+    );
+    let syntax_id: Option<String> = MirAbiIntegerValueAtBounds(
+        json, json_extent, starts[3], ends[3]
+    );
+    let source_path: Option<String> = MirAbiStringValueAtBounds(
+        json, json_extent, starts[4], ends[4], false
+    );
+    let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
+        json, json_extent, starts[6], ends[6]
+    );
+    if !IsSome(name) || !IsSome(syntax_id) || !IsSome(source_path) ||
+        !IsSome(abi_id) ||
+        UnwrapOption(name) != declarations.names[row] ||
+        UnwrapOption(source_path) != declarations.source_module_paths[row] ||
+        ToInt(UnwrapOption(syntax_id)) <= 0 ||
+        ToInt(UnwrapOption(abi_id)) <= 0 {
+        return InvalidDirectMirNominalDeclarationAbiFact();
+    }
+    let admitted_abi: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, json_extent, UnwrapOption(name), true, starts[2], ends[2],
+            starts[6], ends[6], starts[7], ends[7], starts[8], ends[8]
+        );
+    let fields: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(object_table, "fields");
+    if !IsSome(admitted_abi) || !JsonArrayObjectFactTableReady(fields) {
+        return InvalidDirectMirNominalDeclarationAbiFact();
+    }
+    var field_names: Array<String> = [];
+    var field_types: Array<String> = [];
+    var field_kinds: Array<String> = [];
+    var field_ids: Array<Int> = [];
+    var field_row: Int = 0;
+    while field_row < JsonArrayObjectFactCount(fields) {
+        let field: JsonObjectFactTable = JsonArrayObjectFactAt(
+            fields, field_row
+        );
+        let field_name: Option<String> =
+            JsonObjectFactStringFieldOpt(field, "name");
+        let field_type: Option<String> =
+            JsonObjectFactStringFieldOpt(field, "type");
+        let field_kind: Option<String> =
+            JsonObjectFactStringFieldOpt(field, "field_kind");
+        let field_id: Option<String> =
+            JsonObjectFactNumberFieldOpt(field, "source_syntax_id");
+        if JsonObjectFactCount(field) != 4 || !IsSome(field_name) ||
+            !IsSome(field_type) || !IsSome(field_kind) || !IsSome(field_id) {
+            return InvalidDirectMirNominalDeclarationAbiFact();
+        }
+        ArrayPush(field_names, UnwrapOption(field_name));
+        ArrayPush(field_types, UnwrapOption(field_type));
+        ArrayPush(field_kinds, UnwrapOption(field_kind));
+        ArrayPush(field_ids, ToInt(UnwrapOption(field_id)));
+        field_row = field_row + 1;
+    }
+    let fact: DirectMirNominalDeclarationAbiFact =
+        DirectMirNominalDeclarationAbiFact(
+            true, 0, row, UnwrapOption(name),
+            ToInt(UnwrapOption(syntax_id)), UnwrapOption(source_path),
+            field_names, field_types,
+            field_kinds, field_ids, ToInt(UnwrapOption(abi_id)),
+            UnwrapOption(admitted_abi)
+    );
+    let verified: DirectMirNominalDeclarationAbiFact =
+        DirectMirNominalDeclarationAbiFact(
+            fact.valid, DirectMirNominalDeclarationAbiFactDigest(fact),
+            fact.row, fact.name, fact.source_syntax_id,
+            fact.source_module_path, fact.field_names, fact.field_types,
+            fact.field_kinds, fact.field_source_syntax_ids,
+            fact.abi_layout_id, fact.abi
+        );
+    if !DirectMirNominalDeclarationAbiFactReady(verified) {
+        return InvalidDirectMirNominalDeclarationAbiFact();
+    }
+    return verified;
+}

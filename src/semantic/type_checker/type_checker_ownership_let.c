@@ -1,0 +1,628 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Let-binding ownership and boundary checks.
+ */
+
+#include <stdio.h>
+#include <string.h>
+
+#include "../diag_codes.h"
+#include "../../common/string_compat.h"
+#include "type_checker_internal.h"
+#include "../string_window_extent.h"
+#include "../callable_capability_inference.h"
+#include "type_checker_ownership_internal.h"
+#include "type_checker_ownership_let_internal.h"
+#include "../array_storage_release_owner.h"
+#include "../indexed_string_borrow_owner.h"
+#include "../map_string_payload_view_owner.h"
+#include "type_checker_ownership_support_internal.h"
+#include "type_checker_flow_universe.h"
+#include "../function_param_flow/function_param_publication_owner.h"
+#include "type_checker_assignment.h"
+
+static Type *
+ownership_let_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+static const char *
+ownership_let_call_callee_name(const ASTNode *node)
+{
+    ASTNode *callee = ast_call_callee(node);
+    if (callee == NULL || callee->type != AST_IDENTIFIER)
+        return NULL;
+    return ast_identifier_name(callee);
+}
+
+bool
+type_check_let_decl(ASTNode *node, SemanticContext *ctx)
+{
+    const char *name = ast_let_name(node);
+    ASTNode *init = ast_let_initializer(node);
+    ASTNode *ann = ast_let_type(node);
+    bool handled_slot_claim = false;
+    Type *init_type;
+    Type *decl_type;
+    Type *lambda_expected_type = NULL;
+    size_t initializer_diagnostic_base = ctx->diagnostic_count;
+    SemanticSpawnHandleUse saved_spawn_use = ctx->spawn_handle_use;
+
+    /* Check for duplicate in current scope */
+    if (scope_lookup_current(ctx->scope, name) != NULL) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_REDECLARATION, PGY_CAUSE_SCOPE_DUPLICATE_SYMBOL,
+            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
+            node,
+            "Redeclaration of '%s' in the same scope", name);
+        return false;
+    }
+    semantic_local_name_rule_check(ctx, node, name);
+
+    if (!ownership_let_try_claim_slot_decl(node, ctx, name, init, ann,
+                                           &handled_slot_claim)) {
+        return false;
+    }
+    if (handled_slot_claim)
+        return true;
+
+    /* A lambda bound directly to a let is a non-escaping callable; Stage A
+     * copy-capture is wired for exactly this position (docs/135). */
+    bool saved_capture_allowed = ctx->capture_allowed_let_init;
+    ctx->capture_allowed_let_init =
+        (init != NULL && init->type == AST_LAMBDA_EXPR);
+
+    /* Only a direct let initializer owns a spawned handle. This mode is reset
+     * by the spawn checker before it descends into the spawned call. */
+    if (init != NULL && init->type == AST_SPAWN_EXPR)
+        ctx->spawn_handle_use = SEMANTIC_SPAWN_HANDLE_BINDING;
+
+    /* Normal variable declaration with type inference */
+    if (init != NULL && init->type == AST_LAMBDA_EXPR && ann != NULL) {
+        lambda_expected_type = ownership_let_resolve_type_ref(ann, ctx);
+        if (lambda_expected_type != NULL
+            && lambda_expected_type->kind == TYPE_KIND_FUNCTION) {
+            Type *saved_expected_lambda = ctx->expected_lambda_type;
+            ctx->expected_lambda_type = lambda_expected_type;
+            init_type = ownership_let_normalize_type(
+                type_check_expression(init, ctx));
+            ctx->expected_lambda_type = saved_expected_lambda;
+        } else {
+            init_type = ownership_let_normalize_type(
+                type_check_expression(init, ctx));
+        }
+    } else if (init != NULL && ann != NULL
+               && (init->type == AST_ARRAY_LITERAL
+                   || init->type == AST_SET_LITERAL
+                   || init->type == AST_MAP_LITERAL)) {
+        /* A collection literal takes its concrete constructor from the binding
+         * annotation: `[...]` becomes Array/List/Queue per the declared type
+         * (mirrors the lambda contextual-type threading above). */
+        Type *saved_expected_collection = ctx->expected_collection_type;
+        ctx->expected_collection_type = ownership_let_resolve_type_ref(ann, ctx);
+        init_type = ownership_let_normalize_type(
+            type_check_expression(init, ctx));
+        ctx->expected_collection_type = saved_expected_collection;
+    } else if (init != NULL && ann != NULL
+               && semantic_expr_is_compiler_clone_of_empty_collection(init)) {
+        /* A selected copy landing is transparent to its annotated storage
+         * site. Only the compiler-owned Clone reaches this branch; a source
+         * Clone around an untyped empty literal remains unresolved. */
+        init_type = ownership_let_normalize_type(
+            type_check_expression_at_typed_site(
+                init, ownership_let_resolve_type_ref(ann, ctx), ctx));
+    } else if (init != NULL && ann != NULL) {
+        /* The annotation is the storage site's type owner. In particular it
+         * supplies the exact Result<T,E> layout for Ok/Err and lets the
+         * constructor publish its checked payload backing relation. */
+        init_type = ownership_let_normalize_type(
+            type_check_expression_at_typed_site(
+                init, ownership_let_resolve_type_ref(ann, ctx), ctx));
+    } else {
+        init_type = (init != NULL)
+            ? ownership_let_normalize_type(type_check_expression(init, ctx))
+            : TYPE_VOID;
+    }
+    ctx->spawn_handle_use = saved_spawn_use;
+    ctx->capture_allowed_let_init = saved_capture_allowed;
+    if (init != NULL)
+        mark_world_embedded_zone_arguments(init, ctx);
+    /* Boundary-fork rule, full theorem T (docs/157 §5): `let x = w.zone`
+     * escapes a world-owned zone as a live binding. Call-shaped
+     * initializers are covered by the hook in type_check_call. */
+    if (init != NULL && init->type == AST_MEMBER_ACCESS)
+        semantic_reject_world_zone_member_escape(init, ctx);
+    semantic_bound_party_note_value_use(ctx, init);
+
+    /* Type inference: if no annotation, infer from initializer */
+    if (ann != NULL) {
+        /* Explicit type annotation */
+        decl_type = lambda_expected_type != NULL
+            ? lambda_expected_type
+            : ownership_let_resolve_type_ref(ann, ctx);
+        if (decl_type == NULL)
+            decl_type = TYPE_UNKNOWN;
+        if (decl_type != NULL && decl_type != TYPE_UNKNOWN) {
+            ASTNode *class_decl = semantic_host_decl_for_type(ctx, decl_type);
+            if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
+                validate_class_where_clause_specialization_ast(class_decl,
+                                                               ann,
+                                                               ann,
+                                                               ctx);
+            }
+        }
+        if (init == NULL) {
+            /* Function-body lets must carry an initializer.  The C backend
+             * emits a scalar zero fallback and the LLVM backend emits no
+             * store at all, so silently allowing `let x: T;` here diverges
+             * the backends at first read.  Class/subject fields have their
+             * own parser path (ClassField), so this check only fires for
+             * function-body locals. */
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_UNINIT_LOCAL,
+                PGY_CAUSE_UNINIT_LOCAL,
+                PGY_FIX_INITIALIZE_AT_BINDING,
+                node,
+                "Local binding '%s' has a type annotation but no initializer.\n"
+                "Reason:\n"
+                "- function-body lets must be initialized at the binding site\n"
+                "- the backends diverge on uninitialized reads\n"
+                "Fix:\n"
+                "- provide an initializer directly: 'let %s: %s = ...'\n"
+            "- or use a conditional expression as the initializer",
+                name != NULL ? name : "<binding>",
+                name != NULL ? name : "<binding>",
+                ast_type_name(ann) != NULL ? ast_type_name(ann) : "T");
+        } else {
+            const char *init_callee_name =
+                ownership_let_call_callee_name(init);
+            if (init->type == AST_CALL
+                && init_callee_name != NULL
+                && strcmp(init_callee_name, "BoxArray") == 0) {
+                init_type = decl_type;
+            } else if (init->type == AST_CALL
+                       && ast_type_name(ann) != NULL
+                       && init_callee_name != NULL
+                       && strcmp(init_callee_name,
+                                 ast_type_name(ann)) == 0
+                       && decl_type != NULL
+                       && decl_type->kind == TYPE_KIND_CONSTRUCTED) {
+                init_type = decl_type;
+            } else if (init->type == AST_CALL
+                       && init_callee_name != NULL
+                       && strcmp(init_callee_name,
+                                 "ClaimDeviceSlot") == 0
+                       && type_is_constructed_named(decl_type, "DeviceSlot")) {
+                init_type = decl_type;
+            }
+            if (!slot_transfer_compatible(init_type, decl_type))
+                require_assignable(init_type, decl_type, init, ctx);
+        }
+    } else if (init != NULL) {
+        /* Infer type from initializer */
+        decl_type = init_type;
+
+        if (ownership_let_is_unresolved_none_option(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_REQUIRED,
+                PGY_CAUSE_INFER_NO_SOURCE,
+                PGY_FIX_ADD_ANNOTATION_OR_INITIALIZER,
+                init,
+                "Cannot infer Option<T> from None without an explicit annotation.\n"
+                "Reason:\n"
+                "- None carries absence but no payload type\n"
+                "- defaulting None to Option<Int> would make backend output depend on a local fallback\n"
+                "Fix:\n"
+                "- write 'let %s: Option<T> = None()' with a concrete T\n"
+                "- or initialize with Some(value) when the payload type should be inferred",
+                name != NULL ? name : "value");
+            decl_type = TYPE_UNKNOWN;
+        }
+
+        if (ownership_let_is_unresolved_empty_array(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_COLLECTION,
+                PGY_CAUSE_INFER_COLLECTION_NEEDS_ANNOTATION,
+                PGY_FIX_ANNOTATE_COLLECTION_ELEMENT_TYPE,
+                init,
+                "Cannot infer Array<T> from an empty array literal without an explicit annotation.\n"
+                "Reason:\n"
+                "- [] has no element value from which T can be inferred\n"
+                "- defaulting [] to Array<Int> would make backend output depend on a local fallback\n"
+                "Fix:\n"
+                "- write 'let %s: Array<T> = []' with a concrete T\n"
+                "- or initialize with at least one element when T should be inferred",
+                name != NULL ? name : "value");
+            decl_type = TYPE_UNKNOWN;
+        }
+
+        if ((init->type == AST_SET_LITERAL
+             && ast_set_literal_count(init) == 0)
+            || ownership_let_is_unresolved_empty_set(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_COLLECTION,
+                PGY_CAUSE_INFER_COLLECTION_NEEDS_ANNOTATION,
+                PGY_FIX_ANNOTATE_COLLECTION_ELEMENT_TYPE,
+                init,
+                "Cannot infer Set<T> from an empty set literal without an explicit annotation.\n"
+                "Reason:\n"
+                "- {} has no element value from which T can be inferred\n"
+                "- defaulting {} to Set<Int> would make backend output depend on a local fallback\n"
+                "Fix:\n"
+                "- write 'let %s: Set<T> = {}' with a concrete T\n"
+                "- or initialize with at least one element when T should be inferred",
+                name != NULL ? name : "value");
+            decl_type = TYPE_UNKNOWN;
+        }
+
+        if (ownership_let_is_unresolved_device_slot(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_REQUIRED,
+                PGY_CAUSE_INFER_NO_SOURCE,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                init,
+                "Cannot infer DeviceSlot<T> from ClaimDeviceSlot without an explicit annotation.\n"
+                "Reason:\n"
+                "- ClaimDeviceSlot allocates a device resource but carries no payload value\n"
+                "- defaulting DeviceSlot<T> to DeviceSlot<Int> would diverge from backend requirements\n"
+                "Fix:\n"
+                "- write 'let %s: DeviceSlot<T> = ClaimDeviceSlot()' with a concrete T",
+                name != NULL ? name : "device");
+            decl_type = TYPE_UNKNOWN;
+        }
+
+        if (init->type == AST_CALL
+            && init_type == TYPE_UNKNOWN) {
+            const char *callee_name = ownership_let_call_callee_name(init);
+            if (callee_name != NULL
+                && (strcmp(callee_name, "ListNew") == 0
+                    || strcmp(callee_name, "SetNew") == 0
+                    || strcmp(callee_name, "MapNew") == 0
+                    || strcmp(callee_name, "QueueNew") == 0)) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_INFER_COLLECTION,
+                    PGY_CAUSE_INFER_COLLECTION_NEEDS_ANNOTATION,
+                    PGY_FIX_ANNOTATE_COLLECTION_ELEMENT_TYPE,
+                    init,
+                    "Cannot infer collection type from '%s()' without an explicit annotation; write 'let value: %s<...> = %s()'",
+                    callee_name,
+                    strcmp(callee_name, "MapNew") == 0 ? "HashMap" :
+                    (strcmp(callee_name, "QueueNew") == 0 ? "Queue" :
+                    (strcmp(callee_name, "SetNew") == 0 ? "Set" : "List")),
+                    callee_name);
+                decl_type = TYPE_UNKNOWN;
+            }
+        }
+
+        /* For generic types like Box<T>, Array<T>, Result<T,E>,
+           ensure the inferred type is concrete */
+        if (init_type != NULL && init_type->kind == TYPE_KIND_GENERIC) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_INFER_UNBOUND_GENERIC,
+                PGY_FIX_ANNOTATE_BINDING_TYPE,
+                init,
+                "Cannot infer type: generic parameter '%s' is ambiguous. "
+                "Please provide a type annotation.", init_type->name);
+            decl_type = TYPE_UNKNOWN;
+        }
+    } else {
+        /* No annotation and no initializer */
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_INFER_REQUIRED,
+            PGY_CAUSE_INFER_NO_SOURCE,
+            PGY_FIX_ADD_ANNOTATION_OR_INITIALIZER,
+            node,
+            "Cannot infer type: provide a type annotation or initializer");
+        decl_type = TYPE_UNKNOWN;
+    }
+
+    if (init != NULL && type_equals(init_type, TYPE_VOID)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ASSIGNABILITY_CHECK,
+            PGY_FIX_ALIGN_OPERAND_TYPE,
+            init,
+            "Void expression cannot initialize local binding '%s'.\n"
+            "Reason:\n"
+            "- Void calls are statement-only side effects, not values\n"
+            "- treating them as values forces backends to synthesize placeholder data\n"
+            "Fix:\n"
+            "- call the Void expression as a statement before this binding\n"
+            "- or initialize '%s' from an expression that returns a concrete value",
+            name != NULL ? name : "<binding>",
+            name != NULL ? name : "<binding>");
+        decl_type = TYPE_UNKNOWN;
+    }
+
+    /* Literal elements are checked at their storage sites. The declared
+     * aggregate still owns the instantiated type: a generic constructor in
+     * a literal can otherwise hide an affine field from element inference. */
+    if (decl_type != NULL
+        && ctx->diagnostic_count == initializer_diagnostic_base
+        && !semantic_type_is_direct_affine_handle(decl_type)) {
+        ASTNode *storage_site = ann != NULL ? ann : init;
+        if (init != NULL && init->type == AST_CALL
+            && ast_call_arg_count(init) > 0)
+            storage_site = ast_call_argument(init, 0);
+        semantic_reject_affine_aggregate_storage(
+            storage_site != NULL && storage_site->line > 0
+                ? storage_site : node,
+            decl_type, ctx, "local aggregate binding");
+    }
+
+    if (type_is_class_object_type(decl_type, ctx)
+        && init != NULL
+        && type_is_class_object_type(init_type, ctx)
+        && !expr_is_class_constructor_call(init, ctx)
+        && (init->type == AST_IDENTIFIER
+            || init->type == AST_MEMBER_ACCESS
+            || init->type == AST_ARRAY_ACCESS)) {
+        semantic_validate_borrowed_escape(
+            node, init, ctx, init_type, NULL,
+            OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
+            false, NULL, NULL);
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+            PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            node,
+            "Subjects cannot be copied into a new binding.\n"
+            "Reason:\n"
+            "- subject values carry identity and anchored state semantics\n"
+            "- rebinding an existing subject value as a plain copy would duplicate that identity contract\n"
+            "Fix:\n"
+            "- construct a fresh subject value instead\n"
+            "- or mutate the existing subject through its current binding");
+    }
+
+    if (type_is_qubit(decl_type)) {
+        const char *borrowed_movable_root =
+            init != NULL ? semantic_borrowed_boundary_root_name(init, ctx) : NULL;
+        bool borrowed_movable_new_binding =
+            init != NULL && borrowed_movable_root != NULL;
+        bool valid_qubit_init = false;
+        if (borrowed_movable_new_binding) {
+            semantic_validate_borrowed_escape(
+                node, init, ctx, init_type, borrowed_movable_root,
+                OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
+                false, NULL, NULL);
+            valid_qubit_init = true;
+        }
+        if (init_type == TYPE_UNKNOWN) {
+            valid_qubit_init = true;
+        } else if (expr_is_qubit_claim(init)) {
+            valid_qubit_init = true;
+        } else if (init != NULL && init_type != NULL && type_is_qubit(init_type)) {
+            if (init->type == AST_IDENTIFIER) {
+                valid_qubit_init = true;
+                consume_qubit_value(init, ctx, "moved");
+            } else if (expr_is_movable_resource_transfer_source(init)) {
+                valid_qubit_init = true;
+            }
+        }
+        if (!valid_qubit_init) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+                PGY_CAUSE_MOVABLE_HANDLE_COPY_ATTEMPT,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                node,
+                "QubitSlot is a slot handle (movable) and cannot be plain-copied into a new binding.\n"
+                "Reason:\n"
+                "- slot handle (movable) values must come from a fresh claim, an explicit move, or a transfer boundary\n"
+                "- current initializer does not preserve ownership provenance for QubitSlot\n"
+                "Fix:\n"
+                "- initialize from ClaimQubit()\n"
+                "- or move an existing QubitSlot identifier\n"
+                "- or use a transfer boundary such as recv/await");
+        }
+    }
+
+    ownership_let_validate_builtin_owner_binding(node, ctx, decl_type, init);
+    ownership_let_validate_channel_binding(node, ctx, decl_type, init);
+
+    if (init != NULL) {
+        semantic_validate_borrowed_escape(
+            node, init, ctx, init_type, NULL,
+            OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
+            false, NULL, NULL);
+    }
+
+    /* Slot<T> move semantics: when assigning from another Slot variable,
+     * consume (invalidate) the source.  ClaimSlot() creates fresh. */
+    if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT
+        && type_slot_access_mode(decl_type) == SLOT_ACCESS_OWNED
+        && init != NULL && init->type == AST_IDENTIFIER
+        && init_type != NULL && init_type->kind == TYPE_KIND_SLOT
+        && type_slot_access_mode(init_type) == SLOT_ACCESS_OWNED) {
+        /* Move: source Slot becomes invalid after this point */
+        const char *src_name = ast_identifier_name(init);
+        Symbol *src_sym = scope_lookup(ctx->scope, src_name);
+        if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
+            if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_MOVE_FROM_RELEASED,
+                    PGY_CAUSE_MOVE_FROM_RELEASED,
+                    PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE,
+                    init,
+                    "Cannot move from released slot '%s'.\n"
+                    "Reason:\n"
+                    "- slot '%s' was already released or invalidated earlier in this scope\n"
+                    "- ownership transfer requires a live source handle\n"
+                    "Fix:\n"
+                    "- reacquire the slot before moving it\n"
+                    "- or remove the earlier release/invalidating transfer",
+                    src_name,
+                    src_name);
+            } else {
+                src_sym->slot_info.state = SLOT_STATE_RELEASED;
+            }
+        }
+    }
+
+    {
+        bool handled_view_binding = false;
+        if (!ownership_let_try_declare_view_binding(
+                node, ctx, name, decl_type, init, &handled_view_binding)) {
+            return false;
+        }
+        if (handled_view_binding)
+            return !ctx->has_error;
+    }
+
+    if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT) {
+        char token_name_buf[256];
+        const char *paired_token = NULL;
+        Symbol *sym;
+
+        if (!ctx->has_error && init != NULL && type_equals(init_type, TYPE_STRING)
+            && type_equals(type_slot_inner_type(decl_type), TYPE_STRING))
+            semantic_indexed_string_borrow_call_argument(init, NULL, NULL, 0, false, ctx);
+        if (type_slot_is_secure(decl_type))
+            semantic_record_effect(ctx, EFFECT_SECURE);
+        if (slot_transfer_compatible(init_type, decl_type)) {
+            if (init != NULL && init->type == AST_IDENTIFIER) {
+                Symbol *move_sym = scope_lookup(ctx->scope,
+                    ast_identifier_name(init));
+                if (move_sym != NULL)
+                    move_sym->is_consumed = true;
+            }
+        }
+        if (init_type != NULL && type_is_anchored_resource_handle(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+                PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                node,
+                "Slot handles (anchored) such as Slot/SecureSlot/DeviceSlot cannot be copied into a new binding.\n"
+                "Reason:\n"
+                "- slot handles (anchored) are tied to one ownership/runtime anchor and transfer contract\n"
+                "- creating a new binding would duplicate that anchor contract across a second boundary-visible handle name\n"
+                "Fix:\n"
+                "- keep using the current slot handle (anchored) binding directly\n"
+                "- or use a fresh claim\n"
+                "- or initialize from an inner/plain value\n"
+                "- or pass the handle through an explicit ownership boundary");
+        }
+
+        if (type_slot_is_secure(decl_type)) {
+            if (!semantic_format_secure_token_name(
+                    token_name_buf, sizeof(token_name_buf), name, node, ctx))
+                return !ctx->has_error;
+            paired_token = token_name_buf;
+        }
+        sym = symbol_create_slot(name, decl_type,
+            type_slot_is_secure(decl_type), paired_token, node->line, node->column);
+        symbol_mark_declaration(sym, ast_node_stable_id(node), false);
+        scope_declare(ctx->scope, sym);
+        if (type_slot_is_secure(decl_type)) {
+            Symbol *tok = symbol_create_token(paired_token, name,
+                                              node->line, node->column);
+            if (tok != NULL) {
+                Type *token_args[1] = { type_slot_inner_type(decl_type) };
+                tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+            }
+            if (!scope_declare(ctx->scope, tok))
+                symbol_destroy(tok);
+        }
+        scope_register_slot(ctx->scope, sym);
+        return !ctx->has_error;
+    }
+
+    if (type_is_anchored_resource_handle(decl_type)) {
+        bool is_fresh_claim = expr_is_device_slot_claim(init);
+        if (!is_fresh_claim && init_type != NULL
+            && type_is_anchored_resource_handle(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+                PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                node,
+                "Slot handles (anchored) such as Slot/SecureSlot/DeviceSlot cannot be copied into a new binding.\n"
+                "Reason:\n"
+                "- slot handles (anchored) remain tied to one owning runtime anchor and transfer contract\n"
+                "- copying them into another binding would duplicate that contract across a second boundary-visible handle name\n"
+                "Fix:\n"
+                "- keep using the current slot handle (anchored) binding directly\n"
+                "- or reacquire/transfer it through an explicit ownership boundary");
+        }
+        semantic_record_effect(ctx, EFFECT_REMOTE);
+    }
+
+    Symbol *sym = symbol_create_variable(name, decl_type,
+                                         node->line, node->column);
+    symbol_mark_declaration(sym, ast_node_stable_id(node), false);
+    if (!ctx->has_error && decl_type == TYPE_ALLOCATOR &&
+        semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_result_allocator_binding(
+            ctx, node, decl_type))
+        semantic_error(ctx, node,
+            "Checked allocator binding publication failed");
+    semantic_string_window_extent_record_let(ctx, node);
+    if (!semantic_indexed_string_borrow_initialize_binding(sym, node, init, ctx))
+        semantic_error(ctx, node, "Checked indexed String initializer publication failed");
+    semantic_map_payload_view_initialize_binding(sym, init, ctx);
+    callable_capability_record_binding(ctx, sym, init);
+
+    if (type_is_constructed_named(decl_type, "DeviceSlot"))
+        sym->slot_info.state = SLOT_STATE_CLAIMED;
+
+    sym->is_mut_binding = ast_let_is_mutable(node);
+    if (node->data.let_decl.is_iteration_source)
+        semantic_mark_storage_alias_binding(sym, init, ctx);
+    if (!semantic_collection_ownership_initialize_binding(
+            sym, init, decl_type, ctx)) {
+        semantic_error(ctx, node,
+            "Collection ownership fact capture failed");
+    }
+    /* The collection issuer retires only a proved linear source before
+     * storage initialization distinguishes it from a shallow descriptor alias. */
+    semantic_array_storage_initialize(sym, init, ctx);
+    semantic_future_initialize_binding(sym, init, node, ctx);
+    ownership_let_record_slice_split_fact(node, ctx, sym, decl_type);
+
+    /* Set qubit semantic state for QubitSlot variables */
+    if (type_is_qubit(decl_type)) {
+        if (expr_is_qubit_claim(init)) {
+            sym->qubit_info.semantic_state = QUBIT_STATE_SUPERPOSITION;
+        } else if (init != NULL && init->type == AST_IDENTIFIER) {
+            /* Move: copy source qubit's semantic state */
+            Symbol *src = lookup_identifier_symbol(init, ctx);
+            if (src != NULL)
+                sym->qubit_info.semantic_state = src->qubit_info.semantic_state;
+            else
+                sym->qubit_info.semantic_state = QUBIT_STATE_NONE;
+        } else if (init != NULL && init->type == AST_CALL) {
+            /* Function returning QubitSlot */
+            sym->qubit_info.semantic_state = QUBIT_STATE_SUPERPOSITION;
+        } else if (init != NULL
+                   && (init->type == AST_CHANNEL_RECV
+                       || init->type == AST_AWAIT_EXPR)) {
+            /* Transfer from orchestration boundary; precise state is unknown. */
+            sym->qubit_info.semantic_state = QUBIT_STATE_NONE;
+        }
+    }
+
+    if (decl_type != NULL && decl_type->name != NULL
+        && strcmp(decl_type->name, "projection") == 0
+        && init != NULL && init->type == AST_STRING) {
+        /* reflect() folded its type name into this projection let; carry it so
+         * `p.kind` can fold from the binding. */
+        sym->reflect_target_name = pergyra_strdup(ast_string_value(init));
+    }
+
+    if (scope_declare(ctx->scope, sym)
+        && !resource_flow_universe_record_declaration(ctx, sym)) {
+        semantic_error(ctx, node,
+            "ResourceFlowUniverse declaration identity allocation failed");
+    }
+
+    if (!ctx->has_error && ann != NULL && init != NULL && init->type == AST_CALL &&
+        type_is_constructed_named(decl_type, "HashMap") && ast_call_semantic_callee_is_stdlib(init) &&
+        ownership_let_call_callee_name(init) != NULL && strcmp(ownership_let_call_callee_name(init), "MapNew") == 0 &&
+        semantic_param_publication_pending(ctx) && !semantic_param_publication_record_empty_map_binding(ctx, node, decl_type))
+        semantic_error(ctx, node, "Checked empty map binding publication failed");
+    return !ctx->has_error;
+}

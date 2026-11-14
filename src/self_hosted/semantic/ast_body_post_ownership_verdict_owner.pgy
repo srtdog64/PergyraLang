@@ -3,7 +3,7 @@ import "array_storage_release_verdict_owner.pgy";
 import "string_window_extent_owner.pgy";
 import "ast_zone_spawn_transport_verdict_owner.pgy";
 import "ast_single_owner_handle_verdict_owner.pgy";
-import "ast_expression_call_return_type_owner.pgy";
+import "ast_expression/ast_expression_call_return_type_owner.pgy";
 import "ast_capability_fact_owner.pgy";
 import "ast_body_type_stage_observer_owner.pgy";
 import "ast_containment_boundary_verdict_owner.pgy";

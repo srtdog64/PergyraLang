@@ -1,7 +1,7 @@
 // Exercise the shared binder owner without executing or emitting the MIR input.
 // The role topology and callable signature are checked before code generation.
 import "../../../../src/self_hosted/mir_lower/intent_routine_carrier_projection_owner.pgy";
-import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_callable_signature_owner.pgy";
 import "../../../../src/self_hosted/codegen/text/text_owner.pgy";
 
 func IntentBlockRoleFieldProbe() -> Void {

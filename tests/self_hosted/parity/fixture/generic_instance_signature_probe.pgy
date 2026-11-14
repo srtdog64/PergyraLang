@@ -1,5 +1,5 @@
 // Concrete signature validation only; this does not execute the MIR program.
-import "../../../../src/self_hosted/compiler/direct_mir_routine_instance_inventory_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/direct_mir_routine_instance_inventory_owner.pgy";
 import "../../../../src/self_hosted/codegen/text/text_owner.pgy";
 
 func Main() -> Void with caps env, io_read {

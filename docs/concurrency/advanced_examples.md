@@ -29,7 +29,7 @@ owner를 연결한 표이지 새로운 async 계약을 선언한 표가 아니�
 |---|---|---|
 | Eagerness | named `spawn`이 작업 생성 경계다. `async` 선언만으로 병렬 시작을 뜻하지 않는다. | 일반 async 호출의 시작 순서를 논문의 한 분류로 고정할 충분한 계약은 이 표에서 주장하지 않는다. [user guide](05_async_concurrency.md) §2–3 |
 | Suspension | `await`는 완료 join이다. 반드시 양보한다거나 다른 작업이 반드시 실행된다고 추론하지 않는다. | 완료된 Future와 각 lane의 대기 경로를 구분해야 한다. [contract](113_memory_concurrency_model.md), Future Await Contract |
-| Extent | named Future는 모든 정상 exit에서 `await` 또는 명시 `own Future` 인계로 retire해야 한다. `parallel`은 자기 블록을 join한다. | 익명 capture/detach, exceptional exit 전체 보장은 별도다. [lifecycle owner](../../src/semantic/type_checker_future_lifecycle.c) |
+| Extent | named Future는 모든 정상 exit에서 `await` 또는 명시 `own Future` 인계로 retire해야 한다. `parallel`은 자기 블록을 join한다. | 익명 capture/detach, exceptional exit 전체 보장은 별도다. [lifecycle owner](../../src/semantic/type_checker/type_checker_future_lifecycle.c) |
 | Reference Strength | Future는 복사 가능한 일반 task reference가 아니라 affine handle 계약이다. | GC의 strong/weak 분류와 동일시하지 않는다. aggregate carriage의 알려진 반례가 남아 있다. [기존 감사](../audits/2026-09-05_counterexample_attack_results.md) |
 | Destruction | named handle의 미처리 scope exit를 거절한다. 숨은 finalizer나 자동 cancel+join으로 설명하지 않는다. | `parallel`의 암묵 join과 named Future의 명시 retirement는 서로 다른 규칙이다. [contract](113_memory_concurrency_model.md) |
 | Propagation | `RemoteFuture<T>`의 join 결과는 `Result<T>`다. | 일반 panic-to-sibling cancellation, 모든 실패의 집계·정리는 미완성 범위다. [proof obligations](../semantics/proofs/ProofSpine.md) |

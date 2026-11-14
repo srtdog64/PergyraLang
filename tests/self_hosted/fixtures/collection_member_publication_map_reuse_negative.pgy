@@ -1,4 +1,4 @@
-import "../../../src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_result_owner.pgy";
 // A result-owned map cannot be read through its consumed original binding.
 func Reuse(artifact: AstTreeArtifact, ref contexts: SemanticAstCollectionFormalExecutionContexts) -> Void {
     let restored: Array<Int> = [];

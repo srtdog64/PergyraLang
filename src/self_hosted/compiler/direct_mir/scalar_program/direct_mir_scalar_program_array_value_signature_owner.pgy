@@ -1,0 +1,38 @@
+// Exact ArrayDrop/ArrayLength value signature projection. Canonical callable
+// identity is already admitted; this type view grants no storage/lifetime proof.
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "../../../semantic/array_type_shape_owner.pgy";
+
+func DirectMirScalarProgramArrayValueSignatureForCall(
+    ref fact: DirectMirScalarProgramBuiltinSignatureFact,
+    ref actual_types: Array<String>,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let invalid: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBuiltinSignatureFactInvalid();
+    if !fact.valid || ArrayLength(actual_types) != 1 { return invalid; }
+    // The fact keeps its own copy of the borrowed type name.
+    let actual_type: String = Concat("", actual_types[0]);
+    var result_type: String = "";
+    if fact.name == "ArrayDrop" {
+        if !IsSome(SemanticArrayElementType(actual_type)) { return invalid; }
+        result_type = CompilerAbiLayoutVoidTypeName();
+    } else if fact.name == "ArrayLength" {
+        let record_array: Bool = IsSome(
+            DirectMirScalarProgramLogicalRecordArrayElementType(logical_record, actual_type));
+        let builtin_slice: Bool =
+            actual_type == CompilerAbiLayoutSliceIntTypeName() ||
+            actual_type == CompilerAbiLayoutSliceStringTypeName();
+        if actual_type != CompilerAbiLayoutArrayStringTypeName() &&
+            actual_type != CompilerAbiLayoutArrayIntTypeName() &&
+            actual_type != CompilerAbiLayoutArrayLongTypeName() &&
+            actual_type != CompilerAbiLayoutArrayBoolTypeName() &&
+            !builtin_slice && !record_array { return invalid; }
+        result_type = CompilerAbiLayoutIntTypeName();
+    } else { return invalid; }
+    let parameters: Array<String> = [actual_type];
+    return DirectMirScalarProgramBuiltinSignatureFact(
+        true, fact.registry_row, fact.name, result_type, parameters,
+        fact.expression_kind, fact.runtime_call_abi_id);
+}

@@ -7,7 +7,7 @@ LIMIT="${SEMANTIC_TU_MAX_LINES:-599}"
 cd "$ROOT_DIR"
 
 violations="$(
-    find src/semantic -maxdepth 1 -type f -name '*.c' -print0 \
+    find src/semantic -type f -name '*.c' -print0 \
         | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk -v limit="$LIMIT" \
             '$2 != "total" && $1 > limit { print $1, $2, ">", limit }'

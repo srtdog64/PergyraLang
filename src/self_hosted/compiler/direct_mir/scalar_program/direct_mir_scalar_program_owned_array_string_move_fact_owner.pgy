@@ -1,0 +1,97 @@
+// Admitted caller-local moves into owner-handle Array<String> parameters.
+
+import "../scalar_cfg/direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy";
+
+struct DirectMirScalarProgramOwnedArrayStringMoveFact {
+    let valid: Bool;
+    let digest: Int;
+    let present: Bool;
+    let coverage: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact;
+    let caller_routines: Array<Int>;
+    let call_operation_rows: Array<Int>;
+    let call_expression_rows: Array<Int>;
+    let local_rows: Array<Int>;
+    let callable_ordinals: Array<Int>;
+    let parameter_ordinals: Array<Int>;
+    let abi_layout_ids: Array<Int>;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveFactInvalid(
+) -> DirectMirScalarProgramOwnedArrayStringMoveFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramOwnedArrayStringMoveFact(
+        false, 0, false,
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageInvalid(),
+        rows, rows, rows, rows, rows, rows, rows);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveFactDigest(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact
+) -> Int {
+    if !fact.valid { return 0; }
+    var hash: Long = DirectMirCfgHashInt(307L, fact.coverage.digest);
+    hash = DirectMirScalarCfgHashInts(hash, fact.caller_routines);
+    hash = DirectMirScalarCfgHashInts(hash, fact.call_operation_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.call_expression_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.local_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.callable_ordinals);
+    hash = DirectMirScalarCfgHashInts(hash, fact.parameter_ordinals);
+    hash = DirectMirScalarCfgHashInts(hash, fact.abi_layout_ids);
+    if fact.present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveFactReady(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramOwnedArrayStringMoveFactDigest(fact) {
+        return false;
+    }
+    let count: Int = ArrayLength(fact.caller_routines);
+    if count != ArrayLength(fact.call_operation_rows) ||
+        count != ArrayLength(fact.call_expression_rows) ||
+        count != ArrayLength(fact.local_rows) ||
+        count != ArrayLength(fact.callable_ordinals) ||
+        count != ArrayLength(fact.parameter_ordinals) ||
+        count != ArrayLength(fact.abi_layout_ids) ||
+        !DirectMirScalarProgramOwnedArrayStringMoveCoverageReady(
+            fact.coverage, count) ||
+        fact.present != (count > 0) { return false; }
+    var row: Int = 0;
+    while row < count {
+        if fact.caller_routines[row] < 0 ||
+            fact.call_operation_rows[row] < -1 ||
+            fact.call_expression_rows[row] < 0 || fact.local_rows[row] < 0 ||
+            fact.callable_ordinals[row] <= 0 ||
+            fact.parameter_ordinals[row] < 0 ||
+            fact.abi_layout_ids[row] <= 0 { return false; }
+        var other: Int = 0;
+        while other < count {
+            if fact.caller_routines[other] == fact.caller_routines[row] &&
+                fact.local_rows[other] == fact.local_rows[row] {
+                if other != row && fact.coverage.call_block_rows[other] ==
+                        fact.coverage.call_block_rows[row] { return false; }
+            }
+            other = other + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveFactCanonicalEmpty(
+) -> DirectMirScalarProgramOwnedArrayStringMoveFact {
+    let rows: Array<Int> = [];
+    let coverage: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact =
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageCanonicalEmpty();
+    let source: DirectMirScalarProgramOwnedArrayStringMoveFact =
+        DirectMirScalarProgramOwnedArrayStringMoveFact(
+            true, 0, false, coverage,
+            rows, rows, rows, rows, rows, rows, rows);
+    return DirectMirScalarProgramOwnedArrayStringMoveFact(
+        true, DirectMirScalarProgramOwnedArrayStringMoveFactDigest(source),
+        false, coverage, rows, rows, rows, rows, rows, rows, rows);
+}

@@ -17,7 +17,7 @@ Status: AUDIT COMPLETE / implementation preparation only
   다른 작업의 statement-transition gate 수정이 착지했다. 두 핵심 owned String
   source owner와 고정 실행 번들의 해시는 그대로였다.
 - 원래 dirty: `docs/language/00_vision.md`, `docs/current_work_handoff.md`,
-  `src/compiler/self_host_driver.c`; untracked 과거 감사와 conditional-push fixture.
+  `src/compiler/self_host/self_host_driver.c`; untracked 과거 감사와 conditional-push fixture.
   이후 driver 수정은 다른 작업에 의해 착지했고 collection semantic gate에 변경이 생겼다.
 - 활성 작업은 P1 collection ownership이다. registry의 해당 행은 ACTIVE다.
   이 기록과 작업 준비서는 semantic authority나 새 활성 rung을 만들지 않는다.
@@ -104,7 +104,7 @@ expression traversal의 실제 경계가 필요하다. 외부 MIR은 신뢰 경�
 `MIR collection ownership transition is invalid ... stage=invalid-state-transition`
 로 실패한다. 뒤 순서는 exit 0과 기대 출력을 관찰했다.
 
-`src/semantic/type_checker_func_decl.c:394`에서
+`src/semantic/type_checker/type_checker_func_decl.c:394`에서
 `semantic_collection_record_owned_string_result_summary`를 기록하고,
 `src/semantic/collection_ownership_fact.c:158`의 body proof는 callee의 기존
 `BODY_SUMMARY_RETURNS_OWNED_STRING`을 조회한다. native oracle과 Pergyra semantic

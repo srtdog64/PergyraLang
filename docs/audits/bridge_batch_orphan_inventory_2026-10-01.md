@@ -34,7 +34,7 @@ Unrelated source and Git index are untouched. Only this report is written.
 
 ### DirectMirScalarCfgCollectionValueRow
 
-- Definition: `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy:118`.
+- Definition: `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy:118`.
 - Source callers: 0. Exact test anchors/calls: 0. Whole-repository exact-name
   search found only its definition.
 - Entry/export status: plain internal lookup function; not Main, action,
@@ -56,7 +56,7 @@ Unrelated source and Git index are untouched. Only this report is written.
 
 ### DirectMirScalarProgramArrayStringValueResultParameter
 
-- Definition: `src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy:285`.
+- Definition: `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_abi_owner.pgy:285`.
 - Source callers: 0. Exact test anchors/calls: 0. Whole-repository exact-name
   search found only its definition.
 - Entry/export status: same internal/non-entrypoint classification above.

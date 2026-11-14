@@ -23,32 +23,32 @@ are not silently replaced by this ABI work.
 
 ## Changed LLVM files
 
-- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy`:
+- `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy`:
   own-parameter copy-in requires exact optional projection when a matching
   parameter exists, and uses its descriptor and storage alignment. No matching
   parameter remains an explicit no-op.
-- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_dir_walk_materialization_owner.pgy`:
+- `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_dir_walk_materialization_owner.pgy`:
   unused DirWalk is an explicit no-op; used DirWalk requires its exact captured
   projection and projected descriptor, with contextual missing/drift failure.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy`:
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy`:
   validates the LLVM projection and uses carried String element alignment.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy`:
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy`:
   backing elements and four descriptor fields consume separate carried element
   and storage alignment.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy`:
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy`:
   one collection projection lookup boundary feeds read/set/condition consumers.
   A typed address fact carries emitted instructions, pointer and element
   alignment to both read and set, rather than reopening the layout decision.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy`:
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy`:
   push and length observations require the target projection and carry storage
   versus element alignment.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_pop_llvm_operation_owner.pgy`:
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_pop_llvm_operation_owner.pgy`:
   the admitted pop effect's live descriptor length uses carried storage
   alignment; this does not expand the bounded pop lifetime contract.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy`:
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy`:
   String element loads consume `abi.element_align`. Cursor and scalar-local
   alignment are deliberately unchanged and do not belong to this ABI row.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy`:
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy`:
   legalized String roots use carried element and storage alignment; the shared
   Int root uses its existing storage projection. Unknown element kinds fail
   explicitly rather than being interpreted as String.

@@ -1,6 +1,6 @@
 // An `own` descriptor alone is insufficient when a reachable callee releases
 // storage. Carry that entry obligation through exact own-formal forwarding.
-import "ast_collection_owned_parameter_identity_owner.pgy";
+import "ast_collection/ast_collection_owned_parameter_identity_owner.pgy";
 import "array_storage_element_lifetime_owner.pgy";
 import "array_storage_call_preservation_owner.pgy";
 

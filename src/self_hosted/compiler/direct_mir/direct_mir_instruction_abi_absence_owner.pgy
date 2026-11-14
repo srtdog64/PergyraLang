@@ -1,0 +1,57 @@
+// Exact receipt for a typed instruction value with no physical ABI layout.
+
+import "../../mir_lower/routine_fact_index_owner.pgy";
+import "../../lib/string_window_within.pgy";
+
+func DirectMirInstructionPhysicalAbiFieldsAbsent(
+    json: String, json_extent: Int,
+    ref capture: MirRoutineInstructionScalarCapture
+) -> Bool {
+    return capture.abi_layout_id_start >= 0 &&
+        capture.abi_layout_id_end == capture.abi_layout_id_start + 1 &&
+        capture.abi_layout_required_start >= 0 &&
+        capture.abi_layout_required_end == capture.abi_layout_required_start + 5 &&
+        capture.abi_layout_end == capture.abi_layout_start + 4 &&
+        capture.abi_layout_start >= 0 && StringWindowSubEquals(
+            json, json_extent, capture.abi_layout_id_end,
+            capture.abi_layout_id_start, 1, "0"
+        ) && StringWindowSubEquals(
+            json, json_extent, capture.abi_layout_required_end,
+            capture.abi_layout_required_start, 5, "false"
+        ) && StringWindowSubEquals(
+            json, json_extent, capture.abi_layout_end,
+            capture.abi_layout_start, 4, "null"
+        );
+}
+
+func DirectMirInstructionHasNoPhysicalAbi(
+    json: String, json_extent: Int,
+    ref capture: MirRoutineInstructionScalarCapture,
+    expected_type: String
+) -> Bool {
+    return capture.abi_type_value_ready &&
+        capture.abi_type_name == expected_type &&
+        DirectMirInstructionPhysicalAbiFieldsAbsent(
+            json, json_extent, capture);
+}
+
+// A routine-instance projection changes only the admitted semantic type.
+// Its raw type span still names the generic source expression, which keeps a
+// forged concrete Option with a missing physical row distinguishable here.
+func DirectMirInstructionHasProjectedNoPhysicalAbi(
+    json: String, json_extent: Int,
+    ref capture: MirRoutineInstructionScalarCapture,
+    projected_type: String
+) -> Bool {
+    if !capture.abi_type_value_ready ||
+        capture.abi_type_name != projected_type ||
+        !DirectMirInstructionPhysicalAbiFieldsAbsent(
+            json, json_extent, capture) {
+        return false;
+    }
+    let persisted: Option<String> = MirAbiStringValueAtBounds(
+        json, json_extent, capture.abi_type_start,
+        capture.abi_type_end, false);
+    return IsSome(persisted) && UnwrapOption(persisted) != "" &&
+        UnwrapOption(persisted) != projected_type;
+}

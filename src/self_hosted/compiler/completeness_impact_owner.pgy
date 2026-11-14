@@ -53,7 +53,7 @@ func CompilerCompletenessImpactPlannerAirGraphProbePath() -> String {
 }
 
 func CompilerCompletenessImpactPlannerDriverProbePath() -> String {
-    return "src/self_hosted/compiler/driver_pipeline_owner.pgy";
+    return "src/self_hosted/compiler/driver/driver_pipeline_owner.pgy";
 }
 
 func CompilerCompletenessImpactPlannerComponentContractPath() -> String {

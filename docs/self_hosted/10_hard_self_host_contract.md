@@ -119,7 +119,7 @@ The active hard rungs are:
 - `src/self_hosted/mir/`: typed-arena-to-MIR producer for the bounded DRV-2
   source frontier. Declaration/routine/CFG/instruction rows are verified before
   `pgy.mir.v1` projection; provenance text is not a producer input.
-- `src/self_hosted/compiler/driver_rung2_owner.pgy`: one executable verifier
+- `src/self_hosted/compiler/driver/driver_rung2_owner.pgy`: one executable verifier
   for source artifacts and MIR JSON artifacts. Source input now passes through
   the Pergyra MIR producer and existing Pergyra MIR consumer before codegen;
   the C-produced MIR is comparison evidence only. Both inputs converge on
@@ -129,7 +129,7 @@ The active hard rungs are:
   comparison must pass before the Pergyra seed and gen2 consume the one
   Pergyra-produced MIR to emit byte-identical gen2/gen3 C. Regenerating,
   reparsing, or substituting a second MIR between generations is forbidden.
-- `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` and
+- `src/self_hosted/compiler/direct_mir/direct_mir_scalar_graph_admission_owner.pgy` and
   `direct_mir_backend_projection_owner.pgy`: one backend-neutral direct MIR
   consumer split by admission versus target projection responsibility. Its
   bounded one-routine/one-block shapes include graph-owned literal `Log` and a

@@ -350,7 +350,7 @@ failure until its log tail proves otherwise.
 
 ## Example: MIR Generic Metadata In C Specialization
 
-Changing `src/codegen/transpiler_generic_specialization_emit.c` to consume
+Changing `src/codegen/c/transpiler_generic_specialization_emit.c` to consume
 `MIRDeclGenericParam` facts touches the MIR declaration inventory surface and
 the C generic-specialization projection.
 

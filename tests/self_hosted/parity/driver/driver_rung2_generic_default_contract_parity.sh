@@ -24,7 +24,7 @@ EXPECTED_OUTPUT=$'save=9\nbox=7'
 mkdir -p "$BUILD_DIR"
 
 if ! (cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_main.pgy")" \
+    "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/compiler/driver/driver_rung2_main.pgy")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER_BIN")" \
     >"$BUILD_DIR/driver.compile.log" 2>&1); then
     echo "[self-host-parity:generic-defaults] driver compile failed" >&2

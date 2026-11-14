@@ -1,10 +1,10 @@
 // Resolved builtin-call identity joined to the canonical retention registry.
 // A source spelling alone never issues a row. The expression identity resolver
 // records only selected, direct builtin calls after their identities are sealed.
-import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection/ast_collection_ownership_identity_owner.pgy";
 import "ast_builtin_argument_retention_call_fact_validation_owner.pgy";
-import "ast_expression_call_identity_owner.pgy";
-import "ast_expression_function_table_fact_owner.pgy";
+import "ast_expression/ast_expression_call_identity_owner.pgy";
+import "ast_expression/ast_expression_function_table_fact_owner.pgy";
 import "builtin_argument_retention_projection_owner.pgy";
 import "builtin_shadow_owner.pgy";
 import "builtin_signature_owner.pgy";

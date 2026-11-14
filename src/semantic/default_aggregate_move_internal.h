@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
 
 typedef struct {
     uint32_t binding;

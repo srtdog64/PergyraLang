@@ -734,7 +734,7 @@ LET/CALL interleaving, result edges, pending completion and final currentness.
 Loan traversal is separate and unchanged; normal empty-C use requires the
 original one-origin width. Existing append/executor/index-currentness now
 share one responsibility-named compilation unit
-`src/semantic/function_param_flow_consumer_navigation.c`; no SoT family or
+`src/semantic/function_param_flow/function_param_flow_consumer_navigation.c`; no SoT family or
 semantic owner identity was added. Claims/index/navigation/deps are
 543/552/186/594 noncomment lines, within unchanged caps.
 
@@ -5209,7 +5209,7 @@ by this checkpoint.
 
 Production entrypoint:
 `SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects` in
-`src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy`.
+`src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy`.
 
 Direct native C consumers remain reachable through collection ownership,
 storage-release, and type-checker paths. Therefore Pergyra has not yet replaced

@@ -1464,7 +1464,7 @@ or agent lease is being left running. Next work is the one Intent query card.
   `examples/raid_graph_fsm/results.txt`,
   `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/`; they
   were not inspected, edited, or staged. Concurrent other-task paths
-  `src/compiler/self_host_llvm_driver.c` and `caf_probe_tmp.pgy` were likewise
+  `src/compiler/self_host/self_host_llvm_driver.c` and `caf_probe_tmp.pgy` were likewise
   left untouched and unstaged at this snapshot.
 - Objective: reject a payload projection unless source semantics proves the
   receiver's active enum constructor before MIR publication. The fact owner is
@@ -2124,7 +2124,7 @@ or agent lease is being left running. Next work is the one Intent query card.
 - Objective: machine-check the already-landed named Future structured-lifecycle
   and spawn runtime-context carriage contracts without making `async` own
   lifetime or making the proof model a semantic authority.
-- Fact owners remain `src/semantic/type_checker_future_lifecycle.c`, its symbol
+- Fact owners remain `src/semantic/type_checker/type_checker_future_lifecycle.c`, its symbol
   lifecycle carrier, and `src/runtime/pgy_runtime_context.h`. Two bounded Rocq
   cores separately model lifecycle and context; `ProofSpine.v` connects only
   those bounded claims.
@@ -6728,7 +6728,7 @@ Everything below this line is inactive lookup evidence, not an active queue.
   compilation: the direct-MIR scalar program route rejected
   `owner=scalar-program-route stage=payload-free-enum`. The exact local
   reproduction is
-  `bin/pgy.exe src/self_hosted/compiler/driver_rung1_main.pgy --backend=llvm -o .tmp/self_hosted/driver_rung1/direct_llvm_repro.exe`.
+  `bin/pgy.exe src/self_hosted/compiler/driver/driver_rung1_main.pgy --backend=llvm -o .tmp/self_hosted/driver_rung1/direct_llvm_repro.exe`.
   This is not a Linux-only failure and the dedicated exhaustive workflow is not
   currently green.
 - The DRV-1 cause is bounded: the admitted program includes payload-free
@@ -7865,7 +7865,7 @@ blocker again.
   Three representative fixtures (`array_scalar_aggregate_core`, `bool_logic`,
   `string_concat_op`) produce byte-identical C before/after the call-lifetime
   extension. A current Pergyra-built codegen carrier then completed
-  `--observe-source-pressure src/self_hosted/compiler/driver_bootstrap_main.pgy`
+  `--observe-source-pressure src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`
   with exit 0 in 128,609ms under the unchanged 3072MiB/300s boundary. It reached
   `definitions:done:6718`, `support-blocks:done`, and `output:finished`; peak
   private was 3066.5MiB, only 5.5MiB below the hard cap, so attention/performance
@@ -12277,7 +12277,7 @@ explicitly names it.
   `IntentBinding` rows and resolves exact final subject/zone identities; its
   matcher is indentation-anchored so embedded contract strings are preserved.
   Native cross-module positive/unresolved-negative fixtures pass, and
-  `bin/pgy --ast src/self_hosted/compiler/driver_bootstrap_main.pgy` resolves
+  `bin/pgy --ast src/self_hosted/compiler/driver/driver_bootstrap_main.pgy` resolves
   `SourceIntakeZone -> IntentInvolves` and `StagePathManifest -> IntentValue`.
   The focused self resolver reproduction passes; the whole-driver self-parser
   run was policy-stopped after 1,532.042 seconds with zero output. Its last
@@ -12715,7 +12715,7 @@ explicitly names it.
 
   ```text
   bin/pgy --self-driver
-    -> src/compiler/self_host_driver.c -> bin/pgy-self-driver
+    -> src/compiler/self_host/self_host_driver.c -> bin/pgy-self-driver
     -> driver_rung2_main.Main -> RunDriverRung2FromArgs
     -> ProduceSourceMirThroughPgyCompilerWorld
     -> PgyCompilerWorld.source_mir

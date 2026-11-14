@@ -4,9 +4,9 @@ import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "routine_local_ref_attachment_owner.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
-import "../semantic/ast_expression_graph_fact_owner.pgy";
-import "../semantic/ast_expression_graph_node_view_owner.pgy";
-import "../semantic/ast_expression_graph_member_view_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_member_view_owner.pgy";
 
 func SelfMirSimpleStatementKind(kind: Int) -> Bool {
     return kind == TypedAstKindLogStmtTag() ||

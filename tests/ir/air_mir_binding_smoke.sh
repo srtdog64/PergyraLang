@@ -38,10 +38,10 @@ OUTPUT="$($AIR_TEST)"
 
 for pair in \
     "src/compiler/air.h|mir_evidence_binding_fingerprint" \
-    "src/compiler/air_evidence_mir.c|AIR MIR evidence is already anchored" \
-    "src/compiler/air_evidence_certificate.c|mir_evidence_bound" \
-    "src/compiler/air_dump_json.c|mir_evidence_collection_started" \
-    "src/compiler/air_validate.c|AIR MIR evidence binding is incomplete"; do
+    "src/compiler/air/air_evidence_mir.c|AIR MIR evidence is already anchored" \
+    "src/compiler/air/air_evidence_certificate.c|mir_evidence_bound" \
+    "src/compiler/air/air_dump_json.c|mir_evidence_collection_started" \
+    "src/compiler/air/air_validate.c|AIR MIR evidence binding is incomplete"; do
     file="${pair%%|*}"
     text="${pair#*|}"
     grep -Fq -- "$text" "$ROOT_DIR/$file"

@@ -16,7 +16,7 @@
 #include "type_checker.h"
 #include "slot_analyzer.h"
 #include "slot_analyzer_internal.h"
-#include "function_param_publication_owner.h"
+#include "function_param_flow/function_param_publication_owner.h"
 #include "formal_string_store_landing_owner.h"
 #include "lifecycle_analyze.h"
 #include "../compiler/import_resolver.h"

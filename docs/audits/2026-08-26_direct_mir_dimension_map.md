@@ -10,7 +10,7 @@ Audit base: `9ca4a69517142a4c87eb47862afcd55a9a9f2011`.
 This is Track B from
 `docs/agent_work_directives/archive/semantic_hop_parallel_audit_2026-08-26.md`.
 The census starts at
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`, follows only literal
+`src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`, follows only literal
 Pergyra imports, and classifies the reachable `direct_mir_*.pgy` owners. No
 build or test was run. "Live" below therefore means reachable from the
 production self-host import closure; it does not mean that one fixture executes

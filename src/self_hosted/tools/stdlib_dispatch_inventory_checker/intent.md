@@ -22,13 +22,13 @@ the long-term ratchet is `drift_tolerance = 0`.
 ## Input Contract
 
 - **c_dispatch_owner**:
-  `src/codegen/transpiler_expr_stdlib_scalar_builtin.c` (entries of shape
+  `src/codegen/c/transpiler_expr_stdlib_scalar_builtin.c` (entries of shape
   `{ "Name", N, TRANSPILER_SCALAR_OP_... }`).
 - **c_unary_dispatch_owner**:
-  `src/codegen/transpiler_expr_stdlib_scalar_unary.c` (entries of shape
+  `src/codegen/c/transpiler_expr_stdlib_scalar_unary.c` (entries of shape
   `{ "Name" }` in the unary math catalog).
 - **llvm_dispatch_owner**:
-  `src/codegen/llvm_expr_stdlib_scalar_io_calls.c` (entries of shape
+  `src/codegen/llvm/llvm_expr_stdlib_scalar_io_calls.c` (entries of shape
   `{ "Name", "stdlib family", "RuntimeSymbol", N }`).
 
 Both paths are fixed relative to repository root. No CLI args yet.
@@ -43,9 +43,9 @@ JSON document on stdout, conforming to schema
   "schema": "pgy.selfhost.stdlib-dispatch-inventory.v1",
   "ok": true,
   "source": {
-    "c_dispatch_owner": "src/codegen/transpiler_expr_stdlib_scalar_builtin.c",
-    "c_unary_dispatch_owner": "src/codegen/transpiler_expr_stdlib_scalar_unary.c",
-    "llvm_dispatch_owner": "src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+    "c_dispatch_owner": "src/codegen/c/transpiler_expr_stdlib_scalar_builtin.c",
+    "c_unary_dispatch_owner": "src/codegen/c/transpiler_expr_stdlib_scalar_unary.c",
+    "llvm_dispatch_owner": "src/codegen/llvm/llvm_expr_stdlib_scalar_io_calls.c"
   },
   "counts": {
     "c_entries": 52,

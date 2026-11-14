@@ -1,6 +1,6 @@
 // Gate-only mutation probe for source-DIR intent declaration carriage.
 
-import "../../../../src/self_hosted/compiler/driver_pipeline_owner.pgy";
+import "../../../../src/self_hosted/compiler/driver/driver_pipeline_owner.pgy";
 import "../../../../src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy";
 
 func Main() -> Void with caps env, io_read {

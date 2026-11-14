@@ -1,5 +1,5 @@
 // Gate-only reconstruction of immutable receipts around deliberately stale rows.
-import "../../../../src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_identity_owner.pgy";
 
 func RewriteProbeMoveReceipts(
     plan: DirectMirScalarCfgGraphPlan, repair_coverage: Bool

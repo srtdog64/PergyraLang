@@ -68,7 +68,7 @@ setter 경로**다. 아래 ★는 오케스트레이터가 바이너리/`.bc` �
   `pgy_task_cancel_export`/`pgy_task_is_cancelled_export`/`pgy_async_detach_export`
   = `T`(external, 정의됨, **미strip**), `g_pgy_coro`/`g_pgy_thread_current` =
   `d`(로컬 static). strip predicate `llvm_fn_is_stateful_runtime`
-  (`src/codegen/llvm_runtime_attrs.c:169-177`)의 9개 prefix 에 **`pgy_task_`/
+  (`src/codegen/llvm/llvm_runtime_attrs.c:169-177`)의 9개 prefix 에 **`pgy_task_`/
   `pgy_async_` 없음**(`pgy_spawn`/`pgy_await`/`pgy_channel_`/`pgy_lane_`는 있음 —
   같은 TLS 의 다른 접촉자는 strip). 방출 IR 호출처: `llvm_expr_task_calls.c:115,129`,
   `llvm_stmt_parallel_join.c:507`(**join-any 패자 취소가 이 심볼**),

@@ -112,7 +112,7 @@ helper 안에서 `StringLength`를 다시 계산하게 바꾸면 O(n²)이 된�
 
 ## 조율 메모
 
-MIR 승인 계열 파일 일부(`src/compiler/mir_program_fact_validate.c` 등)는 현재
+MIR 승인 계열 파일 일부(`src/compiler/mir/mir_program_fact_validate.c` 등)는 현재
 ownership-cutover 레인이 수정 중이다. 이 계획을 실행하려면 그 owner의 편집 순서를
 먼저 정해야 한다. 이 감사는 코드를 바꾸지 않았다.
 

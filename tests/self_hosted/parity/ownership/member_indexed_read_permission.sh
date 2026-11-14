@@ -14,13 +14,13 @@ REL="${WORK#"$ROOT_DIR/"}"
 cd "$ROOT_DIR"
 fail() { echo "[member-indexed-read] $*; evidence=$REL" >&2; exit 1; }
 "${PYTHON_BIN:-python3}" scripts/source_size_count.py --caps <<'CAPS'
-120	src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy
-180	src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy
-100	src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy
-100	src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy
-100	src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy
-80	src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy
-30	src/self_hosted/semantic/ast_collection_ownership_member_restoration_owner.pgy
+120	src/self_hosted/semantic/ast_collection/ast_collection_member_read_permission_owner.pgy
+180	src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_transition_owner.pgy
+100	src/self_hosted/semantic/ast_collection/ast_collection_member_capture_obligation_owner.pgy
+100	src/self_hosted/semantic/ast_collection/ast_collection_member_capture_source_owner.pgy
+100	src/self_hosted/semantic/ast_collection/ast_collection_member_capture_site_owner.pgy
+80	src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_result_owner.pgy
+30	src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_restoration_owner.pgy
 CAPS
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 PROBE=tests/self_hosted/fixtures/array_storage_call_preservation_probe.pgy

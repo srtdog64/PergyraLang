@@ -169,19 +169,19 @@ while IFS='|' read -r owner cap; do
     [[ "$source_size_lines" -le "$cap" ]] ||
         fail "$owner exceeds $cap lines"
 done <<'OWNERS'
-src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy|800
-src/self_hosted/compiler/direct_mir_role_override_plan_owner.pgy|120
-src/self_hosted/compiler/direct_mir_role_override_target_projection_owner.pgy|110
-src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy|220
+src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy|800
+src/self_hosted/compiler/direct_mir/direct_mir_role_override_plan_owner.pgy|120
+src/self_hosted/compiler/direct_mir/direct_mir_role_override_target_projection_owner.pgy|110
+src/self_hosted/compiler/direct_mir/direct_mir_role_override_emission_owner.pgy|220
 src/self_hosted/codegen/emission/implicit_receiver_c_parameter_owner.pgy|60
 src/self_hosted/codegen/emission/function_emit.pgy|500
 src/self_hosted/codegen/emission/function_prototype_block_owner.pgy|270
 OWNERS
 family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_plan_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_target_projection_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy")" || fail "role override family measurement failed"
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_role_override_plan_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_role_override_target_projection_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_role_override_emission_owner.pgy")" || fail "role override family measurement failed"
 [[ "$family_lines" -le 1250 ]] || fail "role override owner family exceeds 1250 lines"
 
 (cd "$ROOT_DIR" && "$DRIVER" --ast "$SOURCE_REL") \

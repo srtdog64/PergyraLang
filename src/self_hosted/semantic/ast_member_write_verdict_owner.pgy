@@ -2,12 +2,12 @@
 // Field identity is (nominal declaration, ordered source field), never a
 // program-wide field spelling. This consumer does not reopen source/AST text.
 import "ast_nominal_constructor_lookup_owner.pgy";
-import "ast_expression_graph_scalar_type_owner.pgy";
-import "ast_expression_graph_member_view_owner.pgy";
+import "ast_expression/ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression/ast_expression_graph_member_view_owner.pgy";
 import "env_value_owner.pgy";
-import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression/ast_expression_call_target_fact_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
-import "ast_expression_carried_callable_identity_owner.pgy";
+import "ast_expression/ast_expression_carried_callable_identity_owner.pgy";
 
 // The typed environment carries declaration permission; projections preserve
 // that permission until an identity host establishes a separate state owner.

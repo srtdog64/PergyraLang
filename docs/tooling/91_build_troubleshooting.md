@@ -3505,7 +3505,7 @@ self-host working-set cost.
 
 The exact owner was
 `semantic_type_resolution_record_named_dependency` in
-`src/semantic/type_checker_resolution_graph_core.c`. For every dependency it
+`src/semantic/type_checker/type_checker_resolution_graph_core.c`. For every dependency it
 allocated both `bool visited[N]` and `size_t path[N]`, where `N` was the graph's
 current node count, from `SemanticContext.scratch_arena`. The arrays were local
 to one `type_resolution_find_path` probe, but arena ownership retained every
@@ -4131,7 +4131,7 @@ Timeout 뒤 `pgy`/`gcc`/`clang` descendant가 남지 않았음을 확인했다. 
 
 2026-07-30 실제 launcher를 끝까지 추적하자 `bin/pgy --self-driver`는
 `driver_bootstrap_main.pgy`를 실행하지 않았다. Native
-`src/compiler/self_host_driver.c`가 sibling `bin/pgy-self-driver`를 실행하고, 그
+`src/compiler/self_host/self_host_driver.c`가 sibling `bin/pgy-self-driver`를 실행하고, 그
 binary는 `driver_rung2_main.pgy -> driver_rung2_cli_owner.pgy`에서 빌드된다. 설치
 CLI에는 source-to-MIR direct compile이 남아 있어 문서상 world/action graph와 실제
 사용자 graph가 갈라져 있었다.

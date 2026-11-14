@@ -1,0 +1,16 @@
+// The scalar program route checks neither a role's override identities nor
+// its erased receiver ABI, so a program with a role declaration is the role
+// override route's to admit.
+import "../../../mir_lower/program_declaration_index_owner.pgy";
+
+func DirectMirScalarProgramRoleDeclarationPresent(
+    ref declarations: MirProgramDeclarationIndex
+) -> Bool {
+    var row: Int = 0;
+    while row < MirProgramDeclarationIndexCount(declarations) {
+        if declarations.kinds[row] == "role" ||
+            declarations.nominal_kinds[row] == "role" { return true; }
+        row = row + 1;
+    }
+    return false;
+}

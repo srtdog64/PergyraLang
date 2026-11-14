@@ -375,7 +375,7 @@ typedef struct
     bool uses_detached_async;
 } TranspilerCtx;
 
-#include "transpiler_inventory_view.h"
+#include "c/transpiler_inventory_view.h"
 
 TranspilerCtx *transpiler_ctx_create(void);
 void           transpiler_ctx_destroy(TranspilerCtx *ctx);

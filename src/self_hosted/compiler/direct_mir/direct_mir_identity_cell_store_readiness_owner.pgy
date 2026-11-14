@@ -1,0 +1,88 @@
+// Cross-links for the sealed receiver-cell store receipt.
+import "scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "scalar_cfg/direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
+import "../../mir/local_ref_identity_owner.pgy";
+
+func DirectMirIdentityCellStoreReady(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int, routine: Int
+) -> Bool {
+    if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+        plan.operation_kinds[operation] != DirectMirScalarCfgOpIdentityCellStore() ||
+        routine < 1 || routine >= ArrayLength(plan.routines.parameter_counts) ||
+        plan.routines.parameter_counts[routine] < 1 { return false; }
+    let result: Int = plan.operation_result_values[operation];
+    if result < -1 || result >= ArrayLength(plan.value_types) { return false; }
+    let parameter: Int = plan.routines.parameter_starts[routine];
+    let type_name: String = plan.routines.parameter_types[parameter];
+    if plan.routines.parameter_carriages[parameter] !=
+            "mutable-identity" { return false; }
+    if result >= 0 {
+        let local_row: Int = plan.value_local_rows[result];
+        if local_row < 0 || local_row >= ArrayLength(plan.local_ref_value_ids) ||
+            plan.value_types[result] != type_name ||
+            plan.local_ref_value_ids[local_row] != SelfMirLocalRef("parameter", plan.routines.source_syntax_ids[routine], 0) {
+            return false;
+        }
+    }
+    let target: Int = plan.program.operation_secondary_expression_rows[operation];
+    if target < 0 || target >= ArrayLength(plan.program.expressions.graph_roots) { return false; }
+    let root: Int = plan.program.expressions.graph_roots[target];
+    if root < 0 || root >= ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_kinds[root] != DirectMirScalarProgramExprIdentityCellMember() { return false; }
+    let receiver: Int = plan.program.expressions.node_lefts[root];
+    let member: Int = plan.operation_right_locals[operation];
+    let field_type: String = DirectMirIdentityCellFieldType(plan.program.logical_record.identity_cells, type_name, member);
+    if receiver < 0 || receiver >= root || field_type == "" ||
+        plan.program.expressions.node_types[receiver] != type_name ||
+        plan.program.expressions.node_member_ordinals[root] != member ||
+        plan.program.expressions.node_kinds[receiver] != DirectMirScalarProgramExprParameter() ||
+        plan.program.expressions.node_parameter_ordinals[receiver] != 0 { return false; }
+    return DirectMirScalarCfgProgramExpressionRowReady(plan, target, field_type, routine) &&
+        DirectMirScalarCfgProgramExpressionRowReady(plan, plan.program.operation_expression_rows[operation], field_type, routine);
+}
+
+// The routine-instance signature is the receiver receipt. A read-only method
+// has no store operation, so reconstructing receiver identity from stores
+// would reject a valid admitted method and duplicate the signature owner.
+func DirectMirIdentityCellReceiverParameterReady(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.parameter_counts) ||
+        ordinal != 0 || plan.routines.parameter_counts[routine] < 1 {
+        return false;
+    }
+    if routine >= ArrayLength(plan.routines.receiver_carriages) ||
+        routine >= ArrayLength(plan.routines.receiver_owner_rows) ||
+        plan.routines.receiver_carriages[routine] != "mutable-identity" {
+        return false;
+    }
+    let parameter: Int = plan.routines.parameter_starts[routine];
+    let type_name: String = plan.routines.parameter_types[parameter];
+    let cell: Int = DirectMirIdentityCellRow(
+        plan.program.logical_record.identity_cells, type_name);
+    return cell >= 0 &&
+        CallableReceiverNominalKindUsesMutableLiteralIdentity(
+            plan.program.logical_record.identity_cells.nominal_kinds[cell]) &&
+        plan.program.logical_record.identity_cells.declaration_rows[cell] ==
+            plan.routines.receiver_owner_rows[routine] &&
+        plan.routines.parameter_carriages[parameter] == "mutable-identity";
+}
+
+// Last call consumers accept an identity parameter only through its ordinary
+// carried mode or the exact mutable-method receiver receipt. Keeping this
+// decision here prevents C and LLVM from inventing separate receiver rules.
+func DirectMirIdentityCellCallParameterReady(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.parameter_counts) ||
+        ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] {
+        return false;
+    }
+    let parameter: Int = plan.routines.parameter_starts[routine] + ordinal;
+    return DirectMirScalarProgramIdentityCellParameterCarriageReady(
+            plan.program.logical_record.identity_cells,
+            plan.routines.parameter_types[parameter],
+            plan.routines.parameter_carriages[parameter]) ||
+        DirectMirIdentityCellReceiverParameterReady(
+            plan, routine, ordinal);
+}

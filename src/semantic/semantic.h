@@ -19,7 +19,7 @@
 #include "parallel_capture_facts.h"
 #include "resource_flow_fact.h"
 #include "loop_flow_fact.h"
-#include "function_param_flow_fact.h"
+#include "function_param_flow/function_param_flow_fact.h"
 #include "iteration_type_fact.h"
 #include "destructure_type_fact.h"
 #include "match_binding_type_fact.h"

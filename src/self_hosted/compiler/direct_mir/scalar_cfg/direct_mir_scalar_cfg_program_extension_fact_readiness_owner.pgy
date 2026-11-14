@@ -1,0 +1,161 @@
+// Canonical empty and sealed readiness for the optional program extension.
+import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_array_string_boundary_admission_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
+
+func DirectMirScalarCfgProgramOperationTargetPathsReady(
+    ref rows: DirectMirScalarCfgProgramOperationTargetPaths,
+    operation_count: Int
+) -> Bool {
+    if operation_count < 0 || ArrayLength(rows.starts) != operation_count ||
+        ArrayLength(rows.counts) != operation_count {
+        return false;
+    }
+    var cursor: Int = 0;
+    var operation: Int = 0;
+    while operation < operation_count {
+        if rows.starts[operation] != cursor || rows.counts[operation] < 0 ||
+            cursor + rows.counts[operation] >
+                ArrayLength(rows.member_ordinals) {
+            return false;
+        }
+        var member: Int = 0;
+        while member < rows.counts[operation] {
+            if rows.member_ordinals[cursor + member] < 0 { return false; }
+            member = member + 1;
+        }
+        cursor = cursor + rows.counts[operation];
+        operation = operation + 1;
+    }
+    return cursor == ArrayLength(rows.member_ordinals);
+}
+
+func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Int {
+    if !fact.valid {
+        if fact.digest == 0 && !fact.callable.valid &&
+            DirectMirScalarProgramExpressionSetCanonicalEmpty(
+                fact.expressions) &&
+            ArrayLength(fact.block_condition_expression_rows) == 0 &&
+            ArrayLength(fact.operation_expression_rows) == 0 &&
+            ArrayLength(fact.operation_secondary_expression_rows) == 0 &&
+            DirectMirScalarCfgProgramOperationTargetPathsReady(
+                fact.operation_target_paths, 0) &&
+            ArrayLength(fact.block_return_expression_rows) == 0 &&
+            DirectMirClosedModuleCallAbiFactCanonicalEmpty(
+                fact.closed_call_abi) &&
+            DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
+                fact.runtime_abi) &&
+            DirectMirScalarProgramOptionIntAbiReadyForExpressions(
+                fact.option_int_abi, fact.expressions) &&
+            DirectMirScalarResultAbiSetReadyForExpressions(
+                fact.result_abi, fact.expressions) &&
+            DirectMirScalarProgramOptionStringAbiReadyForExpressions(
+                fact.option_string_abi, fact.expressions) &&
+            DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
+                fact.option_bool_abi, fact.expressions) &&
+            DirectMirScalarProgramLogicalRecordReadyForExpressions(
+                fact.logical_record, fact.expressions) &&
+            DirectMirScalarProgramLogicalRecordOptionIntAbiReady(
+                fact.logical_record, fact.option_int_abi) &&
+            DirectMirScalarProgramReferencedEnumReadyForExpressions(
+                fact.referenced_enum, fact.expressions) &&
+            DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
+                fact.payload_free_enum, fact.expressions) &&
+            DirectMirScalarProgramOpaqueReadonlyZoneFactReady(
+                fact.opaque_readonly_zones) &&
+            DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(
+                fact.referenced_enum, fact.payload_free_enum) &&
+            DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
+                fact.logical_record, fact.payload_free_enum) &&
+            DirectMirScalarProgramArrayIntValueResultFactReady(
+                fact.array_int_value_result) &&
+            DirectMirScalarProgramArrayBoolAbiFactReady(
+                fact.array_bool_abi) &&
+            DirectMirScalarProgramLogicalRecordCollectionAbiReady(
+                fact.logical_record, fact.array_int_value_result,
+                fact.array_bool_abi,
+                fact.array_string_abi) &&
+            DirectMirScalarProgramArrayStringAbiReadyForExpressions(
+                fact.array_string_abi, fact.expressions) &&
+            DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
+                fact.array_string_boundary) &&
+            DirectMirScalarProgramCollectionOwnershipTransitionFactReady(
+                fact.collection_ownership) &&
+            ArrayLength(fact.collection_ownership.routine_ordinals) == 0 &&
+            DirectMirScalarProgramOwnedArrayStringMoveFactReady(
+                fact.owned_array_string_move) &&
+            !fact.owned_array_string_move.present { return 0; }
+        return 1;
+    }
+    let callable_ready: Bool =
+        (DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
+             fact.callable, fact.logical_record,
+             fact.payload_free_enum, fact.referenced_enum,
+             fact.opaque_readonly_zones) &&
+         DirectMirClosedModuleCallAbiFactReady(fact.closed_call_abi)) ||
+        (DirectMirScalarCfgProgramCallableFactCanonicalEmpty(fact.callable) &&
+         DirectMirClosedModuleCallAbiFactCanonicalEmpty(fact.closed_call_abi));
+    var array_boundary_ready: Bool =
+        DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(fact.array_string_boundary);
+    if fact.callable.valid &&
+        DirectMirScalarProgramArrayStringBoundarySignatureReady(
+            fact.callable.signature) {
+        array_boundary_ready = DirectMirScalarProgramArrayStringBoundaryFactReady(
+            fact.array_string_boundary);
+    }
+    if fact.digest == 0 || fact.digest !=
+            DirectMirScalarCfgProgramExtensionFactDigest(fact) { return 2; }
+    if !callable_ready { return 3; }
+    if fact.callable.valid &&
+        !DirectMirScalarProgramArrayStringAbiMatchesCallable(
+            fact.array_string_abi, fact.callable.signature) { return 4; }
+    if !DirectMirScalarProgramExpressionSetSemanticallyReady(
+            fact.expressions) { return 5; }
+    if !DirectMirScalarCfgProgramOperationTargetPathsReady(
+            fact.operation_target_paths,
+            ArrayLength(fact.operation_expression_rows)) { return 22; }
+    if !DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
+            fact.runtime_abi, fact.expressions) { return 6; }
+    if !DirectMirScalarProgramOptionIntAbiReadyForExpressions(
+            fact.option_int_abi, fact.expressions) { return 7; }
+    if !DirectMirScalarResultAbiSetReadyForExpressions(
+            fact.result_abi, fact.expressions) { return 8; }
+    if !DirectMirScalarProgramOptionStringAbiReadyForExpressions(
+            fact.option_string_abi, fact.expressions) { return 9; }
+    if !DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
+            fact.option_bool_abi, fact.expressions) { return 10; }
+    if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
+            fact.logical_record, fact.expressions) { return 12; }
+    if !DirectMirScalarProgramLogicalRecordOptionIntAbiReady(
+            fact.logical_record, fact.option_int_abi) { return 20; }
+    if !DirectMirScalarProgramReferencedEnumReadyForExpressions(
+            fact.referenced_enum, fact.expressions) ||
+        !DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(
+            fact.referenced_enum, fact.payload_free_enum) { return 13; }
+    if !DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
+            fact.payload_free_enum, fact.expressions) { return 13; }
+    if !DirectMirScalarProgramOpaqueReadonlyZoneFactReady(
+            fact.opaque_readonly_zones) { return 23; }
+    if !DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
+        fact.logical_record, fact.payload_free_enum) { return 13; }
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact.array_int_value_result) { return 14; }
+    if !DirectMirScalarProgramArrayBoolAbiFactReady(fact.array_bool_abi) { return 15; }
+    if !DirectMirScalarProgramLogicalRecordCollectionAbiReady(
+            fact.logical_record, fact.array_int_value_result,
+            fact.array_bool_abi, fact.array_string_abi) { return 16; }
+    if !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
+            fact.array_string_abi, fact.expressions) { return 17; }
+    if !array_boundary_ready { return 18; }
+    if !DirectMirScalarProgramCollectionOwnershipTransitionFactReady(
+            fact.collection_ownership) { return 21; }
+    if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
+            fact.owned_array_string_move, fact.array_string_abi) { return 19; }
+    return 0;
+}
+func DirectMirScalarCfgProgramExtensionFactReady(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Bool {
+    return DirectMirScalarCfgProgramExtensionFactReadinessCode(fact) == 0;
+}

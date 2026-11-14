@@ -7,7 +7,7 @@
 #include "diag_codes.h"
 #include "map_string_payload_view_owner.h"
 #include "indexed_string_borrow_owner.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 #define MAP_PAYLOAD_VIEW_UNKNOWN_SOURCE UINT32_MAX
 #define MAP_PAYLOAD_VIEW_MAX_DEPTH 64

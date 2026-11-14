@@ -1,6 +1,6 @@
 // Calls the real query owner; malformed local facts are not admitted source/MIR.
-import "../../../src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_owner.pgy";
-import "../../../src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_expression_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_expression_kind_id_owner.pgy";
 
 func ConstructorFieldType(ordinal: Int) -> String {
     if ordinal % 3 == 0 { return "Int"; }

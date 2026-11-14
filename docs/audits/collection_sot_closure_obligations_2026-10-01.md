@@ -43,16 +43,16 @@ after the carrier prerequisite. All falsifiers below are unexecuted obligations.
 
 1. Native binding admission calls
    `semantic_collection_ownership_initialize_binding` from
-   `src/semantic/type_checker_ownership_let.c:539`; deep-drop admission calls
+   `src/semantic/type_checker/type_checker_ownership_let.c:539`; deep-drop admission calls
    `semantic_collection_admit_owned_string_drop` from
-   `src/semantic/type_checker_builtins_stdlib_array.c:294`.
+   `src/semantic/type_checker/type_checker_builtins_stdlib_array.c:294`.
    `src/semantic/collection_ownership_fact.c:502` records function/binding/origin/
    source identities, element state and disposition. It distinguishes exact
    MapKeys, Clone, local binding moves and member moves; descriptor movement is
    not String-element ownership.
 2. The Pergyra semantic producer is
    `SemanticAstCollectionOwnershipVerdictFromResolvedFacts`
-   (`src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy:33`).
+   (`src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy:33`).
    `ast_collection_ownership_identity_owner.pgy` checks resolved callable kind,
    name, syntax ID and runtime ABI ID for builtins, rather than using a name alone.
    Member identity comes from
@@ -60,9 +60,9 @@ after the carrier prerequisite. All falsifiers below are unexecuted obligations.
    (`ast_collection_ownership_member_move_owner.pgy:18`). Its current root query
    resolves ordinary local bindings; it does not resolve a formal aggregate root.
 3. Native rows pass through `hir_attach_collection_ownership_facts`
-   (`src/compiler/hir_semantic_fact_projection.c:495`), MIR source-fact validation
-   (`src/compiler/mir_branch_source_facts.c`) and
-   `mir_json_emit_collection_ownership_facts` (`src/compiler/mir_json_dump.c:568`).
+   (`src/compiler/hir/hir_semantic_fact_projection.c:495`), MIR source-fact validation
+   (`src/compiler/mir/mir_branch_source_facts.c`) and
+   `mir_json_emit_collection_ownership_facts` (`src/compiler/mir/mir_json_dump.c:568`).
    Pergyra rows pass through `SelfMirCollectionOwnershipFactRowsAppendRoutine`
    (`src/self_hosted/mir/collection_ownership_fact_owner.pgy:219`) and
    `src/self_hosted/mir/json_projection_owner.pgy:385`.
@@ -75,7 +75,7 @@ after the carrier prerequisite. All falsifiers below are unexecuted obligations.
    Do not add a second reader authority or promote UNKNOWN merely after an ID join.
 5. Direct C and LLVM use the shared
    `DirectMirScalarProgramArrayStringCleanupDropSymbol`
-   (`src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy:60`)
+   (`src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy:60`)
    and local-retirement query at line 87, consumed by the C/LLVM array-string
    cleanup owners. A transition row chooses storage/owned/no further cleanup.
    The same owner still contains the old expression-based fallback at lines
@@ -84,7 +84,7 @@ after the carrier prerequisite. All falsifiers below are unexecuted obligations.
 ## Legitimate production lifetime that a refusal must preserve
 
 `SemanticAstExpressionFunctionTableFactsFromArtifact`
-(`src/self_hosted/semantic/ast_expression_environment_owner.pgy:256`) builds
+(`src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy:256`) builds
 `names`, `returns`, `params` from empty arrays using
 `SemanticAstExpressionFunctionTables` and owned pushes for constructor, enum,
 declared function and intent rows. `SemanticAstArtifactAnalysis` carries that
@@ -163,16 +163,16 @@ old-path deletion, negative ratchet and current production evidence all exist.
 ```text
 3B07A6A1867CACBF220FF06071D1E43A761335255CED65AB8EBCC3859110CBA3  docs/semantics/sot_owner_spine_registry.md
 2C1FE4058BA60DD4300913D805E5A53A9D48B0D198EA5942EB463DE472DDAA39  src/semantic/collection_ownership_fact.c
-3504AB775DB78CA434399CE5BCB9000501D92A15805EA68D1FD4B3DD51B9E02E  src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy
-CDD2DD93093A40BC64573093B2EB7E9C20269B838B6709529FD9C3B1F0C614F4  src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy
-F3EDDEF784F5B08FFE2B5BB06742E1A2A456CC1430133376987C9EEB7E38E04F  src/self_hosted/semantic/ast_expression_environment_owner.pgy
-85D206EE7ABBAEAB5B95B1F227B4EB063697847336007D0BE26CE265BD345B9D  src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy
+3504AB775DB78CA434399CE5BCB9000501D92A15805EA68D1FD4B3DD51B9E02E  src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_move_owner.pgy
+CDD2DD93093A40BC64573093B2EB7E9C20269B838B6709529FD9C3B1F0C614F4  src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy
+F3EDDEF784F5B08FFE2B5BB06742E1A2A456CC1430133376987C9EEB7E38E04F  src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy
+85D206EE7ABBAEAB5B95B1F227B4EB063697847336007D0BE26CE265BD345B9D  src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy
 530AB47EE71C034EC57AC4ABD49443F30FF3C09A60E4DBA0D5641068173116C1  src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_retirement_admission_owner.pgy
-FD36CC85B6C84EDA485BD7025D974DBD4BC56A785A53AE6AB3B0F151CD1D58D8  src/self_hosted/compiler/direct_mir_scalar_program_hashmap_lifetime_owner.pgy
+FD36CC85B6C84EDA485BD7025D974DBD4BC56A785A53AE6AB3B0F151CD1D58D8  src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_hashmap_lifetime_owner.pgy
 7A6F5F3718548590088435C94CADCC8368153CEEE5F902E4CE7D7F3C8C816D6D  src/self_hosted/mir_lower/collection_ownership_fact_owner.pgy
-32AB6613979F18A6C7C9FB886A57E45E1C0AFA56429AF6333B0A70EC6D3E5229  src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy
-9429C47E150CD57298682AE8EAF83AE884DECBCC4B500327B5B2B8EE0520C5B5  src/self_hosted/compiler/driver_rung2_owner.pgy
-9F92945F17B4251523873BFC8567CFF63D98EF90D385673B31406CE51E7B6B3E  src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy
+32AB6613979F18A6C7C9FB886A57E45E1C0AFA56429AF6333B0A70EC6D3E5229  src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy
+9429C47E150CD57298682AE8EAF83AE884DECBCC4B500327B5B2B8EE0520C5B5  src/self_hosted/compiler/driver/driver_rung2_owner.pgy
+9F92945F17B4251523873BFC8567CFF63D98EF90D385673B31406CE51E7B6B3E  src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy
 66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
 ```
 

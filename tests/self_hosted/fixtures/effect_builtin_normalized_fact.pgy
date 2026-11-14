@@ -1,5 +1,5 @@
-import "../../../src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy";
-import "../../../src/self_hosted/compiler/direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy";
 
 func Main() -> Void {
     var kinds: Array<Int> = [DirectMirScalarProgramExprIntLiteral(), DirectMirScalarProgramExprIntLiteral(),

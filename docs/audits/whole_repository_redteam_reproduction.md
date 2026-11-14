@@ -72,7 +72,7 @@ pgy_array_set_Int(&_pgy_ssa_copy_1, (size_t)(0), 99);
 ```
 
 `PgyArray_*` owns a backing pointer, length, capacity, and allocator. The MIR
-local assignment owner in `src/codegen/transpiler_mir_assignment_emit.c`
+local assignment owner in `src/codegen/c/transpiler_mir_assignment_emit.c`
 renders the assignment as a direct C struct assignment, with no typed
 copy-versus-move fact and no fresh backing allocation.
 
@@ -243,8 +243,8 @@ The known external fixture
 was compiled with the fresh C-only and C+LLVM compilers. Both produced an
 artifact with exit 0 despite the intended single-consume contract.
 
-The relevant owners are `src/semantic/type_checker_ownership_classify.c` and
-`src/semantic/type_checker_ownership_call.c`. The owned enum/ADT is classified
+The relevant owners are `src/semantic/type_checker/type_checker_ownership_classify.c` and
+`src/semantic/type_checker/type_checker_ownership_call.c`. The owned enum/ADT is classified
 as copy-only, so `ConsumeOutcome(outcome)` can be called twice. This fixture
 must not be executed before compile-time rejection is closed.
 
@@ -254,8 +254,8 @@ Compile-only admission was reproduced for
 `MapGet -> MapRemove -> Log` and
 `ListGet -> ListRemove/Set -> Log`. Relevant owners are:
 
-- `src/semantic/type_checker_builtins_stdlib_map.c`
-- `src/semantic/type_checker_builtins_stdlib_collections.c`
+- `src/semantic/type_checker/type_checker_builtins_stdlib_map.c`
+- `src/semantic/type_checker/type_checker_builtins_stdlib_collections.c`
 - `src/runtime/pgy_runtime_map_string_inline.h`
 
 The returned element is represented as a borrowed pointer/value while the
@@ -274,7 +274,7 @@ The fresh C-only compiler accepted
 wrote a C artifact. The C+LLVM compiler rejected the same fixture because
 contextual `Option<T>` is required and anonymous Option fallback is disabled.
 
-The affected path is `src/codegen/transpiler_call_result_option_builtin_emit.c`.
+The affected path is `src/codegen/c/transpiler_call_result_option_builtin_emit.c`.
 The source owner should reject contextless `Some` before backend selection,
 or both backends must consume one identical Option-context fact.
 
@@ -288,7 +288,7 @@ error instead of the expected semantic generic diagnostic:
 MIR generic call 14 cannot resolve consistent actual/formal bindings
 ```
 
-Relevant lowering is `src/compiler/mir_generic_method_specialization.c`.
+Relevant lowering is `src/compiler/mir/mir_generic_method_specialization.c`.
 The actual/formal constraint decision should be owned by the semantic DAG
 and consumed by MIR.
 
@@ -724,7 +724,7 @@ Q (agent-t5): the checker's `Option<payload>` type for `Some(x)` was not
 recorded where a backend can read it. The branch adds
 `semantic_value_type_name` to `AST_CALL` (`src/parser/ast.h`, call accessors,
 `ast_destroy.c`) and seals it in
-`src/semantic/type_checker_builtins_stdlib_variant.c`. Both are outside the
+`src/semantic/type_checker/type_checker_builtins_stdlib_variant.c`. Both are outside the
 edit scope and outside every do-not-edit list. Keep, or move?
 
 A (verifier): keep. It follows the call node's existing checker-sealed facts
@@ -764,7 +764,7 @@ Q (agent-t6): the component contract (WIP) lines 8582-8583 require
 `mir_generic_method_captured_return_type(`, which this change deletes.
 Replace with reject_text for it and for `mir_generic_binding_type_names(`,
 plus require_text `ast_call_semantic_generic_arg_type_name(call, i)` in
-`src/compiler/mir_generic_method_specialization.c`.
+`src/compiler/mir/mir_generic_method_specialization.c`.
 
 A (verifier): yes; the verifier makes that pin change at integration (the
 other lane's hunks in that file are at lines 4381-4387 only).
@@ -778,7 +778,7 @@ Q (agent-t6): a generic call's value type is not substituted for a
 constructed parameter: `let s: String = First(xs)` with `xs: Array<Int>` is
 accepted (native C fails in the C compiler, LLVM prints an empty line; base
 behaves the same). The fix is in `type_check_function_symbol_call` in
-`src/semantic/type_checker_helpers_late.c`, which is WIP.
+`src/semantic/type_checker/type_checker_helpers_late.c`, which is WIP.
 
 A (verifier): recorded as T6b; it waits for the collection lane's WIP.
 
@@ -1538,7 +1538,7 @@ Owner cause:
 positive-source `transfer-element` before scanning instructions
 (`src/self_hosted/mir_lower/collection_ownership_fact_owner.pgy:134`, return at
 line 156). The native writer projects `inst->expr0` rather than owning a typed
-routine-local collection-operation fact (`src/compiler/mir_json_dump.c:343`).
+routine-local collection-operation fact (`src/compiler/mir/mir_json_dump.c:343`).
 
 ### Confirmed P0-2: coordinated producer-call forgery is admitted
 
@@ -1768,7 +1768,7 @@ distinct defects, both join-key errors rather than missing work:
    therefore classified as a user function call and then required a boundary
    row that cannot exist. This is why fixing (1) alone was not enough.
 
-### Fixes applied in src/compiler/mir_branch_source_facts.c
+### Fixes applied in src/compiler/mir/mir_branch_source_facts.c
 
 - `PGY_COLLECTION_RECEIPT_TRANSFER_ELEMENT` / `MIR_INST_STMT`: anchor on the
   resolved builtin call itself (event id + receiver binding + resolved
@@ -1781,7 +1781,7 @@ distinct defects, both join-key errors rather than missing work:
   `builtin_owner` before the user-call boundary join.
 
 All temporary `PGY_DEBUG_COLLECTION_INVENTORY` instrumentation was removed
-afterwards; `rg colinv src/compiler/mir_branch_source_facts.c` returns nothing
+afterwards; `rg colinv src/compiler/mir/mir_branch_source_facts.c` returns nothing
 and the file is back to 1662 changed lines.
 
 ### Result after the fix

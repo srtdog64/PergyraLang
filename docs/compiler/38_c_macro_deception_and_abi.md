@@ -91,7 +91,7 @@ typedef struct { \
 
 현재 C/LLVM 백엔드는 **HIR(고차원 IR)과 MIR(저차원 실행 IR)을 동시에 참조하며 스스로 판단을 내리고 있다**.
 
-**`src/codegen/llvm_backend.c`의 예:**
+**`src/codegen/llvm/llvm_backend.c`의 예:**
 
 ```c
 // 라인의 3189-3280: LLVM 백엔드가 Slot 타입의 LLVM 표현을 직접 생성
@@ -308,7 +308,7 @@ typedef CONDITION_VARIABLE pgy_condvar_t;
 
 ## 4. 현재 백엔드의 문제점 구체적 분석
 
-### 4.1 LLVM 백엔드 (`src/codegen/llvm_backend.c`)
+### 4.1 LLVM 백엔드 (`src/codegen/llvm/llvm_backend.c`)
 
 | 라인 | 문제 |
 |------|------|
@@ -369,7 +369,7 @@ typedef CONDITION_VARIABLE pgy_condvar_t;
 |------|------|
 | `src/runtime/pgy_runtime.h` | 현재 매크로 기반 제네릭 정의 (4117 라인) |
 | `src/compiler/mir.h` | MIR 구조 정의 (161 라인) |
-| `src/codegen/llvm_backend.c` | LLVM 백엔드 (5272 라인) |
+| `src/codegen/llvm/llvm_backend.c` | LLVM 백엔드 (5272 라인) |
 | `src/codegen/transpiler.c` | C 백엔드 (5396 라인) |
 | `src/codegen/llvm_expr_helpers_part_*.inc` | LLVM 표현식 헬퍼 split chunks |
 | `docs/compiler/20_compiler_pipeline_guide.md` | 컴파일러 파이프라인 가이드 |

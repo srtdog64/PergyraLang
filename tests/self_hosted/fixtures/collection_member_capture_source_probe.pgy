@@ -1,7 +1,7 @@
 // Source-driven scalar relevance; damaged type/provenance never reaches MIR.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_member_capture_source_owner.pgy";
 
 func CollectionMemberCaptureSourceProbe(input_path: String) -> Void with caps env, io_read {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(input_path);

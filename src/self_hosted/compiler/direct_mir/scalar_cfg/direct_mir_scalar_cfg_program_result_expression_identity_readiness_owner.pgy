@@ -1,0 +1,44 @@
+// Identity readiness for the Result<P, E> match expression kind.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+
+func DirectMirScalarCfgProgramResultExpressionIdentityReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, routine: Int, graph_start: Int
+) -> Option<Bool> {
+    if facts.node_kinds[node] !=
+            DirectMirScalarProgramExprPayloadFreeEnumResultMatch() {
+        return None;
+    }
+    let left: Int = facts.node_lefts[node];
+    let binding: Int = facts.node_local_rows[node];
+    let variant: Int = facts.node_member_ordinals[node];
+    if left < graph_start || left >= node || binding <
+            plan.routines.local_starts[routine] || binding >=
+            plan.routines.local_starts[routine] +
+                plan.routines.local_counts[routine] ||
+        plan.local_ref_kinds[binding] !=
+            DirectMirScalarCfgLocalRefMatchBinding() {
+        return Some(false);
+    }
+    let projection:
+        DirectMirScalarProgramPayloadFreeEnumResultProjection =
+        DirectMirScalarProgramPayloadFreeEnumResultProjectionFromType(
+            facts.node_types[left], plan.program.logical_record,
+            plan.program.referenced_enum);
+    if !DirectMirScalarProgramPayloadFreeEnumResultProjectionReady(
+            projection, plan.program.logical_record,
+            plan.program.referenced_enum) {
+        return Some(false);
+    }
+    if variant ==
+            DirectMirScalarProgramPayloadFreeEnumResultMatchOkVariant() {
+        return Some(plan.local_types[binding] == projection.payload_type);
+    }
+    return Some(variant ==
+            DirectMirScalarProgramPayloadFreeEnumResultMatchErrVariant() &&
+        plan.local_types[binding] == projection.error_type);
+}

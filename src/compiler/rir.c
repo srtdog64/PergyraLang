@@ -1,5 +1,5 @@
 #include "rir.h"
-#include "rir_internal.h"
+#include "rir/rir_internal.h"
 
 #include <stdlib.h>
 #include <string.h>

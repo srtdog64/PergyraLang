@@ -214,9 +214,9 @@ page -> http adapter -> intent -> zone/world -> tobject/object -> page
 ```
 src/runtime/pgy_runtime.h      — 매크로, 인라인 함수, 타입 정의
 src/runtime/pgy_runtime_lib.c  — LLVM 링킹용 extern 심볼
-src/semantic/type_checker_builtins.c — 시맨틱 타입 체크
+src/semantic/type_checker/type_checker_builtins.c — 시맨틱 타입 체크
 src/codegen/transpiler.c       — C 코드젠 emit
-src/codegen/llvm_expr.c        — LLVM built-in lowering
+src/codegen/llvm/llvm_expr.c        — LLVM built-in lowering
 ```
 
 ## HashMap 설계

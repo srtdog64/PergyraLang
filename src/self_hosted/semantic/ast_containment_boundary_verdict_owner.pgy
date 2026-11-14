@@ -10,7 +10,7 @@
 // expression identity resolver has already joined.
 import "ast_body_verdict_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
-import "ast_expression_surface_fact_owner.pgy";
+import "ast_expression/ast_expression_surface_fact_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
 

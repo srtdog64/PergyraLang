@@ -18,7 +18,7 @@ second semantic authority. The whole cutover/deletion inventory remains
 - Priority: source/callee/binding identity and fail-closed admission, one
   formal-effect owner and unchanged evidence lifetime, exact consumer output,
   then allocation cost. No user annotation or copy increase.
-- Owner: `src/self_hosted/semantic/ast_collection_formal_use_owner.pgy`,
+- Owner: `src/self_hosted/semantic/ast_collection/ast_collection_formal_use_owner.pgy`,
   `SemanticAstCollectionFormalEffectsWithSurfaceOrder`.
 - Producer/chain: `driver_bootstrap_main.pgy` source route -> admitted AST/body
   analysis -> signature formal inventory and admitted expression surface order
@@ -259,7 +259,7 @@ not create a successor implementation track.
 
 Actions run `37883531407` at the base revision fails the installer in
 `backend-compare-toolchain-linux` (job `113673946389`, step 7). The seed's
-ordinary `--source src/self_hosted/compiler/driver_bootstrap_main.pgy` route
+ordinary `--source src/self_hosted/compiler/driver/driver_bootstrap_main.pgy` route
 refuses `borrow_boundary_escape`, boundary `aggregate_release_plan_unproved`,
 type `Array<String>`, syntax 214862. This is the production semantic refusal;
 the locally capped census has a separate observed memory obstruction. Neither
@@ -281,7 +281,7 @@ this directive does not own progress percentages or a new implementation rung.
 Current observation: the parser-only exact-HEAD snapshot maps syntax 214862
 to `DriverRung2MirProjectionRelease`'s
 `SemanticAstExpressionFunctionTableFactsRelease(function_tables)` at
-`src/self_hosted/compiler/driver_rung2_owner.pgy:184:5`. The admitted parser
+`src/self_hosted/compiler/driver/driver_rung2_owner.pgy:184:5`. The admitted parser
 artifact has count 239991 / digest 1317197033. Main independently replays the
 probe and obtains byte-identical output. This does not identify the plan's
 terminal failure: modes/protected bindings/path/signature/ordinal/lineage and

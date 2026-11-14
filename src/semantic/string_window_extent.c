@@ -24,7 +24,7 @@
 
 #include "builtin_kind.h"
 #include "diag_codes.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "../parser/ast_api.h"
 
 /* Grow a record array by one slot; false leaves it unchanged. */

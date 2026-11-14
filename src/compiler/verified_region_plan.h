@@ -27,7 +27,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "air_evidence_certificate.h"
+#include "air/air_evidence_certificate.h"
 #include "../semantic/region_escape_fact.h"
 
 /* Stable identity carried by semantic/HIR/MIR allocation-site facts.  The

@@ -46,7 +46,7 @@ to the named `--canonicalize-oracle-mir-json` bridge lane, not a shared
 1. **Native producer carriage (preferred direction):** populate
    `inst->abi_type_name` for `AST_LET_DECL` def instructions from the
    routine's owned source-local type during native MIR lowering
-   (`mir_add_def_instruction` in `src/compiler/mir_base_helpers.c` has no type
+   (`mir_add_def_instruction` in `src/compiler/mir/mir_base_helpers.c` has no type
    today; the association point for `source_type=AST_LET_DECL` is the
    population site). Oracle then satisfies the strict fact; the bridge and
    ratchet stay untouched. Check the native MIR unit suite for null-pinning.
@@ -88,7 +88,7 @@ divergence at the `Add` routine header).
 seed/bounded stages (after `compile_c` learned the shared emitted-C
 runtime-header owner — that lane drift is fixed in this tree) and fails at the
 `driver_mir_oracle` stage on the full driver source
-(`src/self_hosted/compiler/driver_bootstrap_main.pgy`):
+(`src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`):
 
 ```text
 MIR assignment target binding type drifted
@@ -200,7 +200,7 @@ Two measurements that convert the blocker from "unknown" to "bounded":
 
 - **The native C compiler produces the composed driver's MIR JSON in 394MB /
   ~48s**, emitting a 120MB `pgy.mir.v1` artifact (`bin/pgy.exe
-  src/self_hosted/compiler/driver_bootstrap_main.pgy --mir-json`). So the
+  src/self_hosted/compiler/driver/driver_bootstrap_main.pgy --mir-json`). So the
   composed driver's MIR is tractable and there is now a **golden reference**
   a future streaming self-hosted verify can be validated against. The
   self-hosted driver dies at 10GB on the identical input: a ~26x

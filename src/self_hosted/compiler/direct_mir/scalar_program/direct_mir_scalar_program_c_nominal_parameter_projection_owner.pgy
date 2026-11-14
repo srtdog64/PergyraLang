@@ -1,0 +1,87 @@
+// C value/address projection for admitted record and enum parameters.
+import "../scalar_cfg/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
+
+func DirectMirScalarProgramCNominalParameterValue(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    routine: Int, ordinal: Int, value: String
+) -> String {
+    let row: Int = routines.parameter_starts[routine] + ordinal;
+    let carriage: String = routines.parameter_carriages[row];
+    if carriage == "readonly-ref" &&
+        DirectMirScalarProgramPayloadEnumTypeReady(
+            referenced_enum, routines.parameter_types[row]) {
+        return Concat("(*", Concat(value, ")"));
+    }
+    if !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, routines.parameter_types[row]) {
+        return value;
+    }
+    if carriage == "value" || carriage == "value-result" ||
+        (carriage == "owner-handle" &&
+         DirectMirScalarProgramOwnedDirectParameterTypeReadyWithReferencedEnum(
+             logical_record, referenced_enum,
+             routines.parameter_types[row])) {
+        return value;
+    }
+    if carriage != "readonly-ref" {
+        Die("direct MIR scalar C readonly nominal parameter is invalid");
+    }
+    return Concat("(*", Concat(value, ")"));
+}
+
+func DirectMirScalarProgramCNominalCallArgument(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    routine: Int, target: Int, ordinal: Int,
+    argument_node: Int, value: String
+) -> String {
+    let row: Int = routines.parameter_starts[target] + ordinal;
+    let carriage: String = routines.parameter_carriages[row];
+    if carriage == "readonly-ref" &&
+        DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            payload_free_enum, routines.parameter_types[row]) {
+        return value;
+    }
+    if carriage == "readonly-ref" &&
+        DirectMirScalarProgramPayloadEnumTypeReady(
+            referenced_enum, routines.parameter_types[row]) {
+        if expressions.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprLocal() {
+            return Concat("&(", Concat(value, ")"));
+        }
+        if expressions.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprParameter() {
+            let source: Int = expressions.node_parameter_ordinals[argument_node];
+            let source_row: Int = routines.parameter_starts[routine] + source;
+            if routines.parameter_carriages[source_row] == "readonly-ref" {
+                return Concat("pgy_param_", ToString(source));
+            }
+            if routines.parameter_carriages[source_row] == "value" {
+                return Concat("&(pgy_param_", Concat(ToString(source), ")"));
+            }
+        }
+        Die("direct MIR scalar C readonly payload-enum argument is invalid");
+    }
+    if carriage == "value" ||
+        (carriage == "owner-handle" &&
+         DirectMirScalarProgramOwnedDirectParameterTypeReadyWithReferencedEnum(
+             logical_record, referenced_enum,
+             routines.parameter_types[row])) {
+        return value;
+    }
+    if carriage != "readonly-ref" ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, routines.parameter_types[row]) {
+        Die("direct MIR scalar C readonly nominal call argument is invalid");
+    }
+    return Concat("&(", Concat(value, ")"));
+}

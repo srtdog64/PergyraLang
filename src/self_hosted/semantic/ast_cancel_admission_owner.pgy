@@ -4,7 +4,7 @@
 // admitted declarations. Unknown or ownership-bearing payloads fail closed.
 import "ast_body_expression_environment_owner.pgy";
 import "ast_body_verdict_owner.pgy";
-import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression/ast_expression_graph_scalar_type_owner.pgy";
 import "native_primitive_type_projection_owner.pgy";
 
 func SemanticAstCancelCopyPayload(payload: String, ref enums: SemanticAstEnumFacts) -> Bool {

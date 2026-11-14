@@ -5,7 +5,7 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../semantic/ast_intent_signature_fact_owner.pgy";
 import "../semantic/ast_intent_transition_fact_owner.pgy";
-import "../semantic/ast_expression_surface_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_surface_fact_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";

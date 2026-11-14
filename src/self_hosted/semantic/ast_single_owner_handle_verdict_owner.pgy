@@ -13,21 +13,21 @@
 // rung: one immutable local made by TextBuilderNew at its function's top
 // level, named by every use, and finished or dropped exactly once in that
 // scope before any return. The native checker owns the same contract in
-// src/semantic/type_checker_builtin_owner_let_contract.c and publishes the
+// src/semantic/type_checker/type_checker_builtin_owner_let_contract.c and publishes the
 // same public codes. This verdict runs after expression identities resolve,
 // so leaf types and formal-parameter identities are carried facts here.
 import "ast_artifact_verdict_owner.pgy";
 import "ast_body_verdict_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_assignment_type_fact_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
 import "ast_generic_specialization_fact_owner.pgy";
-import "ast_expression_graph_view_owner.pgy";
-import "ast_expression_identity_fact_owner.pgy";
+import "ast_expression/ast_expression_graph_view_owner.pgy";
+import "ast_expression/ast_expression_identity_fact_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
 import "ast_body_flow_verdict_owner.pgy";
 import "wrapper_type_owner.pgy";
-import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression/ast_expression_graph_array_literal_owner.pgy";
 import "diagnostic_owner.pgy";
 
 // One row per TextBuilder local; consume_ids holds the syntax node of its

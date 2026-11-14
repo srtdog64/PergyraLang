@@ -16,7 +16,7 @@
 #include "driver_binary_output_owner.h"
 #include "driver_app.h"
 #include "path_utils.h"
-#include "self_host_llvm_driver.h"
+#include "self_host/self_host_llvm_driver.h"
 
 static bool
 llvm_path_has_suffix(const char *path, const char *suffix)

@@ -2,7 +2,7 @@
 // and binding-kind JSON spellings mapped to their semantic wire codes.
 
 import "../lib/json_bounded_fact_read.pgy";
-import "../semantic/ast_expression_surface_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_surface_fact_owner.pgy";
 
 func MirExpressionGraphKindCodeWithin(
     json: String, json_extent: Int, start: Int, end: Int

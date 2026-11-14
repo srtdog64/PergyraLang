@@ -1,5 +1,5 @@
 // Projection only: neither the HashMap callable route nor execution is admitted.
-import "../../../src/self_hosted/compiler/direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
 import "../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();

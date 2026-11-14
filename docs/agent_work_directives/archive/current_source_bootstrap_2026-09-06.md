@@ -176,7 +176,7 @@ reduction uses the existing native `--hir` entrypoint.
   episode's recursive work allowance.
 - Priority: preserve summary identity and completed-entry reuse, bounded
   convergence and fail-closed behavior, then compiler-scale acceptance.
-- Owner: `src/semantic/function_param_flow_summary.c`, with the existing
+- Owner: `src/semantic/function_param_flow/function_param_flow_summary.c`, with the existing
   store and active-start/solving state. Access/escape consumers still use the
   same demanded summary; snapshot ownership is unchanged.
 - Last consumer: the existing resource/escape checks and summary snapshot.

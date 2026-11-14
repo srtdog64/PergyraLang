@@ -73,7 +73,7 @@ Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 | 10 | `detach`는 별도 권한 | **정정** | `detach`는 zone 절(`src/parser/parser_domain_zone.c:251`); task detach는 `async` 블록 lowering에 암묵(`llvm_stmt_parallel_async.c:539-541`) — §2.5 |
 | 11-12 | revocable capability; share/split/lend/move | **정정**(번역) | `docs/178` Copy/Channel/Exclusivity/Disjointness + `ref`/`own`/`inout` — §2.4; 런타임 캐리어 부재는 §3.5 |
 | 13-14 | `LiveRef`는 await를 못 넘고 `SlotRef{slot,generation}`은 넘는다; resume 시 재검증 | 채택(절반은 정전) | pin/view는 이미 await·spawn·parallel·channel을 못 넘음(`docs/113`, `docs/114` §4); `SlotHandle{slotId,typeTag,generation}`(`src/runtime/slot_manager.h:122-127`), `PgyPinnedView{slotId,generation,mode,valid}`(`:167-175`); 재검증은 `docs/107`이 이름 붙인 "checked suspension contract" — §3.3 |
-| 15 | 검사는 경계에 몰고 hot loop는 직접 접근 | 채택(현재 위반) | zone 접근자가 **매 접근**마다 `PGY_ZONE_RDLOCK` + stale 경고(`src/codegen/transpiler_zone_struct_emit.c:250-258`) — §3.6 |
+| 15 | 검사는 경계에 몰고 hot loop는 직접 접근 | 채택(현재 위반) | zone 접근자가 **매 접근**마다 `PGY_ZONE_RDLOCK` + stale 경고(`src/codegen/c/transpiler_zone_struct_emit.c:250-258`) — §3.6 |
 | 16 | await 시 capability 3분류(SuspendSafe/Revocable/NonSuspendable) | 채택(2/3 정전) | NonSuspendable = pin/view/Token 규칙(정전); SuspendSafe = copy-only(정전); Revocable = §3.3의 재검증 계약(신규) |
 | 17 | Zone = resource universe, lock 아님; 멤버 수명 개별 | 정전 | `docs/197` region/arena; `docs/203`; `docs/113` zone generation atomic 계약 |
 | 18 | rwlock은 마지막 폴백; 동기화 사다리 | 채택 | `pthread_rwlock_t`는 `src/runtime/pgy_runtime_zone_sync_abi.h:17` 한 곳, `PGY_ZONE_THREADSAFE`로 컴파일 선택; 사다리 = `ExecutionLane`(`src/common/execution_lane_kind.h:17-26`) 확장 — §3.6 |
@@ -235,7 +235,7 @@ MOVABLE_SCHEDULER / REJECT`(`src/common/execution_lane_kind.h:17-26`),
 그리고 lane은 `BoundaryCaptureFact{crosses_authority_boundary,
 captures_live_view, captures_raw_slot, captures_raw_channel,
 captures_value_only, captures_pin}`에서 순수 결정표로 파생된다
-(`src/compiler/air_execution_lane.c:12-32`, `docs/146` §3).
+(`src/compiler/air/air_execution_lane.c:12-32`, `docs/146` §3).
 
 제안의 `Portable(Task) = captured caps exclude ThreadLocal && carriage
 valid`는 정확히 `MOVABLE_SCHEDULER` lane의 진입 조건("pure value, no
@@ -281,7 +281,7 @@ mutable Future, Future-to-Future `let` alias, borrowed/default Future parameter,
 Future 반환은
 `PGY_SEM_TASK_LIFECYCLE`로 fail closed한다.
 
-소유자는 `src/semantic/type_checker_future_lifecycle.c`, 흐름 캐리어는
+소유자는 `src/semantic/type_checker/type_checker_future_lifecycle.c`, 흐름 캐리어는
 `ResourceConsumeSnapshot`, 실행 반증은
 `make structured-spawn-lifecycle-test-smoke`다. 런타임의
 `AsyncScopeCreate/Spawn/Cancel/WaitAll`은 여전히 생산 소비자 0이며 이 계약의

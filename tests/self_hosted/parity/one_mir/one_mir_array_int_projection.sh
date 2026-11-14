@@ -57,11 +57,11 @@ hash_file() {
 }
 
 assert_owner_ratchet() {
-    local plan="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy"
-    local graph="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_graph_fact_owner.pgy"
-    local abi="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy"
-    local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy"
-    local backend="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
+    local plan="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_int_plan_owner.pgy"
+    local graph="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_int_graph_fact_owner.pgy"
+    local abi="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_int_abi_projection_owner.pgy"
+    local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_int_emission_owner.pgy"
+    local backend="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_backend_projection_owner.pgy"
     local owner cap lines
     for owner in "$plan" "$graph" "$abi" "$emission" "$backend"; do
         require_file "$owner"

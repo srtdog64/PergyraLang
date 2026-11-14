@@ -1,0 +1,410 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * LLVM expression shared helpers.
+ */
+
+#ifdef PGY_LLVM_ENABLED
+
+#include "llvm_internal.h"
+#include "llvm_internal_api.h"
+#include "llvm_expr_member_lvalue.h"
+#include "llvm_inventory_internal.h"
+#include "llvm_type_kind.h"
+#include "../../compiler/mir/mir_source_local_expr_types.h"
+
+bool
+llvm_is_upper_ident(ASTNode *node)
+{
+    const char *name = ast_identifier_name(node);
+    if (node == NULL || node->type != AST_IDENTIFIER
+        || name == NULL
+        || name[0] == '\0')
+        return false;
+
+    return name[0] >= 'A' && name[0] <= 'Z';
+}
+
+LLVMValueRef
+llvm_current_self_base_ptr(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls)
+{
+    LLVMVarEntry self_var;
+
+    if (ctx == NULL || cls == NULL)
+        return NULL;
+
+    if (!llvm_scope_lookup_snapshot(ctx, "self", &self_var))
+        return NULL;
+
+    if (self_var.type == LLVMPointerType(cls->struct_type, 0))
+        return LLVMBuildLoad2(ctx->builder, self_var.type, self_var.alloca,
+            llvm_tmp_name(ctx));
+    return self_var.alloca;
+}
+
+LLVMValueRef
+llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name, LLVMClassTypeEntry *cls)
+{
+    LLVMVarEntry var;
+
+    if (ctx == NULL || name == NULL || cls == NULL)
+        return NULL;
+
+    if (llvm_scope_lookup_snapshot(ctx, name, &var)) {
+        LLVMValueRef base_ptr = var.alloca;
+        if (var.type == LLVMPointerType(cls->struct_type, 0)) {
+            base_ptr = LLVMBuildLoad2(ctx->builder, var.type, var.alloca,
+                llvm_tmp_name(ctx));
+        }
+        return base_ptr;
+    }
+
+    return llvm_implicit_host_field_ptr(ctx, name, NULL);
+}
+
+/* Whether a bare identifier may denote the current host's field. The semantic
+ * checker records each identifier's binding: one bound to a local or a
+ * parameter (a recorded binding that is not a host field) shadows a host
+ * field of the same name, so `let total = ...; self.total += total;` reads
+ * the local. Only an identifier with no recorded binding keeps resolving to
+ * the field by name. */
+bool
+llvm_identifier_may_denote_host_field(const ASTNode *ident)
+{
+    if (ident == NULL || ident->type != AST_IDENTIFIER)
+        return false;
+    return ast_identifier_binding_syntax_id(ident) == 0
+        || ast_identifier_binding_is_host_field(ident);
+}
+
+/* A bare name inside a host method that is not a local is the host's own
+ * field (a zone's shared state, a world's zone member). Returns its storage
+ * address and, when asked, its field type; NULL when the host has no such
+ * field. */
+LLVMValueRef
+llvm_implicit_host_field_ptr(LLVMGenCtx *ctx, const char *name,
+                             LLVMTypeRef *field_type_out)
+{
+    const char *host_name;
+    LLVMClassTypeEntry *parent_cls;
+    int parent_field_idx;
+    LLVMValueRef self_ptr;
+
+    if (field_type_out != NULL)
+        *field_type_out = NULL;
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    host_name = llvm_current_host_class_name(ctx);
+    parent_cls = host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
+    if (parent_cls == NULL)
+        return NULL;
+    parent_field_idx = llvm_class_field_index(parent_cls, name);
+    if (parent_field_idx < 0)
+        return NULL;
+    self_ptr = llvm_current_self_base_ptr(ctx, parent_cls);
+    if (self_ptr == NULL)
+        return NULL;
+    if (field_type_out != NULL)
+        *field_type_out = llvm_class_field_type_at_index(parent_cls,
+            parent_field_idx);
+    return LLVMBuildStructGEP2(ctx->builder, parent_cls->struct_type, self_ptr,
+        (unsigned)parent_field_idx, llvm_tmp_name(ctx));
+}
+
+/* A subject parameter takes the participant's storage address, never a
+ * loaded copy: a local or parameter binding, an implicit host field such as
+ * a world's zone member, or a member path through them. NULL means the
+ * argument has no addressable storage; the caller reports that, because a
+ * by-value subject cannot match the pointer parameter. */
+LLVMValueRef
+llvm_subject_argument_address(LLVMGenCtx *ctx, ASTNode *arg_node,
+                              LLVMClassTypeEntry *param_cls)
+{
+    if (ctx == NULL || arg_node == NULL || param_cls == NULL)
+        return NULL;
+    if (arg_node->type == AST_IDENTIFIER)
+        return llvm_identifier_base_ptr(ctx, ast_identifier_name(arg_node),
+            param_cls);
+    if (arg_node->type == AST_MEMBER_ACCESS)
+        return llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
+    return NULL;
+}
+
+/* The parameter prologue binds a parameter it passes by address (a subject
+ * parameter, self in a pointer-self body) as a pointer, so the operand
+ * evaluates to that address. Storage that holds the value (an Option
+ * payload, a constructor field) loads it; every other operand is unchanged. */
+LLVMValueRef
+llvm_operand_value_for_storage(LLVMGenCtx *ctx, ASTNode *operand,
+                               LLVMValueRef value, LLVMTypeRef storage_ty)
+{
+    LLVMVarEntry binding;
+
+    if (ctx == NULL || operand == NULL || value == NULL
+        || storage_ty == NULL || operand->type != AST_IDENTIFIER
+        || LLVMGetTypeKind(storage_ty) == LLVMPointerTypeKind
+        || LLVMGetTypeKind(LLVMTypeOf(value)) != LLVMPointerTypeKind)
+        return value;
+    if (!llvm_scope_lookup_snapshot(ctx, ast_identifier_name(operand),
+            &binding)
+        || LLVMGetTypeKind(binding.type) != LLVMPointerTypeKind)
+        return value;
+    return LLVMBuildLoad2(ctx->builder, storage_ty, value, llvm_tmp_name(ctx));
+}
+
+LLVMValueRef
+llvm_current_self_call_arg(LLVMGenCtx *ctx)
+{
+    LLVMVarEntry self_var;
+
+    if (ctx == NULL)
+        return NULL;
+
+    if (!llvm_scope_lookup_snapshot(ctx, "self", &self_var))
+        return NULL;
+
+    return LLVMBuildLoad2(ctx->builder, self_var.type, self_var.alloca,
+        llvm_tmp_name(ctx));
+}
+
+static const char *
+llvm_expr_unwrap_option_payload_class_name(ASTNode *node, LLVMGenCtx *ctx)
+{
+    ASTNode *callee;
+    ASTNode *arg;
+
+    if (node == NULL || ctx == NULL || node->type != AST_CALL
+        || ast_call_arg_count(node) != 1)
+        return NULL;
+    callee = ast_call_callee(node);
+    if (callee == NULL || callee->type != AST_IDENTIFIER
+        || ast_identifier_name(callee) == NULL
+        || strcmp(ast_identifier_name(callee), "UnwrapOption") != 0)
+        return NULL;
+
+    arg = ast_call_argument(node, 0);
+    if (arg != NULL && arg->type == AST_IDENTIFIER) {
+        const MIRRoutine *routine = ctx->current_mir_routine;
+        const char *source_type;
+        char payload_name[256];
+
+        if (routine == NULL) {
+            const char *function_name = ctx->current_func_decl != NULL
+                && ctx->current_func_decl->type == AST_FUNC_DECL
+                    ? ast_declaration_name(ctx->current_func_decl)
+                    : NULL;
+            routine = llvm_active_function_routine_by_name(ctx, function_name);
+        }
+        source_type = routine != NULL
+            ? mir_routine_source_local_type_name(routine,
+                ast_identifier_name(arg))
+            : NULL;
+        if (source_type != NULL
+            && strncmp(source_type, "Option<", 7) == 0
+            && llvm_constructed_arg_name_copy(source_type, 0,
+                payload_name, sizeof(payload_name))) {
+            LLVMClassTypeEntry *payload = llvm_lookup_class(ctx, payload_name);
+            if (payload != NULL)
+                return payload->class_name;
+        }
+        if (routine != NULL)
+            return NULL;
+    }
+
+    {
+        LLVMTypeRef option_type = llvm_stmt_infer_expr_type(ctx, arg);
+        LLVMTypeRef fields[2];
+        LLVMClassTypeEntry *payload;
+
+        if (option_type == NULL
+            || LLVMGetTypeKind(option_type) != LLVMStructTypeKind
+            || LLVMCountStructElementTypes(option_type) != 2)
+            return NULL;
+        LLVMGetStructElementTypes(option_type, fields);
+        if (fields[0] != ctx->type_i32)
+            return NULL;
+        payload = llvm_lookup_class_by_type(ctx, fields[1]);
+        return payload != NULL ? payload->class_name : NULL;
+    }
+}
+
+const char *
+llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
+{
+    if (node == NULL)
+        return NULL;
+
+    switch (node->type) {
+    case AST_IDENTIFIER: {
+        const char *name = ast_identifier_name(node);
+        const char *class_name = llvm_lookup_var_class(ctx, name);
+        if (class_name != NULL)
+            return class_name;
+        if (strcmp(name, "self") != 0) {
+            const char *host_name = llvm_current_host_class_name(ctx);
+            LLVMClassTypeEntry *host_cls = host_name != NULL
+                ? llvm_lookup_class(ctx, host_name) : NULL;
+            if (host_cls != NULL) {
+                int field_idx = llvm_class_field_index(host_cls, name);
+                if (field_idx >= 0) {
+                    LLVMTypeRef field_ty =
+                        llvm_class_field_type_at_index(host_cls, field_idx);
+                    LLVMClassTypeEntry *field_cls =
+                        llvm_lookup_class_by_type(ctx, field_ty);
+                    if (field_cls != NULL)
+                        return field_cls->class_name;
+                }
+            }
+        }
+        {
+            LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, name);
+            if (variant != NULL)
+                return variant->enum_name;
+        }
+        return NULL;
+    }
+    case AST_MEMBER_ACCESS:
+        if (llvm_is_upper_ident(ast_member_object(node))) {
+            const char *object_name = ast_identifier_name(ast_member_object(node));
+            LLVMEnumVariantEntry *variant =
+                llvm_lookup_enum_variant_qualified(ctx,
+                    object_name,
+                    ast_member_name(node));
+            if (variant != NULL)
+                return variant->enum_name;
+        }
+        {
+            const char *base_name =
+                llvm_expr_custom_type_name(ast_member_object(node), ctx);
+            LLVMClassTypeEntry *base_cls = NULL;
+            if (base_name != NULL)
+                base_cls = llvm_lookup_class(ctx, base_name);
+            if (base_cls != NULL) {
+                int field_idx = llvm_class_field_index(base_cls,
+                    ast_member_name(node));
+                if (field_idx >= 0) {
+                    LLVMTypeRef field_ty =
+                        llvm_class_field_type_at_index(base_cls, field_idx);
+                    LLVMClassTypeEntry *field_cls =
+                        llvm_lookup_class_by_type(ctx, field_ty);
+                    if (field_cls != NULL)
+                        return field_cls->class_name;
+                }
+            }
+        }
+        return NULL;
+    case AST_ARRAY_ACCESS: {
+        return llvm_array_access_element_class_name(ctx, node);
+    }
+    case AST_CALL:
+        if (ctx->current_mir_routine != NULL || llvm_active_has_mir(ctx)) {
+            const MIRProgram *program = llvm_active_mir_identity(ctx);
+            const MIRRoutine *routine = ctx->current_mir_routine;
+            MIRSourceLocalTypeScratch scratch = {0};
+            if (program == NULL || routine == NULL) return NULL;
+            const char *type_name = mir_source_local_expr_type_name(program, routine, &scratch, node);
+            if (type_name == NULL) return NULL;
+            PgyTypeKind kind = pgy_classify_type(type_name);
+            if (kind != PGY_TK_UNKNOWN && kind != PGY_TK_CLASS) return NULL;
+            LLVMClassTypeEntry *result = llvm_lookup_class(ctx, type_name);
+            return result != NULL ? result->class_name : NULL;
+        }
+        {
+            const char *payload_class =
+                llvm_expr_unwrap_option_payload_class_name(node, ctx);
+            if (payload_class != NULL)
+                return payload_class;
+        }
+        if (ast_call_callee(node) != NULL
+            && ast_call_callee(node)->type == AST_IDENTIFIER) {
+            const char *callee = ast_identifier_name(ast_call_callee(node));
+            if (llvm_lookup_class(ctx, callee) != NULL)
+                return callee;
+            {
+                LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, callee);
+                if (variant != NULL)
+                    return variant->enum_name;
+            }
+            {
+                LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
+                ASTNode *host_decl = llvm_current_host_decl(ctx);
+                const char *host_name = llvm_decl_node_name(host_decl);
+                if (fn == NULL && host_name != NULL) {
+                    char full_name[256];
+                    snprintf(full_name, sizeof(full_name), "%s_%s",
+                        host_name, callee);
+                    fn = llvm_lookup_function(ctx, full_name);
+                }
+                if (fn != NULL) {
+                    LLVMClassTypeEntry *ret_cls =
+                        llvm_lookup_class_by_type(ctx, fn->ret_type);
+                    if (ret_cls != NULL)
+                        return ret_cls->class_name;
+                }
+            }
+        }
+        if (ast_call_callee(node) != NULL
+            && ast_call_callee(node)->type == AST_MEMBER_ACCESS) {
+            const char *recv_cls = llvm_expr_custom_type_name(
+                ast_member_object(ast_call_callee(node)), ctx);
+            const char *method = ast_member_name(ast_call_callee(node));
+            if (recv_cls != NULL && method != NULL) {
+                char full_name[256];
+                snprintf(full_name, sizeof(full_name), "%s_%s",
+                    recv_cls, method);
+                LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
+                if (fn != NULL) {
+                    LLVMClassTypeEntry *ret_cls =
+                        llvm_lookup_class_by_type(ctx, fn->ret_type);
+                    if (ret_cls != NULL)
+                        return ret_cls->class_name;
+                }
+            }
+        }
+        return NULL;
+    default:
+        return NULL;
+    }
+}
+
+LLVMClassTypeEntry *
+llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty)
+{
+    return llvm_lookup_class_by_struct_type(ctx, ty);
+}
+
+LLVMValueRef
+llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx)
+{
+    double val = ast_number_value(node);
+
+    if (ast_number_is_long(node)) {
+        return LLVMConstInt(ctx->type_i64,
+            (unsigned long long)ast_number_exact_long_value(node), 1);
+    }
+
+    if (ast_number_is_float(node))
+        return LLVMConstReal(ctx->type_f32, val);
+
+    if (val == (int64_t)val && val >= -2147483648.0 && val <= 2147483647.0)
+        return LLVMConstInt(ctx->type_i32, (unsigned long long)(int32_t)val, 1);
+
+    if (val == (double)(int64_t)val
+        && val >= -9.2233720368547758e+18
+        && val <=  9.2233720368547758e+18)
+        return LLVMConstInt(ctx->type_i64, (unsigned long long)(int64_t)val, 1);
+
+    return LLVMConstReal(ctx->type_f64, val);
+}
+
+LLVMValueRef
+llvm_emit_string(ASTNode *node, LLVMGenCtx *ctx)
+{
+    const char *str = ast_string_value(node);
+    LLVMValueRef global = LLVMBuildGlobalStringPtr(ctx->builder, str,
+                                                    llvm_tmp_name(ctx));
+    return global;
+}
+
+#endif /* PGY_LLVM_ENABLED */

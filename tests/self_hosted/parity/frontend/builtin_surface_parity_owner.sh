@@ -37,7 +37,7 @@ NATIVE_ONLY_CODE="builtin_native_pipeline_only"
 
 # Builtins outside the table that the matrix also holds to one surface. The
 # native checker resolves more names than the table lists
-# (src/semantic/type_checker_builtins_resolve.c); the clock and log/read rows
+# (src/semantic/type_checker/type_checker_builtins_resolve.c); the clock and log/read rows
 # here are the ones a program on the default route reported as an undefined
 # function, or accepted and then failed in the C compiler (Now).
 EXTRA_ROWS="LogBanner LogBlock LogRaw Now ReadLine Sleep UnwrapErr UnwrapOr"

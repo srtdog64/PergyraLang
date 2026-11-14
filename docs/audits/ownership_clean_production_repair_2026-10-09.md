@@ -29,7 +29,7 @@ concurrent identity safety are not established by these tests.
 Production sources:
 
 - `src/semantic/type_checker_flow_universe.{h,c}`;
-- `src/semantic/type_checker_flow_resources.c`;
+- `src/semantic/type_checker/type_checker_flow_resources.c`;
 - existing semantic test owner and `src/test_semantic.c` registration.
 
 The importing old-owner run failed 16 assertions (3135 pass/16 fail).
@@ -46,7 +46,7 @@ actual production objects:
 
 ```text
 SHA-256 262768f62f5c8bb3cbf2443996b65f9ace59f7aa4218d50327dc3cc7018919b0
-input   src/self_hosted/compiler/driver_bootstrap_main.pgy
+input   src/self_hosted/compiler/driver/driver_bootstrap_main.pgy
 cap     3072 MiB, unchanged
 exit    0
 time    91047 ms

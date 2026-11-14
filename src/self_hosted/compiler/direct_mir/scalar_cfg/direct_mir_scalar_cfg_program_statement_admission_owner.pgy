@@ -1,0 +1,132 @@
+// One statement operation joins its target, expressions, and operation rows.
+import "direct_mir_scalar_cfg_program_array_mutation_storage_owner.pgy";
+import "direct_mir_scalar_cfg_program_instruction_expression_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_array_mutation_receiver_use_owner.pgy";
+import "direct_mir_scalar_cfg_program_discarded_call_readiness_owner.pgy";
+import "../direct_mir_instruction_abi_absence_owner.pgy";
+
+struct DirectMirScalarCfgProgramStatementAdmission {
+    let valid: Bool;
+    let operations: DirectMirScalarCfgProgramOperationStorage;
+    let expressions: DirectMirScalarProgramExpressionSet;
+}
+
+func DirectMirScalarCfgProgramAppendStatement(operations: DirectMirScalarCfgProgramOperationStorage,
+    expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure, source: String,
+    ref capture: MirRoutineInstructionScalarCapture, ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
+    global_row: Int, local_instruction: Int, ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan, ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, parameter_types: Array<String>,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact,
+    ref array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    routine_ordinal: Int
+) -> DirectMirScalarCfgProgramStatementAdmission {
+    // A refusal hands back the sets as they are now: once an expression is
+    // appended, the descriptors this call received are stale.
+    if source != "AST_CALL" || capture.result != "" { return DirectMirScalarCfgProgramStatementAdmission(false, operations, expressions); }
+    if !DirectMirInstructionHasNoPhysicalAbi(instruction.json, instruction.json_extent, capture, "") ||
+        capture.abi_type_end != capture.abi_type_start + 4 { return DirectMirScalarCfgProgramStatementAdmission(false, operations, expressions); }
+    var operation_kind: Int = 0;
+    var expected_type: String = "";
+    var target_local: Int = -1;
+    var target_parameter: Int = -1;
+    var target_member_ordinals: Array<Int> = [];
+    var use_offset: Int = 0;
+    var index_expression_row: Int = -1;
+    if capture.arg0 == "Log" {
+        operation_kind = DirectMirScalarCfgOpExpressionLog();
+    } else if capture.arg0 == "Exit" {
+        operation_kind = DirectMirScalarCfgOpProcessExit();
+        expected_type = CompilerAbiLayoutIntTypeName();
+    } else if capture.arg0 == "ArrayPush" ||
+            capture.arg0 == "ArraySet" || capture.arg0 == "ArrayPop" {
+        let target: DirectMirScalarProgramArrayMutationTarget =
+            DirectMirScalarProgramArrayMutationTargetFromOwners(
+                capture.arg0, instruction, wire, local_instruction,
+                locals, types,
+                signature, array_int_value_result, array_bool_abi,
+                array_string_abi,
+                logical_record,
+                routine_ordinal);
+        if !target.valid { return DirectMirScalarCfgProgramStatementAdmission(false, operations, expressions); }
+        operation_kind = target.operation_kind;
+        expected_type = target.element_type;
+        target_member_ordinals = target.member_ordinals;
+        let receiver_use_count: Int =
+            DirectMirScalarProgramArrayMutationReceiverUseCount(
+                uses, index, locals, types, wire, target,
+                global_row, local_instruction);
+        if receiver_use_count < 0 {
+            return DirectMirScalarCfgProgramStatementAdmission(
+                false, operations, expressions);
+        }
+        use_offset = receiver_use_count;
+        if target.local_row >= 0 {
+            target_local = target.local_row + local_offset;
+        }
+        target_parameter = target.parameter_ordinal;
+        if DirectMirScalarProgramArrayPopKind(operation_kind) {
+            if !DirectMirScalarProgramArrayPopReceiverShapeReady(
+                instruction, uses, global_row, use_offset) { return DirectMirScalarCfgProgramStatementAdmission(false, operations, expressions); }
+            operations = DirectMirScalarCfgProgramOperationsAppendArrayMutation(
+                operations, operation_kind, target_local, target_parameter,
+                -1, -1, target_member_ordinals);
+            return DirectMirScalarCfgProgramStatementAdmission(
+                operations.valid, operations, expressions);
+        }
+        if capture.arg0 == "ArraySet" {
+            let index_opt: Option<Int> =
+                DirectMirScalarCfgProgramAppendTypedExpressionField(
+                    expressions, failure, instruction, uses, index, global_row,
+                    local_instruction, locals, types, wire, local_offset,
+                    parameter_types, signature, callables, routine_instances,
+                    routine_ordinal, logical_record,
+                    payload_free_enum, referenced_enum,
+                    "expr1_graph",
+                    use_offset, false, CompilerAbiLayoutIntTypeName(), -1);
+            if !IsSome(index_opt) {
+                return DirectMirScalarCfgProgramStatementAdmission(false, operations, expressions);
+            }
+            index_expression_row = UnwrapOption(index_opt);
+        }
+    } else {
+        operation_kind = DirectMirScalarCfgOpExpressionStatement();
+    }
+    let expression_row_opt: Option<Int> =
+        DirectMirScalarCfgProgramAppendTypedExpression(
+            expressions, failure, instruction, uses, index,
+            global_row, local_instruction,
+            locals, types, wire, local_offset, parameter_types, signature,
+            callables, routine_instances, routine_ordinal, logical_record,
+            payload_free_enum, referenced_enum,
+            use_offset, expected_type,
+            operation_kind == DirectMirScalarCfgOpProcessExit());
+    if !IsSome(expression_row_opt) {
+        return DirectMirScalarCfgProgramStatementAdmission(false, operations, expressions);
+    }
+    let expression_row: Int = UnwrapOption(expression_row_opt);
+    if operation_kind == DirectMirScalarCfgOpExpressionStatement() &&
+        !DirectMirScalarCfgProgramDiscardedCallExpressionReady(
+            expressions, expression_row) { return DirectMirScalarCfgProgramStatementAdmission(false, operations, expressions); }
+    if DirectMirScalarProgramArrayMutationKind(operation_kind) {
+        operations = DirectMirScalarCfgProgramOperationsAppendArrayMutation(
+            operations, operation_kind, target_local, target_parameter,
+            expression_row, index_expression_row,
+            target_member_ordinals);
+    } else {
+        operations = DirectMirScalarCfgProgramOperationsAppendExpression(
+            operations, operation_kind, -1, expression_row, -1);
+    }
+    return DirectMirScalarCfgProgramStatementAdmission(
+        operations.valid, operations, expressions);
+}

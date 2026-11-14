@@ -5,8 +5,8 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
-import "../semantic/ast_expression_surface_fact_owner.pgy";
-import "../semantic/ast_expression_function_table_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_surface_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_function_table_fact_owner.pgy";
 import "../semantic/ast_intent_signature_fact_owner.pgy";
 import "../semantic/ast_intent_transition_fact_owner.pgy";
 import "../semantic/ast_role_fact_owner.pgy";

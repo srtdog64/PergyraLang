@@ -1,0 +1,453 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Type Checker late / call-path helpers.
+ * Owns the large call-typing and borrowed-boundary argument validator logic
+ * as a focused translation unit. See docs/101_semantic_split_template.md.
+ */
+
+#include "type_checker_internal.h"
+#include "type_checker_assignment.h"
+#include "../function_param_flow/function_param_publication_owner.h"
+#include "../callable_capability_inference.h"
+#include "../collection_owned_element_requirement_owner.h"
+#include "../array_storage_release_owner.h"
+#include "type_checker_visibility.h"
+#include "type_checker_generic_diag_internal.h"
+#include "type_checker_ownership_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
+#include "../diag_codes.h"
+#include "../map_string_payload_view_owner.h"
+#include "../default_aggregate_move_rule.h"
+#include "../loan_copy_landing_owner.h"
+#include "../../common/string_compat.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+uint32_t
+declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
+                                    bool *has_contract_out);
+
+Type *
+type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
+                                const char *display_name,
+                                SemanticContext *ctx)
+{
+    ASTNode *callable_decl = NULL;
+
+    if (sym == NULL) {
+        if (name_looks_qualified(display_name)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
+                "Undefined function '%s' (expected a callable symbol). "
+                "Check namespace spelling/export visibility or define/import a callable declaration before use.",
+                display_name);
+        } else {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
+                "Undefined function '%s' (expected a callable symbol in current scope). "
+                "Declare '%s' first, or use a qualified name for a namespaced declaration.",
+                display_name, display_name);
+        }
+        return TYPE_UNKNOWN;
+    }
+
+    {
+        Type *constructor_type = NULL;
+        if (type_check_constructor_symbol_call(expr, sym, display_name, ctx,
+                &constructor_type)) {
+            return constructor_type != NULL ? constructor_type : TYPE_UNKNOWN;
+        }
+    }
+
+    if (sym->kind != SYMBOL_FUNCTION && sym->kind != SYMBOL_INTENT
+        && sym->kind != SYMBOL_VARIABLE
+        && sym->kind != SYMBOL_ENUM_CONSTRUCTOR) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,
+            "Selected symbol '%s' is not a callable declaration",
+            display_name != NULL ? display_name : "<call>");
+        return TYPE_UNKNOWN;
+    }
+
+    if (sym->type == NULL) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,
+            "Selected call target '%s' has no resolved type",
+            display_name != NULL ? display_name : "<call>");
+        return TYPE_UNKNOWN;
+    }
+    if (sym->type->kind != TYPE_KIND_FUNCTION) {
+        char sig_buf[256];
+        semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
+        if (sig_buf[0] == '\0')
+            snprintf(sig_buf, sizeof(sig_buf), "fn(<signature unavailable>)");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION,
+            expr,
+            "'%s' resolves to a %s '%s' of type '%s', but function calls require a callable declaration. "
+            "Expected a function signature matching %s. Use a function name, a callable variable, "
+            "or adjust this symbol declaration before calling.",
+            display_name,
+            semantic_symbol_kind_label(sym->kind),
+            display_name,
+            type_name_or_unknown(sym->type),
+            sig_buf);
+        return TYPE_UNKNOWN;
+    }
+    if (ctx != NULL && sym->kind == SYMBOL_ENUM_CONSTRUCTOR) {
+        Type *result = type_function_return_type(sym->type);
+        ASTNode *owner = result != NULL && result->kind == TYPE_KIND_ENUM && result->name != NULL
+            ? semantic_find_enum_decl_by_name(ctx, result->name) : NULL;
+        ASTNode *target = ast_call_callee(expr);
+        const char *variant = target != NULL && target->type == AST_IDENTIFIER
+            ? ast_identifier_name(target)
+            : target != NULL && target->type == AST_MEMBER_ACCESS
+                ? ast_member_name(target) : NULL;
+        ASTNode *qualifier = target != NULL && target->type == AST_MEMBER_ACCESS
+            ? ast_member_object(target) : NULL;
+        size_t count = 0;
+        char **variants = owner != NULL ? ast_enum_variants(owner, &count) : NULL;
+        bool selected = owner != NULL && ast_enum_name(owner) != NULL &&
+            strcmp(result->name, ast_enum_name(owner)) == 0 &&
+            sym->decl_syntax_id != 0 &&
+            ast_node_stable_id(owner) == sym->decl_syntax_id &&
+            semantic_host_decl_for_type(ctx, result) == owner && variant != NULL &&
+            sym->name != NULL && strcmp(sym->name, variant) == 0 &&
+            (target->type == AST_IDENTIFIER || (qualifier != NULL &&
+                qualifier->type == AST_IDENTIFIER &&
+                ast_identifier_name(qualifier) != NULL &&
+                strcmp(ast_identifier_name(qualifier), ast_enum_name(owner)) == 0));
+        bool variant_current = false;
+        for (size_t i = 0; selected && i < count; i++)
+            if (variants != NULL && variants[i] != NULL &&
+                strcmp(variants[i], variant) == 0 &&
+                ast_enum_variant_param_count(owner, i) == type_function_param_count(sym->type))
+                variant_current = true;
+        if (!selected || !variant_current ||
+            !ast_call_set_semantic_callee_decl_id(expr, sym->decl_syntax_id)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,
+                "Selected enum constructor '%s' has no matching declaration identity",
+                display_name != NULL ? display_name : "<variant>");
+            return TYPE_UNKNOWN;
+        }
+        /* The constructed value's type is the selected enum; its result
+         * relation receipt names that type, as a checked Clone does. */
+        if (ast_call_semantic_value_type_name(expr) == NULL &&
+            !ast_call_set_semantic_value_type_name_copy(expr, result->name)) {
+            semantic_error(ctx, expr, "Enum constructor result type snapshot allocation failed");
+            return TYPE_UNKNOWN;
+        }
+    }
+    if (ctx != NULL
+        && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
+        /* The selected symbol has the normalized declaration spelling; display_name is diagnostic text. */
+        callable_decl = semantic_host_index_find_selected_callable(
+            ctx, sym->kind, sym->decl_syntax_id, sym->name);
+        if (callable_decl == NULL) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,
+                "Selected callable '%s' has no matching declaration identity",
+                display_name != NULL ? display_name : "<call>");
+            return TYPE_UNKNOWN;
+        }
+        if (!explicit_type_reference_allowed(callable_decl, expr, ctx)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY,
+                PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER,
+                expr,
+                "Callable '%s' is not accessible across the current visibility boundary",
+                display_name);
+            return type_function_return_type(sym->type);
+        }
+        if (!ast_call_set_semantic_callee_decl_id(expr, sym->decl_syntax_id) ||
+            (callable_decl->type == AST_FUNC_DECL &&
+                !ast_call_set_semantic_callee_declared_callable(expr, true))) {
+            semantic_error(ctx, expr,
+                "Callable declaration identity requires an AST call site");
+            return TYPE_UNKNOWN;
+        }
+    }
+    sym->is_used = true;
+    /* Preserve branch explanations; only sealed call equations own bounds. */
+    semantic_record_callee_effect_provenance(ctx, type_function_effects(sym->type));
+    /* Generated enum constructors have checked argument ownership, not a
+     * source function body or a pending callee-body declaration edge. */
+    if (sym->kind != SYMBOL_ENUM_CONSTRUCTOR)
+        semantic_record_callee_body_summary(ctx, expr, sym->type);
+    semantic_record_callable_decl_summary(ctx, callable_decl,
+        sym->type,
+        type_function_effects(sym->type));
+    if (ctx->in_parallel
+        && type_effect_mask_has(type_function_effects(sym->type), EFFECT_SECURE)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
+            "Parallel context does not permit calling secure-effect function '%s'; serialize authority-bearing operations outside the parallel block",
+            display_name);
+        return type_function_return_type(sym->type);
+    }
+
+    size_t expected = type_function_param_count(sym->type);
+    size_t provided = ast_call_arg_count(expr);
+    GenericParams *callable_generic_params = NULL;
+    size_t callable_generic_count = 0;
+    Type **effective_generic_types = NULL;
+    if (provided != expected) {
+        char sig_buf[256];
+        semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
+        if (sig_buf[0] == '\0')
+            snprintf(sig_buf, sizeof(sig_buf), "fn(<signature unavailable>)");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
+            "'%s' expects %llu argument(s), got %llu. Declared signature: %s. "
+            "Adjust caller arguments to satisfy the declaration.",
+            display_name, (unsigned long long) expected, (unsigned long long) provided, sig_buf);
+        return type_function_return_type(sym->type);
+    }
+    if (callable_decl != NULL && callable_decl->type == AST_FUNC_DECL &&
+        semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_selected_callable(
+            ctx, expr, callable_decl, NULL)) {
+        semantic_error(ctx, expr, "Selected function formal identity could not be published");
+        return TYPE_UNKNOWN;
+    }
+
+    Type **call_arg_types = calloc(provided > 0 ? provided : 1, sizeof(Type *));
+    if (call_arg_types == NULL) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_UNKNOWN_TYPE,
+            PGY_CAUSE_RESOLUTION_OOM,
+            PGY_FIX_REDUCE_SCOPE_OR_RETRY,
+            expr,
+            "Could not allocate call argument type metadata for '%s'.\n"
+            "Reason:\n"
+            "- semantic call checking ran out of memory while recording argument types\n"
+            "Fix:\n"
+            "- reduce this compilation unit size and retry\n"
+            "- or report the input if this happens on a small program",
+            display_name != NULL ? display_name : "<call>");
+        return type_function_return_type(sym->type);
+    }
+    if (ctx != NULL
+        && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
+        callable_generic_params = callable_decl->type == AST_FUNC_DECL
+            ? ast_func_generic_params(callable_decl) : NULL;
+        callable_generic_count = ast_generic_param_count(callable_generic_params);
+        if (callable_generic_count > 0) {
+            effective_generic_types = calloc(
+                callable_generic_count > 0
+                    ? callable_generic_count : 1,
+                sizeof(Type *));
+            if (effective_generic_types != NULL) {
+                for (size_t gi = 0; gi < callable_generic_count; gi++) {
+                    GenericParam *gp =
+                        ast_generic_param_at(callable_generic_params, gi);
+                    ASTNode *default_type = ast_generic_param_default_type(gp);
+                    if (default_type != NULL)
+                        effective_generic_types[gi] =
+                            semantic_type_resolution_lookup_metadata_type_ref(
+                                ctx, default_type);
+                    if (effective_generic_types[gi] == NULL)
+                        effective_generic_types[gi] = TYPE_UNKNOWN;
+                }
+            }
+        }
+    }
+
+    MapPayloadViewCallFrame map_view_frame;
+    semantic_map_payload_view_call_begin(&map_view_frame);
+    for (size_t i = 0; i < provided; i++) {
+        ASTNode *arg_expr = ast_call_argument(expr, i);
+        /* A field or element place passed inout was a lost update on C
+         * (`Both(s.a, s.a)` printed 11), invalid IR on LLVM, and a codegen
+         * refusal on the self-host route. Only a variable is carried as an
+         * inout reference on every route. */
+        if (callable_decl != NULL
+            && i < ast_func_param_count(callable_decl)
+            && arg_expr != NULL
+            && arg_expr->type != AST_IDENTIFIER
+            && ast_func_param(callable_decl, i) != NULL
+            && ast_func_param(callable_decl, i)->mode == PARAM_MODE_MUT_REF) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                arg_expr,
+                "An inout argument must be a variable; copy the field or element into a local, pass the local, and assign it back");
+        }
+        Type *param_type = type_function_param_type(sym->type, i);
+        OwnershipTypeClass declared_param_ownership =
+            semantic_classify_ownership_type(param_type, ctx);
+        size_t argument_diagnostic_base = ctx->diagnostic_count;
+        bool invalid_future_use =
+            semantic_future_use_is_invalid(arg_expr, ctx);
+        Type *arg_type = declared_param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
+            ? type_check_qubit_use(arg_expr, ctx)
+            : type_check_expression_at_typed_site(arg_expr,
+                semantic_type_mentions_generic_param(param_type)
+                    ? NULL : param_type,
+                ctx);
+        if (type_equals(arg_type, TYPE_VOID)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_ASSIGNABILITY_CHECK,
+                PGY_FIX_ALIGN_OPERAND_TYPE,
+                arg_expr,
+                "Void expression cannot be passed as a call argument; split the side effect into a statement before the call");
+            arg_type = TYPE_UNKNOWN;
+        }
+        /* Resolve identities only after the original argument's type issuer;
+           spelling is diagnostic text, never overlap or source-mode authority. */
+        FuncParam *borrow_param = callable_decl == NULL ? NULL : ast_func_param(callable_decl, i);
+        /* A caller's read-only ref parameter passed inout is refused once,
+         * below, as a borrow escape; it is not also a replaced binding. */
+        bool readonly_ref_to_inout = false;
+        if (borrow_param != NULL && borrow_param->mode == PARAM_MODE_MUT_REF && arg_expr != NULL &&
+            arg_expr->type == AST_IDENTIFIER && ctx->current_function_decl != NULL &&
+            ctx->current_function_decl->type == AST_FUNC_DECL) {
+            uint32_t named = ast_identifier_binding_syntax_id(arg_expr);
+            for (size_t p = 0; named != 0 && p < ast_func_param_count(ctx->current_function_decl); p++) {
+                FuncParam *source = ast_func_param(ctx->current_function_decl, p);
+                if (source != NULL && ast_func_param_stable_id(source) == named && source->mode == PARAM_MODE_REF)
+                    readonly_ref_to_inout = true;
+            }
+        }
+        if (borrow_param != NULL && borrow_param->mode == PARAM_MODE_MUT_REF && !readonly_ref_to_inout)
+            (void)semantic_admit_value_mutation(arg_expr, ctx);
+        if (borrow_param != NULL && arg_expr != NULL && arg_expr->type == AST_IDENTIFIER &&
+            (borrow_param->mode == PARAM_MODE_REF || borrow_param->mode == PARAM_MODE_MUT_REF)) {
+            uint32_t binding = ast_identifier_binding_syntax_id(arg_expr);
+            if (binding == 0 || ast_node_stable_id(arg_expr) == 0) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, arg_expr,
+                    "A borrowed or inout argument requires an admitted stable binding identity");
+            } else {
+                ASTNode *caller = ctx->current_function_decl;
+                if (borrow_param->mode == PARAM_MODE_MUT_REF && caller != NULL && caller->type == AST_FUNC_DECL)
+                    for (size_t p = 0; p < ast_func_param_count(caller); p++) {
+                        FuncParam *source = ast_func_param(caller, p);
+                        if (source != NULL && ast_func_param_stable_id(source) == binding && source->mode == PARAM_MODE_REF)
+                            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                                PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, arg_expr,
+                                "Read-only ref parameter '%s' cannot be passed to an inout parameter",
+                                ast_identifier_name(arg_expr));
+                    }
+                for (size_t p = 0; p < i; p++) {
+                    ASTNode *prior = ast_call_argument(expr, p);
+                    FuncParam *prior_param = ast_func_param(callable_decl, p);
+                    if (prior == NULL || prior->type != AST_IDENTIFIER || prior_param == NULL ||
+                        (prior_param->mode != PARAM_MODE_REF && prior_param->mode != PARAM_MODE_MUT_REF) ||
+                        (borrow_param->mode != PARAM_MODE_MUT_REF && prior_param->mode != PARAM_MODE_MUT_REF) ||
+                        ast_identifier_binding_syntax_id(prior) != binding) continue;
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                        PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, arg_expr,
+                        borrow_param->mode == PARAM_MODE_MUT_REF && prior_param->mode == PARAM_MODE_MUT_REF
+                            ? "'%s' is passed to multiple inout parameters in the same call; each inout argument must be a distinct variable to avoid a lost update"
+                            : "'%s' is passed to overlapping inout/ref parameters in the same call; mutable and borrowed arguments must use distinct variables",
+                        ast_identifier_name(arg_expr));
+                    break;
+                }
+            }
+        }
+        /* A by-value aggregate shares its storage with the variable it names,
+         * as a ref does: beside an inout argument naming the same variable,
+         * the callee's change reaches it. The by-value argument is copied
+         * where the call takes it when Clone copies it whole
+         * (2026-10-23_by_value_argument_beside_its_inout_is_copied). */
+        if (borrow_param != NULL && arg_expr != NULL && arg_expr->type == AST_IDENTIFIER &&
+            (borrow_param->mode == PARAM_MODE_DEFAULT || borrow_param->mode == PARAM_MODE_MUT_REF) &&
+            ast_identifier_binding_syntax_id(arg_expr) != 0 && semantic_default_aggregate_value(ctx, arg_type))
+            for (size_t p = 0; p < i; p++) {
+                ASTNode *prior = ast_call_argument(expr, p);
+                FuncParam *prior_param = ast_func_param(callable_decl, p);
+                if (prior == NULL || prior->type != AST_IDENTIFIER || prior_param == NULL ||
+                    ast_identifier_binding_syntax_id(prior) != ast_identifier_binding_syntax_id(arg_expr) ||
+                    (prior_param->mode != PARAM_MODE_DEFAULT && prior_param->mode != PARAM_MODE_MUT_REF) ||
+                    (prior_param->mode == PARAM_MODE_MUT_REF) == (borrow_param->mode == PARAM_MODE_MUT_REF)) continue;
+                ASTNode *by_value = borrow_param->mode == PARAM_MODE_DEFAULT ? arg_expr : prior;
+                if (!semantic_loan_copy_landing_select_typed(ctx, by_value, arg_type))
+                    semantic_error(ctx, by_value, "By-value argument copy landing selection failed");
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, by_value,
+                    "'%s' is passed to an inout parameter and to a by-value parameter in the same call; the by-value argument shares the storage the callee changes",
+                    ast_identifier_name(arg_expr));
+                break;
+            }
+        if (effective_generic_types != NULL
+            && callable_decl != NULL
+            && i < ast_func_param_count(callable_decl)) {
+            FuncParam *fp = ast_func_param(callable_decl, i);
+            int param_index = -1;
+            if (fp != NULL && fp->type != NULL
+                && ast_type_name(fp->type) != NULL) {
+                param_index = find_generic_param_index(
+                    callable_generic_params,
+                    ast_type_name(fp->type));
+            }
+            if (param_index >= 0
+                && (size_t)param_index < callable_generic_count) {
+                effective_generic_types[param_index] = arg_type;
+                if (arg_type != NULL) {
+                    param_type = arg_type;
+                }
+            }
+        }
+        if (call_arg_types != NULL)
+            call_arg_types[i] = arg_type;
+        semantic_map_payload_view_call_argument(&map_view_frame, arg_expr, arg_type, ctx);
+        semantic_array_storage_call_argument(arg_expr, arg_type,
+            type_function_return_type(sym->type), type_function_param_mode(sym->type, i),
+            sym->kind == SYMBOL_ENUM_CONSTRUCTOR, expr, callable_decl, i, ctx);
+        if (ctx->diagnostic_count > argument_diagnostic_base)
+            continue;
+        if (arg_type == TYPE_UNKNOWN
+            && (invalid_future_use
+                || ctx->diagnostic_count > argument_diagnostic_base)) {
+            continue;
+        }
+
+        OwnershipTypeClass param_ownership =
+            semantic_classify_ownership_type(param_type, ctx);
+        OwnershipTypeClass arg_ownership =
+            semantic_classify_ownership_type(arg_type, ctx);
+        bool ownership_handled = false;
+
+        if (!semantic_collection_owned_element_requirement_record_argument(
+                expr, callable_decl, i, i, arg_expr, arg_type,
+                type_function_param_mode(sym->type, i), ctx))
+            continue;
+
+        semantic_check_function_call_ownership_argument(
+            arg_expr,
+            expr,
+            ctx,
+            callable_decl,
+            type_function_param_mode(sym->type, i),
+            display_name,
+            i,
+            i,
+            param_type,
+            arg_type,
+            param_ownership,
+            arg_ownership,
+            &ownership_handled);
+        if (ownership_handled)
+            continue;
+
+        require_assignable(arg_type, param_type, arg_expr, ctx);
+    }
+    /* The callee runs after every argument: a map it may change (any mode but
+     * ref) changes under the view arguments too. */
+    for (size_t i = 0; i < provided; i++) {
+        if (type_function_param_mode(sym->type, i) != PARAM_MODE_REF)
+            semantic_map_payload_view_change(ast_call_argument(expr, i), NULL, ctx);
+    }
+    semantic_map_payload_view_call_finish(&map_view_frame, ctx);
+
+    Type *return_type = semantic_validate_function_call_generic_where(
+        expr, ctx, display_name, provided, call_arg_types,
+        type_function_return_type(sym->type));
+    callable_capability_record_call(ctx, expr, sym, call_arg_types);
+
+    free(effective_generic_types);
+    free(call_arg_types);
+    return return_type;
+}

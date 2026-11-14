@@ -16,8 +16,8 @@ ONE_SIDED="tests/self_hosted/fixtures/direct_mir_one_sided_owned_array_string_pa
 LATER_USE="tests/self_hosted/fixtures/direct_mir_alternative_owned_array_string_parameter_use_after_move.pgy"
 DUPLICATE_ARM="tests/self_hosted/fixtures/direct_mir_duplicate_arm_owned_array_string_parameter.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir/direct_mir_multi_routine_mutations.py"
-COVERAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy"
-PLAN_READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy"
+COVERAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy"
+PLAN_READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1

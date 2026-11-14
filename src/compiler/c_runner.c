@@ -16,7 +16,7 @@
 #include "driver_binary_output_owner.h"
 #include "driver_diag.h"
 #include "path_utils.h"
-#include "self_host_driver.h"
+#include "self_host/self_host_driver.h"
 
 int
 c_runner_execute_installed_self_host_c(

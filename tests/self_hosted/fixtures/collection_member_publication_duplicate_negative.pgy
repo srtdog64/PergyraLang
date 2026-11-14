@@ -1,4 +1,4 @@
-import "../../../src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_result_owner.pgy";
 // The publisher may consume each temporary backing exactly once.
 func Duplicate(artifact: AstTreeArtifact, ref contexts: SemanticAstCollectionFormalExecutionContexts) -> SemanticAstCollectionMemberMoveUse {
     let restored: Array<Int> = [];

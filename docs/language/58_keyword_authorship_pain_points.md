@@ -581,7 +581,7 @@ nominal 상속이 아니라 `계약 상속`이다.
 
 실제 코드:
 
-- `src/semantic/type_checker_builtins.c`
+- `src/semantic/type_checker/type_checker_builtins.c`
 
 특징:
 

@@ -1,0 +1,46 @@
+// Exact projection of a statement-owned Exit wrapper onto its Int operand.
+import "../scalar_cfg/direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+func DirectMirScalarProgramProcessExitArgumentRowFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int, source_root: Int,
+    allow_wrapper: Bool, ref source_rows: Array<Int>,
+    ref normalized_types: Array<String>
+) -> Option<Int> {
+    if !allow_wrapper || node != source_root {
+        return None;
+    }
+    if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeCallArgument() {
+        return None;
+    }
+    let argument_source: Int =
+        sequence.arena.topology.right_children[node];
+    let call_node: Int = sequence.arena.topology.left_children[node];
+    var callee: Int = -1;
+    if call_node >= 0 && call_node < node {
+        callee = sequence.arena.topology.left_children[call_node];
+    }
+    if argument_source < 0 || argument_source >= node ||
+        argument_source >= ArrayLength(source_rows) ||
+        source_rows[argument_source] < 0 ||
+        source_rows[argument_source] >= ArrayLength(normalized_types) ||
+        call_node < 1 || call_node >= node ||
+        sequence.arena.topology.node_kinds[call_node] !=
+            AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[call_node] !=
+            SemanticCallTargetDirect() ||
+        callee < 0 || callee >= call_node ||
+        sequence.arena.topology.node_kinds[callee] !=
+            AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[callee] != "Exit" {
+        return None;
+    }
+    let argument: Int = source_rows[argument_source];
+    if sequence.arena.identities.call_target_syntax_ids[call_node] != 0 ||
+        sequence.arena.call_target_names[call_node] != "Exit" ||
+        normalized_types[argument] != CompilerAbiLayoutIntTypeName() {
+        return None;
+    }
+    return Some(argument);
+}

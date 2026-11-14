@@ -1,7 +1,7 @@
 // Exact declared runtime-call identity shared by semantic result contracts.
 // A carried target ID is not sufficient without the callable binding, ABI,
 // signature shape, and runtime-body row that own that ID.
-import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection/ast_collection_ownership_identity_owner.pgy";
 
 func SemanticAstRuntimeCallableSignatureRowReady(
     ref signatures: SemanticAstFunctionSignatureFacts,

@@ -27,18 +27,18 @@ Current beta closure snapshot:
 - `src/semantic/type_checker.c` is a narrow statement/program dispatch owner,
   not a helper warehouse.
 - enum declaration checking lives in
-  `src/semantic/type_checker_enum_decl.c`.
+  `src/semantic/type_checker/type_checker_enum_decl.c`.
 - assignment target path and borrowed-boundary root rendering live in
-  `src/semantic/type_checker_assignment_path.c`. That owner must keep
+  `src/semantic/type_checker/type_checker_assignment_path.c`. That owner must keep
   scratch-arena and heap ownership behind its path allocator/release helpers;
   recursive path construction must not directly free intermediate path parts or
   accept an external scratch/heap mode flag.
 - assignment expression checking lives in
-  `src/semantic/type_checker_assignment.c`; the header is declaration-only.
+  `src/semantic/type_checker/type_checker_assignment.c`; the header is declaration-only.
 - break/continue semantic validation lives in
-  `src/semantic/type_checker_loop_control.c`.
+  `src/semantic/type_checker/type_checker_loop_control.c`.
 - `bind party.slot = Role;` semantic validation lives in
-  `src/semantic/type_checker_bind_stmt.c`. Both the top-level statement
+  `src/semantic/type_checker/type_checker_bind_stmt.c`. Both the top-level statement
   dispatcher and CFG/body-flow path must call this owner. C/LLVM backends may
   emit bind wiring from the validated fact, but they must not be the first
   layer that discovers unknown party variables, missing role slots, unknown
@@ -95,24 +95,24 @@ Current beta closure snapshot:
   `mir_instruction_has_lifecycle_guard(...)` and the associated guard fields;
   they must not recover lifecycle verdicts from AST-node side tables.
 - LLVM verifier diagnostics live at the LLVM C API boundary in
-  `src/codegen/llvm_api.c`. `LLVMVerifyModule(...)` may leave the diagnostic
+  `src/codegen/llvm/llvm_api.c`. `LLVMVerifyModule(...)` may leave the diagnostic
   message pointer null on success; backend code must only call
   `LLVMDisposeMessage(...)` when the pointer is non-null.
 - type-resolution DAG worklist execution lives in
-  `src/semantic/type_checker_resolution_worklist.c`.
+  `src/semantic/type_checker/type_checker_resolution_worklist.c`.
 - type-resolution internal declarations live in
-  `src/semantic/type_checker_resolution_internal.h`. The general semantic
+  `src/semantic/type_checker/type_checker_resolution_internal.h`. The general semantic
   internal header may include that declaration surface, but nullable annotation
   readers and metadata dead-end recorders remain private to metadata owners.
   Splitting declarations is only valid when resolver-inventory smoke still
   proves zero fallback seams and no widened annotation-sensitive reads.
 - Intent-local type/effect recovery lives in
-  `src/semantic/type_checker_intent_types.c`. Intent step `where`, derived
+  `src/semantic/type_checker/type_checker_intent_types.c`. Intent step `where`, derived
   `using`, participant transfer-source checks, transfer edge consumers, and
   step `causes` checks may consume the intent domain owner seam, but they must
   not rediscover `AST_ZONE_DECL` or `AST_EFFECT_DECL` locally.
 - General semantic domain lookup seams live in
-  `src/semantic/type_checker_host_helpers.c`. Action contracts may consume
+  `src/semantic/type_checker/type_checker_host_helpers.c`. Action contracts may consume
   `semantic_find_zone_decl_by_name(...)` and
   `semantic_find_effect_decl_by_name(...)`; zone relation/effect contract
   validation may consume `semantic_find_relation_decl_by_name(...)` and
@@ -138,7 +138,7 @@ Current beta closure snapshot:
   point; access/escape consumers must not reopen a callee body or restore the
   former depth-limited recursion path.
 - Interprocedural callable body-summary reads live in
-  `src/semantic/type_checker_call_contract_helpers.c`. Consumers that need to
+  `src/semantic/type_checker/type_checker_call_contract_helpers.c`. Consumers that need to
   prove absence or presence of callee body facts must use
   `semantic_callable_summary_proves_no_*`,
   `semantic_callable_summary_has_*`, or
@@ -147,16 +147,16 @@ Current beta closure snapshot:
   written control constructs, but named callee and hosted member-callee
   spawn/channel/authority-contract decisions consume the checked body-summary
   reader.
-- Spawn boundary validators in `src/semantic/type_checker_async_channel.c`
+- Spawn boundary validators in `src/semantic/type_checker/type_checker_async_channel.c`
   consume the direct callee's checked function signature for parameter type
   facts via `type_function_param_type(...)` and parameter mode facts via
   `type_function_param_mode(...)`. They must not re-resolve parameter types
   from the declaration AST or reopen source `FuncParam::mode`.
 - General ownership call-contract lookup in
-  `src/semantic/type_checker_call_contract_helpers.c` also consumes parameter
+  `src/semantic/type_checker/type_checker_call_contract_helpers.c` also consumes parameter
   mode facts from the checked function signature. Returning the source function
   declaration is allowed only as body-summary/provenance input.
-- Callable summary propagation in `src/semantic/type_checker_helpers_effects.c`
+- Callable summary propagation in `src/semantic/type_checker/type_checker_helpers_effects.c`
   records callee `own`/`ref` summary bits from the checked function type when
   the type fact exists and derives effect/zone/causes summary bits from checked
   body-summary facts first; AST param modes and source `effects`, `within
@@ -169,7 +169,7 @@ Current beta closure snapshot:
   AST analyzer fallback is allowed.
 - MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
   helpers it consumes. Public MIR query/pass wrappers live in
-  `src/compiler/mir_public_surface.c`. MIR lowering is a consumer of HIR/RIR
+  `src/compiler/mir/mir_public_surface.c`. MIR lowering is a consumer of HIR/RIR
   shape, not the owner of those inventories: routine iteration must use
   `hir_routine_inventory_from_program(...)`, and RIR scope matching/cleanup/
   population must consume `rir_scope_inventory_*` and `rir_scope_*_at(...)`
@@ -211,7 +211,7 @@ Current beta closure snapshot:
   `rir_scope_kind/name/owner_name/display_name/has_state_errors`; direct field
   reads are limited to RIR public-surface/storage/build owners.
 - MIR declaration method routine links consume the MIR routine inventory
-  accessors from `src/compiler/mir_program_inventory.c`. Declaration header
+  accessors from `src/compiler/mir/mir_program_inventory.c`. Declaration header
   linking and validation may compare owner/name metadata, but they must not
   reopen `mir->routines` or `mir->routine_count` directly. MIR program
   validation must use the same inventory view for routine-shape checks.
@@ -225,7 +225,7 @@ Current beta closure snapshot:
   directly.
 - Parser, lexer, semantic, compiler, and codegen headers are declaration
   surfaces by default. The only current non-runtime implementation-header
-  exception is the macro-only `src/codegen/llvm_limits_internal.h`.
+  exception is the macro-only `src/codegen/llvm/llvm_limits_internal.h`.
 - Core AST public declarations live in `src/parser/ast_api.h`. Domain-oriented
   AST declarations live in `src/parser/ast_domain_api.h`; `ast_api.h` includes
   that header as a compatibility umbrella, but new domain accessors should be
@@ -290,7 +290,7 @@ Current beta closure snapshot:
   consume `llvm_lookup_enum_variant(...)` / qualified lookup, and source type
   resolution consumes `llvm_enum_type_exists(...)`; consumers must not scan
   `ctx->enum_variants[]` or `ctx->enum_variant_count` directly.
-- LLVM event type storage is owned by `src/codegen/llvm_event.c`. Main-wrapper
+- LLVM event type storage is owned by `src/codegen/llvm/llvm_event.c`. Main-wrapper
   emission may initialize registered events, but it must consume
   `llvm_event_type_count(...)` and `llvm_event_type_at(...)`; it must not read
   `ctx->event_type_count` or `ctx->event_types[]` directly.
@@ -315,7 +315,7 @@ Current beta closure snapshot:
   `find_effect_decl` C backend shortcut wrappers are retired; world-embedded
   zone recovery must consume `transpiler_resolve_world_zone_decl(...)`, and new
   direct shortcut wrappers are not allowed.
-- LLVM projection nominal lookup lives in `src/codegen/llvm_domain_lookup.c`
+- LLVM projection nominal lookup lives in `src/codegen/llvm/llvm_domain_lookup.c`
   behind `llvm_find_projection_nominal_decl(...)`. Consumers that still need a
   compatibility declaration may ask that owner for the nominal declaration, but
   domain projection value, projection path, member access, and spawn literal
@@ -332,7 +332,7 @@ Current beta closure snapshot:
   declaration headers through the hosted field view and fail closed if the
   field metadata is absent.
 - LLVM callable declaration lookup also lives in
-  `src/codegen/llvm_domain_lookup.c` behind `llvm_find_function_decl(...)`,
+  `src/codegen/llvm/llvm_domain_lookup.c` behind `llvm_find_function_decl(...)`,
   `llvm_find_intent_decl(...)`, and `llvm_find_callable_decl(...)`. Call
   dispatch consumes the callable owner once and then branches on the returned
   declaration kind; it must not rediscover function and intent declarations
@@ -354,7 +354,7 @@ Current beta closure snapshot:
   consume that field; they must not recover it by reading
   `LLVMGetValueName(ctx->current_function)` and looking the name up again.
 - LLVM spawn generated-name policy lives in
-  `src/codegen/llvm_expr_spawn_names.c`. Generic spawn specialization may append
+  `src/codegen/llvm/llvm_expr_spawn_names.c`. Generic spawn specialization may append
   mangled type suffixes through that owner, but boundary projection helpers must
   not carry spawn naming utilities.
 - Worker-boundary growable-storage classification names live in
@@ -371,7 +371,7 @@ Current beta closure snapshot:
   Projection field-path, method-invalidation, projection literal, overlay, and
   provenance owners must not reopen direct `find_class_decl(...)` probes for
   projection source/target host recovery.
-- C backend nominal member type lookup lives in `src/codegen/transpiler_nominal.c`
+- C backend nominal member type lookup lives in `src/codegen/c/transpiler_nominal.c`
   behind `transpiler_lookup_nominal_host_member_type_name(...)`. Expression
   type inference and MIR local type inference consume that owner for fallback
   member access typing; they must not reopen class-field compatibility directly.
@@ -389,7 +389,7 @@ Current beta closure snapshot:
   behind the type-require owner instead of reopening raw type mapping in the
   specialization registry.
 - party-slot ability tag selection lives in
-  `src/codegen/transpiler_role_ability.c`. Bind emission and member-call
+  `src/codegen/c/transpiler_role_ability.c`. Bind emission and member-call
   emission may consume `transpiler_party_slot_first_ability_tag(...)` or
   `transpiler_party_slot_method_ability_tag(...)`, but they must not reopen
   party role-slot scans locally. MIR-active generic ability tags fill omitted
@@ -415,8 +415,8 @@ Current beta closure snapshot:
   ownership, and destroy frees pending messages.
 - ABI layout facts live in `src/runtime/pgy_abi_spec.h`, with compile-time
   assertions in `src/runtime/pgy_abi_spec_asserts.h` and MIR consumer facts in
-  `src/compiler/mir_abi_layout.c`; Slot-like resource operation runtime rows
-  live in `src/compiler/mir_abi_resource_runtime.c`.
+  `src/compiler/mir/mir_abi_layout.c`; Slot-like resource operation runtime rows
+  live in `src/compiler/mir/mir_abi_resource_runtime.c`.
   `Option<T>` is currently an explicit tagged layout
   (`MIR_ABI_REPR_EXPLICIT_TAG`) with `niche_none_pattern == NULL`.
   `mir_abi_lookup(...)` accepts exact ABI row names only; runtime function

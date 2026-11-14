@@ -32,7 +32,7 @@ turn these features into field-kind closure requirements by association.
 
 ### Owned facts and reached path
 
-- Declared fact owner: `src/compiler/mir_decl_field_kind_vocabulary.def`,
+- Declared fact owner: `src/compiler/mir/mir_decl_field_kind_vocabulary.def`,
   `PGY_MIR_DECL_FIELD_KIND_ROWS`; stable identity `SyntaxNodeIdFieldOrdinal`.
 - Vocabulary projection: `src/self_hosted/lib/nominal_field_kind_owner.pgy` and
   generated `mir_decl_field_kind_vocabulary_projection_owner.pgy`.
@@ -49,7 +49,7 @@ turn these features into field-kind closure requirements by association.
   admission and the installed direct C/LLVM graph-plan consumers.
 - Last legitimate kind consumer examples:
   `DirectMirScalarProgramLogicalRecordCandidateAt` in
-  `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_fact_owner.pgy`,
   exact topology/assignment joins and identity-cell placement.
 
 ### Actual remaining paths, not just the open-reason prose
@@ -68,9 +68,9 @@ turn these features into field-kind closure requirements by association.
    and defaults field rows to `NominalFieldKindField()`.
 3. Native source has the distinction: `src/parser/parser_decl.c` sets
    `ClassField.is_vessel_field`; `pgy_class_decl_field_model_try_build` retains
-   it. `src/compiler/mir_decl_header_fields.c:mir_decl_field_metadata_init_class`
+   it. `src/compiler/mir/mir_decl_header_fields.c:mir_decl_field_metadata_init_class`
    copies it into `MIRDeclField.is_subject_like`, but
-   `src/compiler/mir_json_dump_decl.c:mir_json_decl_field_kind_name` emits
+   `src/compiler/mir/mir_json_dump_decl.c:mir_json_decl_field_kind_name` emits
    ordinary `field` for every CLASS row. Native `ast_print.c` also does not
    print the class-field modifier. The registry contains fourteen identities
    and no vessel-slot identity. This is real information loss, not merely an
@@ -92,18 +92,18 @@ new meanings, but they escape the declared spelling owner and its ratchet.
 - `src/self_hosted/mir/intent_resource_lifetime_owner.pgy`
 - `src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy`
 - `src/self_hosted/mir_lower/program_declaration_zone_authority_index_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_composite_intent_program_graph_fact_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_constructed_generic_member_declaration_fact_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_identity_cell_fact_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_inferred_generic_member_declaration_fact_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_intent_cell_placement_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_legacy_intent_program_graph_fact_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_legacy_intent_program_plan_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_nested_intent_program_graph_fact_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_nominal_declaration_abi_fact_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy`
-- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_composite_intent_program_graph_fact_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_declaration_fact_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_identity_cell_fact_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_member_declaration_fact_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_intent_cell_placement_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_legacy_intent_program_graph_fact_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_legacy_intent_program_plan_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_nested_intent_program_graph_fact_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_nominal_declaration_abi_fact_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_nominal_literal_declaration_fact_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy`
+- `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_fact_owner.pgy`
 
 ### Minimum implementation card
 
@@ -162,14 +162,14 @@ not claim pool materialization from a closed kind vocabulary.
   `uses_pointer_self`; it does not carry the concrete role-target fields which
   the admitted general codegen view already has.
 - Native parallel producer:
-  `src/compiler/mir_signature_metadata.c:mir_routine_receiver_carriage_capture`
-  and `src/compiler/mir_program_fact_validate.c:mir_validate_receiver_carriage_facts`
+  `src/compiler/mir/mir_signature_metadata.c:mir_routine_receiver_carriage_capture`
+  and `src/compiler/mir/mir_program_fact_validate.c:mir_validate_receiver_carriage_facts`
   also derive receiver from the declaration compatibility flag.
 - Exact compatibility last consumers:
-  `src/codegen/llvm_domain_lookup.c:llvm_type_name_uses_pointer_self`,
-  `src/codegen/transpiler_host_self_policy.c:is_pointer_self_host_type_name`,
+  `src/codegen/llvm/llvm_domain_lookup.c:llvm_type_name_uses_pointer_self`,
+  `src/codegen/c/transpiler_host_self_policy.c:is_pointer_self_host_type_name`,
   general parameter consumers in LLVM decl/mir-param/boundary call emission,
-  `src/compiler/mir_signature_metadata.c` parameter ABI capture, and their
+  `src/compiler/mir/mir_signature_metadata.c` parameter ABI capture, and their
   `src/codegen/host_decl_compat.c:pgy_host_decl_compat_uses_pointer_self` source.
 - Minimum full delta: extend existing callable MIR fact/wire with concrete
   target carriage and source receiver offset from semantic owner; validate
@@ -197,7 +197,7 @@ not claim pool materialization from a closed kind vocabulary.
 | --- | --- | --- |
 | `semantic.domain_runtime_assignment` | `SelfMirProgramDomainFactsFromReadyArtifact` calls `SelfMirDomainRuntimeAssignmentsFromFacts` at the MIR boundary; semantic participant/path decisions remain in `src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy`. General C consumes the admitted plan. Full lifecycle/world-effect/shared native-self runtime plan is not closed. | Real stage-owner debt plus unsupported frontier; not a short full closure. Moving files alone does not replace the semantic path. |
 | `parser.syntax_provenance` | Native HIR/DIR/RIR builders still take the annotated AST; `rir_builder.c` reads source AST while capturing stable IDs. | Stable IDs alone do not delete the AST fanout. Whole typed projection migration, not a vocabulary cleanup. |
-| `semantic.symbol_type_graph` | `src/compiler/mir.c:mir_lower` requires `SemanticResult` for parallel capture; `src/compiler/air_evidence_dag.c:air_collect_dag_evidence` reads semantic counts/lifecycle/capability; MIR still captures source AST types. | Moving the remaining parallel facts behind HIR is a useful partial delta, not full-row closure while AIR/source type reads remain. |
+| `semantic.symbol_type_graph` | `src/compiler/mir.c:mir_lower` requires `SemanticResult` for parallel capture; `src/compiler/air/air_evidence_dag.c:air_collect_dag_evidence` reads semantic counts/lifecycle/capability; MIR still captures source AST types. | Moving the remaining parallel facts behind HIR is a useful partial delta, not full-row closure while AIR/source type reads remain. |
 | `semantic.resource_flow_universe` | Native routine-local rows already project HIR to MIR/RIR; `rir_flow.c:rir_attach_resource_flow_identity` matches stable IDs then finds summary by `fact->name`. Both self JSON writers emit `resource_flow_symbol_count:0` and `resource_flow_symbols:[]`. | Stable summary join is a small native delta, but self production and typed transition payload remain. Native-only deletion is not installed self-host substitution. |
 | `semantic.loop_flow_summary` | `SelfMirLoopFlowRowsAppendRoutine` derives identity/kind but sets effect bases/deltas 0, flags 1 and empty entry/exit states. Production artifact writer carries these rows. | Nonempty effect/state and must-return need a semantic producer, not a consumer-side default. Shares resource-flow state obligations. |
 | `resource.region_allocation_plan` | Native `verified_region_plan.c` consumes AIR and projected MIR escape facts; native C/LLVM use the plan. `RegionPlanProduce` is only used by its own witnesses and `region_plan_manifest.pgy`, not the installed driver route. | Self-host region owner is SURFACE, not SUBSTITUTING. General String-concat/retention region facts are absent from the self executable route. |

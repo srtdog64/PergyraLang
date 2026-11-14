@@ -2,10 +2,10 @@
 // admits only allocation-producing roots whose local/result chain has no
 // retaining, deferred, member-alias, or non-comparison observer.
 
-import "ast_collection_ownership_identity_owner.pgy";
-import "ast_expression_graph_call_argument_edge_owner.pgy";
-import "ast_expression_graph_node_view_owner.pgy";
-import "ast_expression_call_identity_owner.pgy";
+import "ast_collection/ast_collection_ownership_identity_owner.pgy";
+import "ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_expression/ast_expression_graph_node_view_owner.pgy";
+import "ast_expression/ast_expression_call_identity_owner.pgy";
 import "ast_owned_string_expression_domain_owner.pgy";
 import "ast_builtin_argument_retention_call_fact_owner.pgy";
 

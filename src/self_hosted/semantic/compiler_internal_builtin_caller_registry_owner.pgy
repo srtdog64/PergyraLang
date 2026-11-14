@@ -18,7 +18,7 @@ func SemanticCompilerInternalBuiltinCallerRowAt(
 ) -> SemanticCompilerInternalBuiltinCallerRow {
     if index == 0 {
         return SemanticCompilerInternalBuiltinCallerRow(
-            true, "CompilerRetireArrayStorage", "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy",
+            true, "CompilerRetireArrayStorage", "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy",
             "DirectMirScalarProgramOwnedStringProofStorageRetire", "Array<Int>",
             "Void"
         ); }
@@ -48,13 +48,13 @@ func SemanticCompilerInternalBuiltinCallerRowAt(
         ); }
     if index == 5 {
         return SemanticCompilerInternalBuiltinCallerRow(
-            true, "CompilerRetireArrayStorage", "src/self_hosted/semantic/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy",
+            true, "CompilerRetireArrayStorage", "src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy",
             "SemanticAstIndexedStringBorrowInvalidationStorageRetire", "Array<Bool>",
             "Void"
         ); }
     if index == 6 {
         return SemanticCompilerInternalBuiltinCallerRow(
-            true, "CompilerRetireArrayStorage", "src/self_hosted/semantic/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy",
+            true, "CompilerRetireArrayStorage", "src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy",
             "SemanticAstIndexedStringBorrowSourceStorageRetire", "Array<Int>",
             "Void"
         ); }

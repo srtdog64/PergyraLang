@@ -35,12 +35,12 @@ require|src/compiler/execution_lane.c|return PGY_LANE_REJECT;
 require|src/compiler/execution_lane.c|return PGY_LANE_PINNED_ZONE;
 require|src/compiler/execution_lane.c|return PGY_LANE_MOVABLE_SCHEDULER;
 require|src/compiler/verified_projection_plan.c|pgy_verified_spawn_lane_plan_from_air(const PgyAirVerification *air,
-require|src/codegen/transpiler_spawn_channel_emit.c|transpiler_spawn_lane_symbol(
-require|src/codegen/transpiler_spawn_channel_emit.c|pgy_lane_spawn_dispatch(
-require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_lane_spawn_dispatch_export
-require|src/codegen/transpiler_spawn_channel_emit.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),
-require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),
-forbid|src/codegen/transpiler_spawn_channel_emit.c|pgy_spawn_blocking
-forbid|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_spawn_blocking
-forbid|src/codegen/transpiler_spawn_channel_emit.c|pgy_spawn_lane_from_blocking
-forbid|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_spawn_lane_from_blocking
+require|src/codegen/c/transpiler_spawn_channel_emit.c|transpiler_spawn_lane_symbol(
+require|src/codegen/c/transpiler_spawn_channel_emit.c|pgy_lane_spawn_dispatch(
+require|src/codegen/llvm/llvm_expr_spawn_call_helpers.c|pgy_lane_spawn_dispatch_export
+require|src/codegen/c/transpiler_spawn_channel_emit.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),
+require|src/codegen/llvm/llvm_expr_spawn_call_helpers.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),
+forbid|src/codegen/c/transpiler_spawn_channel_emit.c|pgy_spawn_blocking
+forbid|src/codegen/llvm/llvm_expr_spawn_call_helpers.c|pgy_spawn_blocking
+forbid|src/codegen/c/transpiler_spawn_channel_emit.c|pgy_spawn_lane_from_blocking
+forbid|src/codegen/llvm/llvm_expr_spawn_call_helpers.c|pgy_spawn_lane_from_blocking

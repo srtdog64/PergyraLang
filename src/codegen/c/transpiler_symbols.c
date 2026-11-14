@@ -1,0 +1,519 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Internal C backend local symbol, slot, and alias tracking.
+ */
+
+#include <string.h>
+
+#include "transpiler_symbols.h"
+#include "transpiler_context.h"
+#include "transpiler_mir_ssa_map.h"
+#include "../codegen_slot_type_policy.h"
+#include "../../common/string_compat.h"
+#include "../../semantic/diag_codes.h"
+
+static const char *
+active_typed_var_ssa_name(TranspilerCtx *ctx, const char *name)
+{
+    if (ctx == NULL || ctx->active_ssa_map == NULL || name == NULL)
+        return NULL;
+    return transpiler_resolve_ssa_name(
+        (const TranspilerSSANameMap *)ctx->active_ssa_map, name);
+}
+
+static void
+copy_active_typed_var_ssa_name(TranspilerCtx *ctx, TypedVarEntry *entry)
+{
+    const char *ssa_name;
+
+    if (ctx == NULL || entry == NULL)
+        return;
+    ssa_name = active_typed_var_ssa_name(ctx, entry->name);
+    if (ssa_name != NULL)
+        pergyra_str_copy(entry->ssa_name, sizeof(entry->ssa_name), ssa_name);
+}
+
+void
+register_slot_var(TranspilerCtx *ctx, const char *name,
+                  const char *inner_type, bool is_secure, bool is_indirect)
+{
+    SlotVarEntry *e;
+
+    if (ctx == NULL || name == NULL || inner_type == NULL)
+        return;
+    if (ctx->slot_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend slot registry exceeded MAX_SLOT_VARS while registering '%s'",
+            name);
+        return;
+    }
+
+    e = &ctx->slot_vars[ctx->slot_var_count++];
+    ctx->last_slot_var_index = ctx->slot_var_count - 1;
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    pergyra_str_copy(e->inner_type, sizeof(e->inner_type), inner_type);
+    if (is_secure) {
+        snprintf(e->token_name, sizeof(e->token_name), "%s_token", name);
+    } else {
+        e->token_name[0] = '\0';
+    }
+    e->is_secure = is_secure;
+    e->is_indirect = is_indirect;
+    e->is_self_field = false;
+}
+
+/* Register an object-field slot (`self->name`). The slot is looked up by its
+ * bare field name, but its address and paired token render through `self->`.
+ * token_field is the paired token field name for a secure slot, or NULL. */
+void
+register_self_field_slot_var(TranspilerCtx *ctx, const char *name,
+                             const char *inner_type, bool is_secure,
+                             const char *token_field)
+{
+    SlotVarEntry *e;
+
+    if (ctx == NULL || name == NULL || inner_type == NULL)
+        return;
+    if (ctx->slot_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend slot registry exceeded MAX_SLOT_VARS while registering '%s'",
+            name);
+        return;
+    }
+
+    e = &ctx->slot_vars[ctx->slot_var_count++];
+    ctx->last_slot_var_index = ctx->slot_var_count - 1;
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    pergyra_str_copy(e->inner_type, sizeof(e->inner_type), inner_type);
+    if (is_secure && token_field != NULL && token_field[0] != '\0')
+        snprintf(e->token_name, sizeof(e->token_name), "self->%s", token_field);
+    else
+        e->token_name[0] = '\0';
+    e->is_secure = is_secure;
+    e->is_indirect = false;
+    e->is_self_field = true;
+}
+
+void
+set_slot_token_name(TranspilerCtx *ctx, const char *slot_name,
+                    const char *token_name)
+{
+    if (ctx == NULL || slot_name == NULL || token_name == NULL)
+        return;
+    if (ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, slot_name) == 0) {
+        pergyra_str_copy(ctx->slot_vars[ctx->last_slot_var_index].token_name,
+            sizeof(ctx->slot_vars[ctx->last_slot_var_index].token_name),
+            token_name);
+        return;
+    }
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, slot_name) == 0) {
+            ctx->last_slot_var_index = i;
+            pergyra_str_copy(ctx->slot_vars[i].token_name,
+                sizeof(ctx->slot_vars[i].token_name), token_name);
+            return;
+        }
+    }
+}
+
+bool
+lookup_slot_type_copy(TranspilerCtx *ctx, const char *var_name,
+                      char *out, size_t out_size)
+{
+    const char *type_name;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+
+    if (ctx == NULL || var_name == NULL)
+        return false;
+
+    if (ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0) {
+        return pergyra_str_copy(out, out_size,
+            ctx->slot_vars[ctx->last_slot_var_index].inner_type);
+    }
+
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
+            return pergyra_str_copy(out, out_size,
+                ctx->slot_vars[i].inner_type);
+        }
+    }
+    type_name = lookup_typed_var(ctx, var_name);
+    if (type_name != NULL) {
+        if (pgy_codegen_type_name_is_slot_family(type_name))
+            return slot_inner_type_name_copy(type_name, out, out_size);
+        return pergyra_str_copy(out, out_size, type_name);
+    }
+    if (ctx->active_type_hint != NULL) {
+        if (pgy_codegen_type_name_is_slot_family(ctx->active_type_hint)) {
+            return slot_inner_type_name_copy(ctx->active_type_hint,
+                out,
+                out_size);
+        }
+        return pergyra_str_copy(out, out_size, ctx->active_type_hint);
+    }
+    return false;
+}
+
+bool
+lookup_slot_is_secure(TranspilerCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return false;
+    if (ctx != NULL
+        && ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0)
+        return ctx->slot_vars[ctx->last_slot_var_index].is_secure;
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
+            return ctx->slot_vars[i].is_secure;
+        }
+    }
+    return false;
+}
+
+const char *
+lookup_slot_token_name(TranspilerCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+    if (ctx != NULL
+        && ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0) {
+        if (ctx->slot_vars[ctx->last_slot_var_index].token_name[0] != '\0')
+            return ctx->slot_vars[ctx->last_slot_var_index].token_name;
+        return NULL;
+    }
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
+            if (ctx->slot_vars[i].token_name[0] != '\0')
+                return ctx->slot_vars[i].token_name;
+            break;
+        }
+    }
+    return NULL;
+}
+
+const char *
+require_slot_token_name(TranspilerCtx *ctx,
+                        const char *var_name,
+                        const char *operation)
+{
+    const char *token_name = lookup_slot_token_name(ctx, var_name);
+
+    if (token_name != NULL && token_name[0] != '\0')
+        return token_name;
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_MATERIALIZE_TOKEN_TO_SLOT,
+        "C backend: %s requires paired secure-slot token for '%s'; token name synthesis is disabled",
+        operation != NULL ? operation : "SecureSlot operation",
+        var_name != NULL ? var_name : "<slot>");
+    return NULL;
+}
+
+bool
+lookup_slot_is_indirect(TranspilerCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return false;
+    if (ctx != NULL
+        && ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0)
+        return ctx->slot_vars[ctx->last_slot_var_index].is_indirect;
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
+            return ctx->slot_vars[i].is_indirect;
+        }
+    }
+    return false;
+}
+
+bool
+lookup_slot_is_self_field(TranspilerCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return false;
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0)
+            return ctx->slot_vars[i].is_self_field;
+    }
+    return false;
+}
+
+char *
+slot_ref_expr(TranspilerCtx *ctx, const char *slot_name, const char *slot_expr)
+{
+    TypedVarEntry *typed_entry;
+
+    if (slot_expr == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend slot reference requires a lowered slot expression");
+        return NULL;
+    }
+    if (slot_name != NULL && lookup_slot_is_indirect(ctx, slot_name))
+        return pergyra_strdup(slot_expr);
+    typed_entry = slot_name != NULL
+        ? lookup_typed_entry(ctx, slot_name)
+        : NULL;
+    if (typed_entry != NULL && typed_entry->is_indirect_ref)
+        return pergyra_strdup(slot_expr);
+    return pergyra_strdup_printf("&%s", slot_expr);
+}
+
+bool
+is_slot_var(TranspilerCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return false;
+    if (ctx != NULL
+        && ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0)
+        return true;
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+register_typed_binding(TranspilerCtx *ctx, const char *name,
+                       const char *type_name, const MIRCallableSig *signature)
+{
+    TypedVarEntry *e;
+
+    if (ctx == NULL || name == NULL
+        || (type_name == NULL && signature == NULL))
+        return false;
+    if (ctx->typed_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend typed registry exceeded MAX_SLOT_VARS while registering '%s'",
+            name);
+        return false;
+    }
+
+    if (type_name != NULL && ctx->last_typed_var_index >= 0
+        && ctx->last_typed_var_index < ctx->typed_var_count
+        && strcmp(ctx->typed_vars[ctx->last_typed_var_index].name, name) == 0
+        && (ctx->typed_vars[ctx->last_typed_var_index].is_view
+            || ctx->typed_vars[ctx->last_typed_var_index].is_move_token)
+        && (pgy_codegen_type_name_is_view(type_name)
+            || strcmp(type_name, "MoveToken") == 0
+            || strncmp(type_name, "MoveToken<", 10) == 0)) {
+        e = &ctx->typed_vars[ctx->last_typed_var_index];
+        pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+        return true;
+    }
+
+    e = &ctx->typed_vars[ctx->typed_var_count++];
+    ctx->last_typed_var_index = ctx->typed_var_count - 1;
+    memset(e, 0, sizeof(*e));
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    if (type_name != NULL)
+        pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+    e->callable_sig = signature;
+    copy_active_typed_var_ssa_name(ctx, e);
+    return true;
+}
+
+void
+register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
+{
+    (void)register_typed_binding(ctx, name, type_name, NULL);
+}
+
+bool
+register_callable_var(TranspilerCtx *ctx, const char *name,
+                      const MIRCallableSig *signature)
+{
+    if (signature == NULL || !signature->is_callable) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "C backend local callable '%s' requires MIR signature metadata",
+            name != NULL ? name : "<missing>");
+        return false;
+    }
+    return register_typed_binding(ctx, name, NULL, signature);
+}
+
+void
+register_alias_var(TranspilerCtx *ctx, const char *name, ASTNode *target_expr)
+{
+    AliasVarEntry *e;
+
+    if (ctx == NULL || name == NULL || target_expr == NULL)
+        return;
+    if (ctx->alias_var_count >= MAX_ALIAS_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend alias registry exceeded MAX_ALIAS_VARS while registering '%s'",
+            name);
+        return;
+    }
+
+    e = &ctx->alias_vars[ctx->alias_var_count++];
+    ctx->last_alias_var_index = ctx->alias_var_count - 1;
+    memset(e, 0, sizeof(*e));
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    e->target_expr = target_expr;
+}
+
+ASTNode *
+lookup_alias_expr(TranspilerCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+
+    if (ctx->last_alias_var_index >= 0
+        && ctx->last_alias_var_index < ctx->alias_var_count
+        && strcmp(ctx->alias_vars[ctx->last_alias_var_index].name, var_name) == 0)
+        return ctx->alias_vars[ctx->last_alias_var_index].target_expr;
+
+    for (int i = ctx->alias_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->alias_vars[i].name, var_name) == 0) {
+            ctx->last_alias_var_index = i;
+            return ctx->alias_vars[i].target_expr;
+        }
+    }
+    return NULL;
+}
+
+TypedVarEntry *
+lookup_typed_entry(TranspilerCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+    {
+        const char *ssa_name = active_typed_var_ssa_name(ctx, var_name);
+        if (ssa_name != NULL) {
+            if (ctx->last_typed_var_index >= 0
+                && ctx->last_typed_var_index < ctx->typed_var_count
+                && strcmp(ctx->typed_vars[ctx->last_typed_var_index].ssa_name,
+                          ssa_name) == 0) {
+                return &ctx->typed_vars[ctx->last_typed_var_index];
+            }
+            for (int i = ctx->typed_var_count - 1; i >= 0; i--) {
+                if (ctx->typed_vars[i].ssa_name[0] != '\0'
+                    && strcmp(ctx->typed_vars[i].ssa_name, ssa_name) == 0) {
+                    ctx->last_typed_var_index = i;
+                    return &ctx->typed_vars[i];
+                }
+            }
+        }
+    }
+    if (ctx != NULL
+        && ctx->last_typed_var_index >= 0
+        && ctx->last_typed_var_index < ctx->typed_var_count
+        && strcmp(ctx->typed_vars[ctx->last_typed_var_index].name, var_name) == 0)
+        return &ctx->typed_vars[ctx->last_typed_var_index];
+
+    for (int i = ctx->typed_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->typed_vars[i].name, var_name) == 0) {
+            ctx->last_typed_var_index = i;
+            return &ctx->typed_vars[i];
+        }
+    }
+    return NULL;
+}
+
+const char *
+lookup_typed_var(TranspilerCtx *ctx, const char *var_name)
+{
+    TypedVarEntry *entry = lookup_typed_entry(ctx, var_name);
+    return entry != NULL && entry->type_name[0] != '\0'
+        ? entry->type_name : NULL;
+}
+
+void
+register_view_like_var(TranspilerCtx *ctx, const char *name, const char *type_name,
+                       const char *source_slot, bool source_secure,
+                       bool is_move_token)
+{
+    TypedVarEntry *e;
+
+    if (ctx == NULL || name == NULL || type_name == NULL)
+        return;
+    if (ctx->typed_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend typed registry exceeded MAX_SLOT_VARS while registering view-like '%s'",
+            name);
+        return;
+    }
+
+    e = &ctx->typed_vars[ctx->typed_var_count++];
+    memset(e, 0, sizeof(*e));
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+    copy_active_typed_var_ssa_name(ctx, e);
+    if (source_slot != NULL) {
+        pergyra_str_copy(e->source_slot, sizeof(e->source_slot), source_slot);
+    }
+    e->is_view = !is_move_token;
+    e->is_move_token = is_move_token;
+    e->source_secure = source_secure;
+}
+
+void
+register_projection_borrow_var(TranspilerCtx *ctx, const char *name,
+                               const char *type_name,
+                               const char *source_name)
+{
+    TypedVarEntry *e;
+
+    if (ctx == NULL || name == NULL || type_name == NULL || source_name == NULL)
+        return;
+    if (ctx->typed_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend typed registry exceeded MAX_SLOT_VARS while registering projection borrow '%s'",
+            name);
+        return;
+    }
+
+    e = &ctx->typed_vars[ctx->typed_var_count++];
+    memset(e, 0, sizeof(*e));
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+    copy_active_typed_var_ssa_name(ctx, e);
+    pergyra_str_copy(e->source_slot, sizeof(e->source_slot), source_name);
+    e->is_projection_borrow = true;
+}

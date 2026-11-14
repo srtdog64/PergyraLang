@@ -46,9 +46,9 @@ Native JSON uses schema `pgy.air.graph.v1` and exposes, at minimum:
 - observability and runtime-frontier-policy facts.
 
 `src/compiler/air.c` constructs the general intent/boundary inventory from
-HIR/DIR/RIR. `src/compiler/air_evidence_dag.c` and
-`src/compiler/air_evidence_mir.c` add distinct DAG and MIR evidence families.
-`src/compiler/air_dump.c` and `src/compiler/air_dump_json.c:573-671` render the
+HIR/DIR/RIR. `src/compiler/air/air_evidence_dag.c` and
+`src/compiler/air/air_evidence_mir.c` add distinct DAG and MIR evidence families.
+`src/compiler/air/air_dump.c` and `src/compiler/air/air_dump_json.c:573-671` render the
 text and JSON projections. A renderer or validator alone therefore cannot own
 the public result.
 

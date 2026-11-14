@@ -39,13 +39,13 @@ func CompilerBackendAbiLayoutRequiredCount() -> Int {
     return 13;
 }
 func CompilerBackendAbiLayoutRequiredPathAt(index: Int) -> String {
-    if index >= 0 && index <= 3 { return "src/compiler/mir_abi_layout.c"; }
-    if index == 4 { return "src/compiler/mir_abi_resource_runtime.c"; }
-    if index == 5 { return "src/compiler/mir_abi_layout.h"; }
-    if index == 6 { return "src/codegen/transpiler_mir_resource_op_core.c"; }
-    if index == 7 { return "src/compiler/mir_abi_resource_runtime.c"; }
-    if index == 8 || index == 9 { return "src/compiler/mir_abi_layout.h"; }
-    if index >= 10 && index <= 12 { return "src/compiler/mir_abi_layout.c"; }
+    if index >= 0 && index <= 3 { return "src/compiler/mir/mir_abi_layout.c"; }
+    if index == 4 { return "src/compiler/mir/mir_abi_resource_runtime.c"; }
+    if index == 5 { return "src/compiler/mir/mir_abi_layout.h"; }
+    if index == 6 { return "src/codegen/c/transpiler_mir_resource_op_core.c"; }
+    if index == 7 { return "src/compiler/mir/mir_abi_resource_runtime.c"; }
+    if index == 8 || index == 9 { return "src/compiler/mir/mir_abi_layout.h"; }
+    if index >= 10 && index <= 12 { return "src/compiler/mir/mir_abi_layout.c"; }
     return "";
 }
 func CompilerBackendAbiLayoutRequiredTermAt(index: Int) -> String {
@@ -76,7 +76,7 @@ func CompilerBackendAbiLayoutRequiredRowKnown(path: String, term: String) -> Boo
     return false;
 }
 func CompilerBackendAbiLayoutPrimaryRequiredPath() -> String {
-    return "src/compiler/mir_abi_layout.c";
+    return "src/compiler/mir/mir_abi_layout.c";
 }
 func CompilerBackendAbiLayoutPrimaryRequiredTerm() -> String {
     return "ABI_TYPE(\"Array<Long>\"";
@@ -86,7 +86,7 @@ func CompilerBackendAbiLayoutForbiddenCount() -> Int {
 }
 func CompilerBackendAbiLayoutForbiddenPathAt(index: Int) -> String {
     if index >= 0 && index < CompilerBackendAbiLayoutForbiddenCount() {
-        return "src/compiler/mir_abi_resource_runtime.c";
+        return "src/compiler/mir/mir_abi_resource_runtime.c";
     }
     return "";
 }
@@ -110,7 +110,7 @@ func CompilerBackendAbiLayoutForbiddenRowKnown(path: String, term: String) -> Bo
     return false;
 }
 func CompilerBackendAbiLayoutPrimaryForbiddenPath() -> String {
-    return "src/compiler/mir_abi_resource_runtime.c";
+    return "src/compiler/mir/mir_abi_resource_runtime.c";
 }
 func CompilerBackendAbiLayoutPrimaryForbiddenTerm() -> String {
     return "Slot<Int>_rel";
@@ -135,24 +135,24 @@ func CompilerBackendAbiLayoutContractReady() -> Bool {
             CompilerBackendAbiLayoutPrimaryRequiredPath(),
             CompilerBackendAbiLayoutPrimaryRequiredTerm()) &&
         CompilerBackendAbiLayoutRequiredRowKnown(
-            "src/compiler/mir_abi_layout.c",
+            "src/compiler/mir/mir_abi_layout.c",
             "ABI_TAGGED_TYPE(\"Option<Int>\"") &&
         CompilerBackendAbiLayoutRequiredRowKnown(
-            "src/compiler/mir_abi_resource_runtime.c",
+            "src/compiler/mir/mir_abi_resource_runtime.c",
             "ABI_SECURE_RESOURCE_OPS(\"SecureSlot<Long>\"") &&
         CompilerBackendAbiLayoutRequiredRowKnown(
-            "src/codegen/transpiler_mir_resource_op_core.c",
+            "src/codegen/c/transpiler_mir_resource_op_core.c",
             "mir_abi_resource_runtime_row_by_type_name(") &&
         CompilerBackendAbiLayoutRequiredRowKnown(
-            "src/compiler/mir_abi_layout.h",
+            "src/compiler/mir/mir_abi_layout.h",
             "const MIRAbiTargetPolicy *mir_abi_target_policy") &&
         CompilerBackendAbiLayoutRequiredRowKnown(
-            "src/compiler/mir_abi_layout.c",
+            "src/compiler/mir/mir_abi_layout.c",
             "\"layout_shape,materialization_reason\"") &&
         CompilerBackendAbiLayoutForbiddenRowKnown(
             CompilerBackendAbiLayoutPrimaryForbiddenPath(),
             CompilerBackendAbiLayoutPrimaryForbiddenTerm()) &&
         CompilerBackendAbiLayoutForbiddenRowKnown(
-            "src/compiler/mir_abi_resource_runtime.c",
+            "src/compiler/mir/mir_abi_resource_runtime.c",
             "mir_extract_inner_type_suffix_owned");
 }

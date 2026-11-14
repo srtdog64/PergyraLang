@@ -8,10 +8,10 @@
 // for a host field. Any other identifier is "n<routine>:<name>"; spelling
 // joins those only inside one expression, where no shadowing exists. Only
 // formal and plain-let keys can be stable.
-import "ast_collection_ownership_identity_owner.pgy";
-import "ast_expression_owner_field_environment_owner.pgy";
-import "ast_expression_graph_member_view_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
+import "ast_collection/ast_collection_ownership_identity_owner.pgy";
+import "ast_expression/ast_expression_owner_field_environment_owner.pgy";
+import "ast_expression/ast_expression_graph_member_view_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 
 struct SemanticStringWindowBinding {

@@ -18,7 +18,7 @@ Open: `RewriteSemanticCloneCall` below, for String, Option, struct and map
 storage on C and LLVM, wherever the map sits: the `Clone` argument, a
 struct or class field, an Option payload. After that lands on main, the
 Claude lane makes `clone_copies_deeply`
-(`src/semantic/function_param_publication_result_relation.c`) call such a
+(`src/semantic/function_param_flow/function_param_publication_result_relation.c`) call such a
 `Clone` independent of its argument, and the landing driver then copies
 a shared map where it is copied.
 
@@ -56,11 +56,11 @@ In `src/self_hosted`, 476 of the 501 `HashMap<` spellings are
 
 ## Where it lands today (survey at base)
 
-- C: `transpiler_clone_value_at` (`src/codegen/transpiler_clone_value_emit.c`)
+- C: `transpiler_clone_value_at` (`src/codegen/c/transpiler_clone_value_emit.c`)
   has no HashMap branch and returns the value. Map types come from
   `PGY_HASHMAP_DEFINE` (`src/runtime/pgy_runtime_builtin_hashmap_inline.h`),
   emitted in `transpiler_specialization_registry.c`.
-- LLVM: `llvm_clone_value_at` (`src/codegen/llvm_expr_clone_value.c`) has
+- LLVM: `llvm_clone_value_at` (`src/codegen/llvm/llvm_expr_clone_value.c`) has
   no HashMap branch. LLVM maps use the raw exports over `PgyHashMapRaw`
   (`src/runtime/pgy_runtime_lib_raw_map_exports.h`), registered in
   `llvm_runtime_raw_collections.c`.

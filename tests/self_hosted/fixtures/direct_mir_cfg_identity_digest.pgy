@@ -1,4 +1,4 @@
-import "../../../src/self_hosted/compiler/direct_mir_scalar_cfg_hash_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_hash_owner.pgy";
 
 func Main() -> Void {
     Log(ToString(DirectMirCfgHashString(0L, "")));

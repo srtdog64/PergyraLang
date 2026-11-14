@@ -8,7 +8,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/type_checker.h"
-#include "semantic/function_param_flow_summary_internal.h"
+#include "semantic/function_param_flow/function_param_flow_summary_internal.h"
 
 static unsigned checks, failures;
 #define CHECK(x) do { checks++; if (!(x)) { failures++; fprintf(stderr, "rows memo fault line %d: %s\n", __LINE__, #x); } } while (0)

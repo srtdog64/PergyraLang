@@ -21,19 +21,19 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 grep -Fq 'func DirectMirScalarProgramExprFileExists() -> Int { return 96; }' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_expression_kind_id_owner.pgy" ||
     fail "FileExists expression identity is missing"
 grep -Fq '"host-io", "file-exists"' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy" ||
     fail "FileExists does not consume the host-io runtime ABI operation"
 grep -Fq 'HostIORuntimeCFileExistsFn()' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy" ||
     fail "FileExists does not consume the host-io runtime ABI row"
 grep -Fq 'return pgy_file_exists(path) ? 1 : 0' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_file_exists_materialization_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_file_exists_materialization_owner.pgy" ||
     fail "C FileExists does not consume the native runtime owner"
 grep -Fq '@pgy_file_exists(ptr %path)' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_file_exists_materialization_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_file_exists_materialization_owner.pgy" ||
     fail "LLVM FileExists does not consume the native runtime owner"
 
 mkdir -p "$WORK_DIR"

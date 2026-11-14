@@ -1,10 +1,10 @@
 // Match-pattern bindings visible to semantic expression consumers.
 
 import "../hir/ast_match_pattern_fact_owner.pgy";
-import "ast_expression_graph_view_owner.pgy";
-import "ast_expression_graph_receiver_type_owner.pgy";
-import "ast_expression_environment_owner.pgy";
-import "ast_expression_function_table_fact_owner.pgy";
+import "ast_expression/ast_expression_graph_view_owner.pgy";
+import "ast_expression/ast_expression_graph_receiver_type_owner.pgy";
+import "ast_expression/ast_expression_environment_owner.pgy";
+import "ast_expression/ast_expression_function_table_fact_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";

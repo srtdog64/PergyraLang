@@ -14,18 +14,18 @@ REL="${WORK#"$ROOT_DIR/"}"
 cd "$ROOT_DIR"
 fail() { echo "[collection-borrowed-descriptor-read] $*; evidence=$REL" >&2; exit 1; }
 "${PYTHON_BIN:-python3}" scripts/source_size_count.py --caps <<'CAPS'
-115	src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy
-410	src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy
-600	src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy
-222	src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy
-200	src/self_hosted/semantic/ast_collection_call_effect_owner.pgy
-170	src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy
-45	src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy
-140	src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy
-100	src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy
-40	src/self_hosted/semantic/ast_collection_repeated_local_generation_owner.pgy
-110	src/self_hosted/semantic/ast_collection_owned_generation_order_owner.pgy
-110	src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy
+115	src/self_hosted/semantic/ast_collection/ast_collection_call_argument_verdict_owner.pgy
+410	src/self_hosted/semantic/ast_collection/ast_collection_ownership_scan_owner.pgy
+600	src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy
+222	src/self_hosted/semantic/ast_collection/ast_collection_call_argument_effect_verdict_owner.pgy
+200	src/self_hosted/semantic/ast_collection/ast_collection_call_effect_owner.pgy
+170	src/self_hosted/semantic/ast_collection/ast_collection_formal_descriptor_retention_owner.pgy
+45	src/self_hosted/semantic/ast_collection/ast_collection_descriptor_retention_entry_owner.pgy
+140	src/self_hosted/semantic/ast_collection/ast_collection_terminal_storage_effect_owner.pgy
+100	src/self_hosted/semantic/ast_collection/ast_collection_call_retirement_owner.pgy
+40	src/self_hosted/semantic/ast_collection/ast_collection_repeated_local_generation_owner.pgy
+110	src/self_hosted/semantic/ast_collection/ast_collection_owned_generation_order_owner.pgy
+110	src/self_hosted/semantic/ast_collection/ast_collection_owned_argument_admission_owner.pgy
 CAPS
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 observe() {

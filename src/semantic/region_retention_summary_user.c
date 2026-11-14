@@ -3,8 +3,8 @@
 #include <string.h>
 
 #include "builtin_kind.h"
-#include "type_checker_internal.h"
-#include "function_param_publication_owner.h"
+#include "type_checker/type_checker_internal.h"
+#include "function_param_flow/function_param_publication_owner.h"
 #include "../parser/ast.h"
 #include "../parser/ast_analysis.h"
 #include "../parser/ast_api.h"

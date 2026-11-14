@@ -212,7 +212,7 @@ post-beta / follow-up:
 권장 파일 축:
 - `src/semantic/type_checker.c`
 - `src/semantic/type_checker_decls.inc`
-- `src/codegen/llvm_domain.c`
+- `src/codegen/llvm/llvm_domain.c`
 - `src/test_semantic.c`
 
 ### 2.2 Collections 전축 closure
@@ -247,8 +247,8 @@ post-beta / follow-up:
 - `src/semantic/type_system.c`
 - `src/semantic/type_system.h`
 - `src/semantic/type_checker.c`
-- `src/codegen/llvm_expr.c`
-- `src/codegen/llvm_stmt.c`
+- `src/codegen/llvm/llvm_expr.c`
+- `src/codegen/llvm/llvm_stmt.c`
 - 필요 시 `src/codegen/llvm_collection.c`
 
 ### 2.3 Runtime fallback / observability

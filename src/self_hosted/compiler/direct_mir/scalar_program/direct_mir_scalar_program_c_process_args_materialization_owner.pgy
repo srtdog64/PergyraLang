@@ -1,0 +1,36 @@
+// C materialization for the sealed host-io Args runtime receipt.
+import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "../../../codegen/runtime_abi/host_io_runtime_owner.pgy";
+
+func DirectMirScalarProgramCProcessArgsBlock(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref projection: DirectMirArrayStringAbiProjection
+) -> String {
+    if plan.program.runtime_abi.process_args_id == 0 { return ""; }
+    if !runtime.process_args.ok || runtime.process_args.domain != "host-io" ||
+        runtime.process_args.operation != "args" ||
+        runtime.process_args.symbol != HostIORuntimeCArgsFn() ||
+        !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            plan.program.array_string_abi, projection,
+            CompilerTargetCpuCProjection()) {
+        Die("direct MIR scalar C process-args ABI is invalid");
+    }
+    let argc_name: String = HostIORuntimeCArgcGlobal();
+    let argv_name: String = HostIORuntimeCArgvGlobal();
+    var output: String = Concat("#include \"pgy_runtime_process_utf8_argv.h\"\nstatic int ", Concat(argc_name, " = 0;\n"));
+    output = Concat(output, Concat("static char **", Concat(argv_name, Concat(" = NULL;\nstatic int ", Concat(HostIORuntimeCArgvUtf8Global(), " = 1;\n")))));
+    output = Concat(output, Concat("static pgy_as ", Concat(runtime.process_args.symbol, Concat("(void) {\n    if (!", Concat(HostIORuntimeCArgvUtf8Global(),
+        ") { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_PROCESS_ARGS_NOT_UTF16); }\n    pgy_as out = pgy_as_new();\n")))));
+    output = Concat(output, Concat("    for (int i = 1; i < ", Concat(
+        argc_name, "; i++) {\n")));
+    output = Concat(output, Concat(
+        "        const char *source = (", Concat(argv_name, Concat(
+        " != NULL && ", Concat(argv_name, Concat(
+        "[i] != NULL) ? ", Concat(argv_name, "[i] : \"\";\n")))))));
+    output = Concat(output,
+        "        size_t length = strlen(source);\n        char *owned = (char *)malloc(length + 1);\n        if (owned == NULL) abort();\n        memcpy(owned, source, length + 1);\n        pgy_as_push(&out, owned);\n    }\n    return out;\n}\n\n");
+    return output;
+}

@@ -736,7 +736,7 @@ Pergyra의 self-host는 두 조건을 모두 만족해야 한다.
 진입점은 같은 production `Main`을 사용하며, argv admission과 source-to-MIR 실행
 owner도 각각 하나다.
 
-- `bin/pgy --self-driver`는 `src/compiler/self_host_driver.c`의 sibling launcher를
+- `bin/pgy --self-driver`는 `src/compiler/self_host/self_host_driver.c`의 sibling launcher를
   거쳐 `bin/pgy-self-driver`를 실행한다. 그 binary의 source root는
   `driver_bootstrap_main.pgy -> driver_rung2_cli_request_owner.pgy ->
   driver_rung2_installed_cli_owner.pgy`이다.

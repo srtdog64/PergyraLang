@@ -1,7 +1,7 @@
 // Path-sensitive ownership for payload-enum formals whose storage is consumed.
 
-import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
-import "direct_mir_scalar_program_process_exit_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_process_exit_owner.pgy";
 import "owned_payload_enum_match_binding_owner.pgy";
 import "owned_storage_parameter_recipe_owner.pgy";
 

@@ -98,9 +98,9 @@
 
 관련 파일:
 
-- [llvm_backend.h](/mnt/e/PergyraLang/src/codegen/llvm_backend.h)
-- [llvm_pipeline.c](/mnt/e/PergyraLang/src/codegen/llvm_pipeline.c)
-- [llvm_intent.c](/mnt/e/PergyraLang/src/codegen/llvm_intent.c)
+- [llvm_backend.h](/mnt/e/PergyraLang/src/codegen/llvm/llvm_backend.h)
+- [llvm_pipeline.c](/mnt/e/PergyraLang/src/codegen/llvm/llvm_pipeline.c)
+- [llvm_intent.c](/mnt/e/PergyraLang/src/codegen/llvm/llvm_intent.c)
 
 ### 2. recently reduced structural duplication
 
@@ -121,7 +121,7 @@
 관련 파일:
 
 - [llvm_expr_call_methods_part_a.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods_part_a.inc)
-- [llvm_member_call_emit.h](/mnt/e/PergyraLang/src/codegen/llvm_member_call_emit.h)
+- [llvm_member_call_emit.h](/mnt/e/PergyraLang/src/codegen/llvm/llvm_member_call_emit.h)
 
 ### 4. escape/local placement debt
 
@@ -130,7 +130,7 @@
 
 관련 파일:
 
-- [llvm_mir_emit.c](/mnt/e/PergyraLang/src/codegen/llvm_mir_emit.c)
+- [llvm_mir_emit.c](/mnt/e/PergyraLang/src/codegen/llvm/llvm_mir_emit.c)
 - [slot_analyzer.c](/mnt/e/PergyraLang/src/semantic/slot_analyzer.c)
 
 ### 5. test/log noise debt

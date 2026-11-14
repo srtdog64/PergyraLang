@@ -1,0 +1,41 @@
+// Canonical carrier for one statement-level collection transition decision.
+
+import "../diagnostic_owner.pgy";
+
+struct SemanticAstCollectionStatementTransitionResult {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    syntax_node_id: Int;
+}
+
+func SemanticAstCollectionStatementTransitionOk(
+) -> SemanticAstCollectionStatementTransitionResult {
+    return SemanticAstCollectionStatementTransitionResult(
+        true, "", "", -1);
+}
+
+func SemanticAstCollectionStatementTransitionError(
+    code: String, message: String, syntax_node_id: Int
+) -> SemanticAstCollectionStatementTransitionResult {
+    return SemanticAstCollectionStatementTransitionResult(
+        false, code, message, syntax_node_id);
+}
+
+func SemanticAstCollectionStatementTransitionArtifactError(
+    owner: String, syntax_node_id: Int
+) -> SemanticAstCollectionStatementTransitionResult {
+    return SemanticAstCollectionStatementTransitionError(
+        "ast_artifact_invalid", SemanticError1(
+            "ast_artifact_invalid", "owner", owner),
+        syntax_node_id);
+}
+
+func SemanticAstCollectionStatementTransitionBoundaryError(
+    boundary: String, syntax_node_id: Int
+) -> SemanticAstCollectionStatementTransitionResult {
+    return SemanticAstCollectionStatementTransitionError(
+        "borrow_boundary_escape", SemanticError2(
+            "borrow_boundary_escape", "boundary", boundary,
+            "type", "Array<String>"), syntax_node_id);
+}

@@ -50,7 +50,7 @@ Exact base: `645d6e42014cc7959416bc5c5aecbe4df3c4d46d`
 ## Scope and integration
 
 - Implementation scope:
-  `src/compiler/self_host_mir_diagnostic_stdout_owner.c`,
+  `src/compiler/self_host/self_host_mir_diagnostic_stdout_owner.c`,
   `src/compiler/driver_self_host_selection_owner.c`, and the focused gate plus
   its counting fixture.
 - Ratchet scope: only the public option/profile boundary and the existing MIR

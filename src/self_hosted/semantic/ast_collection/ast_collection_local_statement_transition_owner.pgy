@@ -1,0 +1,146 @@
+// Applies one parser statement transition to an admitted local storage row.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_call_effect_owner.pgy";
+import "../ast_owned_string_result_fact_owner.pgy";
+import "../ast_owned_string_call_result_admission_owner.pgy";
+import "ast_collection_statement_transition_result_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+
+func SemanticAstCollectionLocalStatementTransition(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    syntax_id: Int, function_id: Int, operation: String,
+    array_push: Bool, parser_array_set: Bool,
+    array_set: Bool, array_pop: Bool,
+    ref binding: SemanticAstLocalBindingIdentity,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>,
+    inout ownership: Array<Int>, ref dispositions: Array<Int>,
+    ref origins: Array<Int>, inout transition_states: Array<Int>,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
+    ref compiler_clone_expression_node_ids: Array<Int>,
+    compiler_clone_storage_detached: Bool,
+    inout receipts: SemanticAstCollectionOwnershipReceiptRows
+) -> SemanticAstCollectionStatementTransitionResult {
+    let unknown: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(
+        artifact, call_effects, binding.row, syntax_id,
+        ownership, dispositions, transition_states);
+    let definition: Int = current_definitions[binding.row];
+    let current_descriptor: Bool =
+        origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() &&
+        SemanticAstCollectionDefinitionStorageSource(
+            storage, definitions, binding.row, definition) > 0 &&
+        SemanticAstCollectionCurrentDescriptorLiveAtUse(
+            artifact, call_effects, definition, syntax_id) &&
+        !SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id);
+    if unknown ||
+        (SemanticAstCollectionStorageEscapedAtUse(
+            artifact, call_effects, binding.row, syntax_id) &&
+         !compiler_clone_storage_detached) ||
+        (SemanticAstCollectionMutationMayBeRetired(
+            artifact, syntax_id, call_effects.first_retiring_sites[binding.row],
+            call_effects.first_non_deep_drop_retiring_sites[binding.row]) &&
+         !current_descriptor) {
+        return SemanticAstCollectionStatementTransitionBoundaryError(
+            operation, syntax_id);
+    }
+    var source_syntax_id: Int = 0;
+    var source_root: Int = -1;
+    var source_domain: SemanticAstOwnedStringAllocationDomain =
+        SemanticAstOwnedStringDomainUnknown();
+    if array_push || array_set {
+        var value_lane: Int = AstExpressionLaneValue();
+        if parser_array_set { value_lane = AstExpressionLaneAuxiliary(); }
+        let value_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, syntax_id, value_lane);
+        if IsSome(value_root) {
+            source_root = UnwrapOption(value_root);
+            let source_surface: Option<Int> =
+                SemanticAstExpressionSurfaceIndexForNode(surfaces, syntax_id);
+            if !IsSome(source_surface) {
+                return SemanticAstCollectionStatementTransitionArtifactError(
+                    "owned_string_push_surface", syntax_id);
+            }
+            source_syntax_id = SemanticAstOwnedStringCallTarget(
+                artifact, signatures, locals, initializer_types, surfaces,
+                owned_string_results, UnwrapOption(source_surface),
+                UnwrapOption(value_root));
+            source_domain = SemanticAstOwnedStringExpressionAllocationDomain(
+                artifact, signatures, locals, initializer_types, surfaces,
+                owned_string_results.writes,
+                owned_string_results.domain_exposures,
+                owned_string_results, numeric_string_allocations,
+                function_id, syntax_id, value_lane,
+                UnwrapOption(value_root), 0);
+        }
+    }
+    let owned_store: Bool = source_domain.kind == 1 ||
+        SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+            compiler_clone_expression_node_ids, source_root);
+    let state: Int = ownership[binding.row];
+    if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
+        let transition: Int = transition_states[binding.row];
+        let owned_pop: Bool = array_pop &&
+            transition == SemanticAstCollectionTransitionOwned();
+        var expected: Int = SemanticAstCollectionTransitionBorrowed();
+        var effect: Int = SemanticAstCollectionOwnershipEffectShallowMutation();
+        if owned_store {
+            expected = SemanticAstCollectionTransitionOwned();
+            if array_push {
+                effect = SemanticAstCollectionOwnershipEffectOwnedStringPush();
+            } else {
+                effect = SemanticAstCollectionOwnershipEffectOwnedStringSet();
+            }
+        } else if owned_pop {
+            expected = SemanticAstCollectionTransitionOwned();
+            effect = SemanticAstCollectionOwnershipEffectOwnedStringPop();
+        }
+        if (owned_store && !SemanticAstCollectionTransitionAllowsOwned(transition)) ||
+            (!owned_store && !owned_pop &&
+             transition != SemanticAstCollectionTransitionEmpty() &&
+             transition != SemanticAstCollectionTransitionBorrowed()) {
+            return SemanticAstCollectionStatementTransitionBoundaryError(
+                operation, syntax_id);
+        }
+        transition_states[binding.row] = expected;
+        var receipt_source: Int = 0;
+        if owned_store && array_push { receipt_source = source_syntax_id; }
+        receipts = SemanticAstCollectionOwnershipReceiptRowsAppend(
+            receipts, function_id, syntax_id, AstExpressionLaneAtom(), -1,
+            effect, locals.node_ids[binding.row], receipt_source);
+    } else if state == SemanticAstCollectionOwnershipOwnedElements() ||
+        state == SemanticAstCollectionOwnershipMapKeysSnapshot() {
+        if ((!array_pop && !owned_store) ||
+            dispositions[binding.row] == SemanticAstCollectionDispositionRetired()) {
+            return SemanticAstCollectionStatementTransitionBoundaryError(
+                operation, syntax_id);
+        }
+        var effect: Int = SemanticAstCollectionOwnershipEffectOwnedStringPop();
+        var receipt_source: Int = 0;
+        if owned_store {
+            transition_states[binding.row] = SemanticAstCollectionTransitionOwned();
+            if array_push {
+                effect = SemanticAstCollectionOwnershipEffectOwnedStringPush();
+                receipt_source = source_syntax_id;
+            } else {
+                effect = SemanticAstCollectionOwnershipEffectOwnedStringSet();
+            }
+        }
+        receipts = SemanticAstCollectionOwnershipReceiptRowsAppend(
+            receipts, function_id, syntax_id, AstExpressionLaneAtom(), -1,
+            effect, locals.node_ids[binding.row], receipt_source);
+    } else if dispositions[binding.row] ==
+            SemanticAstCollectionDispositionRetired() {
+        return SemanticAstCollectionStatementTransitionBoundaryError(
+            operation, syntax_id);
+    }
+    return SemanticAstCollectionStatementTransitionOk();
+}

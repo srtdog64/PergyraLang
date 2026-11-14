@@ -1,0 +1,412 @@
+// Terminal alternative and invocation-extension construction.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_aggregate_named_input_reservation_owner.pgy";
+import "ast_collection_aggregate_value_exclusivity_owner.pgy";
+import "ast_collection_aggregate_value_lineage_owner.pgy";
+import "ast_collection_exclusive_value_flow_owner.pgy";
+import "ast_collection_exclusive_value_class_owner.pgy";
+import "../ast_nominal_constructor_fact_owner.pgy";
+import "../ast_signature_param_node_query_owner.pgy";
+import "ast_collection_aggregate_source_path_uniqueness_owner.pgy";
+import "ast_collection_aggregate_release_call_chain_owner.pgy";
+
+struct SemanticAstCollectionAggregateInvocationExtension {
+    ok: Bool;
+    longer_demand: Int;
+    shorter_demand: Int;
+    longer_input: Int;
+    shorter_input: Int;
+    longer_start: Int;
+    shorter_start: Int;
+    longer_count: Int;
+    shorter_count: Int;
+    first_extra_call_node: Int;
+}
+
+// Record one exact whole-value transfer receipt.  Producers must already have
+// proved the root and call-site relation; this owner only preserves a unique
+// pair for the element-escape consumer.
+func SemanticAstCollectionAggregateReleaseRecordForwardedTransferAt(
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    root: Int, syntax_id: Int
+) -> Bool {
+    if root <= 0 || syntax_id <= 0 ||
+        ArrayLength(plan.forwarded_transfer_root_ids) !=
+            ArrayLength(plan.forwarded_transfer_syntax_ids) {
+        return false;
+    }
+    var row: Int = 0;
+    while row < ArrayLength(plan.forwarded_transfer_root_ids) {
+        if plan.forwarded_transfer_root_ids[row] == root &&
+            plan.forwarded_transfer_syntax_ids[row] == syntax_id {
+            return true;
+        }
+        row = row + 1;
+    }
+    ArrayPush(plan.forwarded_transfer_root_ids, root);
+    ArrayPush(plan.forwarded_transfer_syntax_ids, syntax_id);
+    return true;
+}
+
+func SemanticAstCollectionAggregateInvocationExtensionInvalid(
+) -> SemanticAstCollectionAggregateInvocationExtension {
+    return SemanticAstCollectionAggregateInvocationExtension(
+        false, -1, -1, -1, -1, -1, -1, 0, 0, -1);
+}
+
+// Two result constructors on one exact invocation and release path are
+// alternatives when the earlier input is a real function exit. The exit
+// consumes that path; if execution reaches the later input, the earlier
+// demand never ran. Matching function or result type alone is not evidence.
+func SemanticAstCollectionAggregateReleaseTerminalResultAlternativeReady(
+    ref artifact: AstTreeArtifact,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    prior: Int, current: Int
+) -> Bool {
+    if prior < 0 || current <= prior ||
+        current >= ArrayLength(plan.constructor_input_rows) ||
+        current >= ArrayLength(plan.requirement_rows) ||
+        current >= ArrayLength(plan.demand_invocation_starts) ||
+        current >= ArrayLength(plan.demand_chain_starts) {
+        return false;
+    }
+    let prior_input: Int = plan.constructor_input_rows[prior];
+    let current_input: Int = plan.constructor_input_rows[current];
+    if prior_input < 0 || current_input < 0 || prior_input == current_input ||
+        prior_input >= ArrayLength(inputs.producer_kinds) ||
+        current_input >= ArrayLength(inputs.producer_kinds) ||
+        prior_input >= ArrayLength(inputs.function_ids) ||
+        current_input >= ArrayLength(inputs.function_ids) ||
+        prior_input >= ArrayLength(inputs.syntax_ids) ||
+        current_input >= ArrayLength(inputs.syntax_ids) ||
+        inputs.producer_kinds[prior_input] != 1 ||
+        inputs.producer_kinds[current_input] != 1 ||
+        inputs.function_ids[prior_input] <= 0 ||
+        inputs.function_ids[prior_input] != inputs.function_ids[current_input] {
+        return false;
+    }
+    let prior_requirement: Int = plan.requirement_rows[prior];
+    let current_requirement: Int = plan.requirement_rows[current];
+    if prior_requirement < 0 || prior_requirement != current_requirement ||
+        prior_requirement >= ArrayLength(plan.requirement_effect_masks) ||
+        plan.requirement_effect_masks[prior_requirement] !=
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() {
+        return false;
+    }
+    let prior_chain_start: Int = plan.demand_chain_starts[prior];
+    let current_chain_start: Int = plan.demand_chain_starts[current];
+    let prior_chain_end: Int = SemanticAstCollectionAggregateReleaseChainEnd(
+        plan, prior);
+    let current_chain_end: Int =
+        SemanticAstCollectionAggregateReleaseChainEnd(plan, current);
+    let chain_count: Int = prior_chain_end - prior_chain_start;
+    if chain_count <= 0 ||
+        chain_count != current_chain_end - current_chain_start {
+        return false;
+    }
+    var chain_offset: Int = 0;
+    while chain_offset < chain_count {
+        if plan.demand_chain_edges[prior_chain_start + chain_offset] !=
+                plan.demand_chain_edges[current_chain_start + chain_offset] {
+            return false;
+        }
+        chain_offset = chain_offset + 1;
+    }
+    let prior_path_start: Int = plan.demand_invocation_starts[prior];
+    let current_path_start: Int = plan.demand_invocation_starts[current];
+    var prior_path_end: Int = ArrayLength(plan.demand_invocation_nodes);
+    var current_path_end: Int = ArrayLength(plan.demand_invocation_nodes);
+    if prior + 1 < ArrayLength(plan.demand_invocation_starts) {
+        prior_path_end = plan.demand_invocation_starts[prior + 1];
+    }
+    if current + 1 < ArrayLength(plan.demand_invocation_starts) {
+        current_path_end = plan.demand_invocation_starts[current + 1];
+    }
+    let path_count: Int = prior_path_end - prior_path_start;
+    if path_count <= 0 ||
+        path_count != current_path_end - current_path_start {
+        return false;
+    }
+    var path_offset: Int = 0;
+    while path_offset < path_count {
+        if plan.demand_invocation_nodes[prior_path_start + path_offset] !=
+                plan.demand_invocation_nodes[
+                    current_path_start + path_offset] {
+            return false;
+        }
+        path_offset = path_offset + 1;
+    }
+    let prior_syntax: Int = inputs.syntax_ids[prior_input];
+    let current_syntax: Int = inputs.syntax_ids[current_input];
+    var earlier_syntax: Int = prior_syntax;
+    var later_syntax: Int = current_syntax;
+    if current_syntax < prior_syntax {
+        earlier_syntax = current_syntax;
+        later_syntax = prior_syntax;
+    }
+    let function_id: Int = inputs.function_ids[prior_input];
+    return earlier_syntax > 0 && later_syntax > earlier_syntax &&
+        SemanticAstCollectionEffectSiteTerminatesFlow(
+            artifact, earlier_syntax) &&
+        SemanticAstCollectionCallRetirementBound(
+            artifact, earlier_syntax, earlier_syntax,
+            function_id, true) == earlier_syntax &&
+        SemanticAstCollectionCallRetirementBound(
+            artifact, later_syntax, later_syntax,
+            function_id, true) == later_syntax;
+}
+
+func SemanticAstCollectionAggregateReleaseRecordTerminalAlternative(
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    prior: Int, current: Int
+) -> Bool {
+    if prior < 0 || current <= prior ||
+        current >= ArrayLength(plan.constructor_input_rows) {
+        return false;
+    }
+    let prior_input: Int = plan.constructor_input_rows[prior];
+    let current_input: Int = plan.constructor_input_rows[current];
+    if prior_input < 0 || current_input < 0 ||
+        prior_input >= ArrayLength(inputs.syntax_ids) ||
+        current_input >= ArrayLength(inputs.syntax_ids) ||
+        inputs.syntax_ids[prior_input] == inputs.syntax_ids[current_input] {
+        return false;
+    }
+    var earlier_input: Int = prior_input;
+    var later_input: Int = current_input;
+    if inputs.syntax_ids[current_input] < inputs.syntax_ids[prior_input] {
+        earlier_input = current_input;
+        later_input = prior_input;
+    }
+    var row: Int = 0;
+    while row <
+            ArrayLength(plan.terminal_alternative_prior_input_rows) {
+        if plan.terminal_alternative_prior_input_rows[row] == earlier_input &&
+            plan.terminal_alternative_later_input_rows[row] == later_input {
+            return true;
+        }
+        row = row + 1;
+    }
+    ArrayPush(plan.terminal_alternative_prior_input_rows, earlier_input);
+    ArrayPush(plan.terminal_alternative_later_input_rows, later_input);
+    return true;
+}
+
+// A strict producer extension is one exact return-lineage chain, not generic
+// call-graph reachability. The two demands share their downstream release
+// edge, the longer invocation path extends the shorter path, and every call
+// connects caller to callee without recursion. This fact grants no storage
+// permission by itself; the consuming rule must still prove its producer.
+func SemanticAstCollectionAggregateInvocationExtensionForDemands(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    prior: Int, current: Int
+) -> SemanticAstCollectionAggregateInvocationExtension {
+    let invalid: SemanticAstCollectionAggregateInvocationExtension =
+        SemanticAstCollectionAggregateInvocationExtensionInvalid();
+    if prior < 0 || current <= prior ||
+        current >= ArrayLength(plan.constructor_input_rows) ||
+        current >= ArrayLength(plan.demand_invocation_starts) ||
+        current >= ArrayLength(plan.demand_chain_starts) {
+        return invalid;
+    }
+    let prior_input: Int = plan.constructor_input_rows[prior];
+    let current_input: Int = plan.constructor_input_rows[current];
+    if prior_input < 0 || current_input < 0 ||
+        prior_input >= ArrayLength(inputs.producer_kinds) ||
+        current_input >= ArrayLength(inputs.producer_kinds) ||
+        prior_input == current_input {
+        return invalid;
+    }
+    var prior_chain_end: Int = ArrayLength(plan.demand_chain_edges);
+    var current_chain_end: Int = ArrayLength(plan.demand_chain_edges);
+    var prior_path_end: Int = ArrayLength(plan.demand_invocation_nodes);
+    var current_path_end: Int = ArrayLength(plan.demand_invocation_nodes);
+    if prior + 1 < ArrayLength(plan.demand_chain_starts) {
+        prior_chain_end = plan.demand_chain_starts[prior + 1];
+        prior_path_end = plan.demand_invocation_starts[prior + 1];
+    }
+    if current + 1 < ArrayLength(plan.demand_chain_starts) {
+        current_chain_end = plan.demand_chain_starts[current + 1];
+        current_path_end = plan.demand_invocation_starts[current + 1];
+    }
+    let prior_chain_start: Int = plan.demand_chain_starts[prior];
+    let current_chain_start: Int = plan.demand_chain_starts[current];
+    let chain_count: Int = prior_chain_end - prior_chain_start;
+    if chain_count <= 0 ||
+        chain_count != current_chain_end - current_chain_start {
+        return invalid;
+    }
+    var chain_offset: Int = 0;
+    while chain_offset < chain_count {
+        if plan.demand_chain_edges[prior_chain_start + chain_offset] !=
+                plan.demand_chain_edges[current_chain_start + chain_offset] {
+            return invalid;
+        }
+        chain_offset = chain_offset + 1;
+    }
+    let prior_path_start: Int = plan.demand_invocation_starts[prior];
+    let current_path_start: Int = plan.demand_invocation_starts[current];
+    let prior_path_count: Int = prior_path_end - prior_path_start;
+    let current_path_count: Int = current_path_end - current_path_start;
+    var longer_demand: Int = prior;
+    var shorter_demand: Int = current;
+    var longer_input: Int = prior_input;
+    var shorter_input: Int = current_input;
+    var longer_start: Int = prior_path_start;
+    var shorter_start: Int = current_path_start;
+    var longer_count: Int = prior_path_count;
+    var shorter_count: Int = current_path_count;
+    if current_path_count > prior_path_count {
+        longer_demand = current;
+        shorter_demand = prior;
+        longer_input = current_input;
+        shorter_input = prior_input;
+        longer_start = current_path_start;
+        shorter_start = prior_path_start;
+        longer_count = current_path_count;
+        shorter_count = prior_path_count;
+    }
+    if shorter_count <= 0 || longer_count <= shorter_count {
+        return invalid;
+    }
+    var path_offset: Int = 0;
+    while path_offset < shorter_count {
+        if plan.demand_invocation_nodes[longer_start + path_offset] !=
+                plan.demand_invocation_nodes[shorter_start + path_offset] {
+            return invalid;
+        }
+        path_offset = path_offset + 1;
+    }
+    var call_offset: Int = 0;
+    while call_offset < longer_count {
+        let call_node: Int =
+            plan.demand_invocation_nodes[longer_start + call_offset];
+        let target: Int =
+            SemanticAstCollectionAggregateReleaseCallTargetForNode(
+                plan, call_node);
+        if target <= 0 ||
+            SemanticAstCollectionAggregateReleaseCallFunctionForNode(
+                plan, call_node) <= 0 {
+            return invalid;
+        }
+        if call_offset + 1 < longer_count {
+            let next_node: Int = plan.demand_invocation_nodes[
+                longer_start + call_offset + 1];
+            if target !=
+                SemanticAstCollectionAggregateReleaseCallFunctionForNode(
+                    plan, next_node) {
+                return invalid;
+            }
+        }
+        var earlier: Int = 0;
+        while earlier < call_offset {
+            if SemanticAstCollectionAggregateReleaseCallTargetForNode(
+                    plan, plan.demand_invocation_nodes[
+                        longer_start + earlier]) == target {
+                return invalid;
+            }
+            earlier = earlier + 1;
+        }
+        call_offset = call_offset + 1;
+    }
+    let shorter_target: Int =
+        SemanticAstCollectionAggregateReleaseCallTargetForNode(
+            plan, plan.demand_invocation_nodes[
+                shorter_start + shorter_count - 1]);
+    let producer_target: Int =
+        SemanticAstCollectionAggregateReleaseCallTargetForNode(
+            plan, plan.demand_invocation_nodes[
+                longer_start + longer_count - 1]);
+    if shorter_target != inputs.function_ids[shorter_input] ||
+        producer_target != inputs.function_ids[longer_input] {
+        return invalid;
+    }
+    return SemanticAstCollectionAggregateInvocationExtension(
+        true, longer_demand, shorter_demand, longer_input, shorter_input,
+        longer_start, shorter_start, longer_count, shorter_count,
+        plan.demand_invocation_nodes[longer_start + shorter_count]);
+}
+
+// One selected result may come from a fresh allocation-free producer while
+// the other comes from an outer caller. Missing identity never grants the
+// alternative; the common extension fact above proves the exact lineage and
+// this rule adds the existing kind-3 vacant producer proof.
+func SemanticAstCollectionAggregateReleaseVacantAlternativeReady(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    prior: Int, current: Int
+) -> Bool {
+    let extension: SemanticAstCollectionAggregateInvocationExtension =
+        SemanticAstCollectionAggregateInvocationExtensionForDemands(
+            plan, inputs, prior, current);
+    return extension.ok && extension.longer_input >= 0 &&
+        extension.longer_input < ArrayLength(inputs.producer_kinds) &&
+        inputs.producer_kinds[extension.longer_input] == 3;
+}
+
+func SemanticAstCollectionAggregateReleaseRecordForwardedTransfer(
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref extension: SemanticAstCollectionAggregateInvocationExtension,
+    receipt_syntax_id: Int
+) -> Bool {
+    if !extension.ok || extension.longer_demand < 0 ||
+        extension.shorter_demand < 0 ||
+        receipt_syntax_id <= 0 ||
+        extension.longer_demand >= ArrayLength(plan.aggregate_origin_ids) ||
+        extension.shorter_demand >= ArrayLength(plan.aggregate_origin_ids) ||
+        extension.longer_demand >=
+            ArrayLength(plan.demand_invocation_starts) ||
+        extension.shorter_demand >=
+            ArrayLength(plan.demand_invocation_starts) {
+        return false;
+    }
+    // The element-escape owner reports the containing call site, which may be
+    // in the common prefix before the producer extension. Record only sites on
+    // the two exact invocation paths whose forwarding relation was proved;
+    // neither a matching root alone nor an arbitrary call is sufficient.
+    let demands: Array<Int> = [
+        extension.longer_demand, extension.shorter_demand
+    ];
+    var demand_index: Int = 0;
+    while demand_index < ArrayLength(demands) {
+        let demand: Int = demands[demand_index];
+        let root: Int = plan.aggregate_origin_ids[demand];
+        if root <= 0 { return false; }
+        if !SemanticAstCollectionAggregateReleaseRecordForwardedTransferAt(
+                plan, root, receipt_syntax_id) {
+            return false;
+        }
+        let path_start: Int = plan.demand_invocation_starts[demand];
+        var path_end: Int = ArrayLength(plan.demand_invocation_nodes);
+        if demand + 1 < ArrayLength(plan.demand_invocation_starts) {
+            path_end = plan.demand_invocation_starts[demand + 1];
+        }
+        if path_start < 0 || path_end <= path_start ||
+            path_end > ArrayLength(plan.demand_invocation_nodes) {
+            return false;
+        }
+        var path: Int = path_start;
+        while path < path_end {
+            let syntax_id: Int =
+                SemanticAstCollectionAggregateReleaseCallSyntaxForNode(
+                    plan, plan.demand_invocation_nodes[path]);
+            if syntax_id <= 0 { return false; }
+            if !SemanticAstCollectionAggregateReleaseRecordForwardedTransferAt(
+                    plan, root, syntax_id) {
+                return false;
+            }
+            path = path + 1;
+        }
+        demand_index = demand_index + 1;
+    }
+    return true;
+}
+

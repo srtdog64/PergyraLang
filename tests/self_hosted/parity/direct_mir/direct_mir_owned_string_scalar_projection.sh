@@ -41,12 +41,12 @@ run_checked() {
     fi
 }
 sha256sum "$PROBE" "$PGY" "$PRODUCER" "$MANIFEST" \
-    src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy \
     src/common/compiler_internal_builtin_caller_registry.def >"$WORK_DIR/source-before.sha256"
 run_checked probe.emit "$BUILD_TIMEOUT" "$PGY" "$PROBE" --native-pipeline --emit-c \
     -o "$WORK_REL/probe.c"
 sha256sum "$PROBE" "$PGY" "$PRODUCER" "$MANIFEST" \
-    src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy \
     src/common/compiler_internal_builtin_caller_registry.def >"$WORK_DIR/source-after.sha256"
 cmp -s "$WORK_DIR/source-before.sha256" "$WORK_DIR/source-after.sha256" || fail "probe inputs changed"
 export PGY_SELFHOST_CC_PROFILE=test

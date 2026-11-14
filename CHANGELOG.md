@@ -157,8 +157,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### LLVM Backend MIR Transition (2026-04-09)
 - **codegen/llvm**: LLVM backend entry transitioned from direct HIR-based code
-  generation to MIR-based routine emission. `src/codegen/llvm_pipeline.c` and
-  `src/codegen/llvm_mir_emit.c` now drive LLVM IR emission directly from MIR
+  generation to MIR-based routine emission. `src/codegen/llvm/llvm_pipeline.c` and
+  `src/codegen/llvm/llvm_mir_emit.c` now drive LLVM IR emission directly from MIR
   routines via `llvm_emit_func_from_mir()`.
 - **codegen/llvm**: SSA locals, PHI nodes, branch terminators, and intent
   compensation blocks all supported in LLVM MIR path.
@@ -521,7 +521,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `transpiler_helpers.inc` and `transpiler_domain_role.inc`
 - `src/codegen/transpiler_helpers.inc` split again into a smaller core helper
   include plus `transpiler_expr_emitters.inc`
-- `src/codegen/llvm_expr.c` split into a smaller main file plus
+- `src/codegen/llvm/llvm_expr.c` split into a smaller main file plus
   `src/codegen/llvm_expr_helpers.inc` to keep LLVM expression codegen more manageable
 - `src/tests/semantic/test_semantic_runtime.inc` split into themed semantic test
   includes to keep the runtime/domain regression corpus readable
@@ -795,7 +795,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added LLVM/runtime coverage for deeper nested member assignment (`self.zone.subject.field = value`) and secure boundary slot forwarding with paired token propagation
 - semantic: `world` decl lookup helper가 `world/roster`도 찾도록 보강되어, world value에 embed된 zone을 옛 바인딩으로 다시 mutate하는 경로가 semantic error로 제대로 차단된다
 - build: 초대형 테스트 파일 `src/test_semantic.c`, `src/test_transpile.c`를 include 단위로 분리했고, parser 공용 `ast.c`의 디버그 출력 섹션을 `src/parser/ast_print.c`로 분리해 3000+ 라인 파일을 줄였다
-- build: `src/codegen/llvm_domain.c` 상단 helper 블록도 `llvm_domain_helpers.inc`로 분리해 core codegen 파일 길이를 줄였다
+- build: `src/codegen/llvm/llvm_domain.c` 상단 helper 블록도 `llvm_domain_helpers.inc`로 분리해 core codegen 파일 길이를 줄였다
 - Fix C/LLVM campaign graph/FSM parity by making `ToString(Int)` allocate a
   fresh string instead of reusing a single static buffer. Nested report/log
   concatenation now produces stable values on the C backend, and

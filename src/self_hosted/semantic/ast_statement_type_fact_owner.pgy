@@ -1,19 +1,19 @@
 // Statement expression/type verdicts joined from artifact-owned facts.
 import "ast_statement_fact_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
-import "ast_expression_environment_owner.pgy";
-import "ast_expression_verdict_owner.pgy";
+import "ast_expression/ast_expression_environment_owner.pgy";
+import "ast_expression/ast_expression_verdict_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
-import "ast_expression_graph_view_owner.pgy";
-import "ast_expression_graph_array_literal_owner.pgy";
-import "ast_expression_graph_set_literal_owner.pgy";
-import "ast_expression_graph_collection_mutation_owner.pgy";
+import "ast_expression/ast_expression_graph_view_owner.pgy";
+import "ast_expression/ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression/ast_expression_graph_set_literal_owner.pgy";
+import "ast_expression/ast_expression_graph_collection_mutation_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_bind_statement_type_fact_owner.pgy";
-import "ast_expression_function_table_fact_owner.pgy";
-import "ast_expression_graph_enum_payload_owner.pgy";
+import "ast_expression/ast_expression_function_table_fact_owner.pgy";
+import "ast_expression/ast_expression_graph_enum_payload_owner.pgy";
 import "ast_declaration_contract_owner.pgy";
 struct SemanticAstStatementTypeFacts {
     ok: Bool;

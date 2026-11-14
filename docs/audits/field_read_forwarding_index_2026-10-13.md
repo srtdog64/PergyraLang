@@ -13,7 +13,7 @@ read fact/marker, preserve refusal and convergence behavior, remove the
 repeated edge-times-all-keys operation, then measure this fixed input.
 
 The existing fact owner is SemanticAstCollectionExclusiveFieldReads in
-`src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy`.
+`src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_field_read_owner.pgy`.
 Body admission populates formal bindings; this owner derives direct field
 reads and propagates them along argument-forwarding edges. Exclusive-value
 classification, family-read/growth and restoration consumers read this same

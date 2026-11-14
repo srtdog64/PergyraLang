@@ -41,14 +41,14 @@ Implemented end-to-end for `Result`:
 - Parser: postfix `expr?` is parsed (`src/parser/parser_expr_postfix.c:226`),
   currently as an `AST_UNARY` node carrying the `?` operator (no dedicated
   `AST_TRY` node).
-- Semantic: `src/semantic/type_checker_expr_ops.c:349` requires the operand to
+- Semantic: `src/semantic/type_checker/type_checker_expr_ops.c:349` requires the operand to
   be `Result<T>` or `Result<T, E>`, and yields the unwrapped first type
   argument. Non-Result operands are a typed error.
 - Codegen: handled on both backends and in let-emission paths
-  (`src/codegen/llvm_expr_unary_core.c:58`,
-  `src/codegen/transpiler_expr_unary_emit.c:24`,
-  `src/codegen/transpiler_let_emit.c:383`,
-  `src/codegen/transpiler_mir_preserved_let_emit.c:280`).
+  (`src/codegen/llvm/llvm_expr_unary_core.c:58`,
+  `src/codegen/c/transpiler_expr_unary_emit.c:24`,
+  `src/codegen/c/transpiler_let_emit.c:383`,
+  `src/codegen/c/transpiler_mir_preserved_let_emit.c:280`).
 
 Gaps and current self-host status:
 
@@ -80,14 +80,14 @@ Measured per construct, with evidence:
 
 - `let` bindings — Present and mature. The annotation is optional
   (`let_decl.type` is "Optional", `src/parser/ast.h:99`); the type is inferred
-  from the initializer (`src/semantic/type_checker_ownership_let.c:84,153`),
+  from the initializer (`src/semantic/type_checker/type_checker_ownership_let.c:84,153`),
   and the un-inferable cases are rejected loudly with actionable diagnostics:
   `None` without annotation, empty array `[]`, bare `ClaimDeviceSlot`
   (`type_checker_ownership_let.c:156,173,190`). Not a friction site.
 
 - Function return type — Absent. `type_check_func_resolve_return_type`
   defaults to `TYPE_VOID` whenever there is no `-> Type` annotation
-  (`src/semantic/type_checker_func_types.c:33-34`); the body is never consulted.
+  (`src/semantic/type_checker/type_checker_func_types.c:33-34`); the body is never consulted.
   Consequence: every value-returning function is forced to annotate its return
   type. This is friction site #1 — the clearest contributor to the heavy feel,
   because helper functions (the bulk of script code) all require `-> Type`.
@@ -130,7 +130,7 @@ This was the surprise: it is largely done, not a gap.
   holding each variant's parameter type nodes (`src/parser/ast.h:250`), and
   full parser machinery (`src/parser/parser_enum.c`).
 - Exhaustiveness/coverage checking exists
-  (`src/semantic/type_checker_flow_match_coverage.c`) for `Option`
+  (`src/semantic/type_checker/type_checker_flow_match_coverage.c`) for `Option`
   (Some/None), `Result` (Ok/Err), and enums, with per-variant arg-count
   awareness.
 - Pattern destructuring of payloads is supported

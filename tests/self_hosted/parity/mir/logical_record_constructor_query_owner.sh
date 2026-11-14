@@ -7,7 +7,7 @@ pgy_prepend_windows_runtime_paths
 LABEL=self-host-record-constructor-query
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_owner.pgy"
+OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_expression_owner.pgy"
 PYTHON="${PYTHON_BIN:-python}"
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1

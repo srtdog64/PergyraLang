@@ -1,0 +1,62 @@
+// One target-qualified projection derived from the carried scalar-program
+// Array<String> ABI fact. Canonical absence remains explicit.
+
+import "../direct_mir_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+func DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    ref projection: DirectMirArrayStringAbiProjection, expected_target: String
+) -> Bool {
+    return DirectMirScalarProgramArrayStringAbiFactReady(fact) &&
+        DirectMirArrayStringAbiProjectionReadyFor(projection, expected_target) &&
+        projection.abi_layout_id == fact.layout_id &&
+        projection.storage.size == fact.size && projection.storage.align == fact.align &&
+        projection.storage.data_offset == fact.data_offset &&
+        projection.storage.length_offset == fact.length_offset &&
+        projection.storage.capacity_offset == fact.capacity_offset &&
+        projection.storage.allocator_offset == fact.allocator_offset;
+}
+func DirectMirScalarProgramLlvmArrayStringStorageProjection(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>, context: String
+) -> DirectMirArrayStringAbiProjection {
+    if !IsSome(projection_opt) { Die(context + " Array<String> projection is missing"); }
+    let projection: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
+    if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            fact, projection, CompilerTargetCpuLlvmProjection()) {
+        Die(context + " Array<String> projection drifted");
+    }
+    return projection;
+}
+func DirectMirScalarProgramCArrayStringCarrierType(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    ref projection: DirectMirArrayStringAbiProjection
+) -> String {
+    if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            fact, projection, CompilerTargetCpuCProjection()) {
+        Die("direct MIR scalar program C Array<String> carrier projection drifted");
+    }
+    return CompilerAbiLayoutArrayStringCValueType();
+}
+func DirectMirScalarProgramArrayStringAbiProjectionFromFact(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    target: CompilerTargetProjectionFact
+) -> Option<DirectMirArrayStringAbiProjection> {
+    if DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(fact) {
+        return None();
+    }
+    if !DirectMirScalarProgramArrayStringAbiFactReady(fact) {
+        Die("direct MIR scalar program Array<String> ABI fact is invalid");
+    }
+    let projection: DirectMirArrayStringAbiProjection =
+        DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+            target, fact.layout_id, fact.size, fact.align,
+            fact.data_offset, fact.length_offset, fact.capacity_offset,
+            fact.allocator_offset
+        );
+    if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            fact, projection, target.projection) {
+        Die("direct MIR scalar program Array<String> ABI projection drifted");
+    }
+    return Some(projection);
+}

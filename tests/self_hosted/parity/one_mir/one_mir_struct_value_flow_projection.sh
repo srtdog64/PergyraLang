@@ -30,18 +30,18 @@ assert_owner_ratchet() {
         [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
         total=$((total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_abi_row_equality_owner.pgy|40
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_declaration_abi_fact_owner.pgy|220
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_program_admission_owner.pgy|95
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_program_identity_owner.pgy|230
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_graph_fact_owner.pgy|260
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_instruction_admission_owner.pgy|200
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_abi_fact_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_plan_owner.pgy|230
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_c_emission_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_llvm_emission_owner.pgy|140
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_projection_owner.pgy|40
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy|110
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_abi_row_equality_owner.pgy|40
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_declaration_abi_fact_owner.pgy|220
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_struct_value_flow_program_admission_owner.pgy|95
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_struct_value_flow_program_identity_owner.pgy|230
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_struct_value_flow_graph_fact_owner.pgy|260
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_struct_value_flow_instruction_admission_owner.pgy|200
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_struct_value_flow_abi_fact_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_struct_value_flow_plan_owner.pgy|230
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_struct_value_flow_c_emission_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_struct_value_flow_llvm_emission_owner.pgy|140
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_struct_value_flow_projection_owner.pgy|40
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy|110
 EOF
     [[ "$total" -le 1560 ]] || fail "value-flow owner family cap exceeded: $total/1560"
 }

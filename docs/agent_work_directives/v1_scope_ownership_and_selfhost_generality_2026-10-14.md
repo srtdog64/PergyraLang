@@ -55,7 +55,7 @@ being promoted to `CLOSED`.
   (`src/pgy_driver.c`, `src/compiler/driver_self_host_selection_owner.c`).
   The native pipeline runs only with an explicit `--native-pipeline`.
 - **The driver is large, and mostly program-shape code.** The driver entry is
-  `src/self_hosted/compiler/driver_bootstrap_main.pgy`. Its import closure is
+  `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`. Its import closure is
   1,912 files and about 270,000 lines.
   - 1,004 of those files (about 97,000 lines) are `direct_mir_*`
     program-shape owners.
@@ -129,7 +129,7 @@ being promoted to `CLOSED`.
     owners, such as the comparison and integer-wrap projections, can be
     consolidated into per-kind emitters instead of being rewritten.
   - Native in-memory MIR still holds AST pointers (`expr0`, `expr1`, `ast`;
-    `src/compiler/mir_types.h`). That limits the native oracle, not the JSON
+    `src/compiler/mir/mir_types.h`). That limits the native oracle, not the JSON
     contract the self-host reads.
 - **Bootstrap.** The bootstrap has been red since 2026-10-02 at the DRV-2
   frontier (`borrow_boundary_escape` / `unproved_exclusive_member_mutation`).

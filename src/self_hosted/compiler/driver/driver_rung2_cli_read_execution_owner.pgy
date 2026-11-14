@@ -1,0 +1,150 @@
+// Read-only DRV-2 request execution owner shared by both composition roots.
+
+import "driver_rung2_cli_request_owner.pgy";
+import "../capability_manifest_owner.pgy";
+import "../dir_text_artifact_owner.pgy";
+import "driver_source_c_stdout_execution_owner.pgy";
+import "driver_source_mir_json_diagnostic_stdout_owner.pgy";
+import "driver_pipeline_owner.pgy";
+import "driver_mir_c_stdout_execution_owner.pgy";
+import "../canonical_mir_execution_owner.pgy";
+import "../compatibility_evolution_owner.pgy";
+import "../../lexer/scan_owner.pgy";
+import "../../lexer/source_input_owner.pgy";
+import "../../parser/program_parse_owner.pgy";
+
+func DriverRung2ExecuteReadRequest(
+    inout compiler_world: PgyCompilerWorld,
+    request: DriverRung2CliRequest,
+    ref compatibility_view: CompilerCompatibilityExecutionView
+) -> Void with caps io_read {
+    if !CompilerCompatibilityExecutionViewReady(compatibility_view) {
+        Die("compatibility execution view is invalid at diagnostic/ABI boundary");
+    }
+    match request {
+        case DriverCliDebugSession(source_path):
+            Die("debug session request requires installed composition root");
+        case DriverCliFormatSourceArtifact(source_path, output_path):
+            Die("format source request requires installed composition root");
+        case DriverCliSourceTokensStdout(source_path, emit_json):
+            Log(LexContentForPublicDiagnosticRequest(
+                source_path, LexerReadSource(source_path), emit_json));
+        case DriverCliSourceAstStdout(source_path, emit_json):
+            let artifact: AstTreeArtifact =
+                CompileSourceToAstArtifactForPublicDiagnosticRequest(
+                    source_path, emit_json);
+            Log(artifact.tree_text);
+            Log("");
+        case DriverCliSourceCapabilityManifestStdout(source_path):
+            CompilerCapabilityManifestOutcomeEmitOrDie(
+                CompileSourceCapabilityManifestVerified(source_path)
+            );
+        case DriverCliSourceDirStdout(source_path):
+            Log(CompileSourceDirTextVerified(source_path));
+        case DriverCliMachineManifestStdout(manifest_path):
+            Log(SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified(
+                manifest_path
+            ));
+        case DriverCliSourceCStdout(source_path):
+            DriverRung2CliLogSourceCPayloadOrDie(
+                compiler_world, source_path, SourceCDefault(false)
+            );
+        case DriverCliSourceCManifestStdout(source_path, manifest_path):
+            DriverRung2CliLogSourceCPayloadOrDie(
+                compiler_world, source_path,
+                SourceCManifestVerified(
+                    SelfHostMachineLayerDeclarationFromPath(manifest_path),
+                    false
+                )
+            );
+        case DriverCliSourceMirDiagnosticStdout(source_path):
+            Log(DriverSourceMirDiagnosticPayloadOrDie(
+                compiler_world, source_path,
+                SelfHostMachineLayerDeclarationEmpty()
+            ));
+        case DriverCliSourceMirJsonDiagnosticStdout(source_path):
+            Log(DriverSourceMirJsonDiagnosticPayloadOrDie(
+                compiler_world, source_path,
+                SelfHostMachineLayerDeclarationEmpty()
+            ));
+        case DriverCliSourceMirStdout(source_path):
+            Log(DriverSourceMirCanonicalPayloadOrDie(
+                compiler_world, source_path,
+                SelfHostMachineLayerDeclarationEmpty()
+            ));
+        case DriverCliSourceMirManifestStdout(source_path, manifest_path):
+            Log(DriverSourceMirCanonicalPayloadOrDie(
+                compiler_world, source_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            ));
+        case DriverCliCanonicalMirStdout(input_path):
+            Log(CanonicalizeMirJsonVerified(
+                input_path, SelfHostMachineLayerDeclarationEmpty()
+            ));
+        case DriverCliCanonicalMirManifestStdout(input_path, manifest_path):
+            Log(CanonicalizeMirJsonVerified(
+                input_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            ));
+        case DriverCliCanonicalOracleMirStdout(input_path):
+            Log(CanonicalizeOracleMirJsonBridge(
+                input_path, SelfHostMachineLayerDeclarationEmpty()
+            ));
+        case DriverCliCanonicalOracleMirManifestStdout(input_path, manifest_path):
+            Log(CanonicalizeOracleMirJsonBridge(
+                input_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            ));
+        case DriverCliMirCStdout(input_path):
+            DriverRung2CliLogMirCPayloadOrDie(
+                compiler_world, input_path, MirCVerified, MirCDefaultMachine
+            );
+        case DriverCliMirCManifestStdout(input_path, manifest_path):
+            DriverRung2CliLogMirCPayloadOrDie(
+                compiler_world, input_path, MirCVerified,
+                MirCManifestVerified(
+                    SelfHostMachineLayerDeclarationFromPath(manifest_path)
+                )
+            );
+        case DriverCliMissingProjectionProbe(input_path):
+            DriverRung2RunMissingProjectionProbe(
+                input_path, SelfHostMachineLayerDeclarationEmpty()
+            );
+        case DriverCliMissingProjectionManifestProbe(input_path, manifest_path):
+            DriverRung2RunMissingProjectionProbe(
+                input_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            );
+        case DriverCliSourceCArtifact(source_path, output_path, manifest_path, emit_json):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliSourceLlvmArtifact(source_path, output_path, emit_json):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliSourceMirArtifact(source_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliSourceMirPressureArtifact(source_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliMirCArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliMirCObservedArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliDirectMirCArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliDirectMirLlvmArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliDirectMirCObservedArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliDirectMirLlvmObservedArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+    }
+}
+
+func DriverRung2RunMissingProjectionProbe(
+    input_path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> Void with caps io_read {
+    let json: String = MirJsonReadInput(input_path, declaration);
+    CompileMirJsonTextToCForTargetVerified(
+        json, declaration, CompilerTargetProjectionFactEmpty()
+    );
+    Die("missing target projection fact was accepted");
+}

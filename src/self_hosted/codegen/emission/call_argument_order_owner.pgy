@@ -10,8 +10,8 @@
 import "../text/text_owner.pgy";
 import "expr_semantic_call_argument_owner.pgy";
 import "expression_c_text_materialization_owner.pgy";
-import "../../semantic/ast_expression_graph_call_view_owner.pgy";
-import "../../semantic/ast_expression_graph_node_view_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
 import "../../hir/ast_expression_graph_owner.pgy";
 
 func CodegenOperandIsLiteral(kind: Option<Int>) -> Bool {

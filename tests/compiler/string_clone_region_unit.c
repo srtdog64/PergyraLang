@@ -2,15 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "codegen/transpiler_clone_value_emit.h"
-#include "codegen/transpiler_context.h"
+#include "codegen/c/transpiler_clone_value_emit.h"
+#include "codegen/c/transpiler_context.h"
 #include "compiler/verified_region_plan.h"
 #include "parser/ast.h"
 #ifdef PGY_LLVM_ENABLED
-#include "codegen/llvm_internal.h"
-#include "codegen/llvm_internal_api.h"
-#include "codegen/llvm_expr_clone_value.h"
-#include "codegen/llvm_expr_scalar_core.h"
+#include "codegen/llvm/llvm_internal.h"
+#include "codegen/llvm/llvm_internal_api.h"
+#include "codegen/llvm/llvm_expr_clone_value.h"
+#include "codegen/llvm/llvm_expr_scalar_core.h"
 #include "lexer/lexer.h"
 #endif
 

@@ -20,7 +20,7 @@ BOOL_SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_readonly_string_bo
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 BOOL_MIR_REL="$WORK_REL/readonly-bool.mir.json"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/ownership/region_user_callee_mutations.py"
-TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_readonly_string_parameter_owner.pgy"
+TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_readonly_string_parameter_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }

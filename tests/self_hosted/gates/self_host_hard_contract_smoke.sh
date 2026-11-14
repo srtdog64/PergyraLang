@@ -53,8 +53,8 @@ MUTABLE_IDENTITY_OWNER_CAPS
 [[ "$mutable_identity_total" -le 384 ]] || \
     fail "mutable nominal identity owner cap exceeded: $mutable_identity_total/384"
 require_file \
-    "src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy"
-source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy)" || fail "source-size measurement failed"
+    "src/self_hosted/compiler/direct_mir/direct_mir_exact_json_array_cardinality_owner.pgy"
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_exact_json_array_cardinality_owner.pgy)" || fail "source-size measurement failed"
 [[ "$source_size_lines" -le 90 ]] || \
     fail "exact JSON-array cardinality owner hard cap exceeded"
 

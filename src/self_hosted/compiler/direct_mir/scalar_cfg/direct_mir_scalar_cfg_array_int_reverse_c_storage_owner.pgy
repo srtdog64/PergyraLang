@@ -1,0 +1,28 @@
+// Fresh canonical C storage owned by the bounded ArrayReverse result.
+
+import "../direct_mir_array_int_abi_projection_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseCDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if plan.array_int_program.mode !=
+            DirectMirScalarCfgArrayIntFreshReverseMode() ||
+        !plan.array_int_program.reverse.valid {
+        return "";
+    }
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+            target, plan.array_int_program.reverse.result.abi_layout_id,
+            plan.array_int_program.reverse.result.abi_size,
+            plan.array_int_program.reverse.result.abi_align,
+            plan.array_int_program.reverse.result.data_offset,
+            plan.array_int_program.reverse.result.length_offset,
+            plan.array_int_program.reverse.result.capacity_offset,
+            plan.array_int_program.reverse.result.allocator_offset
+        );
+    var output: String = Concat("    ", abi.c_element_type);
+    output = Concat(output, " pgy_array_int_reverse_storage[3];\n");
+    return Concat(output,
+        "    PgyArray_Int pgy_array_int_reverse_collection = {pgy_array_int_reverse_storage, 0, 3, NULL};\n");
+}

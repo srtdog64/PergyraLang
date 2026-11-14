@@ -1,0 +1,89 @@
+// LLVM scalar type spelling projected from canonical compiler type identities.
+import "../../abi_layout_row_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_result_type_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_target_type_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_result_projection_owner.pgy";
+import "../../runtime_value_representation_owner.pgy";
+import "../../../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+func DirectMirScalarProgramLlvmSetStringTypeName() -> String {
+    return "{ ptr, ptr, i64, i64 }";
+}
+func DirectMirScalarProgramLlvmType(type_name: String) -> String {
+    let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(type_name);
+    if hashmap.ok { return CollectionHashMapLlvmStorageType(); }
+    if type_name == CompilerAbiLayoutArrayLongTypeName() { return "%pgy.array.long"; }
+    let runtime_value: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(type_name);
+    if runtime_value.valid { return runtime_value.llvm_type; }
+    if DirectMirScalarProgramFirstOrderCallableTypeSupported(type_name) { return "ptr"; }
+    if type_name == "Void" { return "void"; }
+    if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
+    if type_name == CompilerAbiLayoutLongTypeName() { return "i64"; }
+    if type_name == CompilerAbiLayoutFloatTypeName() { return "double"; }
+    if type_name == CompilerAbiLayoutBoolTypeName() { return "i1"; }
+    if type_name == CompilerAbiLayoutStringTypeName() { return "ptr"; }
+    if type_name == CompilerAbiLayoutArrayStringTypeName() {
+        return "%pgy.array.string";
+    }
+    if type_name == CompilerAbiLayoutArrayIntTypeName() {
+        return "%pgy.array.int";
+    }
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() {
+        return "%pgy.array.bool";
+    }
+    if type_name == CompilerAbiLayoutSliceIntTypeName() {
+        return "%pgy.slice.int";
+    }
+    if type_name == CompilerAbiLayoutSliceStringTypeName() {
+        return "%pgy.slice.string";
+    }
+    if type_name == CompilerAbiLayoutSetStringTypeName() {
+        return DirectMirScalarProgramLlvmSetStringTypeName();
+    }
+    return DirectMirScalarProgramLlvmOptionResultType(type_name);
+}
+func DirectMirScalarProgramLlvmTypeForProgram(
+    type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> String {
+    let projected: String = DirectMirScalarProgramLlvmType(type_name);
+    if projected != "" { return projected; }
+    if DirectMirIdentityCellRow(logical_record.identity_cells, type_name) >= 0 { return "ptr"; }
+    if DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, type_name) {
+        return DirectMirScalarProgramLlvmLogicalRecordTypeName(
+            logical_record, type_name);
+    }
+    if DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name) {
+        return DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+            logical_record, type_name);
+    }
+    if DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            logical_record, type_name) {
+        return DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+            logical_record, type_name);
+    }
+    if DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            payload_free_enum, type_name) {
+        return "i64";
+    }
+    return "";
+}
+func DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+    type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> String {
+    let projected: String = DirectMirScalarProgramLlvmTypeForProgram(
+        type_name, logical_record, payload_free_enum);
+    if projected != "" { return projected; }
+    return DirectMirScalarProgramLlvmReferencedEnumTargetType(
+        type_name, logical_record, referenced_enum);
+}

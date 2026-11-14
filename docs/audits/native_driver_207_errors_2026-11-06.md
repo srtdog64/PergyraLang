@@ -34,7 +34,7 @@ canonical 실행으로 확인해야 한다. 이 감사 자체가 그 성공 증�
 |---|---|
 | 공유 checkout HEAD | `60fd1e26d8ea3987efbcbfc65f59b892b234701a` + 기존 dirty tree |
 | 실제 분석 입력 | `/root/pgy-join-driver-20261105/r8`의 고정 전체 import graph |
-| canonical entry | `src/self_hosted/compiler/driver_bootstrap_main.pgy` |
+| canonical entry | `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy` |
 | entry SHA-256 | `8e5e115bbe25063f57b03a58f44cbcf16e8d86e104de99a6efc708a3fa565a12` |
 | 12,908개 입력 ledger SHA-256 | `2f9b650f6c55c8810c14a798c4d4b0d706ca049892aa4bbea70a0e0dfa4cf246` |
 | 원본 native SHA-256 | `c0e0a6d89e44580a80e09c688bba316d124589babd1b9ddc7aa05c339cfeacab` |
@@ -51,7 +51,7 @@ canonical 실행으로 확인해야 한다. 이 감사 자체가 그 성공 증�
 
 ```text
 pgy --native-pipeline --error-format=json --emit-c \
-  src/self_hosted/compiler/driver_bootstrap_main.pgy -o driver.c
+  src/self_hosted/compiler/driver/driver_bootstrap_main.pgy -o driver.c
 ```
 
 이는 고정 R8 입력과 식별된 native의 결과다. 현재 공유 소스나 새로

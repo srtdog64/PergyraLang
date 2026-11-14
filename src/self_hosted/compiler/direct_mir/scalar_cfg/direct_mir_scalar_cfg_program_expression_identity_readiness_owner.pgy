@@ -1,0 +1,126 @@
+// Cross-link local, formal-parameter, and direct-call identities to partitions.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_array_readonly_ref_target_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_owned_array_string_parameter_target_owner.pgy";
+import "direct_mir_scalar_cfg_program_runtime_value_parameter_readiness_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_array_string_literal_parameter_carriage_owner.pgy";
+import "direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_result_expression_identity_readiness_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_hashmap_value_result_target_owner.pgy";
+func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarCfgGraphPlan, ref facts: DirectMirScalarProgramExpressionSet, node: Int, routine: Int, graph_start: Int) -> Bool {
+    let kind: Int = facts.node_kinds[node];
+    let result_ready: Option<Bool> = DirectMirScalarCfgProgramResultExpressionIdentityReady(
+            plan, facts, node, routine, graph_start);
+    if IsSome(result_ready) { return UnwrapOption(result_ready); }
+    if kind == DirectMirScalarProgramExprArrayDropStorage() {
+        let left: Int = facts.node_lefts[node];
+        if left < graph_start || left >= node { return false; }
+        if facts.node_kinds[left] == DirectMirScalarProgramExprLocal() { return true; }
+        if facts.node_kinds[left] != DirectMirScalarProgramExprParameter() { return false; }
+        let ordinal: Int = facts.node_parameter_ordinals[left];
+        return ordinal >= 0 && ordinal < plan.routines.parameter_counts[routine] &&
+            plan.routines.parameter_carriages[plan.routines.parameter_starts[routine] + ordinal] == "owner-handle";
+    }
+    if kind == DirectMirScalarProgramExprMapSet() || kind == DirectMirScalarProgramExprMapRemove() {
+        let operands: Array<Int> = DirectMirScalarProgramHashMapArgumentRows(facts, node);
+        if ArrayLength(operands) == 0 || operands[0] < graph_start || operands[0] >= node { return false; }
+        let receiver_kind: Int = facts.node_kinds[operands[0]];
+        if receiver_kind == DirectMirScalarProgramExprLocal() { return true; }
+        return receiver_kind == DirectMirScalarProgramExprParameter() &&
+            DirectMirScalarProgramHashMapValueResultAt(
+                plan, routine, facts.node_parameter_ordinals[operands[0]]);
+    }
+    if kind == DirectMirScalarProgramExprPayloadEnumMatch() {
+        let left: Int = facts.node_lefts[node];
+        if left < graph_start || left >= node { return false; }
+        let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+            plan.program.referenced_enum, facts.node_types[left]);
+        let ordinal: Int = facts.node_member_ordinals[node];
+        if enum_row < 0 || ordinal < 0 || ordinal >=
+                plan.program.referenced_enum.variant_counts[enum_row] { return false; }
+        let variant: Int = plan.program.referenced_enum.variant_starts[enum_row] + ordinal;
+        let arity: Int = plan.program.referenced_enum.variant_param_counts[variant];
+        let binding: Int = facts.node_local_rows[node];
+        if arity == 0 { return binding == -1; }
+        let start: Int = plan.routines.local_starts[routine];
+        let end: Int = start + plan.routines.local_counts[routine];
+        if binding < start || arity < 0 || binding > end - arity { return false; }
+        var parameter: Int = 0;
+        while parameter < arity {
+            let local_row: Int = binding + parameter;
+            if plan.local_ref_kinds[local_row] != DirectMirScalarCfgLocalRefMatchBinding() ||
+                plan.local_types[local_row] != plan.program.referenced_enum.variant_param_types[
+                    plan.program.referenced_enum.variant_param_type_starts[variant] + parameter] ||
+                plan.local_ref_syntax_ids[local_row] != plan.local_ref_syntax_ids[binding] + parameter {
+                return false;
+            }
+            parameter = parameter + 1;
+        }
+        return true;
+    }
+    if kind == DirectMirScalarProgramExprLocal() {
+        let local_start: Int = plan.routines.local_starts[routine]; let local_end: Int = local_start + plan.routines.local_counts[routine];
+        return facts.node_local_rows[node] >= local_start && facts.node_local_rows[node] < local_end &&
+            facts.node_types[node] == plan.local_types[facts.node_local_rows[node]];
+    }
+    if kind == DirectMirScalarProgramExprParameter() {
+        let ordinal: Int = facts.node_parameter_ordinals[node];
+        return ordinal >= 0 && ordinal < plan.routines.parameter_counts[routine] &&
+            facts.node_types[node] == plan.routines.parameter_types[
+                plan.routines.parameter_starts[routine] + ordinal];
+    }
+    if kind == DirectMirScalarProgramExprArrayStringLiteral() {
+        return DirectMirScalarProgramArrayStringLiteralParameterCarriageReady(facts, node, plan.routines, routine);
+    }
+    if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
+        let left: Int = facts.node_lefts[node];
+        if left < graph_start || left >= node { return false; }
+        if facts.node_kinds[left] == DirectMirScalarProgramExprLocal() {
+            return true;
+        }
+        if facts.node_kinds[left] != DirectMirScalarProgramExprParameter() { return false; }
+        let ordinal: Int = facts.node_parameter_ordinals[left];
+        return DirectMirScalarProgramArrayStringValueResultAt(plan.program.array_string_abi, routine, ordinal) ||
+            DirectMirScalarProgramOwnedArrayStringMutationParameterAt(plan.routines, routine, ordinal);
+    }
+    if kind == DirectMirScalarProgramExprSetStringAdd() || kind == DirectMirScalarProgramExprArrayStringPushOwned() {
+        let left: Int = facts.node_lefts[node];
+        if left < graph_start || left >= node { return false; }
+        if facts.node_kinds[left] == DirectMirScalarProgramExprLocal() {
+            return true;
+        }
+        if facts.node_kinds[left] != DirectMirScalarProgramExprParameter() {
+            return false;
+        }
+        if kind == DirectMirScalarProgramExprSetStringAdd() {
+            return DirectMirScalarProgramSetStringValueResultAt(
+                plan, routine, facts.node_parameter_ordinals[left]);
+        }
+        return DirectMirScalarProgramArrayStringValueResultAt(
+            plan.program.array_string_abi, routine,
+            facts.node_parameter_ordinals[left]);
+    }
+    if kind == DirectMirScalarProgramExprRuntimeValueCall() { return DirectMirScalarCfgProgramRuntimeValueCallIdentityReady(plan, facts, node, routine, graph_start); }
+    if kind == DirectMirScalarProgramExprDeclaredCallable() || kind == DirectMirScalarProgramExprCallableParameterCall() { return DirectMirScalarCfgProgramCallableExpressionIdentityReady(plan, facts, node, routine, graph_start); }
+    if kind != DirectMirScalarProgramExprDirectCall() { return true; }
+    let target: Int = facts.node_callable_rows[node];
+    let arguments: Array<Int> = DirectMirScalarProgramDirectCallArgumentRows(facts, node);
+    if target <= plan.routines.entrypoint_ordinal ||
+        target >= ArrayLength(plan.routines.roles) ||
+        ArrayLength(arguments) != plan.routines.parameter_counts[target] ||
+        facts.node_types[node] != plan.routines.return_types[target] {
+        return false;
+    }
+    var ordinal: Int = 0;
+    while ordinal < ArrayLength(arguments) {
+        if !DirectMirScalarCfgProgramDirectCallCarriageReady(
+            plan, facts, node, routine, graph_start, target,
+            arguments[ordinal], ordinal) {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}

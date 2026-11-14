@@ -43,11 +43,11 @@ x86 instruction 수준의 선택 — 예컨대 `xor eax, eax` vs `sub eax, eax` 
   - `src/codegen/transpiler_expr_emitters.inc:4164-4172` — array literal statement-expression
   - `src/codegen/transpiler_emitters_mir_inventory_ssa.inc:1033-1046` — `transpiler_c_type_uses_scalar_zero` helper
 - LLVM 백엔드
-  - `src/codegen/llvm_stmt.c:1769-1831` — `llvm_emit_let_decl` (init present 경로만 store)
-  - `src/codegen/llvm_expr.c:79-93` — array literal `LLVMConstNull`
-  - `src/codegen/llvm_expr.c:160-185` — party/class instance default
-  - `src/codegen/llvm_stmt.c:1200-1252` — slot claim IR (direct struct init)
-  - `src/codegen/llvm_domain.c:2232`, `src/codegen/llvm_stmt.c:3033` — global 초기값
+  - `src/codegen/llvm/llvm_stmt.c:1769-1831` — `llvm_emit_let_decl` (init present 경로만 store)
+  - `src/codegen/llvm/llvm_expr.c:79-93` — array literal `LLVMConstNull`
+  - `src/codegen/llvm/llvm_expr.c:160-185` — party/class instance default
+  - `src/codegen/llvm/llvm_stmt.c:1200-1252` — slot claim IR (direct struct init)
+  - `src/codegen/llvm/llvm_domain.c:2232`, `src/codegen/llvm/llvm_stmt.c:3033` — global 초기값
 - Semantic guard
   - `src/semantic/type_checker_ownership_let_infer.inc` — 함수-바디 uninit local 거부
   - `src/semantic/diag_codes.h` — `PGY_CODE_SEM_UNINIT_LOCAL`, `PGY_CAUSE_UNINIT_LOCAL`, `PGY_FIX_INITIALIZE_AT_BINDING`

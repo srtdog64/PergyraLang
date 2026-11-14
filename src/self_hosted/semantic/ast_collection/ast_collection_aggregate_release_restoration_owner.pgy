@@ -1,0 +1,591 @@
+// Aggregate release events, control ordering, and carrier restoration readiness.
+
+import "ast_collection_aggregate_release_plan_owner.pgy";
+import "ast_collection_aggregate_named_input_reservation_owner.pgy";
+import "ast_collection_aggregate_value_exclusivity_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
+import "ast_collection_owned_argument_admission_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_argument_permission_effect_owner.pgy";
+import "../ast_statement_fact_owner.pgy";
+import "../ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "../ast_expression/ast_expression_graph_compiler_clone_owner.pgy";
+import "../ast_body_flow_verdict_owner.pgy";
+
+func SemanticAstCollectionAggregateReleaseRecordDrop(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, call_node: Int, binding_row: Int,
+    requirement_row: Int,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    inout transition_states: Array<Int>,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> SemanticAstCollectionOwnershipVerdict {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        requirement_row < 0 ||
+        requirement_row >= ArrayLength(plan.requirement_local_ids) ||
+        binding_row < 0 || binding_row >= ArrayLength(locals.node_ids) ||
+        plan.requirement_local_ids[requirement_row] !=
+            locals.node_ids[binding_row] ||
+        !SemanticAstCollectionAggregateRequirementHasEffect(
+            plan.requirement_effect_masks[requirement_row],
+            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop()) {
+        return SemanticAstCollectionAggregateReleaseError(
+            "aggregate_release_drop_identity", -1, call_node);
+    }
+    let syntax_id: Int = surfaces.node_ids[surface_row];
+    if plan.drop_syntax_ids[requirement_row] >= 0 ||
+        SemanticAstCollectionCallRetirementSite(artifact, syntax_id) <= 0 {
+        return SemanticAstCollectionAggregateReleaseError(
+            "aggregate_release_drop_repeated", syntax_id, call_node);
+    }
+    plan.drop_syntax_ids[requirement_row] = syntax_id;
+    plan.drop_expression_nodes[requirement_row] = call_node;
+    dispositions[binding_row] = SemanticAstCollectionDispositionRetired();
+    ownership[binding_row] = SemanticAstCollectionOwnershipRetired();
+    transition_states[binding_row] =
+        SemanticAstCollectionTransitionRetired();
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
+func SemanticAstCollectionAggregateReleaseRecordOwnedPush(
+    ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, call_node: Int, binding_row: Int,
+    requirement_row: Int, requirement_mode: Int,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    inout transition_states: Array<Int>,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> SemanticAstCollectionOwnershipVerdict {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        requirement_row < 0 ||
+        requirement_row >= ArrayLength(plan.requirement_local_ids) ||
+        requirement_mode < 0 || requirement_mode > 3 ||
+        binding_row < 0 || binding_row >= ArrayLength(locals.node_ids) ||
+        plan.requirement_local_ids[requirement_row] !=
+            locals.node_ids[binding_row] ||
+        !SemanticAstCollectionAggregateRequirementHasEffect(
+            plan.requirement_effect_masks[requirement_row],
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush()) {
+        return SemanticAstCollectionAggregateReleaseError(
+            "aggregate_owned_push_identity", -1, call_node);
+    }
+    let syntax_id: Int = surfaces.node_ids[surface_row];
+    if plan.owned_push_syntax_ids[requirement_row] >= 0 &&
+        plan.owned_push_syntax_ids[requirement_row] != syntax_id {
+        // A default aggregate parameter is a value boundary. Its extracted
+        // field carrier may be mutated at several ordered sites before the
+        // aggregate is returned. Keep the last transition for the final
+        // restoration proof. Inout/own/ref roots retain the single-site rule.
+        if requirement_mode != 0 || syntax_id <=
+                plan.owned_push_syntax_ids[requirement_row] {
+            return SemanticAstCollectionAggregateReleaseError(
+                "aggregate_owned_push_repeated", syntax_id, call_node);
+        }
+        plan.owned_push_syntax_ids[requirement_row] = syntax_id;
+        plan.owned_push_expression_nodes[requirement_row] = call_node;
+    }
+    if plan.owned_push_syntax_ids[requirement_row] < 0 {
+        plan.owned_push_syntax_ids[requirement_row] = syntax_id;
+        plan.owned_push_expression_nodes[requirement_row] = call_node;
+    }
+    dispositions[binding_row] = SemanticAstCollectionDispositionLive();
+    ownership[binding_row] = SemanticAstCollectionOwnershipOwnedElements();
+    transition_states[binding_row] =
+        SemanticAstCollectionTransitionOwned();
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
+// A proved leaf adapter carries exactly one owned-push effect from its inout
+// formal back to the caller. Preserve the caller's member-move identity and
+// record the transition only when the physical call spine completes.
+func SemanticAstCollectionAggregateOwnedPushLeafAtCompletion(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, call_node: Int, terminal_root: Int,
+    owned_push_leaf_formals: HashMap<String, Int>,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    ref origins: Array<Int>, inout transition_states: Array<Int>
+) -> SemanticAstCollectionOwnershipVerdict {
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(
+            surfaces.expression_graph, terminal_root);
+    if !call.ok || call.call_node != call_node {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "aggregate_owned_push_leaf_completion"),
+            surfaces.node_ids[surface_row], call_node);
+    }
+    var argument: Int = 0;
+    while argument < ArrayLength(call.argument_nodes) {
+        let target_formal: Int =
+            SemanticAstCollectionSourceArrayFormalForArgument(
+                signatures, surfaces.expression_graph,
+                call_node, argument);
+        if target_formal > 0 && MapHas(
+                owned_push_leaf_formals, ToString(target_formal)) {
+            let binding: SemanticAstLocalBindingIdentity =
+                SemanticAstCollectionOwnershipLocalForArgument(
+                    artifact, locals, inferred_types, surfaces,
+                    surface_row, call.argument_nodes[argument]);
+            if binding.ok && origins[binding.row] ==
+                    SemanticAstCollectionOriginMemberMove() {
+                let requirement: Int =
+                    SemanticAstCollectionAggregateFieldEntryIndexRow(
+                        requirements.row_by_local,
+                        locals.node_ids[binding.row]);
+                if requirement < 0 {
+                    return SemanticAstCollectionOwnershipVerdictError(
+                        "ast_artifact_invalid",
+                        SemanticError1("ast_artifact_invalid", "owner",
+                            "aggregate_owned_push_leaf_requirement"),
+                        surfaces.node_ids[surface_row], call_node);
+                }
+                let transition: SemanticAstCollectionOwnershipVerdict =
+                    SemanticAstCollectionAggregateReleaseRecordOwnedPush(
+                        locals, surfaces, surface_row, call_node,
+                        binding.row, requirement,
+                        requirements.formal_modes[requirement],
+                        ownership, dispositions,
+                        transition_states, plan);
+                if !transition.ok { return transition; }
+            }
+        }
+        argument = argument + 1;
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
+func SemanticAstCollectionAggregateReleaseControlKind(kind: Int) -> Bool {
+    return SemanticAstCollectionSynchronousStraightLineControlKind(kind);
+}
+
+func SemanticAstCollectionAggregateReleaseFunctionStraightLine(
+    ref statements: SemanticAstStatementFacts, function_id: Int
+) -> Bool {
+    return SemanticAstCollectionSynchronousStraightLineFunction(
+        statements, function_id);
+}
+
+func SemanticAstCollectionAggregateReleaseIntervalStraightLine(
+    ref statements: SemanticAstStatementFacts,
+    function_id: Int, scope_id: Int,
+    start_syntax_id: Int, end_syntax_id: Int
+) -> Bool {
+    return SemanticAstCollectionSynchronousStraightLineInterval(
+        statements, function_id, scope_id,
+        start_syntax_id, end_syntax_id);
+}
+
+func SemanticAstCollectionAggregateReleaseEnclosingBlock(
+    artifact: AstTreeArtifact, node_id: Int
+) -> Int {
+    var node: Int = node_id;
+    var remaining: Int = artifact.count;
+    while node >= 0 && remaining > 0 {
+        if TypedAstArenaNodeKindIs(
+                artifact.arena, node, TypedAstKindBlockTag()) {
+            return node;
+        }
+        let parent: Option<Int> =
+            TypedAstArenaParentId(artifact.arena, node);
+        if !IsSome(parent) { return -1; }
+        node = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return -1;
+}
+
+func SemanticAstCollectionAggregateCarrierDisjointExtractionUse(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, source_binding_id: Int,
+    carrier_field_id: Int, syntax_id: Int
+) -> Bool {
+    let local_index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        locals, syntax_id);
+    if !IsSome(local_index) || UnwrapOption(local_index) < 0 ||
+        UnwrapOption(local_index) >= ArrayLength(locals.function_node_ids) ||
+        locals.function_node_ids[UnwrapOption(local_index)] != function_id {
+        return false;
+    }
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, syntax_id, AstExpressionLaneValue());
+    if !IsSome(value) { return false; }
+    let identity: SemanticAstCollectionMemberMoveIdentity =
+        SemanticAstCollectionMemberMoveIdentityForNode(
+            artifact, signatures, constructors, locals, inferred_types,
+            resolved_leaf_types, function_id, syntax_id,
+            surfaces.expression_graph, UnwrapOption(value));
+    if !identity.ok ||
+        identity.source_binding_syntax_id != source_binding_id ||
+        ArrayLength(identity.field_path_ids) == 0 {
+        return false;
+    }
+    let carrier_field: Option<String> =
+        SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+            constructors, carrier_field_id);
+    let extracted_field: Option<String> =
+        SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+            constructors, identity.field_path_ids[0]);
+    return IsSome(carrier_field) && IsSome(extracted_field) &&
+        UnwrapOption(carrier_field) != UnwrapOption(extracted_field);
+}
+
+func SemanticAstCollectionAggregateCarrierRestorationsReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref body_termination: SemanticAstBodyTerminationFacts,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    var carrier: Int = 0;
+    while carrier < ArrayLength(plan.carrier_local_ids) {
+        let function_id: Int = plan.carrier_function_ids[carrier];
+        let local_id: Int = plan.carrier_local_ids[carrier];
+        let source_id: Int = plan.carrier_source_binding_ids[carrier];
+        let field_id: Int = plan.carrier_field_ids[carrier];
+        let mutation_boundary_syntax: Int =
+            plan.carrier_mutation_boundary_syntax_ids[carrier];
+        if mutation_boundary_syntax <= local_id {
+            plan.diagnostic_syntax_id = local_id;
+            plan.diagnostic_reason = "carrier_mutation_boundary_order";
+            return false;
+        }
+        if !SemanticAstCollectionNodeEnclosedBy(
+                artifact, mutation_boundary_syntax,
+                plan.carrier_scope_ids[carrier]) {
+            plan.diagnostic_syntax_id = local_id;
+            plan.diagnostic_reason = "carrier_mutation_boundary_scope";
+            return false;
+        }
+        var mutation_count: Int = 0;
+        var observed_mutation_boundary: Int = -1;
+        var mutation: Int = 0;
+        while mutation < ArrayLength(plan.carrier_mutation_step_local_ids) {
+            if plan.carrier_mutation_step_local_ids[mutation] == local_id {
+                let mutation_syntax: Int =
+                    SemanticAstCollectionAggregateReleasePlanSyntaxForEdge(
+                        plan,
+                        plan.carrier_mutation_step_edge_nodes[mutation]);
+                if mutation_syntax <= local_id ||
+                    mutation_syntax > mutation_boundary_syntax ||
+                    !SemanticAstCollectionNodeEnclosedBy(
+                        artifact, mutation_syntax,
+                        plan.carrier_scope_ids[carrier]) {
+                    plan.diagnostic_syntax_id = local_id;
+                    plan.diagnostic_reason = "carrier_mutation_step";
+                    return false;
+                }
+                mutation_count = mutation_count + 1;
+                if mutation_syntax > observed_mutation_boundary {
+                    observed_mutation_boundary = mutation_syntax;
+                }
+            }
+            mutation = mutation + 1;
+        }
+        if mutation_count <= 0 ||
+            observed_mutation_boundary != mutation_boundary_syntax {
+            plan.diagnostic_syntax_id = local_id;
+            plan.diagnostic_reason = "carrier_mutation_boundary";
+            return false;
+        }
+        var restoration_count: Int = 0;
+        var restoration_syntax: Int = -1;
+        var assignment: Int = 0;
+        while assignment < ArrayLength(assignments.node_ids) {
+            let syntax_id: Int = assignments.node_ids[assignment];
+            if assignments.function_node_ids[assignment] == function_id &&
+                assignments.scope_node_ids[assignment] ==
+                    plan.carrier_scope_ids[carrier] &&
+                syntax_id > mutation_boundary_syntax {
+                let atom: Option<Int> =
+                    SemanticAstExpressionGraphRootForNode(
+                        surfaces, syntax_id, AstExpressionLaneAtom());
+                let value: Option<Int> =
+                    SemanticAstExpressionGraphRootForNode(
+                        surfaces, syntax_id, AstExpressionLaneValue());
+                if IsSome(atom) && IsSome(value) {
+                    let target: SemanticAstCollectionMemberMoveIdentity =
+                        SemanticAstCollectionMemberMoveIdentityForNode(
+                            artifact, signatures,
+                            constructors, locals, inferred_types,
+                            resolved_leaf_types, function_id, syntax_id,
+                            surfaces.expression_graph,
+                            UnwrapOption(atom));
+                    let source: SemanticAstLocalBindingIdentity =
+                        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                            artifact, locals, inferred_types, function_id,
+                            syntax_id, surfaces.expression_graph,
+                            UnwrapOption(value));
+                    if target.ok && source.ok &&
+                        target.source_binding_syntax_id == source_id &&
+                        target.field_syntax_id == field_id &&
+                        source.declaration_node_id == local_id {
+                        restoration_count = restoration_count + 1;
+                        restoration_syntax = syntax_id;
+                    }
+                }
+            }
+            assignment = assignment + 1;
+        }
+        var carrier_field_name: String = "";
+        let carrier_field: Option<String> =
+            SemanticAstNominalConstructorFieldNameForSourceSyntaxId(
+                constructors, field_id);
+        if IsSome(carrier_field) {
+            carrier_field_name = Concat("", UnwrapOption(carrier_field));
+        }
+        let result_transfer: SemanticAstCollectionAggregateResultTransfer =
+            SemanticAstCollectionAggregateOwnedLocalResultTransfer(
+                artifact, signatures, constructors, locals, inferred_types,
+                resolved_leaf_types, surfaces, statements, body_termination,
+                exclusive_values,
+                function_id, local_id, source_id, mutation_boundary_syntax,
+                carrier_field_name);
+        let direct_restoration: Bool = restoration_count == 1 &&
+            result_transfer.site_count == 0 &&
+            restoration_syntax > mutation_boundary_syntax &&
+            SemanticAstCollectionAggregateReleaseIntervalStraightLine(
+                statements, function_id, plan.carrier_scope_ids[carrier],
+                mutation_boundary_syntax, restoration_syntax);
+        let returned_restoration: Bool = restoration_count == 0 &&
+            result_transfer.ready && result_transfer.site_count > 0 &&
+            result_transfer.first_syntax_id > mutation_boundary_syntax &&
+            SemanticAstCollectionAggregateReturnedMutationControlReady(
+                artifact, statements, function_id, local_id,
+                result_transfer);
+        if !direct_restoration && !returned_restoration {
+            plan.diagnostic_syntax_id = local_id;
+            plan.diagnostic_reason = "carrier_restoration";
+            return false;
+        }
+        if returned_restoration {
+            restoration_syntax = result_transfer.last_syntax_id;
+        }
+        plan.carrier_restoration_syntax_ids[carrier] = restoration_syntax;
+        var root_slot: Int = 0;
+        while root_slot < ArrayLength(surfaces.expression_graph.roots) {
+            if surfaces.expression_graph.has_roots[root_slot] {
+                let surface: Int = root_slot / 3;
+                let syntax_id: Int = surfaces.node_ids[surface];
+                if surfaces.function_node_ids[surface] == function_id &&
+                    syntax_id > local_id &&
+                    syntax_id <= restoration_syntax {
+                    let root: Int = surfaces.expression_graph.roots[root_slot];
+                    let start: Option<Int> =
+                        SemanticExpressionGraphSubtreeStart(
+                            surfaces.expression_graph, root);
+                    if !IsSome(start) {
+                        plan.diagnostic_syntax_id = syntax_id;
+                        plan.diagnostic_reason = "carrier_graph";
+                        return false;
+                    }
+                    var node: Int = UnwrapOption(start);
+                    while node <= root {
+                        let binding_use: SemanticAstLocalBindingIdentity =
+                            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                                artifact, locals, inferred_types, function_id,
+                                syntax_id, surfaces.expression_graph, node);
+                        if binding_use.ok &&
+                            binding_use.declaration_node_id == local_id &&
+                            syntax_id > mutation_boundary_syntax &&
+                            syntax_id != restoration_syntax &&
+                            !SemanticAstCollectionAggregateResultTransferAt(
+                                result_transfer, statements,
+                                function_id, syntax_id) {
+                            plan.diagnostic_syntax_id = syntax_id;
+                            plan.diagnostic_reason = "carrier_local_use";
+                            return false;
+                        }
+                        let aggregate_use: Int =
+                            SemanticAstCollectionAggregateValueBindingForNode(
+                                artifact, signatures, locals, inferred_types,
+                                resolved_leaf_types, function_id, syntax_id,
+                                surfaces, node);
+                        if aggregate_use == source_id &&
+                            syntax_id < restoration_syntax &&
+                            syntax_id != restoration_syntax &&
+                            !SemanticAstCollectionAggregateCarrierDisjointExtractionUse(
+                                artifact, signatures, constructors, locals,
+                                inferred_types, resolved_leaf_types, surfaces,
+                                function_id, source_id, field_id, syntax_id) {
+                            plan.diagnostic_syntax_id = syntax_id;
+                            plan.diagnostic_reason = "carrier_source_use";
+                            return false;
+                        }
+                        node = node + 1;
+                    }
+                }
+            }
+            root_slot = root_slot + 1;
+        }
+        carrier = carrier + 1;
+    }
+    return true;
+}
+
+// A loop control does not terminate the routine. It may precede a returned
+// restoration only when that restoration is outside the nearest loop the
+// control can repeat or exit. A restoration inside that loop could be skipped
+// by this very control and therefore remains unproved.
+func SemanticAstCollectionAggregateLoopControlRejoinsRestoration(
+    ref artifact: AstTreeArtifact, control_site: Int, restoration_site: Int
+) -> Bool {
+    if control_site <= 0 || restoration_site <= control_site ||
+        artifact.count <= 0 ||
+        ArrayLength(artifact.arena.kinds) != artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count {
+        return false;
+    }
+    var ancestor: Int = control_site;
+    var remaining: Int = artifact.count;
+    while ancestor >= 0 && ancestor < artifact.count && remaining > 0 {
+        let kind: Int = artifact.arena.kinds[ancestor];
+        if kind == TypedAstKindWhileStmtTag() ||
+            kind == TypedAstKindForStmtTag() {
+            return !SemanticAstCollectionNodeEnclosedBy(
+                artifact, restoration_site, ancestor);
+        }
+        if TypedAstKindIsCallableDecl(kind) ||
+            kind == TypedAstKindOverrideFuncTag() {
+            return false;
+        }
+        ancestor = artifact.arena.parents[ancestor];
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionAggregateOwnedMutationControlReady(
+    ref artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
+    function_id: Int, local_id: Int, restoration_site: Int
+) -> Bool {
+    if !statements.ok || function_id <= 0 || local_id <= 0 ||
+        restoration_site <= local_id {
+        return false;
+    }
+    var row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        if statements.function_node_ids[row] == function_id {
+            let kind: Int = statements.kind_tags[row];
+            if kind == TypedAstKindDeferStmtTag() { return false; }
+            if statements.node_ids[row] > local_id &&
+                statements.node_ids[row] < restoration_site {
+                if kind == TypedAstKindBreakStmtTag() ||
+                    kind == TypedAstKindContinueStmtTag() {
+                    if !SemanticAstCollectionAggregateLoopControlRejoinsRestoration(
+                            artifact, statements.node_ids[row],
+                            restoration_site) {
+                        return false;
+                    }
+                } else if kind == TypedAstKindBareReturnStmtTag() ||
+                    kind == TypedAstKindValueReturnStmtTag() ||
+                    kind == TypedAstKindExitStmtTag() ||
+                    kind == TypedAstKindFailStmtTag() {
+                    return false;
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+// A returned carrier may have several syntactic return sites, but every
+// runtime path consumes it exactly once. The result-transfer owner proves
+// complete terminal coverage; this consumer rejects any unlisted exit and
+// keeps the existing loop-control rule for paths that rejoin outside a loop.
+func SemanticAstCollectionAggregateReturnedMutationControlReady(
+    ref artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
+    function_id: Int, local_id: Int,
+    ref transfer: SemanticAstCollectionAggregateResultTransfer
+) -> Bool {
+    if !statements.ok || function_id <= 0 || local_id <= 0 ||
+        !transfer.ready || transfer.site_count <= 0 ||
+        transfer.first_syntax_id <= local_id ||
+        transfer.last_syntax_id < transfer.first_syntax_id {
+        return false;
+    }
+    var row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        if statements.function_node_ids[row] == function_id {
+            let syntax_id: Int = statements.node_ids[row];
+            let kind: Int = statements.kind_tags[row];
+            if kind == TypedAstKindDeferStmtTag() { return false; }
+            if syntax_id > local_id &&
+                syntax_id <= transfer.last_syntax_id {
+                if kind == TypedAstKindValueReturnStmtTag() {
+                    if !SemanticAstCollectionAggregateResultTransferAt(
+                            transfer, statements,
+                            function_id, syntax_id) {
+                        return false;
+                    }
+                } else if kind == TypedAstKindBreakStmtTag() ||
+                    kind == TypedAstKindContinueStmtTag() {
+                    if !SemanticAstCollectionAggregateLoopControlRejoinsRestoration(
+                            artifact, syntax_id,
+                            transfer.last_syntax_id) {
+                        return false;
+                    }
+                } else if kind == TypedAstKindBareReturnStmtTag() ||
+                    kind == TypedAstKindExitStmtTag() ||
+                    kind == TypedAstKindFailStmtTag() {
+                    return false;
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateDirectRestorationReady(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    requirement: Int, restoration_site: Int
+) -> Bool {
+    if requirement < 0 ||
+        requirement >= ArrayLength(requirements.local_ids) ||
+        restoration_site <= 0 {
+        return false;
+    }
+    let local_index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        locals, requirements.local_ids[requirement]);
+    if !IsSome(local_index) { return false; }
+    let row: Int = UnwrapOption(local_index);
+    if row < 0 || row >= ArrayLength(locals.scope_node_ids) ||
+        locals.function_node_ids[row] !=
+            requirements.function_ids[requirement] ||
+        locals.scope_node_ids[row] <= 0 {
+        return false;
+    }
+    return SemanticAstCollectionAggregateReleaseEnclosingBlock(
+        artifact, restoration_site) == locals.scope_node_ids[row];
+}
+

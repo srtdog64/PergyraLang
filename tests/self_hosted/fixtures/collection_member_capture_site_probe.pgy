@@ -2,7 +2,7 @@
 // their AST. No damaged bundle is admitted, serialized or used for codegen.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_member_capture_site_owner.pgy";
 import "collection_member_capture_source_probe.pgy";
 
 func CollectionMemberCaptureSiteProbeMain(args: Array<String>) -> Void with caps env, io_read {

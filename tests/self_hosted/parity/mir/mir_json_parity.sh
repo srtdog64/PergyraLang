@@ -41,7 +41,7 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-MIR_GRAPH_SOURCE="$ROOT_DIR/src/compiler/mir_json_expression_graph.c"
+MIR_GRAPH_SOURCE="$ROOT_DIR/src/compiler/mir/mir_json_expression_graph.c"
 if ! awk '
     /mir_json_instruction_expression\(const MIRInstruction \*inst, int lane\)/ {
         in_owner = 1

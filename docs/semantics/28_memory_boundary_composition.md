@@ -415,7 +415,7 @@ The production chain to refine is source ownership and lifetime boundaries,
 semantic admission, typed MIR facts, resource ABI projection, C/LLVM and
 self-host emission, then runtime access/finalization. The resource ABI
 entrypoint is `mir_abi_resource_runtime_row_for_type_name` in
-`src/compiler/mir_abi_resource_runtime.c`; backends consume its admitted rows.
+`src/compiler/mir/mir_abi_resource_runtime.c`; backends consume its admitted rows.
 The current I1-I8 order is unchanged: storage/copy glue before any new drops.
 
 The last consumer uses one admitted snapshot/generation of the relevant

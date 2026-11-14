@@ -1,5 +1,5 @@
 // Refusal-only tests of normalized facts; no division expression is executed.
-import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_checked_int_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_checked_int_owner.pgy";
 
 func DivisionFacts(abi_id: Int, rhs_type: String, result_type: String, local_row: Int) -> DirectMirScalarProgramExpressionSet {
     return DirectMirScalarProgramExpressionSet(

@@ -4,15 +4,15 @@ import "compatibility_evolution_owner.pgy";
 import "air_evidence_owner.pgy";
 import "sandbox_capability_owner.pgy";
 import "artifact_zone_owner.pgy";
-import "test_harness_owner.pgy";
+import "test_harness/test_harness_owner.pgy";
 import "subprocess_runner_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "symbol_table_owner.pgy";
 import "stage_artifact_owner.pgy";
-import "driver_rung2_execution_owner.pgy";
-import "driver_source_mir_execution_owner.pgy";
-import "driver_source_llvm_intent_execution_owner.pgy";
-import "driver_source_c_execution_owner.pgy";
+import "driver/driver_rung2_execution_owner.pgy";
+import "driver/driver_source_mir_execution_owner.pgy";
+import "driver/driver_source_llvm_intent_execution_owner.pgy";
+import "driver/driver_source_c_execution_owner.pgy";
 subject SourceUnit {
     let path: String;
     action Read(self, paths: StagePathManifest) -> Bool

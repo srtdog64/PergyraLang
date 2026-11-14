@@ -1,5 +1,5 @@
 // Exact enum name projection, refusal and retained-fact lifetime evidence.
-import "../../../src/self_hosted/semantic/ast_expression_environment_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy";
 import "../../../src/self_hosted/semantic/enum_callable_signature_owner.pgy";
 
 func EnumQualifiedProjectionRejected(

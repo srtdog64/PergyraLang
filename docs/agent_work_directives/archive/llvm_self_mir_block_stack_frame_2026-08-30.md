@@ -90,7 +90,7 @@ stack size a language semantic fact.
 
 ## Implemented owner policy
 
-- `src/codegen/llvm_api.c` reads the module target layout and classifies every
+- `src/codegen/llvm/llvm_api.c` reads the module target layout and classifies every
   defined struct/array return by `LLVMABISizeOfType`.
 - A return ABI of at least 2,048 bytes retains the function boundary with
   LLVM's `noinline` attribute. Ordinary returns keep the normal O2/O3 pipeline.

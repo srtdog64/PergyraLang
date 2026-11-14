@@ -3,7 +3,7 @@
 // epoch selected by that order after semantic place/call-target analysis.
 
 import "structured_expression_emission_order_owner.pgy";
-import "../semantic/ast_expression_surface_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_surface_fact_owner.pgy";
 
 struct MirExpressionSemanticOccurrenceIndex {
     valid: Bool;

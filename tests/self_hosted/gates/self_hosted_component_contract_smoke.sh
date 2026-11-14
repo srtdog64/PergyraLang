@@ -132,10 +132,10 @@ require_stage_owner_line_cap() {
               "$rel" == "src/self_hosted/semantic/ast_enum_payload_variant_provenance_verdict_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_statement_fact_owner.pgy" ||
-              "$rel" == "src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy" ||
-              "$rel" == "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" ||
-              "$rel" == "src/self_hosted/semantic/ast_expression_environment_owner.pgy" ||
-              "$rel" == "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_transition_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_expression/ast_expression_graph_concrete_scalar_verdict_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_expression/ast_expression_verdict_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_signature_fact_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy" ||
@@ -347,7 +347,7 @@ done
 require_max_lines \
     "src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_intent_plan_projection_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/direct_mir_intent_plan_projection_owner.pgy" 220
 require_max_lines \
     "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy" 180
 require_max_lines \
@@ -496,7 +496,7 @@ require_max_lines "src/self_hosted/codegen/text/owned_string_join_owner.pgy" 20
 require_max_lines "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_row_manifest.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_abi_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" 600
 require_max_lines "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" 626
@@ -504,24 +504,24 @@ require_max_lines "src/self_hosted/compiler/runtime_call_abi_structured_fact_own
 require_max_lines "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 600
 require_max_lines "src/self_hosted/codegen/runtime_abi/task_runtime_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_task_builtin_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_task_builtin_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy" 12
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_task_expression_kind_owner.pgy" 12
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy" 35
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_external_runtime_expression_readiness_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_external_runtime_expression_readiness_owner.pgy" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_declaration_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_external_runtime_declaration_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_declaration_owner.pgy" 70
-require_max_lines "src/self_hosted/compiler/test_harness_target_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" 600
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_external_runtime_declaration_owner.pgy" 70
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_target_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_backend_contract_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_compatibility_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 600
 require_max_lines "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_execution_lane_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/sea/lane_executor_contract_owner.pgy" 600
 require_max_lines "src/self_hosted/sea/lane_executor_contract.pgy" 600
 
@@ -560,7 +560,7 @@ require_max_lines \
 require_max_lines "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" 599
 require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" 599
 require_max_lines "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy" 600
-require_max_lines "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 649
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy" 649
 require_max_lines "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 600
 require_max_lines "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" 548
 require_max_lines "src/self_hosted/semantic/ast_initializer_type_query_owner.pgy" 80
@@ -575,17 +575,17 @@ require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.
 require_max_lines "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" 200
 require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 615
 require_max_lines "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy" 92
-require_max_lines "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" 160
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_call_identity_owner.pgy" 160
 require_max_lines "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" 166
-require_max_lines "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" 260
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_call_return_type_owner.pgy" 260
 require_max_lines "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" 600
 require_max_lines \
     "src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy" 80
 require_responsibility_owner_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 require_responsibility_owner_max_lines "src/self_hosted/semantic/ast_statement_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_expression_verdict_fact_owner.pgy" 80
-require_max_lines "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" 627
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy" 200
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_verdict_fact_owner.pgy" 80
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_verdict_owner.pgy" 627
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_identifier_owner.pgy" 200
 require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 540
 
 require_max_lines "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" 200
@@ -593,25 +593,25 @@ require_max_lines \
     "tests/self_hosted/parity/driver/driver_rung2_array_set_graph_negative_owner.sh" 100
 require_max_lines "src/self_hosted/semantic/ast_body_verdict_owner.pgy" 600
 require_max_lines \
-    "src/self_hosted/compiler/driver_rung2_enum_payload_variant_admission_owner.pgy" 45
-require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 525
+    "src/self_hosted/compiler/driver/driver_rung2_enum_payload_variant_admission_owner.pgy" 45
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_owner.pgy" 525
 require_max_lines "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" 140
 require_max_lines \
     "tests/self_hosted/parity/driver/driver_rung2_analysis_admission_owner.sh" 130
 require_max_lines \
-    "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy" 80
+    "src/self_hosted/compiler/driver/driver_rung2_intent_consumer_owner.pgy" 80
 require_max_lines "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" 100
-require_max_lines "src/self_hosted/compiler/driver_rung2_semantic_fixture_manifest_owner.pgy" 80
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_readiness_owner.pgy" 100
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_semantic_fixture_manifest_owner.pgy" 80
 require_max_lines "src/self_hosted/parser/expression_graph_contract_owner.pgy" 180
 require_max_lines "src/self_hosted/mir/expression_graph_fact_owner.pgy" 600
 require_max_lines "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" 300
 require_max_lines "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" 140
-require_max_lines "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" 137
-require_max_lines "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" 300
-require_max_lines "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" 360
-require_max_lines "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" 300
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_owner_field_environment_owner.pgy" 137
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_call_target_fact_owner.pgy" 300
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_call_target_capture_owner.pgy" 360
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_call_target_contract_owner.pgy" 300
 require_max_lines \
     "tests/self_hosted/parity/driver/driver_rung2_callable_parameter_identity_owner.sh" 240
 require_max_lines \
@@ -639,12 +639,12 @@ require_max_lines \
     "src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy" 95
 require_max_lines \
     "src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_schema_owner.pgy" 40
-require_max_lines "src/self_hosted/semantic/ast_collection_execution_context_fact_owner.pgy" 150
-require_max_lines "src/self_hosted/semantic/ast_collection_member_read_call_target_owner.pgy" 45
+require_max_lines "src/self_hosted/semantic/ast_collection/ast_collection_execution_context_fact_owner.pgy" 150
+require_max_lines "src/self_hosted/semantic/ast_collection/ast_collection_member_read_call_target_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_operand_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_non_trapping_operand_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" 80
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_indexed_assignment_parity_owner.sh" 80
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_index_expression_type_parity_owner.sh" 80
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_iteration_graph_parity_owner.sh" 100
@@ -665,8 +665,8 @@ require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" 60
 require_max_lines "tests/self_hosted/parity/intent/intent_observability_installed_self_host_owner.sh" 160
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_legacy_intent_program_llvm_owner.sh" 190
-require_max_lines "src/self_hosted/compiler/direct_mir_intent_completion_fact_owner.pgy" 40
-require_max_lines "src/self_hosted/compiler/direct_mir_intent_completion_llvm_emission_owner.pgy" 40
+require_max_lines "src/self_hosted/compiler/direct_mir/direct_mir_intent_completion_fact_owner.pgy" 40
+require_max_lines "src/self_hosted/compiler/direct_mir/direct_mir_intent_completion_llvm_emission_owner.pgy" 40
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_composite_intent_program_llvm_owner.sh" 200
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_nested_intent_program_llvm_owner.sh" 190
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_nested_intent_program_c_owner.sh" 220
@@ -680,9 +680,9 @@ direct_mir_composite_intent_program_graph_fact_owner.pgy|350
 direct_mir_composite_intent_program_projection_owner.pgy|40
 COMPOSITE_INTENT_OWNERS
 require_responsibility_owner_max_lines \
-    "src/self_hosted/compiler/direct_mir_composite_intent_program_plan_owner.pgy"
+    "src/self_hosted/compiler/direct_mir/direct_mir_composite_intent_program_plan_owner.pgy"
 require_responsibility_owner_max_lines \
-    "src/self_hosted/compiler/direct_mir_composite_intent_program_llvm_emission_owner.pgy"
+    "src/self_hosted/compiler/direct_mir/direct_mir_composite_intent_program_llvm_emission_owner.pgy"
 while IFS='|' read -r nested_intent_owner nested_intent_cap; do
     require_max_lines \
         "src/self_hosted/compiler/$nested_intent_owner" \
@@ -724,17 +724,17 @@ require_max_lines "tests/self_hosted/parity/driver/driver_rung2_list_literal_con
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_queue_ops_parity_owner.sh" 100
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_set_ops_parity_owner.sh" 100
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_set_index_value_parity_owner.sh" 100
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy" 220
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_set_call_owner.pgy" 220
 require_max_lines "src/self_hosted/codegen/emission/set_call_emit_owner.pgy" 80
 require_max_lines "src/self_hosted/codegen/emission/set_call_type_owner.pgy" 100
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_result_field_parity_owner.sh" 140
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_string_concat_alias_parity_owner.sh" 140
 require_max_lines "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" 100
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_argument_owner.pgy" 100
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_nominal_constructor_argument_owner.pgy" 100
 require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy" 74
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" 160
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_nominal_constructor_call_owner.pgy" 160
 require_max_lines "src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy" 80
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_domain_query_owner.pgy" 420
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_domain_query_owner.pgy" 420
 require_max_lines "tests/self_hosted/parity/domain/world_tobject_projection_query_owner.sh" 150
 require_max_lines "tests/self_hosted/parity/domain/tobject_boundary_execution_owner.sh" 180
 require_max_lines "tests/self_hosted/parity/domain/tobject_boundary_self_mir_owner.sh" 160
@@ -748,22 +748,22 @@ require_max_lines \
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_owner_field_parity_owner.sh" 80
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_try_parity_owner.sh" 60
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_option_struct_value_parity_owner.sh" 100
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy" 160
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" 599
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" 599
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_type_owner.pgy" 160
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_scalar_type_owner.pgy" 599
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_wrapper_value_owner.pgy" 599
 require_max_lines "src/self_hosted/tools/wrapper_policy_probe/main.pgy" 300
 require_max_lines "tests/self_hosted/parity/frontend/wrapper_policy_probe_parity.sh" 300
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy" 300
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_collection_mutation_owner.pgy" 300
 require_max_lines "src/self_hosted/tools/collection_policy_probe/main.pgy" 300
 require_max_lines "tests/self_hosted/parity/ownership/collection_policy_probe_parity.sh" 300
 require_max_lines "src/self_hosted/semantic/array_type_shape_owner.pgy" 80
 require_max_lines "src/self_hosted/semantic/tuple_type_shape_owner.pgy" 100
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" 127
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" 194
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy" 180
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_struct_view_owner.pgy" 127
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_struct_type_verdict_owner.pgy" 194
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_field_type_owner.pgy" 180
 require_max_lines "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" 300
 require_max_lines "tests/self_hosted/parity/ownership/aggregate_field_policy_probe_parity.sh" 300
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy" 100
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_view_owner.pgy" 100
 require_max_lines "src/self_hosted/parser/expression_set_literal_graph_owner.pgy" 100
 require_max_lines "src/self_hosted/parser/expression_set_literal_contract_owner.pgy" 100
 require_max_lines "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" 100
@@ -782,23 +782,23 @@ require_max_lines "src/self_hosted/mir_lower/expression_graph_option_match_owner
 require_max_lines "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" 220
 require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 290
 require_max_lines "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" 120
-require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 40
-require_max_lines "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 320
-require_max_lines "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" 150
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_cli_owner.pgy" 40
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_cli_request_owner.pgy" 320
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_cli_read_execution_owner.pgy" 150
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy" 40
+    "src/self_hosted/compiler/driver/driver_source_c_stdout_execution_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/driver_mir_c_stdout_execution_owner.pgy" 40
+    "src/self_hosted/compiler/driver/driver_mir_c_stdout_execution_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" 60
+    "src/self_hosted/compiler/driver/driver_source_mir_stdout_execution_owner.pgy" 60
 require_max_lines \
     "src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy" 200
-require_max_lines "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" 160
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_installed_cli_owner.pgy" 160
 require_max_lines \
-    "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" 130
-require_max_lines "src/self_hosted/compiler/driver_rung2_main.pgy" 30
-require_max_lines "src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy" 60
-require_max_lines "src/self_hosted/compiler/driver_rung2_fixture_manifest_main.pgy" 30
+    "src/self_hosted/compiler/driver/driver_rung2_artifact_request_execution_owner.pgy" 130
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_main.pgy" 30
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_fixture_manifest_cli_owner.pgy" 60
+require_max_lines "src/self_hosted/compiler/driver/driver_rung2_fixture_manifest_main.pgy" 30
 require_max_lines "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" 600
 require_max_lines "tests/self_hosted/parity/driver/self_host_compiler_build.sh" 220
 require_max_lines \
@@ -850,19 +850,19 @@ require_max_lines \
 require_max_lines "src/self_hosted/lib/public_diagnostic_receipt_owner.pgy" 70
 require_max_lines \
     "tests/self_hosted/parity/fixture/fmt_recovery_publication_owner.c" 80
-require_max_lines "src/compiler/self_host_driver.c" 270
-require_max_lines "src/compiler/self_host_debug_driver.c" 90
-require_max_lines "src/compiler/self_host_fmt_driver.c" 100
+require_max_lines "src/compiler/self_host/self_host_driver.c" 270
+require_max_lines "src/compiler/self_host/self_host_debug_driver.c" 90
+require_max_lines "src/compiler/self_host/self_host_fmt_driver.c" 100
 require_max_lines "src/compiler/fmt.c" 180
 require_max_lines "src/self_hosted/fmt/layout_owner.pgy" 200
 require_max_lines "src/self_hosted/fmt/session_owner.pgy" 50
-require_max_lines "src/compiler/self_host_mir_artifact_owner.c" 90
-require_max_lines "src/compiler/self_host_mir_diagnostic_stdout_owner.c" 130
-require_max_lines "src/compiler/self_host_artifact_process_owner.c" 100
+require_max_lines "src/compiler/self_host/self_host_mir_artifact_owner.c" 90
+require_max_lines "src/compiler/self_host/self_host_mir_diagnostic_stdout_owner.c" 130
+require_max_lines "src/compiler/self_host/self_host_artifact_process_owner.c" 100
 require_max_lines "src/compiler/compiler_process.c" 620
-require_max_lines "src/compiler/self_host_llvm_driver.c" 120
+require_max_lines "src/compiler/self_host/self_host_llvm_driver.c" 120
 require_max_lines "src/compiler/driver_self_host_selection_owner.c" 140
-require_max_lines "src/compiler/self_host_machine_manifest_artifact_owner.c" 70
+require_max_lines "src/compiler/self_host/self_host_machine_manifest_artifact_owner.c" 70
 require_max_lines "tests/self_hosted/parity/public_route/public_mir_json_installed_self_host_owner.sh" 160
 require_max_lines \
     "tests/self_hosted/parity/public_route/public_mir_diagnostic_installed_self_host_owner.sh" 250
@@ -886,11 +886,11 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/fixture/counting_self_host_mir_read_driver.c" 45
 require_max_lines "src/compiler/driver_self_host_llvm_selection_owner.c" 60
-require_max_lines "src/compiler/self_host_llvm_ir_artifact_owner.c" 90
+require_max_lines "src/compiler/self_host/self_host_llvm_ir_artifact_owner.c" 90
 require_max_lines "tests/self_hosted/parity/public_route/public_llvm_ir_installed_self_host_owner.sh" 140
 require_max_lines "tests/self_hosted/parity/public_route/public_llvm_ir_opt_profile_owner.sh" 180
 require_max_lines "tests/self_hosted/parity/public_route/public_nested_scalar_cfg_llvm_owner.sh" 70
-require_max_lines "src/compiler/self_host_llvm_ir_stdout_owner.c" 80
+require_max_lines "src/compiler/self_host/self_host_llvm_ir_stdout_owner.c" 80
 require_max_lines "tests/self_hosted/parity/public_route/public_llvm_ir_stdout_installed_self_host_owner.sh" 120
 require_max_lines "src/compiler/compiler_self_host_artifact.c" 180
 require_max_lines "src/compiler/compiler_transient_artifact_workspace.c" 160
@@ -903,15 +903,15 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/fixture/counting_package_self_host_driver.c" 90
 require_max_lines "src/compiler/compiler.c" 560
-require_max_lines "src/self_hosted/compiler/driver_bootstrap_main.pgy" 30
+require_max_lines "src/self_hosted/compiler/driver/driver_bootstrap_main.pgy" 30
 require_max_lines \
     "src/self_hosted/compiler/compiler_root_intent_execution_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_llvm_intent_protocol_owner.pgy" 180
+    "src/self_hosted/compiler/driver/driver_source_llvm_intent_protocol_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy" 100
+    "src/self_hosted/compiler/driver/driver_source_llvm_intent_execution_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_llvm_projection_publication_owner.pgy" 90
+    "src/self_hosted/compiler/driver/driver_source_llvm_projection_publication_owner.pgy" 90
 require_max_lines \
     "tests/self_hosted/parity/mir/canonical_mir_verified_projection_owner.sh" 100
 require_max_lines \
@@ -951,31 +951,31 @@ require_max_lines \
     "tests/self_hosted/parity/driver/driver_rung2_coalesce_bool_loop_parity_owner.sh" 120
 require_max_lines \
     "tests/self_hosted/parity/driver/driver_rung2_nested_coalesce_parity_owner.sh" 100
-require_max_lines "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" 600
-require_max_lines "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" 600
-require_max_lines "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" 600
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" 599
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" 599
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_serialized_parser_contract_owner.pgy" 599
-require_max_lines "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_surface_fact_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_surface_query_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_surface_contract_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_fact_owner.pgy" 599
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_build_owner.pgy" 599
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_serialized_parser_contract_owner.pgy" 599
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_typed_binding_owner.pgy" 600
 require_max_lines "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" 450
 require_max_lines "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" 360
 require_max_lines "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" 190
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" 230
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_collection_clone_signature_owner.pgy" 40
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_to_string_expression_readiness_owner.pgy" 30
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_string_literal_fact_owner.pgy" 35
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy" 200
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_literal_owner.pgy" 35
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" 230
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_clone_signature_owner.pgy" 40
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_to_string_expression_readiness_owner.pgy" 30
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_string_literal_fact_owner.pgy" 35
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_expression_fact_owner.pgy" 200
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_string_literal_owner.pgy" 35
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" 40
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_string_collection_builtin_projection.sh" 140
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_string_collection_builtin_mutations.py" 150
 require_max_lines "src/self_hosted/codegen/emission/assign_emit_owner.pgy" 160
 require_max_lines \
-    "src/self_hosted/semantic/ast_expression_call_return_type_diagnostic_owner.pgy" 50
+    "src/self_hosted/semantic/ast_expression/ast_expression_call_return_type_diagnostic_owner.pgy" 50
 require_max_lines "src/self_hosted/parser/stmt_collection_graph_owner.pgy" 100
 require_max_lines \
     "src/self_hosted/mir/routine_local_predecessor_snapshot_owner.pgy" 90
@@ -985,7 +985,7 @@ require_max_lines \
 require_max_lines "src/self_hosted/mir/routine_loop_exit_phi_owner.pgy" 90
 require_max_lines "src/self_hosted/mir/routine_for_owner.pgy" 180
 require_max_lines "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" 150
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" 100
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_lane_policy_owner.pgy" 100
 require_max_lines "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" 90
 require_max_lines "src/self_hosted/mir_lower/expression_graph_parser_bridge_row_alignment_owner.pgy" 30
 require_max_lines "src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy" 220
@@ -1001,13 +1001,13 @@ require_max_lines \
     "src/self_hosted/codegen/emission/expr_semantic_leaf_place_contract_owner.pgy" 80
 # The existing call-view owner also owns the bounded, ephemeral whole-arena
 # root projection. Keep it cohesive; the shared semantic-owner cap is unchanged.
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" 200
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_member_view_owner.pgy" 500
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_call_view_owner.pgy" 200
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_member_view_owner.pgy" 500
 # 360: the expected-value dispatcher and the Array/List/Queue/Set literal
 # emitters are one mutual-recursion cluster; the one-way import DAG forbids
 # splitting them across files, so the budget carries all four collection kinds.
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" 374
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" 500
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_graph_array_literal_owner.pgy" 500
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" 250
 require_max_lines "tests/self_hosted/parity/mir/expression_surface_closure_probe_parity.sh" 220
 require_max_lines "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" 600
@@ -1015,7 +1015,7 @@ require_max_lines "tests/self_hosted/parity/driver/driver_rung2_collection_mutat
 require_max_lines "tests/self_hosted/parity/driver/driver_rung2_array_literal_graph_parity_owner.sh" 100
 require_max_lines "src/self_hosted/compiler/abi_layout_nominal_array_owner.pgy" 200
 require_max_lines "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" 200
-require_max_lines "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" 500
+require_max_lines "src/self_hosted/semantic/ast_expression/ast_expression_surface_query_owner.pgy" 500
 require_max_lines "src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy" 180
 require_max_lines "src/self_hosted/codegen/runtime_abi/queue_runtime_owner.pgy" 120
 require_max_lines "src/self_hosted/codegen/runtime_abi/set_runtime_owner.pgy" 120
@@ -1030,18 +1030,18 @@ require_max_lines \
 
 require_max_lines "src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy" 600
 require_max_lines "src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_linter_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_doc_link_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_comparator_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_backend_compare_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_inventory_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_size_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_air_graph_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_diagnostic_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_ast_surface_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_lexer_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_runtime_boundary_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_stable_subset_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/completeness_ledger_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/completeness_impact_owner.pgy" 600
 
@@ -1083,29 +1083,29 @@ require_max_lines "tests/self_hosted/parity/driver/driver_bootstrap_part_receipt
 require_max_lines "tests/self_hosted/parity/one_mir/one_mir_dual_backend_projection.sh" 300
 require_max_lines "tests/self_hosted/parity/one_mir/one_mir_dual_backend_case_verdict_owner.sh" 111
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 335
+    "src/self_hosted/compiler/direct_mir/direct_mir_backend_projection_owner.pgy" 335
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_pressure_observation_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/direct_mir_pressure_observation_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" 500
+    "src/self_hosted/compiler/direct_mir/direct_mir_backend_emission_owner.pgy" 500
 require_max_lines \
     "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" 260
 require_max_lines \
     "src/self_hosted/air/mir_option_match_graph_fact_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_option_match_abi_fact_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_abi_fact_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_option_match_abi_capture_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_abi_capture_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_option_match_abi_projection_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_abi_projection_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_fact_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_plan_fact_owner.pgy" 110
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_plan_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_mutation_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_plan_mutation_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_option_match_cfg_emission_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_emission_owner.pgy" 220
 require_max_lines \
     "src/self_hosted/mir_lower/abi_layout_admission_fact_owner.pgy" 80
 require_max_lines "src/self_hosted/mir_lower/match_json_fact_owner.pgy" 180
@@ -1115,60 +1115,60 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_option_match_projection.sh" 200
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_int_graph_fact_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_int_graph_fact_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_literal_spine_owner.pgy" 92
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_literal_spine_owner.pgy" 92
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy" 450
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_int_plan_owner.pgy" 450
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_int_abi_projection_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy" 320
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_int_emission_owner.pgy" 320
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_array_int_projection.sh" 210
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_return_graph_fact_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_return_graph_fact_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" 240
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_return_program_identity_owner.pgy" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" 380
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_return_plan_owner.pgy" 380
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy" 240
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_return_emission_owner.pgy" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_int_producer_fact_owner.pgy" 200
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_int_producer_fact_owner.pgy" 200
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_returned_array_foreach_program_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/direct_mir_returned_array_foreach_program_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_returned_array_foreach_projection_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/direct_mir_returned_array_foreach_projection_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy" 110
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_int_abi_fact_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_captured_abi_fact_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_captured_abi_fact_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_string_abi_fact_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_string_abi_fact_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_string_abi_projection_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_string_abi_projection_owner.pgy" 140
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_array_return_projection.sh" 220
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_array_return_mutations.py" 100
 require_max_lines "src/self_hosted/mir_lower/json_fact_read.pgy" 454
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/direct_mir_routine_param_fact_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy" 200
+    "src/self_hosted/compiler/direct_mir/direct_mir_routine_signature_fact_owner.pgy" 200
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy" 225
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_argument_graph_fact_owner.pgy" 225
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy" 245
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_argument_program_identity_owner.pgy" 245
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy" 310
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_argument_plan_owner.pgy" 310
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy" 265
+    "src/self_hosted/compiler/direct_mir/direct_mir_array_argument_emission_owner.pgy" 265
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy" 110
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_array_argument_projection.sh" 220
 require_max_lines \
@@ -1215,7 +1215,7 @@ while IFS='|' read -r scalar_program_owner scalar_program_cap; do
     require_max_lines "$scalar_program_owner" "$scalar_program_cap"
 done < tests/self_hosted/parity/mir/scalar_program_owner_caps.tsv
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/direct_mir_returned_array_program_route_owner.pgy" 100
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_bool_logic_projection.sh" 170
 require_max_lines \
@@ -1303,7 +1303,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_long_greater_artifact_variants.py" 75
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_failure_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_expression_admission_failure_owner.pgy" 45
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_program_routine_admission_diagnostic_owner.sh" 100
 require_max_lines \
@@ -1319,14 +1319,14 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_option_int_field_owner.sh" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy" 90
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_record_abi_fact_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy" 90
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_record_abi_fact_owner.pgy" 180
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_physical_record_return_owner.sh" 100
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_physical_record_return_mutations.py" 160
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_owner.sh" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy" 50
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_collection_phi_value_owner.sh" 100
 require_max_lines \
@@ -1356,9 +1356,9 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_value_parameter_owner.sh" 130
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_comparison_expression_kind_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_comparison_expression_kind_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_comparison_expression_readiness_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_comparison_expression_readiness_owner.pgy" 45
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_owner.sh" 180
 require_max_lines \
@@ -1372,17 +1372,17 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_multi_routine_mutations.py" 792
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy" 10
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy" 10
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_builtin_signature_owner.pgy" 65
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_option_builtin_signature_owner.pgy" 65
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_expression_readiness_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_option_expression_readiness_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_option_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_logical_record_option_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_option_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_option_owner.pgy" 130
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_option_return_owner.sh" 130
 require_max_lines \
@@ -1390,31 +1390,31 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_zero_parameter_callable_owner.sh" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_nominal_parameter_projection_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_nominal_parameter_projection_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy" 105
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy" 105
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_nominal_parameter_projection_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_nominal_parameter_projection_owner.pgy" 100
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_set_string_value_parameter.pgy" 20
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_set_string_value_parameter_owner.sh" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_set_string_expression_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_set_string_expression_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_set_string_expression_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_set_string_expression_owner.pgy" 80
 for readonly_array_owner in \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy" \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_target_owner.pgy" \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_readonly_ref_owner.pgy" \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy"; do
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_readonly_ref_target_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_array_readonly_ref_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy"; do
     require_max_lines "$readonly_array_owner" 80
 done
 require_max_lines "tests/self_hosted/fixtures/direct_mir_array_int_readonly_ref.pgy" 50
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_array_int_readonly_ref_owner.sh" 110
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_array_int_readonly_ref_mutations.py" 90
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy" 60
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" 170
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy" 60
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" 170
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_cfg_identity_digest_reference.py" 60
 
 require_max_lines "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" 300
@@ -1431,21 +1431,21 @@ done
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_value_result_void_owner.sh" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy" 170
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy" 170
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_flow_owner.pgy" 421
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_flow_owner.pgy" 421
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_query_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_query_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" 160
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" 160
 require_max_lines "tests/self_hosted/parity/fixture/owned_array_string_move_sealed_flow_probe.pgy" 110
 require_max_lines "tests/self_hosted/parity/fixture/owned_array_string_move_receipt_rewrite_probe.pgy" 90
 require_max_lines \
@@ -1475,33 +1475,33 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_single_value_result_mutations.py" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_target_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_array_target_owner.pgy" 130
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_array_value_result_owner.pgy" 160
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_logical_record_array_value_result_owner.pgy" 160
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_array_value_result_owner.pgy" 170
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_array_value_result_owner.pgy" 170
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_empty_literal_admission_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_array_empty_literal_admission_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy" 35
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_result_owner.sh" 190
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_result_mutations.py" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_parameter_policy_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_array_value_parameter_policy_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_index_expression_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_array_index_expression_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_value_expression_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_logical_value_expression_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_value_expression_owner.pgy" 75
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_value_expression_owner.pgy" 75
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_index_owner.sh" 180
 require_max_lines \
@@ -1515,7 +1515,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_bool_push_mutations.py" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_fact_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_indexed_assignment_fact_owner.pgy" 220
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_int_value_result_indexed_assignment_owner.sh" 120
 require_max_lines \
@@ -1539,9 +1539,9 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_result_logical_record_array_int_indexed_assignment_mutations.py" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy" 262
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_indexed_assignment_route_owner.pgy" 262
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_value_use_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_indexed_assignment_value_use_owner.pgy" 25
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_local_array_int_indexed_direct_call.pgy" 30
 require_max_lines \
@@ -1553,17 +1553,17 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_parameter_mutations.py" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy" 300
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy" 300
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy" 150
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy" 150
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy" 240
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" 220
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_payload_free_enum_parameter_owner.sh" 175
 require_max_lines \
@@ -1581,11 +1581,11 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_tagged_enum_payload_mutations.py" 75
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy" 115
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy" 115
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_latest_value_readiness_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_leaf_operand_latest_value_readiness_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy" 120
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_formal_literal_owner.sh" 150
 require_max_lines \
@@ -1595,9 +1595,9 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_local_literal_mutations.py" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_nested_array_literal_seed_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_nested_array_literal_seed_owner.pgy" 35
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_nested_literal_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_nested_literal_owner.pgy" 70
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_nested_expression_literal_owner.sh" 110
 require_max_lines \
@@ -1615,7 +1615,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_element_input_mutations.py" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_mixed_collection_value_result_policy_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_mixed_collection_value_result_policy_owner.pgy" 80
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_logical_record_mixed_collection_value_result.pgy" 40
 require_max_lines \
@@ -1629,7 +1629,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_mixed_collection_value_result_mutations.py" 110
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_void_logical_record_array_int_value_result_policy_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_void_logical_record_array_int_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_void_logical_record_array_int_value_result.pgy" 30
 require_max_lines \
@@ -1637,7 +1637,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_logical_record_array_int_value_result_mutations.py" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_inputs_value_result_policy_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_inputs_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_logical_record_inputs_value_result.pgy" 40
 require_max_lines \
@@ -1645,7 +1645,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_inputs_value_result_mutations.py" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_array_string_value_result_policy_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_readonly_logical_record_array_string_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_two_array_string_value_result.pgy" 40
 require_max_lines \
@@ -1659,7 +1659,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_two_array_string_value_result_mutations.py" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_bool_two_array_string_two_array_int_value_result_policy_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_bool_two_array_string_two_array_int_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_bool_two_array_string_two_array_int_value_result.pgy" 40
 require_max_lines \
@@ -1667,7 +1667,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_mutations.py" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_bool_return_policy_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_bool_return_policy_owner.pgy" 20
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_array_bool_return.pgy" 30
 require_max_lines \
@@ -1675,13 +1675,13 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_array_bool_return_mutations.py" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy" 28
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy" 28
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" 110
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_parameter_argument_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_readonly_ref_parameter_argument_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_owned_logical_record_return.pgy" 30
 require_max_lines \
@@ -1689,13 +1689,13 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_logical_record_return_mutations.py" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_parameter_policy_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_array_string_parameter_policy_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_owned_string_parameter.pgy" 20
 require_max_lines \
@@ -1712,7 +1712,7 @@ require_max_lines "src/self_hosted/semantic/ast_owned_string_member_actual_owner
 require_max_lines "src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy" 100
 require_max_lines "tests/self_hosted/fixtures/owned_string_allocator_domain_unit.pgy" 175
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy" 55
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy" 55
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_string_array_string_value_result.pgy" 35
 require_max_lines \
@@ -1726,7 +1726,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_readonly_logical_record_two_logical_record_value_result_mutations.py" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_return_array_string_value_result_policy_owner.pgy" 55
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_return_array_string_value_result_policy_owner.pgy" 55
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_logical_record_return_array_string_value_result.pgy" 35
 require_max_lines \
@@ -1740,7 +1740,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_composable_logical_record_return_mutations.py" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_void_logical_record_array_string_value_result_policy_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_void_logical_record_array_string_value_result_policy_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_void_logical_record_array_string_value_result.pgy" 30
 require_max_lines \
@@ -1774,13 +1774,13 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_int_comparison_mutations.py" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy" 65
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy" 65
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy" 125
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy" 125
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_void_scalar_process_exit.pgy" 30
 require_max_lines \
@@ -1788,25 +1788,25 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_void_process_exit_mutations.py" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" 170
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" 170
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy" 110
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_expression_owner.pgy" 32
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_array_int_populated_literal_expression_owner.pgy" 32
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_materialization_owner.pgy" 85
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_array_int_populated_literal_materialization_owner.pgy" 85
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_int_populated_literal_expression_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_array_int_populated_literal_expression_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_bool_nested_literal_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_bool_nested_literal_owner.pgy" 50
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_array_string_return_owner.sh" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_runtime_value_parameter_readiness_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_runtime_value_parameter_readiness_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy" 25
 require_max_lines "src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy" 245
 require_max_lines "src/self_hosted/mir/nominal_abi_layout_identity_owner.pgy" 70
 for option_abi_owner_cap in \
@@ -1829,19 +1829,19 @@ require_max_lines \
     "src/self_hosted/mir/instruction_abi_receipt_json_projection_owner.pgy" 70
 require_max_lines "src/self_hosted/mir/canonical_instruction_id_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_nominal_declaration_abi_fact_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/direct_mir_nominal_declaration_abi_fact_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_struct_argument_graph_fact_owner.pgy" 260
+    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_graph_fact_owner.pgy" 260
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_struct_argument_program_admission_owner.pgy" 95
+    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_program_admission_owner.pgy" 95
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_struct_argument_program_identity_owner.pgy" 230
+    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_program_identity_owner.pgy" 230
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy" 215
+    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_plan_owner.pgy" 215
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_struct_argument_c_emission_owner.pgy" 165
+    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_c_emission_owner.pgy" 165
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_struct_argument_llvm_emission_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_llvm_emission_owner.pgy" 110
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_struct_argument_projection.sh" 150
 require_max_lines \
@@ -1886,7 +1886,7 @@ for option_value_flow_owner_cap in \
         "$option_value_flow_cap"
 done
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy" 110
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_option_struct_value_flow_projection.sh" 180
 require_max_lines \
@@ -1953,7 +1953,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_nominal_literal_mutations.py" 260
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/direct_mir_exact_json_array_cardinality_owner.pgy" 90
 shared_nominal_total=0
 while IFS='|' read -r owner cap; do
     require_max_lines \
@@ -2076,23 +2076,23 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_constructed_record_array_member_mutations.py" 360
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240
+    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_owner.pgy" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" 260
+    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_fact_owner.pgy" 260
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_plan_value_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_value_owner.pgy" 130
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_plan_mutation_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_mutation_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" 580
+    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_shape_fact_owner.pgy" 580
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_entry_fact_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_entry_fact_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/direct_mir_nested_cfg_shape_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/direct_mir_nested_cfg_emission_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/direct_mir_llvm_text_format_owner.pgy" 60
 require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 520
 require_max_lines \
     "src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy" 200
@@ -2110,15 +2110,15 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy" 360
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_loop_cfg_shape_owner.pgy" 280
+    "src/self_hosted/compiler/direct_mir/direct_mir_loop_cfg_shape_owner.pgy" 280
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_loop_cfg_plan_fact_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/direct_mir_loop_cfg_plan_fact_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/direct_mir_loop_cfg_emission_owner.pgy" 130
 require_max_lines \
     "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy" 400
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_log_shape_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_log_shape_owner.pgy" 100
 require_max_lines \
     "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" 650
 require_max_lines \
@@ -2128,33 +2128,33 @@ require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_loop_case.sh" 15
 require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_range_case.sh" 180
 require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_break_case.sh" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" 600
+    "src/self_hosted/compiler/direct_mir/direct_mir_scalar_graph_admission_owner.pgy" 600
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy" 280
+    "src/self_hosted/compiler/direct_mir/direct_mir_compile_time_declaration_erasure_owner.pgy" 280
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/direct_mir_literal_log_plan_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/direct_mir_literal_log_emission_owner.pgy" 100
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_compile_time_declaration_literal_projection.sh" 130
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_compile_time_declaration_literal_mutations.py" 110
 literal_log_family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
-    src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy \
-    src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy \
-    src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy)" || fail "literal Log family measurement failed"
+    src/self_hosted/compiler/direct_mir/direct_mir_compile_time_declaration_erasure_owner.pgy \
+    src/self_hosted/compiler/direct_mir/direct_mir_literal_log_plan_owner.pgy \
+    src/self_hosted/compiler/direct_mir/direct_mir_literal_log_emission_owner.pgy)" || fail "literal Log family measurement failed"
 [[ "$literal_log_family_lines" -le 560 ]] || \
     fail "compile-time declaration/literal Log family exceeds 560 LOC ($literal_log_family_lines)"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_route_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_payload_free_enum_abi_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/direct_mir_payload_free_enum_abi_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_enum_value_match_plan_fact_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_fact_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_enum_value_match_plan_owner.pgy" 420
+    "src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_owner.pgy" 420
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_enum_value_match_plan_mutation_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_mutation_owner.pgy" 70
 require_max_lines \
     "src/self_hosted/air/mir_identity_match_cfg_certificate_fact_owner.pgy" 220
 require_max_lines \
@@ -2164,11 +2164,11 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_enum_value_match_mutations.py" 160
 enum_value_match_family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
-    src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy \
-    src/self_hosted/compiler/direct_mir_payload_free_enum_abi_owner.pgy \
-    src/self_hosted/compiler/direct_mir_enum_value_match_plan_fact_owner.pgy \
-    src/self_hosted/compiler/direct_mir_enum_value_match_plan_owner.pgy \
-    src/self_hosted/compiler/direct_mir_enum_value_match_plan_mutation_owner.pgy)" || fail "enum value-match family measurement failed"
+    src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_route_owner.pgy \
+    src/self_hosted/compiler/direct_mir/direct_mir_payload_free_enum_abi_owner.pgy \
+    src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_owner.pgy \
+    src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_mutation_owner.pgy)" || fail "enum value-match family measurement failed"
 [[ "$enum_value_match_family_lines" -le 770 ]] || \
     fail "enum value-match family exceeds 770 LOC ($enum_value_match_family_lines)"
 require_max_lines \
@@ -2176,27 +2176,27 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/semantic/role_operator_resolution_owner.pgy" 340
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy" 310
+    "src/self_hosted/compiler/direct_mir/direct_mir_role_operator_declaration_fact_owner.pgy" 310
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy" 560
+    "src/self_hosted/compiler/direct_mir/direct_mir_role_operator_plan_owner.pgy" 560
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/direct_mir_role_operator_abi_projection_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy" 150
+    "src/self_hosted/compiler/direct_mir/direct_mir_role_operator_emission_owner.pgy" 150
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_role_operator_projection.sh" 220
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_role_operator_mutations.py" 220
 role_operator_family_lines=$((
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy)
+    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_operator_declaration_fact_owner.pgy) +
+    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_operator_plan_owner.pgy) +
+    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_operator_abi_projection_owner.pgy) +
+    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_operator_emission_owner.pgy)
 ))
 [[ "$role_operator_family_lines" -le 1200 ]] || \
     fail "role operator direct family exceeds 1200 LOC ($role_operator_family_lines)"
 require_responsibility_owner_max_lines \
-    "src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy"
+    "src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy"
 for role_override_owner_cap in \
     direct_mir_role_override_plan_owner.pgy:120 \
     direct_mir_role_override_target_projection_owner.pgy:110 \
@@ -2211,10 +2211,10 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/domain/role_override_mir_mutations.py" 100
 role_override_family_lines=$((
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_override_plan_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_override_target_projection_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy)
+    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy) +
+    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_override_plan_owner.pgy) +
+    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_override_target_projection_owner.pgy) +
+    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_override_emission_owner.pgy)
 ))
 [[ "$role_override_family_lines" -le 1250 ]] || \
     fail "role override direct family exceeds 1250 LOC ($role_override_family_lines)"
@@ -2224,23 +2224,23 @@ check_replacement_frontier_build_graph
 require_max_lines \
     "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" 240
 require_max_lines \
-    "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" 190
+    "src/self_hosted/compiler/driver/driver_rung2_execution_owner.pgy" 190
 require_max_lines \
-    "src/self_hosted/compiler/driver_rung2_execution_protocol_owner.pgy" 130
+    "src/self_hosted/compiler/driver/driver_rung2_execution_protocol_owner.pgy" 130
 require_max_lines \
-    "src/self_hosted/compiler/driver_mir_c_protocol_owner.pgy" 180
+    "src/self_hosted/compiler/driver/driver_mir_c_protocol_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/driver_mir_c_payload_execution_owner.pgy" 100
+    "src/self_hosted/compiler/driver/driver_mir_c_payload_execution_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" 260
+    "src/self_hosted/compiler/driver/driver_source_mir_execution_owner.pgy" 260
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy" 260
+    "src/self_hosted/compiler/driver/driver_source_mir_protocol_owner.pgy" 260
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" 230
+    "src/self_hosted/compiler/driver/driver_source_c_protocol_owner.pgy" 230
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" 180
+    "src/self_hosted/compiler/driver/driver_source_c_execution_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/driver_source_c_request_owner.pgy" 80
+    "src/self_hosted/compiler/driver/driver_source_c_request_owner.pgy" 80
 require_max_lines \
     "tests/self_hosted/parity/driver/driver_source_c_execution_action_gate.sh" 130
 require_max_lines \
@@ -2258,487 +2258,487 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy" 65
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_type_family_owner.pgy" 65
 # Exact match-origin/type identity replaces the shorter routine-wide name read.
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" 210
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_value_type_owner.pgy" 210
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy" 200
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_expression_owner.pgy" 200
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy" 195
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_typed_readiness_owner.pgy" 195
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_identity_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_operand_shape_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_operand_shape_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy" 243
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_readiness_owner.pgy" 243
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_mutation_owner.pgy" 15
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_mutation_owner.pgy" 15
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_expression_base_owner.pgy" 85
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_expression_base_owner.pgy" 85
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_expression_owner.pgy" 300
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_expression_owner.pgy" 300
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_leaf_operand_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_direct_local_operand_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" 300
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" 300
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" 240
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_assignment_target_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" 450
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_admission_owner.pgy" 450
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_branch_admission_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_branch_admission_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_control_transfer_admission_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_control_transfer_admission_owner.pgy" 40
 # Re-armed at the file's true size. This owner is a single function, so a few
 # lines of growth is not a decomposition failure and there is no seam to split
 # on. The 600-line owner cap is the SRP standard and is not relaxed here.
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy" 113
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_input_owner.pgy" 113
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy" 240
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_identity_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_identity_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_value_readiness_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_value_readiness_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_readiness_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_operation_readiness_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_observation_readiness_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_observation_readiness_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_binding_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_binding_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_expression_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_expression_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_array_int_absence_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_array_int_absence_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_index_assignment_graph_owner.pgy" 160
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_index_assignment_graph_owner.pgy" 160
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_admission_owner.pgy" 460
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_index_assignment_admission_owner.pgy" 460
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_source_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_index_assignment_source_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_selection_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_selection_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_operation_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_c_operation_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy" 140
 # Re-armed at the file's true size. This owner is a single function, so a few
 # lines of growth is not a decomposition failure and there is no seam to split
 # on. The 600-line owner cap is the SRP standard and is not relaxed here.
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_seal_owner.pgy" 73
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_plan_seal_owner.pgy" 73
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_expression_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_expression_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_instruction_graph_owner.pgy" 15
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_instruction_graph_owner.pgy" 15
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_instruction_position_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_instruction_position_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_operation_position_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_operation_position_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_while_induction_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_while_induction_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_guard_dominance_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_guard_dominance_owner.pgy" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_sealed_guard_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_sealed_guard_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_route_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_operation_plan_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy" 280
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_iteration_owner.pgy" 280
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_bound_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_bound_owner.pgy" 110
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy" 200
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_fact_owner.pgy" 200
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_set_owner.pgy" 320
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_set_owner.pgy" 320
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_append_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_append_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy" 280
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_admission_owner.pgy" 280
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy" 160
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_collection_owner.pgy" 160
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_returned_array_foreach_call_abi_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/direct_mir_returned_array_foreach_call_abi_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_definition_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_definition_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_collection_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_string_collection_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_length_fact_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_length_fact_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_length_log_graph_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_length_log_graph_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_collection_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_collection_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_collection_admission_owner.pgy" 65
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_collection_admission_owner.pgy" 65
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_fact_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_static_mutation_fact_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_fact_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_fact_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_mutating_fact_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_mutating_fact_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_fact_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_fact_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_fact_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_fact_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_storage_state_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_storage_state_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_source_identity_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_source_identity_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_graph_owner.pgy" 75
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_static_graph_owner.pgy" 75
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy" 130
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_admission_owner.pgy" 280
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_admission_owner.pgy" 280
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_dynamic_push_admission_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_dynamic_push_admission_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_graph_owner.pgy" 95
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_graph_owner.pgy" 95
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_admission_owner.pgy" 170
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_admission_owner.pgy" 170
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_route_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_route_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_transform_route_fact_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_transform_route_fact_owner.pgy" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_mode_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_mode_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_graph_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_graph_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_source_admission_owner.pgy" 175
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_source_admission_owner.pgy" 175
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_phi_topology_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_phi_topology_owner.pgy" 130
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_admission_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_admission_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_admission_owner.pgy" 240
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_static_mutation_admission_owner.pgy" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_binding_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_binding_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_binding_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_binding_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_operation_binding_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_operation_binding_owner.pgy" 35
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_nonmutating_operation_binding_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_nonmutating_operation_binding_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_binding_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_binding_owner.pgy" 35
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_operation_seed_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_operation_seed_owner.pgy" 35
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_mutating_operation_binding_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_mutating_operation_binding_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_mutating_lookup_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_mutating_lookup_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_lookup_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_lookup_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_identity_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_identity_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_identity_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_identity_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_variant_identity_owner.pgy" 15
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_variant_identity_owner.pgy" 15
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pre_reverse_identity_owner.pgy" 15
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pre_reverse_identity_owner.pgy" 15
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_identity_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_identity_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_expression_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_expression_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_mutating_expression_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_mutating_expression_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_expression_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_expression_owner.pgy" 35
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_expression_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_expression_owner.pgy" 35
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_condition_expression_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_condition_expression_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_consumer_readiness_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_consumer_readiness_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy" 155
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy" 155
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_operation_absence_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_operation_absence_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_absence_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_absence_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_absence_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_absence_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_minimum_plan_shape_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_minimum_plan_shape_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_readiness_owner.pgy" 65
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_readiness_owner.pgy" 65
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_log_operation_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_log_operation_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_condition_role_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_condition_role_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_operation_readiness_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_operation_readiness_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_phi_readiness_owner.pgy" 55
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_phi_readiness_owner.pgy" 55
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_readiness_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_readiness_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_readiness_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_static_mutation_readiness_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_c_emission_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_c_emission_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_llvm_emission_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_read_only_llvm_emission_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_program_operation_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_c_program_operation_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_program_operation_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_llvm_program_operation_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_nonmutating_c_operation_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_nonmutating_c_operation_owner.pgy" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_c_operation_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_c_operation_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_c_storage_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_c_storage_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_nonmutating_llvm_operation_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_nonmutating_llvm_operation_owner.pgy" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_llvm_operation_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_llvm_operation_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_llvm_storage_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_reverse_llvm_storage_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_llvm_storage_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_llvm_storage_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_pop_route_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_pop_route_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_fact_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_fact_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_foreach_view_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_foreach_view_owner.pgy" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_admission_owner.pgy" 160
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_admission_owner.pgy" 160
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_binding_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_binding_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_expression_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_expression_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy" 35
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_source_lookup_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_source_lookup_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_identity_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_identity_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_readiness_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_readiness_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_c_operation_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_c_operation_owner.pgy" 50
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_llvm_operation_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_llvm_operation_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_llvm_storage_owner.pgy" 55
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_llvm_storage_owner.pgy" 55
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_pop_program_fact_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_pop_program_fact_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_pop_program_readiness_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_pop_program_readiness_owner.pgy" 130
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_receipt_identity_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_receipt_identity_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_condition_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_typed_llvm_condition_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_c_collection_mutation_emission_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_c_collection_mutation_emission_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_collection_mutation_emission_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_collection_mutation_emission_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_shape_owner.pgy" 15
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_operation_shape_owner.pgy" 15
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_hash_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_hash_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_inventory_owner.pgy" 130
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_parameter_rebind_owner.sh" 100
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_value_parameter_rebind_mutations.py" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy" 200
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy" 200
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_access_readiness_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_access_readiness_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_append_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_append_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_binding_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_binding_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_capacity_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_capacity_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_mutation_length_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_mutation_length_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_index_readiness_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_index_readiness_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_length_log_graph_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_length_log_graph_owner.pgy" 25
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_entry_execution_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_entry_execution_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_push_graph_readiness_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_push_graph_readiness_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_source_fact_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_source_fact_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_statement_source_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_statement_source_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_index_safety_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_index_safety_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy" 420
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy" 420
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_expression_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_expression_owner.pgy" 110
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_condition_expression_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_condition_expression_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_mutation_graph_readiness_owner.pgy" 95
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_mutation_graph_readiness_owner.pgy" 95
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_element_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_element_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_local_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_local_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy" 100
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_set_owner.pgy" 300
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_set_owner.pgy" 300
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_identity_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_ref_identity_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_iteration_local_owner.pgy" 150
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_iteration_local_owner.pgy" 150
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy" 150
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy" 150
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_graph_readiness_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_graph_readiness_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_transfer_admission_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_transfer_admission_owner.pgy" 90
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_block_effect_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_block_effect_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_fact_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_fact_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy" 110
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_emission_owner.pgy" 110
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_c_operand_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_c_operand_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_c_emission_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_c_operation_emission_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_c_operation_emission_owner.pgy" 130
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_c_collection_operation_emission_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_c_collection_operation_emission_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_c_collection_operation_fact_owner.pgy" 10
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_c_collection_operation_fact_owner.pgy" 10
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_emission_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_c_emission_owner.pgy" 130
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_storage_owner.pgy" 53
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_c_storage_owner.pgy" 53
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_c_emission_owner.pgy" 45
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_static_c_emission_owner.pgy" 45
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_c_operation_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_static_c_operation_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_c_materialization_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_c_materialization_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy" 240
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy" 240
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_c_materialization_owner.pgy" 65
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_c_materialization_owner.pgy" 65
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_storage_emission_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_c_storage_emission_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_pop_c_operation_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_pop_c_operation_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy" 260
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_emission_owner.pgy" 260
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operation_emission_owner.pgy" 190
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_operation_emission_owner.pgy" 190
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_collection_operation_emission_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_collection_operation_emission_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy" 10
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy" 10
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy" 73
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy" 73
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_initialization_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_llvm_initialization_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy" 130
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_llvm_emission_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_static_llvm_emission_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_llvm_operation_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_static_llvm_operation_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy" 160
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy" 160
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy" 60
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy" 140
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy" 140
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy" 70
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_pop_llvm_operation_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_pop_llvm_operation_owner.pgy" 40
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" 155
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_emission_owner.pgy" 155
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy" 230
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy" 230
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operand_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_operand_owner.pgy" 40
 # Re-armed at the file's true size. This owner is a single function, so a few
 # lines of growth is not a decomposition failure and there is no seam to split
 # on. The 600-line owner cap is the SRP standard and is not relaxed here.
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_projection_owner.pgy" 60
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_graph_projection.sh" 160
 require_max_lines \
@@ -2815,8 +2815,8 @@ require_max_lines "src/self_hosted/lsp/squiggle_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/transport_owner.pgy" 600
 require_max_lines "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy" 600
 
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_readonly_string_parameter_owner.pgy" 40
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_readonly_value_parameter_owner.pgy" 40
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_readonly_string_parameter_owner.pgy" 40
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_readonly_value_parameter_owner.pgy" 40
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" 150
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_readonly_string_temporary_owner.pgy" 140
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_call_argument_rewrite_owner.pgy" 80
@@ -2826,238 +2826,238 @@ require_max_lines "tests/self_hosted/parity/ownership/region_user_callee_mutatio
 require_max_lines "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" 40
 require_max_lines "src/self_hosted/mir/intent_execution_canonical_instruction_owner.pgy" 75
 require_max_lines "src/self_hosted/semantic/ast_generic_specialization_constraint_owner.pgy" 75
-require_max_lines "src/self_hosted/compiler/direct_mir_intent_parameter_binding_admission_owner.pgy" 85
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy" 60
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_expression_owner.pgy" 75
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_scalar_value_result_storage_owner.pgy" 39
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy" 125
+require_max_lines "src/self_hosted/compiler/direct_mir/direct_mir_intent_parameter_binding_admission_owner.pgy" 85
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_physical_target_owner.pgy" 60
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_logical_record_expression_owner.pgy" 75
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_scalar_value_result_storage_owner.pgy" 39
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy" 125
 require_max_lines "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy" 55
-require_max_lines "src/self_hosted/compiler/direct_mir_nominal_abi_row_identity_owner.pgy" 35
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" 23
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_syntax_owner.pgy" 90
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy" 20
+require_max_lines "src/self_hosted/compiler/direct_mir/direct_mir_nominal_abi_row_identity_owner.pgy" 35
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" 23
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_call_callee_syntax_owner.pgy" 90
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy" 20
 
 # Collection ownership transition receipts are one reached semantic -> MIR ->
 # direct-backend seam. Pin every new owner and keep the large verdict split by
 # responsibility instead of raising its cap.
 for collection_owner_cap in \
-    src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy:600 \
-    src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy:415 \
-    src/self_hosted/semantic/ast_collection_indexed_string_borrow_owner.pgy:240 \
-    src/self_hosted/semantic/ast_collection_indexed_string_borrow_source_policy_owner.pgy:125 \
-    src/self_hosted/semantic/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy:20 \
-    src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_ownership_verdict_carrier_owner.pgy:90 \
-    src/self_hosted/semantic/ast_collection_focus_recovery_schema_owner.pgy:180 \
-    src/self_hosted/semantic/ast_collection_focus_recovery_admission_owner.pgy:600 \
-    src/self_hosted/semantic/ast_collection_focus_recovery_receipt_owner.pgy:120 \
-    src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy:120 \
-    src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:242 \
-    src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:188 \
-    src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy:150 \
-    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:512 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy:600 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_scan_owner.pgy:415 \
+    src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_owner.pgy:240 \
+    src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_source_policy_owner.pgy:125 \
+    src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy:20 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_state_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_carrier_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection/ast_collection_focus_recovery_schema_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection/ast_collection_focus_recovery_admission_owner.pgy:600 \
+    src/self_hosted/semantic/ast_collection/ast_collection_focus_recovery_receipt_owner.pgy:120 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_receipt_owner.pgy:120 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_identity_owner.pgy:242 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_identity_owner.pgy:188 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_execution_context_owner.pgy:150 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_use_owner.pgy:512 \
     src/self_hosted/semantic/ast_string_formal_text_containment_owner.pgy:180 \
-    src/self_hosted/semantic/ast_collection_formal_effect_fact_owner.pgy:40 \
-    src/self_hosted/semantic/ast_collection_formal_statement_effect_owner.pgy:180 \
-    src/self_hosted/semantic/ast_collection_formal_effect_admission_owner.pgy:40 \
-    src/self_hosted/semantic/ast_collection_formal_effect_fixed_point_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_formal_effect_graph_owner.pgy:142 \
-    src/self_hosted/semantic/ast_collection_formal_effect_closure_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy:190 \
-    src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:40 \
-    src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:200 \
-    src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy:170 \
-    src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy:47 \
-    src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy:140 \
-    src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy:200 \
-    src/self_hosted/semantic/ast_collection_constructor_empty_capture_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy:84 \
-    src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy:104 \
-    src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_definition_fact_owner.pgy:40 \
-    src/self_hosted/semantic/ast_collection_definition_query_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy:170 \
-    src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy:91 \
-    src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:84 \
-    src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:116 \
-    src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy:222 \
-    src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:145 \
-    src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy:96 \
-    src/self_hosted/semantic/ast_collection_repeated_local_generation_owner.pgy:40 \
-    src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy:90 \
-    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:180 \
-    src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_ownership_member_restoration_owner.pgy:30 \
-    src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_member_capture_provenance_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy:120 \
-    src/self_hosted/semantic/ast_collection_member_read_local_root_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_member_place_owner.pgy:64 \
-    src/self_hosted/semantic/ast_collection_member_place_use_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_fact_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_statement_effect_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_admission_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_fixed_point_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_graph_owner.pgy:142 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_closure_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_readiness_owner.pgy:190 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_effect_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_descriptor_retention_owner.pgy:170 \
+    src/self_hosted/semantic/ast_collection/ast_collection_descriptor_retention_entry_owner.pgy:47 \
+    src/self_hosted/semantic/ast_collection/ast_collection_terminal_storage_effect_owner.pgy:140 \
+    src/self_hosted/semantic/ast_collection/ast_collection_constructor_storage_escape_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_constructor_field_input_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection/ast_collection_constructor_empty_capture_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_effect_closure_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_argument_permission_effect_owner.pgy:84 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_storage_permission_owner.pgy:104 \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_effect_fact_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_fact_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_query_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection/ast_collection_assignment_definition_owner.pgy:170 \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_storage_authority_owner.pgy:91 \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_storage_producer_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_transition_owner.pgy:84 \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_argument_verdict_owner.pgy:116 \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_argument_effect_verdict_owner.pgy:222 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_statement_transition_owner.pgy:145 \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_retirement_owner.pgy:96 \
+    src/self_hosted/semantic/ast_collection/ast_collection_repeated_local_generation_owner.pgy:40 \
+    src/self_hosted/semantic/ast_expression/ast_expression_graph_call_argument_edge_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_assignment_alias_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_binding_move_use_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_move_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_root_identity_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_transition_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_result_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_restoration_owner.pgy:30 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_capture_obligation_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_capture_source_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_capture_provenance_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_capture_site_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_read_permission_owner.pgy:120 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_read_local_root_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_place_owner.pgy:64 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_place_use_owner.pgy:200 \
     src/self_hosted/semantic/ast_string_formal_borrow_owner.pgy:235 \
-    src/self_hosted/semantic/ast_collection_aggregate_element_borrow_dependency_owner.pgy:400 \
-    src/self_hosted/semantic/ast_collection_aggregate_element_escape_projection_owner.pgy:420 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_element_borrow_owner.pgy:32 \
-    src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
-    src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy:300 \
-    src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:110 \
-    src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy:162 \
-    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_record_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_aggregate_field_entry_formal_owner.pgy:70 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:316 \
-    src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:262 \
-    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:590 \
-    src/self_hosted/semantic/ast_collection_aggregate_sink_consumption_owner.pgy:403 \
-    src/self_hosted/semantic/ast_collection_element_escape_entry_owner.pgy:335 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_owner.pgy:565 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_class_owner.pgy:280 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy:249 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_copy_landing_owner.pgy:188 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_dead_definition_owner.pgy:135 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:596 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:384 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:420 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:450 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy:300 \
-    src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy:155 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy:225 \
-    src/self_hosted/semantic/ast_collection_aggregate_named_input_reservation_owner.pgy:280 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy:710 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_element_borrow_dependency_owner.pgy:400 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_element_escape_projection_owner.pgy:420 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_element_borrow_owner.pgy:32 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_argument_transfer_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection/ast_collection_argument_event_order_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_lifetime_event_order_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_builtin_transition_owner.pgy:300 \
+    src/self_hosted/semantic/ast_collection/ast_collection_owned_parameter_identity_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_owned_argument_admission_owner.pgy:110 \
+    src/self_hosted/semantic/ast_collection/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_field_entry_requirement_owner.pgy:162 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_field_entry_requirement_record_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_field_entry_formal_owner.pgy:70 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_plan_schema_owner.pgy:316 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_value_exclusivity_owner.pgy:262 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_value_lineage_owner.pgy:590 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_sink_consumption_owner.pgy:403 \
+    src/self_hosted/semantic/ast_collection/ast_collection_element_escape_entry_owner.pgy:335 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_owner.pgy:565 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_class_owner.pgy:280 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_growth_owner.pgy:249 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_copy_landing_owner.pgy:188 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_dead_definition_owner.pgy:135 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_consumption_owner.pgy:596 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_field_read_owner.pgy:384 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_copy_owner.pgy:420 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_flow_owner.pgy:450 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_mutation_owner.pgy:300 \
+    src/self_hosted/semantic/ast_collection/ast_collection_read_literal_argument_owner.pgy:155 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_plan_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_uniqueness_owner.pgy:225 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_named_input_reservation_owner.pgy:280 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_transition_owner.pgy:710 \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy:100 \
-    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy:181 \
-    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy:120 \
-    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy:220 \
-    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy:126 \
-    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy:100 \
-    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:477 \
-    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:136 \
-    src/self_hosted/compiler/driver_rung2_scalar_c_substitution_owner.pgy:100 \
-    src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy:311 \
-    src/self_hosted/semantic/ast_collection_aggregate_named_input_reservation_fact_owner.pgy:260 \
-    src/self_hosted/semantic/ast_collection_aggregate_named_input_reservation_completion_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_control_flow_owner.pgy:300 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_exit_flow_owner.pgy:260 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy:181 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy:120 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy:220 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy:126 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:477 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:136 \
+    src/self_hosted/compiler/driver/driver_rung2_scalar_c_substitution_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy:311 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_named_input_reservation_fact_owner.pgy:260 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_named_input_reservation_completion_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_control_flow_owner.pgy:300 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_exit_flow_owner.pgy:260 \
     src/self_hosted/semantic/ast_string_formal_local_text_containment_owner.pgy:100 \
     src/self_hosted/semantic/ast_string_formal_source_text_containment_owner.pgy:140 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_statement_end_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_build_owner.pgy:180 \
-    src/self_hosted/semantic/ast_collection_element_escape_readiness_owner.pgy:260 \
-    src/self_hosted/semantic/ast_collection_owned_element_escape_event_owner.pgy:140 \
-    src/self_hosted/semantic/ast_collection_ownership_verdict_schema_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_ownership_verdict_error_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_statement_end_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_plan_build_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection/ast_collection_element_escape_readiness_owner.pgy:260 \
+    src/self_hosted/semantic/ast_collection/ast_collection_owned_element_escape_event_owner.pgy:140 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_schema_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_error_owner.pgy:40 \
     src/self_hosted/semantic/ast_owned_string_fresh_expression_owner.pgy:100 \
     src/self_hosted/semantic/ast_owned_string_allocation_domain_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_member_place_schema_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_member_place_usage_owner.pgy:180 \
-    src/self_hosted/semantic/ast_collection_constructor_named_vacant_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_constructor_field_input_producer_owner.pgy:40 \
-    src/self_hosted/semantic/ast_collection_formal_indexed_read_owner.pgy:40 \
-    src/self_hosted/semantic/ast_collection_call_argument_effect_admission_owner.pgy:220 \
-    src/self_hosted/semantic/ast_collection_formal_statement_effect_schema_owner.pgy:20 \
-    src/self_hosted/semantic/ast_collection_formal_statement_effect_build_owner.pgy:200 \
-    src/self_hosted/semantic/ast_collection_exclusive_copy_landing_fact_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_exclusive_copy_landing_field_owner.pgy:140 \
-    src/self_hosted/compiler/direct_mir_constructed_member_specialization_pair_fact_owner.pgy:100 \
-    src/self_hosted/compiler/direct_mir_constructed_member_specialization_occurrence_owner.pgy:200 \
-    src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_schema_owner.pgy:120 \
-    src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_projection_owner.pgy:220 \
-    src/self_hosted/compiler/driver_mir_c_request_identity_owner.pgy:140 \
-    src/self_hosted/compiler/driver_mir_c_payload_admission_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_place_schema_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_place_usage_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection/ast_collection_constructor_named_vacant_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection/ast_collection_constructor_field_input_producer_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_indexed_read_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_argument_effect_admission_owner.pgy:220 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_statement_effect_schema_owner.pgy:20 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_statement_effect_build_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_copy_landing_fact_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_copy_landing_field_owner.pgy:140 \
+    src/self_hosted/compiler/direct_mir/direct_mir_constructed_member_specialization_pair_fact_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir/direct_mir_constructed_member_specialization_occurrence_owner.pgy:200 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_value_result_schema_owner.pgy:120 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_value_result_projection_owner.pgy:220 \
+    src/self_hosted/compiler/driver/driver_mir_c_request_identity_owner.pgy:140 \
+    src/self_hosted/compiler/driver/driver_mir_c_payload_admission_owner.pgy:100 \
     src/self_hosted/mir_lower/collection_ownership_binding_move_fact_owner.pgy:151 \
     src/self_hosted/mir_lower/collection_ownership_binding_move_query_owner.pgy:60 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_routine_emission_owner.pgy:200 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_block_exit_emission_owner.pgy:165 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_artifact_emission_owner.pgy:184 \
-    src/self_hosted/compiler/direct_mir_scalar_program_nested_array_int_literal_operand_owner.pgy:60 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_graph_owner.pgy:80 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_admission_owner.pgy:223 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_identity_schema_owner.pgy:40 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_identity_query_owner.pgy:100 \
-    src/self_hosted/compiler/direct_mir_scalar_program_option_int_instruction_abi_owner.pgy:60 \
-    src/self_hosted/compiler/direct_mir_scalar_program_option_int_parameter_abi_owner.pgy:60 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_type_owner.pgy:120 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_projection_owner.pgy:139 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_scalar_type_family_owner.pgy:40 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_type_family_owner.pgy:80 \
-    src/self_hosted/compiler/direct_mir_routine_signature_schema_owner.pgy:103 \
-    src/self_hosted/compiler/direct_mir_routine_signature_projection_owner.pgy:140 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_schema_owner.pgy:40 \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_projection_owner.pgy:85 \
-    src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_schema_owner.pgy:120 \
-    src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_projection_owner.pgy:176 \
-    src/self_hosted/compiler/direct_mir_scalar_program_array_int_literal_operand_schema_owner.pgy:40 \
-    src/self_hosted/compiler/direct_mir_scalar_program_array_int_literal_operand_projection_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_aggregate_carrier_identity_owner.pgy:370 \
-    src/self_hosted/semantic/ast_collection_aggregate_moving_self_rebind_owner.pgy:135 \
-    src/self_hosted/semantic/ast_collection_aggregate_field_pack_restoration_owner.pgy:400 \
-    src/self_hosted/semantic/ast_collection_aggregate_result_path_owner.pgy:490 \
-    src/self_hosted/semantic/ast_collection_aggregate_terminal_path_transfer_owner.pgy:320 \
-    src/self_hosted/semantic/ast_collection_aggregate_whole_holder_restoration_owner.pgy:440 \
-    src/self_hosted/semantic/ast_collection_aggregate_result_transfer_owner.pgy:460 \
-    src/self_hosted/semantic/ast_collection_aggregate_source_path_uniqueness_owner.pgy:240 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_call_chain_owner.pgy:250 \
-    src/self_hosted/semantic/ast_collection_aggregate_terminal_alternative_owner.pgy:410 \
-    src/self_hosted/semantic/ast_collection_aggregate_forwarded_result_owner.pgy:350 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_uniqueness_owner.pgy:200 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_restoration_owner.pgy:590 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_finalization_owner.pgy:430 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_alias_owner.pgy:440 \
-    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_record_owner.pgy:550 \
-    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_trace_owner.pgy:510 \
-    src/self_hosted/semantic/ast_collection_exclusive_whole_carried_field_owner.pgy:310 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_classification_owner.pgy:310 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_fact_build_owner.pgy:320 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_record_schema_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_readiness_owner.pgy:190 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_recording_owner.pgy:180 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_routine_emission_owner.pgy:200 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_block_exit_emission_owner.pgy:165 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_artifact_emission_owner.pgy:184 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_nested_array_int_literal_operand_owner.pgy:60 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_extension_graph_owner.pgy:80 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_extension_admission_owner.pgy:223 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_routine_identity_schema_owner.pgy:40 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_routine_identity_query_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_option_int_instruction_abi_owner.pgy:60 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_option_int_parameter_abi_owner.pgy:60 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_type_owner.pgy:120 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_signature_projection_owner.pgy:139 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_scalar_type_family_owner.pgy:40 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_type_family_owner.pgy:80 \
+    src/self_hosted/compiler/direct_mir/direct_mir_routine_signature_schema_owner.pgy:103 \
+    src/self_hosted/compiler/direct_mir/direct_mir_routine_signature_projection_owner.pgy:140 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_routine_partition_schema_owner.pgy:40 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_routine_partition_projection_owner.pgy:85 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_callable_parameter_role_schema_owner.pgy:120 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_callable_parameter_role_projection_owner.pgy:176 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_literal_operand_schema_owner.pgy:40 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_literal_operand_projection_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_carrier_identity_owner.pgy:370 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_moving_self_rebind_owner.pgy:135 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_field_pack_restoration_owner.pgy:400 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_result_path_owner.pgy:490 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_terminal_path_transfer_owner.pgy:320 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_whole_holder_restoration_owner.pgy:440 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_result_transfer_owner.pgy:460 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_source_path_uniqueness_owner.pgy:240 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_call_chain_owner.pgy:250 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_terminal_alternative_owner.pgy:410 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_forwarded_result_owner.pgy:350 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_plan_uniqueness_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_restoration_owner.pgy:590 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_finalization_owner.pgy:430 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_alias_owner.pgy:440 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_value_lineage_record_owner.pgy:550 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_value_lineage_trace_owner.pgy:510 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_whole_carried_field_owner.pgy:310 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_classification_owner.pgy:310 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_fact_build_owner.pgy:320 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_plan_record_schema_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_plan_readiness_owner.pgy:190 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_plan_recording_owner.pgy:180 \
     src/self_hosted/semantic/ast_body_flow_calculus_owner.pgy:580 \
     src/self_hosted/semantic/ast_body_termination_fact_owner.pgy:200 \
     src/self_hosted/semantic/ast_owned_string_literal_ownership_fact_owner.pgy:150 \
     src/self_hosted/semantic/ast_owned_string_literal_definition_transfer_owner.pgy:420 \
     src/self_hosted/semantic/ast_owned_string_literal_call_transfer_owner.pgy:230 \
-    src/self_hosted/semantic/ast_expression_graph_concrete_scalar_readiness_owner.pgy:440 \
-    src/self_hosted/semantic/ast_expression_graph_concrete_scalar_error_owner.pgy:270 \
-    src/self_hosted/semantic/ast_expression_graph_core_fact_owner.pgy:570 \
-    src/self_hosted/semantic/ast_expression_graph_equality_owner.pgy:80 \
+    src/self_hosted/semantic/ast_expression/ast_expression_graph_concrete_scalar_readiness_owner.pgy:440 \
+    src/self_hosted/semantic/ast_expression/ast_expression_graph_concrete_scalar_error_owner.pgy:270 \
+    src/self_hosted/semantic/ast_expression/ast_expression_graph_core_fact_owner.pgy:570 \
+    src/self_hosted/semantic/ast_expression/ast_expression_graph_equality_owner.pgy:80 \
     src/self_hosted/semantic/ast_nominal_constructor_core_fact_owner.pgy:510 \
     src/self_hosted/semantic/ast_nominal_role_slot_query_owner.pgy:60 \
     src/self_hosted/semantic/ast_nominal_constructor_field_query_owner.pgy:110 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_core_owner.pgy:540 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_result_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_formal_use_entry_owner.pgy:50 \
-    src/self_hosted/semantic/ast_collection_owned_push_leaf_resolution_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_formal_statement_transition_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_local_statement_transition_owner.pgy:150 \
-    src/self_hosted/semantic/ast_collection_ownership_finalization_owner.pgy:90 \
-    src/self_hosted/semantic/ast_collection_ownership_projection_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_call_storage_status_owner.pgy:40 \
-    src/self_hosted/semantic/ast_collection_owned_element_call_requirement_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_commit_owner.pgy:90 \
-    src/self_hosted/semantic/ast_collection_builtin_mutation_kind_owner.pgy:20 \
-    src/self_hosted/semantic/ast_collection_formal_execution_entry_owner.pgy:30 \
-    src/self_hosted/semantic/ast_collection_builtin_completion_identity_owner.pgy:10 \
-    src/self_hosted/compiler/direct_mir_scalar_program_owned_string_argument_source_owner.pgy:90; do
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_consumption_core_owner.pgy:540 \
+    src/self_hosted/semantic/ast_collection/ast_collection_exclusive_value_consumption_result_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_use_entry_owner.pgy:50 \
+    src/self_hosted/semantic/ast_collection/ast_collection_owned_push_leaf_resolution_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_statement_transition_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_local_statement_transition_owner.pgy:150 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_finalization_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_projection_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_storage_status_owner.pgy:40 \
+    src/self_hosted/semantic/ast_collection/ast_collection_owned_element_call_requirement_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_field_entry_requirement_commit_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection/ast_collection_builtin_mutation_kind_owner.pgy:20 \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_execution_entry_owner.pgy:30 \
+    src/self_hosted/semantic/ast_collection/ast_collection_builtin_completion_identity_owner.pgy:10 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_argument_source_owner.pgy:90; do
     collection_owner="${collection_owner_cap%%:*}"
     collection_cap="${collection_owner_cap##*:}"
     require_max_lines "$collection_owner" "$collection_cap"
 done
-require_max_lines "src/self_hosted/semantic/ast_collection_builtin_release_identity_owner.pgy" 16
+require_max_lines "src/self_hosted/semantic/ast_collection/ast_collection_builtin_release_identity_owner.pgy" 16
 require_max_lines "tests/self_hosted/fixtures/collection_storage_producer_probe.pgy" 160
 require_max_lines "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy" 140
 require_max_lines "tests/self_hosted/fixtures/collection_aggregate_entry_requirement_probe.pgy" 180
@@ -3068,8 +3068,8 @@ require_max_lines "tests/self_hosted/fixtures/collection_lifetime_event_probe.pg
 require_max_lines \
     "tests/self_hosted/parity/ownership/collection_ownership_receipt_mutations.py" 100
 
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_cfg_borrowed_collection_admission_owner.pgy" 50
-require_max_lines "src/self_hosted/compiler/direct_mir_scalar_cfg_void_return_admission_owner.pgy" 50
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_borrowed_collection_admission_owner.pgy" 50
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_void_return_admission_owner.pgy" 50
 
 require_max_lines "tests/self_hosted/parity/one_mir/one_mir_string_array_emitted_contract.py" 110
 require_max_lines "tests/self_hosted/parity/one_mir/one_mir_string_array_execution_contract.sh" 50

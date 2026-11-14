@@ -187,25 +187,25 @@ strictly underneath.
 - `AIRBoundaryNode` now carries explicit RIR/MIR evidence summary bits for
   await-local, movability requirement, deterministic fork-join, zone pin, raw
   channel, raw slot, live view, pin cleanup, and value-only capture.
-- `src/compiler/air_execution_lane.c` consumes those evidence bits when it
+- `src/compiler/air/air_execution_lane.c` consumes those evidence bits when it
   builds `BoundaryCaptureFact`. Raw-slot, raw-channel, and live-view evidence
   are consumed as boundary-local resource facts before boundary-kind-specific
   scheduling shape is considered. The gate forbids
   `air_boundary_source_kind(boundary)` from participating in lane evidence, and
   forbids `AIR_BOUNDARY_ZONE` from producing `captures_pin` without the RIR
   zone-pin evidence bit.
-- `src/compiler/air_evidence_rir_boundary.c` and
-  `src/compiler/air_evidence_mir_pin.c` are the current producers for the
+- `src/compiler/air/air_evidence_rir_boundary.c` and
+  `src/compiler/air/air_evidence_mir_pin.c` are the current producers for the
   boundary-local RIR/MIR evidence summary. Routine-level correlation was
   rejected because it over-pins unrelated work in the same routine.
-- `src/compiler/air_evidence_mir.c` now produces the first conservative
+- `src/compiler/air/air_evidence_mir.c` now produces the first conservative
   value-only capture slice during MIR evidence collection: a parallel boundary
   with RIR movability evidence and no raw slot, live view, raw channel,
   zone-pin, or MIR pin-cleanup evidence is promoted to `captures_value_only`.
   The same MIR evidence stage refreshes `boundary_capture` and `execution_lane`
   through `air_refresh_execution_lane_facts`, so AIR JSON cannot expose stale
   lane facts after MIR evidence is attached.
-- `src/compiler/air_boundary_walk.c` now walks HIR function bodies as routine
+- `src/compiler/air/air_boundary_walk.c` now walks HIR function bodies as routine
   owners, not only DIR intent-step expressions. A routine-level boundary has
   `intent:null` in AIR JSON, but still requires HIR routine evidence, HIR CFG
   evidence, RIR boundary evidence, boundary-local capture facts, and a source

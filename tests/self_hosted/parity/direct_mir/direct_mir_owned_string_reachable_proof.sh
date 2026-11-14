@@ -11,7 +11,7 @@ PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 CC="${PGY_SELFHOST_CC:-gcc}"
 FIXTURE="tests/self_hosted/fixtures/direct_mir_owned_string_reachable_proof_probe.pgy"
 RESTRICTED_FIXTURE="tests/self_hosted/semantic/fixture/owned_string_proof_storage_wrong_path_rejected.pgy"
-OWNER="src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy"
+OWNER="src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy"
 BUILD_TIMEOUT="${PGY_SELFHOST_PROBE_BUILD_TIMEOUT:-300}s"
 STEP_TIMEOUT="${PGY_SELFHOST_PROBE_TIMEOUT:-45}s"
 fail() { echo "[$LABEL] $*; evidence: ${WORK_DIR:-not-created}" >&2; exit 1; }

@@ -3,7 +3,7 @@
 // Binding syntax identity is the join key. Names and Array<String> spelling
 // only validate the typed inventory; they are never the lookup authority.
 
-import "../semantic/ast_collection_ownership_verdict_owner.pgy";
+import "../semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy";
 import "../semantic/ast_nominal_constructor_lookup_owner.pgy";
 import "collection_ownership_state_table_owner.pgy";
 

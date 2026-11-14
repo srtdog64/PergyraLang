@@ -191,7 +191,7 @@ missing_mir_output_rc=$?
     >"$WORK_DIR/rejected-mir-c.out" 2>"$WORK_DIR/rejected-mir-c.err")
 rejected_mir_c_rc=$?
 (cd "$ROOT_DIR" && "$DRIVER" --emit-source-llvm-ir-verified \
-    "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    "src/self_hosted/compiler/driver/driver_bootstrap_main.pgy" \
     -o "$WORK_REL/rejected-source.ll" \
     >"$WORK_DIR/rejected-source-llvm.out" \
     2>"$WORK_DIR/rejected-source-llvm.err")

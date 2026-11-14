@@ -171,7 +171,7 @@ LLVM 백엔드는 이 partitioned arrays 를 각 전용 handler 가 소비:
 
 **목적:** 카테고리 3 (top-level decl) 이 실수로 statement context 로 라우팅될 때 조용히 skip.
 
-**위치:** `src/codegen/llvm_stmt.c` 의 대형 switch 블록.
+**위치:** `src/codegen/llvm/llvm_stmt.c` 의 대형 switch 블록.
 
 ```c
 case AST_FUNC_DECL:
@@ -295,8 +295,8 @@ case AST_ZONE_STATE:
 - `docs/release/70_beta_closure_master_board.md` — surface trust docs 트랙
 - `docs/tooling/72_diagnostic_codes.md` — `PGY_CODE_LLVM_TYPE_UNSUPPORTED` 등
 - `docs/compiler/92_inc_split_roadmap.md` — dispatcher 모듈화 로드맵
-- `src/codegen/llvm_stmt.c` — statement switch (skip 리스트 + safety net)
-- `src/codegen/llvm_expr.c` — expression switch (safety net explicit error)
+- `src/codegen/llvm/llvm_stmt.c` — statement switch (skip 리스트 + safety net)
+- `src/codegen/llvm/llvm_expr.c` — expression switch (safety net explicit error)
 - `src/parser/ast.h` — AST 타입 정의 source of truth
 - `src/parser/parser_domain.c` — 카테고리 2 생성 경로
 - `src/parser/parser_intent.c` — 카테고리 2 생성 경로 (intent)

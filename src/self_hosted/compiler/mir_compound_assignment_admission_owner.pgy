@@ -1,6 +1,6 @@
 // Typed MIR assignment admission. The existing expression owner resolves both
 // graphs; the target remains a place and is never duplicated into the RHS.
-import "direct_mir_scalar_cfg_program_definition_admission_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_definition_admission_owner.pgy";
 import "../hir/assignment_operation_owner.pgy";
 
 func MirCompoundAssignmentScalarType(type_name: String, operation: Int) -> Bool {

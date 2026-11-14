@@ -7,7 +7,7 @@ import "ast_local_binding_fact_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_assignment_type_fact_owner.pgy";
-import "ast_expression_surface_fact_owner.pgy";
+import "ast_expression/ast_expression_surface_fact_owner.pgy";
 import "ast_zone_resource_shape_owner.pgy";
 import "diagnostic_owner.pgy";
 

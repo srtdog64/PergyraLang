@@ -227,7 +227,7 @@ contract of the language.
 
 | Component | Role | Rust analogue | Implementation site |
 |---|---|---|---|
-| Ownership classifier (5 classes) | Type-level ownership classification | `Copy` / affine type | `src/semantic/type_checker_ownership_classify.c` |
+| Ownership classifier (5 classes) | Type-level ownership classification | `Copy` / affine type | `src/semantic/type_checker/type_checker_ownership_classify.c` |
 | CFG body dataflow | Move / use-after-move tracking | Borrow check (subset) | HIR/MIR CFG; `docs/103` |
 | pin block boundary rules | Resource cannot cross suspension | `Pin` + part of `Send`/`Sync` | Active source-level typed-view pin blocks; `docs/74`; diagnostics + backend compare |
 | Channel-only cross-World rule | Cross-task / cross-world transfer | `Send` / `Sync` | `docs/113`, `docs/106` |
@@ -236,7 +236,7 @@ contract of the language.
 The 5 ownership classes (`OWNERSHIP_TYPE_COPY_ONLY`, `OWNERSHIP_TYPE_MOVE_ONLY`,
 `OWNERSHIP_TYPE_BORROW_TRACKED`, `OWNERSHIP_TYPE_SUBJECT_IDENTITY`,
 `OWNERSHIP_TYPE_ANCHORED_HANDLE`) are defined in
-`src/semantic/type_checker_ownership_internal.h:6-12` and drive every other
+`src/semantic/type_checker/type_checker_ownership_internal.h:6-12` and drive every other
 component's behavior.
 
 Anyone evaluating Pergyra's static safety should evaluate this 5-component
@@ -738,7 +738,7 @@ ABI bug affects every abstraction above Slot.
 `docs/136`). When such a change is eventually made, it must land in one commit
 that updates *all* of: (1) the struct in `src/runtime/pgy_abi_spec.h`, (2) the
 static asserts in `src/runtime/pgy_abi_spec_asserts.h`, (3) the owning gate's
-required term(s), (4) the MIR ABI fact in `src/compiler/mir_abi_layout.c` if a
+required term(s), (4) the MIR ABI fact in `src/compiler/mir/mir_abi_layout.c` if a
 field offset moves, (5) the runtime-shape checks in `src/test_abi_spec.c`, and
 (6) a green backend-compare parity sweep. Adding a debug/release layout
 dimension is permanently rejected — layout is not selected by build mode

@@ -1,4 +1,4 @@
-import "../../../src/self_hosted/compiler/driver_rung2_owner.pgy";
+import "../../../src/self_hosted/compiler/driver/driver_rung2_owner.pgy";
 
 func Main() -> Void {
     let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(

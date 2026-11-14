@@ -86,9 +86,9 @@ if [[ "$llvm_rc" -ne 0 && "$llvm_rc" -ne 2 ]]; then
 fi
 
 for required in \
-    "src/compiler/mir_generic_method_specialization.c:mir_generic_method_specializations_capture(" \
-    "src/codegen/transpiler_expr_call_member_emit.c:mir_generic_method_specialization_for_call(" \
-    "src/codegen/llvm_member_call_emit.c:mir_generic_method_specialization_for_call("; do
+    "src/compiler/mir/mir_generic_method_specialization.c:mir_generic_method_specializations_capture(" \
+    "src/codegen/c/transpiler_expr_call_member_emit.c:mir_generic_method_specialization_for_call(" \
+    "src/codegen/llvm/llvm_member_call_emit.c:mir_generic_method_specialization_for_call("; do
     path="${required%%:*}"
     term="${required#*:}"
     grep -Fq "$term" "$ROOT_DIR/$path" || {

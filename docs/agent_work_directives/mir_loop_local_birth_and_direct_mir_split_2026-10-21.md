@@ -25,7 +25,7 @@ and runs the gate before landing.
 |---|---|
 | Objective | the unchanged canonical driver input reaches MIR and passes validation once the native checker admits it |
 | Priority | MIR validation wall first (it is the next wall after admission); the `direct_mir_*` routes second |
-| Fact owner | `src/compiler/mir_branch_collection_transitions.c` (MIR collection transitions); MIR lowering for the cleanup it expects |
+| Fact owner | `src/compiler/mir/mir_branch_collection_transitions.c` (MIR collection transitions); MIR lowering for the cleanup it expects |
 | Last consumer | MIR validation in the native pipeline (`--mir-json`, `--backend=c|llvm`) |
 | Forbidden | weakening the transition check so a live owned Array can be born over; editing the canonical source; deciding the two OPEN questions below |
 | Gate | the reproducers below, C and LLVM printing the same, plus `make test-mir` and `tests/ownership/string_result_control_ownership_smoke.sh` |

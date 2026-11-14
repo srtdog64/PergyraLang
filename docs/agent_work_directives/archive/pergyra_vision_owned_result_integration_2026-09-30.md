@@ -39,7 +39,7 @@ before integration; do not overwrite another task's source or installed packet.
 ## Independent scopes
 
 1. `owned_result_implementation`: only
-   `src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy`
+   `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy`
    and, after reporting necessity to root, the smallest existing admission
    consumer needed for this contract. One implementation track only. Preserve
    public function signatures unless every caller is migrated in the same slice.

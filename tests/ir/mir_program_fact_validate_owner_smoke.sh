@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ORCHESTRATOR="$ROOT_DIR/src/compiler/mir_program_validate.c"
-FACT_VALIDATOR="$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
+ORCHESTRATOR="$ROOT_DIR/src/compiler/mir/mir_program_validate.c"
+FACT_VALIDATOR="$ROOT_DIR/src/compiler/mir/mir_program_fact_validate.c"
 
 fail() {
     echo "[mir-program-fact-validate-owner] $*" >&2

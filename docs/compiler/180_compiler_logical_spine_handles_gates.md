@@ -408,7 +408,7 @@ Current structural storage:
 |---|---|---|
 | `LANDED` | `src/self_hosted/hir/program_graph_owner.pgy` | stable `AstExpressionArena` kind/text/children topology shared by parser/HIR and semantic |
 | `RETIRED` | `src/self_hosted/hir/ast_expression_graph_owner.pgy` | no structural fields; validates graph rows and node invariants over the target topology |
-| `REPOINTED` | `src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy` | borrows target topology; owns normalized text, call-target, and place overlays only |
+| `REPOINTED` | `src/self_hosted/semantic/ast_expression/ast_expression_graph_fact_owner.pgy` | borrows target topology; owns normalized text, call-target, and place overlays only |
 | `HANDLE` | `src/self_hosted/mir/expression_graph_fact_owner.pgy` | instruction-local root and bounded-range handles over the program-owned semantic graph; no copied topology |
 
 This is a storage-and-identity migration under the existing

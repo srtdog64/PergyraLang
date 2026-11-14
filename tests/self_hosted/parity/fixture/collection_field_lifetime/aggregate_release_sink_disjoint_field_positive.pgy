@@ -1,6 +1,6 @@
 // A read after the crossing of a field outside the released paths is not a
 // read of consumed storage.
-import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+import "../../../../../src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy";
 
 struct TableHolder {
     tables: SemanticAstExpressionFunctionTableFacts;

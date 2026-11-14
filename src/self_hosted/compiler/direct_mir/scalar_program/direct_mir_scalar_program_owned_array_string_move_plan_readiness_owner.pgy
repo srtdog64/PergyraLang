@@ -1,0 +1,35 @@
+// Final GraphPlan joins the issued ownership proof to its exact typed input.
+import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_flow_owner.pgy";
+
+func DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
+        plan.program.owned_array_string_move, plan.program.array_string_abi) {
+        return false;
+    }
+    if !plan.program.owned_array_string_move.present { return true; }
+    // Borrow the owned fields for this call; no aggregate alias escapes the plan.
+    return plan.program.owned_array_string_move.coverage.input_digest ==
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageInputDigest(
+            plan.valid, plan.program.expressions, plan.routines.block_counts,
+            plan.routines.operation_counts, plan.routines.local_counts,
+            plan.local_types, plan.value_local_rows, plan.block_operation_starts,
+            plan.block_operation_counts, plan.block_succ_true, plan.block_succ_false,
+            plan.program.block_condition_expression_rows,
+            plan.program.block_return_expression_rows, plan.operation_kinds,
+            plan.operation_result_values, plan.program.operation_expression_rows,
+            plan.program.operation_secondary_expression_rows,
+            plan.operation_left_locals, plan.operation_right_locals,
+            plan.operation_left_values, plan.operation_right_values,
+            plan.program.owned_array_string_move.caller_routines,
+            plan.program.owned_array_string_move.call_operation_rows,
+            plan.program.owned_array_string_move.call_expression_rows,
+            plan.program.owned_array_string_move.local_rows,
+            plan.program.owned_array_string_move.callable_ordinals,
+            plan.program.owned_array_string_move.parameter_ordinals,
+            plan.program.owned_array_string_move.abi_layout_ids,
+            plan.program.owned_array_string_move.coverage.call_block_rows);
+}

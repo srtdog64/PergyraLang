@@ -3,7 +3,7 @@
 // an owning Zone parameter is not permission to copy its sync state.
 
 import "ast_zone_parameter_boundary_verdict_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
 import "ast_zone_resource_shape_owner.pgy";
 import "ast_body_verdict_owner.pgy";
 

@@ -1,0 +1,155 @@
+// Exact expression occurrences where ownership analysis requires a compiler-
+// materialized independent value. Structural copy edges remain owned by the
+// exclusive-value analysis; this owner publishes only the selected landings.
+
+import "ast_collection_focus_recovery_schema_owner.pgy";
+import "../ast_expression/ast_expression_graph_view_owner.pgy";
+
+func SemanticAstCollectionExclusiveCompilerCloneCount(
+    ref copies: HashMap<String, Int>, key: String
+) -> Int {
+    if !MapHas(copies, key) { return 0; }
+    return MapGet(copies, key);
+}
+
+func SemanticAstCollectionExclusiveSelectCompilerCloneNode(
+    inout selected_nodes: Array<Int>, node: Int
+) -> Bool {
+    if node < 0 { return false; }
+    var index: Int = 0;
+    while index < ArrayLength(selected_nodes) {
+        if selected_nodes[index] == node { return false; }
+        index = index + 1;
+    }
+    ArrayPush(selected_nodes, node);
+    return true;
+}
+
+func SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+    ref selected_nodes: Array<Int>, node: Int
+) -> Bool {
+    if node < 0 { return false; }
+    var index: Int = 0;
+    while index < ArrayLength(selected_nodes) {
+        if selected_nodes[index] == node { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionExclusiveSelectCompilerClone(
+    inout copies: HashMap<String, Int>, node: Int
+) -> Bool {
+    if node < 0 { return false; }
+    let selected: String = Concat("compiler_clone_node:", ToString(node));
+    if MapHas(copies, selected) { return false; }
+    let count: Int = SemanticAstCollectionExclusiveCompilerCloneCount(
+        copies, "compiler_clone_count");
+    MapSet(copies, selected, 1);
+    MapSet(copies, Concat("compiler_clone_index:", ToString(count)), node);
+    MapSet(copies, "compiler_clone_count", count + 1);
+    return true;
+}
+
+func SemanticAstCollectionExclusiveCompilerCloneNodes(
+    ref copies: HashMap<String, Int>
+) -> Array<Int> {
+    var nodes: Array<Int> = [];
+    let count: Int = SemanticAstCollectionExclusiveCompilerCloneCount(
+        copies, "compiler_clone_count");
+    var index: Int = 0;
+    while index < count {
+        let key: String = Concat("compiler_clone_index:", ToString(index));
+        if !MapHas(copies, key) {
+            let invalid: Array<Int> = [];
+            return invalid;
+        }
+        ArrayPush(nodes, MapGet(copies, key));
+        index = index + 1;
+    }
+    return nodes;
+}
+
+func SemanticAstCollectionExclusiveCompilerCloneProjectionReady(
+    ref copies: HashMap<String, Int>, ref nodes: Array<Int>
+) -> Bool {
+    let expected: Array<Int> =
+        SemanticAstCollectionExclusiveCompilerCloneNodes(copies);
+    if ArrayLength(expected) > ArrayLength(nodes) { return false; }
+    var index: Int = 0;
+    while index < ArrayLength(expected) {
+        if expected[index] != nodes[index] { return false; }
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(nodes) {
+        if nodes[index] < 0 { return false; }
+        var earlier: Int = 0;
+        while earlier < index {
+            if nodes[earlier] == nodes[index] { return false; }
+            earlier = earlier + 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+// One source occurrence and its two storage paths. Field -1 is a whole value.
+func SemanticAstCollectionExclusiveRecordCopySite(
+    inout copies: HashMap<String, Int>, function_id: Int, syntax_id: Int,
+    node: Int, root: Int, source_field: Int, holder: Int,
+    destination_field: Int
+) -> Void {
+    if function_id <= 0 || syntax_id <= 0 || node < 0 || root <= 0 ||
+        holder <= 0 || source_field < -1 || destination_field < -1 { return; }
+    let identity: String = Concat("copy_site_pair:", Concat(
+        ToString(function_id), Concat(":", Concat(ToString(syntax_id),
+        Concat(":", Concat(ToString(node), Concat(":",
+        ToString(destination_field))))))));
+    if MapHas(copies, identity) { return; }
+    let count: Int = SemanticAstCollectionExclusiveCompilerCloneCount(
+        copies, "copy_site_count");
+    let key: String = ToString(count);
+    MapSet(copies, identity, count + 1);
+    MapSet(copies, Concat("copy_site_function:", key), function_id);
+    MapSet(copies, Concat("copy_site_syntax:", key), syntax_id);
+    MapSet(copies, Concat("copy_site_node:", key), node);
+    MapSet(copies, Concat("copy_site_root:", key), root);
+    MapSet(copies, Concat("copy_site_source_field:", key), source_field);
+    MapSet(copies, Concat("copy_site_holder:", key), holder);
+    MapSet(copies, Concat("copy_site_destination_field:", key),
+        destination_field);
+    MapSet(copies, "copy_site_count", count + 1);
+}
+
+// A focus part an exit leaves unassigned is a copy of its field (decision
+// 2026-11-12): its definition's value becomes a Clone landing, and no exit
+// writes the part back.
+func SemanticAstCollectionExclusiveSelectFocusPartCopies(
+    ref focus: SemanticAstCollectionFocusRecoveryFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    inout nodes: Array<Int>
+) -> Bool {
+    var exit_row: Int = 0;
+    while exit_row < ArrayLength(focus.exit_group_indices) {
+        if exit_row >= ArrayLength(focus.exit_part_starts) ||
+            exit_row >= ArrayLength(focus.exit_part_counts) { return false; }
+        var active: Int = focus.exit_part_starts[exit_row];
+        let active_end: Int = active + focus.exit_part_counts[exit_row];
+        while active < active_end {
+            if active < 0 || active >= ArrayLength(focus.active_part_indices) { return false; }
+            let part: Int = focus.active_part_indices[active];
+            if part < 0 || part >= ArrayLength(focus.part_definition_ids) { return false; }
+            let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, focus.part_definition_ids[part], AstExpressionLaneValue());
+            if !IsSome(value) { return false; }
+            if !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(nodes, UnwrapOption(value)) &&
+                !SemanticAstCollectionExclusiveSelectCompilerCloneNode(nodes, UnwrapOption(value)) {
+                return false;
+            }
+            active = active + 1;
+        }
+        exit_row = exit_row + 1;
+    }
+    return true;
+}

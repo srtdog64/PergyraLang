@@ -26,7 +26,7 @@ caused problems.
 seven branch commits, so main can fast-forward to it. The working tree
 of `D:\PergyraLang` has uncommitted GPT work in files the branch also
 changes (`src/semantic/formal_string_store_landing_owner.c` and `.h`,
-`src/semantic/function_param_flow_backing_dependencies.c`,
+`src/semantic/function_param_flow/function_param_flow_backing_dependencies.c`,
 `tests/ir/function_param_flow_summary_smoke.sh`), so commit or set that work
 aside first, then `git merge --ff-only claude/p0-native-checker` and
 replay it.

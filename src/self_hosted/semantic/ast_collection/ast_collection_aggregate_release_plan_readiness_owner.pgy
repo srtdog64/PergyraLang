@@ -1,0 +1,175 @@
+// Aggregate release-plan shape and inventory readiness.
+
+import "../ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "../ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "ast_collection_aggregate_release_plan_record_schema_owner.pgy";
+
+func SemanticAstCollectionAggregateTracePathAppend(
+    field_id: Int, parent_row: Int,
+    inout trace: SemanticAstCollectionAggregateTrace
+) -> Int {
+    if field_id <= 0 || parent_row >= ArrayLength(trace.path_field_ids) ||
+        ArrayLength(trace.path_field_ids) !=
+            ArrayLength(trace.path_parent_rows) {
+        return -1;
+    }
+    let row: Int = ArrayLength(trace.path_field_ids);
+    ArrayPush(trace.path_field_ids, field_id);
+    ArrayPush(trace.path_parent_rows, parent_row);
+    return row;
+}
+
+func SemanticAstCollectionAggregateReleasePlanShapeReady(
+    ref plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    let calls: Int = ArrayLength(plan.call_nodes);
+    let requirements: Int = ArrayLength(plan.requirement_local_ids);
+    let demands: Int = ArrayLength(plan.constructor_input_rows);
+    let carriers: Int = ArrayLength(plan.carrier_local_ids);
+    return plan.ok && ArrayLength(plan.call_surface_rows) == calls &&
+        ArrayLength(plan.call_function_ids) == calls &&
+        ArrayLength(plan.call_syntax_ids) == calls &&
+        ArrayLength(plan.call_edge_nodes) == calls &&
+        ArrayLength(plan.call_argument_nodes) == calls &&
+        ArrayLength(plan.call_ordinals) == calls &&
+        ArrayLength(plan.call_target_ids) == calls &&
+        ArrayLength(plan.call_ends_routine) == calls &&
+        ArrayLength(plan.requirement_effect_masks) == requirements &&
+        ArrayLength(plan.owned_push_syntax_ids) == requirements &&
+        ArrayLength(plan.owned_push_expression_nodes) == requirements &&
+        ArrayLength(plan.drop_syntax_ids) == requirements &&
+        ArrayLength(plan.drop_expression_nodes) == requirements &&
+        ArrayLength(plan.demand_edge_nodes) == demands &&
+        ArrayLength(plan.aggregate_origin_ids) == demands &&
+        ArrayLength(plan.requirement_rows) == demands &&
+        ArrayLength(plan.reserved) == demands &&
+        ArrayLength(plan.demand_chain_starts) == demands &&
+        ArrayLength(plan.demand_invocation_starts) == demands &&
+        SemanticAstCollectionAggregateReleaseTerminalAlternativesReady(plan) &&
+        SemanticAstCollectionAggregateReleaseForwardedTransfersReady(plan) &&
+        ArrayLength(plan.carrier_function_ids) == carriers &&
+        ArrayLength(plan.carrier_scope_ids) == carriers &&
+        ArrayLength(plan.carrier_source_binding_ids) == carriers &&
+        ArrayLength(plan.carrier_field_ids) == carriers &&
+        ArrayLength(plan.carrier_release_edge_nodes) == carriers &&
+        ArrayLength(plan.carrier_mutation_boundary_syntax_ids) == carriers &&
+        ArrayLength(plan.carrier_restoration_syntax_ids) == carriers &&
+        ArrayLength(plan.carrier_mutation_step_local_ids) ==
+            ArrayLength(plan.carrier_mutation_step_edge_nodes) &&
+        SemanticAstCollectionAggregateReleaseReconstructionsReady(plan) &&
+        SemanticAstCollectionAggregateReleasePositiveUnique(
+            plan.protected_binding_ids) &&
+        SemanticAstCollectionAggregateReleaseNonNegativeUnique(
+            plan.lineage_call_edge_nodes);
+}
+
+func SemanticAstCollectionAggregateReleaseForwardedTransfersReady(
+    ref plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    let count: Int = ArrayLength(plan.forwarded_transfer_root_ids);
+    if ArrayLength(plan.forwarded_transfer_syntax_ids) != count {
+        return false;
+    }
+    var row: Int = 0;
+    while row < count {
+        if plan.forwarded_transfer_root_ids[row] <= 0 ||
+            plan.forwarded_transfer_syntax_ids[row] <= 0 {
+            return false;
+        }
+        var prior: Int = 0;
+        while prior < row {
+            if plan.forwarded_transfer_root_ids[prior] ==
+                    plan.forwarded_transfer_root_ids[row] &&
+                plan.forwarded_transfer_syntax_ids[prior] ==
+                    plan.forwarded_transfer_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleaseReconstructionsReady(
+    ref plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    let count: Int = ArrayLength(plan.reconstructed_binding_ids);
+    if ArrayLength(plan.reconstruction_syntax_ids) != count { return false; }
+    var row: Int = 0;
+    while row < count {
+        if plan.reconstructed_binding_ids[row] <= 0 ||
+            plan.reconstruction_syntax_ids[row] <= 0 {
+            return false;
+        }
+        var prior: Int = 0;
+        while prior < row {
+            if plan.reconstruction_syntax_ids[prior] ==
+                    plan.reconstruction_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleaseTerminalAlternativesReady(
+    ref plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    let count: Int =
+        ArrayLength(plan.terminal_alternative_prior_input_rows);
+    if ArrayLength(plan.terminal_alternative_later_input_rows) != count {
+        return false;
+    }
+    var row: Int = 0;
+    while row < count {
+        let prior: Int = plan.terminal_alternative_prior_input_rows[row];
+        let later: Int = plan.terminal_alternative_later_input_rows[row];
+        if prior < 0 || later < 0 || prior == later { return false; }
+        var earlier: Int = 0;
+        while earlier < row {
+            if plan.terminal_alternative_prior_input_rows[earlier] == prior &&
+                plan.terminal_alternative_later_input_rows[earlier] == later {
+                return false;
+            }
+            earlier = earlier + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleaseNonNegativeUnique(
+    ref values: Array<Int>
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(values) {
+        if values[row] < 0 { return false; }
+        var prior: Int = 0;
+        while prior < row {
+            if values[prior] == values[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleasePositiveUnique(
+    ref values: Array<Int>
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(values) {
+        if values[row] <= 0 { return false; }
+        var prior: Int = 0;
+        while prior < row {
+            if values[prior] == values[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+

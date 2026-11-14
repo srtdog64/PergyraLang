@@ -1,0 +1,225 @@
+// Typed expression-graph facts for the bounded Array<Int> call-argument rung.
+// Direct callee names come from call-target facts; row order and source text are
+// not routing authority.
+
+import "direct_mir_array_int_graph_fact_owner.pgy";
+import "../../air/mir_cfg_identity_owner.pgy";
+import "../../codegen/text/text_owner.pgy";
+
+struct DirectMirArrayArgumentMainGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let array_callee_name: String;
+    let nested_callee_name: String;
+    let first_left: Int;
+    let first_right: Int;
+    let nested_argument: Int;
+}
+
+func DirectMirArrayArgumentMainGraphFactDigest(
+    ref fact: DirectMirArrayArgumentMainGraphFact) -> Int {
+    if !fact.valid { return 0; }
+    var hash: Long = DirectMirCfgHashString(113L, fact.array_callee_name);
+    hash = DirectMirCfgHashString(hash, fact.nested_callee_name);
+    hash = DirectMirCfgHashInt(hash, fact.first_left);
+    hash = DirectMirCfgHashInt(hash, fact.first_right);
+    hash = DirectMirCfgHashInt(hash, fact.nested_argument);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirArrayArgumentMainGraphFactWithDigest(
+    fact: DirectMirArrayArgumentMainGraphFact,
+    digest: Int
+) -> DirectMirArrayArgumentMainGraphFact {
+    return DirectMirArrayArgumentMainGraphFact(
+        fact.valid, digest, fact.array_callee_name,
+        fact.nested_callee_name, fact.first_left, fact.first_right,
+        fact.nested_argument
+    );
+}
+
+func DirectMirArrayArgumentMainGraphFactReady(
+    ref fact: DirectMirArrayArgumentMainGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirArrayArgumentMainGraphFactDigest(fact) &&
+        fact.array_callee_name != "" && fact.nested_callee_name != "" &&
+        fact.array_callee_name != fact.nested_callee_name;
+}
+
+func DirectMirArrayArgumentCanonicalIntAt(
+    ref sequence: MirExpressionGraphSequence, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.topology.node_kinds[row] !=
+            AstExpressionNodeIntegerLiteral() {
+        Die("direct MIR Array argument integer node is invalid");
+    }
+    let value: String = sequence.arena.node_texts[row];
+    if value == "" || ToString(ToInt(value)) != value {
+        Die("direct MIR Array argument integer is not canonical");
+    }
+    return ToInt(value);
+}
+
+func DirectMirArrayArgumentMainGraphFactFromSequence(
+    ref sequence: MirExpressionGraphSequence
+) -> DirectMirArrayArgumentMainGraphFact {
+    if !sequence.ok || sequence.ready_node_count != 16 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 15 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != 16 ||
+        ArrayLength(sequence.arena.topology.left_children) != 16 ||
+        ArrayLength(sequence.arena.topology.right_children) != 16 ||
+        ArrayLength(sequence.arena.node_texts) != 16 ||
+        ArrayLength(sequence.arena.call_target_kinds) != 16 ||
+        ArrayLength(sequence.arena.call_target_names) != 16 {
+        Die("direct MIR Array argument main graph is invalid");
+    }
+    if sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != "ToString" ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[1] != 0 ||
+        sequence.arena.topology.node_kinds[2] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[3] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[3] != 2 ||
+        sequence.arena.topology.node_kinds[4] !=
+            AstExpressionNodeArrayLiteral() ||
+        sequence.arena.topology.node_kinds[5] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[6] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[7] != AstExpressionNodeAdd() ||
+        sequence.arena.topology.left_children[7] != 5 ||
+        sequence.arena.topology.right_children[7] != 6 ||
+        sequence.arena.topology.node_kinds[8] !=
+            AstExpressionNodeArrayElement() ||
+        sequence.arena.topology.left_children[8] != 4 ||
+        sequence.arena.topology.right_children[8] != 7 ||
+        sequence.arena.topology.node_kinds[9] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[10] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[10] != 9 ||
+        sequence.arena.topology.node_kinds[11] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[12] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[12] != 10 ||
+        sequence.arena.topology.right_children[12] != 11 ||
+        sequence.arena.topology.node_kinds[13] !=
+            AstExpressionNodeArrayElement() ||
+        sequence.arena.topology.left_children[13] != 8 ||
+        sequence.arena.topology.right_children[13] != 12 ||
+        sequence.arena.topology.node_kinds[14] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[14] != 3 ||
+        sequence.arena.topology.right_children[14] != 13 ||
+        sequence.arena.topology.node_kinds[15] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[15] != 1 ||
+        sequence.arena.topology.right_children[15] != 14 {
+        Die("direct MIR Array argument main topology is invalid");
+    }
+    var row: Int = 0;
+    while row < 16 {
+        let direct: Bool = row == 1 || row == 3 || row == 10;
+        if direct {
+            if sequence.arena.call_target_kinds[row] !=
+                    SemanticCallTargetDirect() ||
+                sequence.arena.call_target_names[row] == "" {
+                Die("direct MIR Array argument call target is invalid");
+            }
+        } else if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" {
+            Die("direct MIR Array argument has a stray call target");
+        }
+        row = row + 1;
+    }
+    let array_name: String = sequence.arena.call_target_names[3];
+    let nested_name: String = sequence.arena.call_target_names[10];
+    if sequence.arena.call_target_names[1] != "ToString" ||
+        sequence.arena.node_texts[2] != array_name ||
+        sequence.arena.node_texts[9] != nested_name ||
+        array_name == nested_name {
+        Die("direct MIR Array argument callee identity is invalid");
+    }
+    let fact: DirectMirArrayArgumentMainGraphFact =
+        DirectMirArrayArgumentMainGraphFact(
+            true, 0, array_name, nested_name,
+            DirectMirArrayArgumentCanonicalIntAt(sequence, 5),
+            DirectMirArrayArgumentCanonicalIntAt(sequence, 6),
+            DirectMirArrayArgumentCanonicalIntAt(sequence, 11)
+        );
+    let verified: DirectMirArrayArgumentMainGraphFact =
+        DirectMirArrayArgumentMainGraphFactWithDigest(
+            fact, DirectMirArrayArgumentMainGraphFactDigest(fact)
+        );
+    if !DirectMirArrayArgumentMainGraphFactReady(verified) {
+        Die("direct MIR Array argument main graph identity is invalid");
+    }
+    return verified;
+}
+
+func DirectMirArrayArgumentScalarFactor(
+    ref sequence: MirExpressionGraphSequence,
+    param_name: String
+) -> Int {
+    if !sequence.ok || sequence.ready_node_count != 3 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 2 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != param_name ||
+        sequence.arena.topology.node_kinds[1] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[2] != AstExpressionNodeMultiply() ||
+        sequence.arena.topology.left_children[2] != 0 ||
+        sequence.arena.topology.right_children[2] != 1 {
+        Die("direct MIR Array argument scalar callee graph is invalid");
+    }
+    var row: Int = 0;
+    while row < 3 {
+        if sequence.arena.call_target_kinds[row] != SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" {
+            Die("direct MIR Array argument scalar graph has a call target");
+        }
+        row = row + 1;
+    }
+    return DirectMirArrayArgumentCanonicalIntAt(sequence, 1);
+}
+
+func DirectMirArrayArgumentConsumerIndices(
+    ref sequence: MirExpressionGraphSequence,
+    param_name: String
+) -> Array<Int> {
+    var indices: Array<Int> = [];
+    if !sequence.ok || sequence.ready_node_count != 7 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 6 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != param_name ||
+        sequence.arena.topology.node_kinds[1] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[2] != AstExpressionNodeIndex() ||
+        sequence.arena.topology.left_children[2] != 0 ||
+        sequence.arena.topology.right_children[2] != 1 ||
+        sequence.arena.topology.node_kinds[3] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[3] != param_name ||
+        sequence.arena.topology.node_kinds[4] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[5] != AstExpressionNodeIndex() ||
+        sequence.arena.topology.left_children[5] != 3 ||
+        sequence.arena.topology.right_children[5] != 4 ||
+        sequence.arena.topology.node_kinds[6] != AstExpressionNodeAdd() ||
+        sequence.arena.topology.left_children[6] != 2 ||
+        sequence.arena.topology.right_children[6] != 5 {
+        Die("direct MIR Array argument consumer graph is invalid");
+    }
+    var row: Int = 0;
+    while row < 7 {
+        if sequence.arena.call_target_kinds[row] != SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" {
+            Die("direct MIR Array argument consumer graph has a call target");
+        }
+        row = row + 1;
+    }
+    ArrayPush(indices, DirectMirArrayArgumentCanonicalIntAt(sequence, 1));
+    ArrayPush(indices, DirectMirArrayArgumentCanonicalIntAt(sequence, 4));
+    return indices;
+}

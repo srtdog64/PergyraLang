@@ -2,7 +2,7 @@
 // Exact declaration and member-path facts own overlap; emitters cannot repair
 // an invalidated address by changing the language's evaluation order.
 import "ast_slice_write_permission_owner.pgy";
-import "ast_expression_identity_fact_owner.pgy";
+import "ast_expression/ast_expression_identity_fact_owner.pgy";
 import "builtin_argument_retention_projection_owner.pgy";
 
 func SemanticAstAssignmentPlacesOverlap(

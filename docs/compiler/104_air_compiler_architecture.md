@@ -411,11 +411,11 @@ sixth compiler core and the architecture is wrong.
   summary counter; counter-only states are verifier drift, not validation
   invariants.
 - Summary-counter consistency is owned by
-  `src/compiler/air_validate_summary_counters.c`. The main evidence validator
+  `src/compiler/air/air_validate_summary_counters.c`. The main evidence validator
   owns inventory shape; it delegates compatibility counter matching so the AIR
   validation layer stays split by responsibility rather than file size.
 - AIR verification provenance formatting is owned by
-  `src/compiler/air_verify_provenance.c`. `air_verify.c` makes drift decisions;
+  `src/compiler/air/air_verify_provenance.c`. `air_verify.c` makes drift decisions;
   the provenance owner renders authority lists and `source_provenance` /
   `who_provenance` strings for diagnostics.
 - Consumers must use `air_boundary_has_evidence(...)` instead of reading those

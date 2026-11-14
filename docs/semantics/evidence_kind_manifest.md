@@ -31,21 +31,21 @@ Reading the columns:
 <!-- BEGIN evidence-kind-manifest -->
 | kind | producer | discharge | last consumer | budget |
 |---|---|---|---|---|
-| AIR_EVIDENCE_HIR_ROUTINE | src/compiler/air_evidence_hir.c | src/compiler/air_validate_boundary_evidence.c | air_dump_json.c + driver_diag.c | summarize |
-| AIR_EVIDENCE_HIR_CFG | src/compiler/air_evidence_hir.c | src/compiler/air_validate_boundary_evidence.c | air_dump_json.c + driver_diag.c | summarize |
-| AIR_EVIDENCE_RIR_BOUNDARY | src/compiler/air_evidence_rir_boundary.c | src/compiler/air_validate_boundary_evidence.c | air_dump_json.c + driver_diag.c | summarize |
-| AIR_EVIDENCE_RIR_AUTHORITY | src/compiler/air_evidence_rir_boundary.c | src/compiler/air_validate_boundary_evidence.c | air_dump_json.c + driver_diag.c | summarize |
-| AIR_EVIDENCE_MIR_CLEANUP | src/compiler/air_evidence_mir_facts.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c | summarize |
-| AIR_EVIDENCE_MIR_PIN_CLEANUP | src/compiler/air_evidence_mir_pin.c | src/compiler/air_validate_boundary_evidence.c | air_dump_json.c | summarize |
-| AIR_EVIDENCE_MIR_TERMINATOR | src/compiler/air_evidence_mir_facts.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c | summarize |
-| AIR_EVIDENCE_MIR_SELECT_RECEIVE | src/compiler/air_evidence_mir_facts.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c | summarize |
-| AIR_EVIDENCE_DAG_METADATA | src/compiler/air_evidence_dag.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c | summarize |
-| AIR_EVIDENCE_DAG_GENERIC | src/compiler/air_evidence_dag.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c | summarize |
-| AIR_EVIDENCE_DAG_ABILITY | src/compiler/air_evidence_dag.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c | summarize |
-| AIR_EVIDENCE_RIR_EFFECT_PROPAGATION | src/compiler/air_evidence_rir_propagation.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c | summarize |
-| AIR_EVIDENCE_RIR_RELATION_PROPAGATION | src/compiler/air_evidence_rir_propagation.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c | summarize |
-| AIR_EVIDENCE_OBSERVABILITY_SCHEMA | src/compiler/air_evidence_runtime.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c + runtime trace-export projection | summarize |
-| AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY | src/compiler/air_evidence_runtime.c | src/compiler/air_validate_global_evidence.c | air_dump_json.c + runtime lane-scheduler facade | summarize |
+| AIR_EVIDENCE_HIR_ROUTINE | src/compiler/air/air_evidence_hir.c | src/compiler/air/air_validate_boundary_evidence.c | air_dump_json.c + driver_diag.c | summarize |
+| AIR_EVIDENCE_HIR_CFG | src/compiler/air/air_evidence_hir.c | src/compiler/air/air_validate_boundary_evidence.c | air_dump_json.c + driver_diag.c | summarize |
+| AIR_EVIDENCE_RIR_BOUNDARY | src/compiler/air/air_evidence_rir_boundary.c | src/compiler/air/air_validate_boundary_evidence.c | air_dump_json.c + driver_diag.c | summarize |
+| AIR_EVIDENCE_RIR_AUTHORITY | src/compiler/air/air_evidence_rir_boundary.c | src/compiler/air/air_validate_boundary_evidence.c | air_dump_json.c + driver_diag.c | summarize |
+| AIR_EVIDENCE_MIR_CLEANUP | src/compiler/air/air_evidence_mir_facts.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c | summarize |
+| AIR_EVIDENCE_MIR_PIN_CLEANUP | src/compiler/air/air_evidence_mir_pin.c | src/compiler/air/air_validate_boundary_evidence.c | air_dump_json.c | summarize |
+| AIR_EVIDENCE_MIR_TERMINATOR | src/compiler/air/air_evidence_mir_facts.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c | summarize |
+| AIR_EVIDENCE_MIR_SELECT_RECEIVE | src/compiler/air/air_evidence_mir_facts.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c | summarize |
+| AIR_EVIDENCE_DAG_METADATA | src/compiler/air/air_evidence_dag.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c | summarize |
+| AIR_EVIDENCE_DAG_GENERIC | src/compiler/air/air_evidence_dag.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c | summarize |
+| AIR_EVIDENCE_DAG_ABILITY | src/compiler/air/air_evidence_dag.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c | summarize |
+| AIR_EVIDENCE_RIR_EFFECT_PROPAGATION | src/compiler/air/air_evidence_rir_propagation.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c | summarize |
+| AIR_EVIDENCE_RIR_RELATION_PROPAGATION | src/compiler/air/air_evidence_rir_propagation.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c | summarize |
+| AIR_EVIDENCE_OBSERVABILITY_SCHEMA | src/compiler/air/air_evidence_runtime.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c + runtime trace-export projection | summarize |
+| AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY | src/compiler/air/air_evidence_runtime.c | src/compiler/air/air_validate_global_evidence.c | air_dump_json.c + runtime lane-scheduler facade | summarize |
 <!-- END evidence-kind-manifest -->
 
 Gate coverage for the shared surfaces:

@@ -29,84 +29,84 @@ moved from `transpiler_specialization_helpers.h` into the compiled owner
 `src/codegen/transpiler_specialization_helpers.c`; Result suffix parsing and
 `Result<T,E>` specialization discovery moved from
 `transpiler_type_result_mapping_helpers.h` into
-`src/codegen/transpiler_type_result_mapping_helpers.c`. HashMap stdlib builtin
+`src/codegen/c/transpiler_type_result_mapping_helpers.c`. HashMap stdlib builtin
 dispatch and lowering moved from `transpiler_expr_stdlib_map_builtin.h` into
-`src/codegen/transpiler_expr_stdlib_map_builtin.c`, with HashMap metadata
+`src/codegen/c/transpiler_expr_stdlib_map_builtin.c`, with HashMap metadata
 validation owned by the shared collection support owner. Queue stdlib dispatch
 and lowering also moved from `transpiler_expr_stdlib_queue_builtin.h` into
-`src/codegen/transpiler_expr_stdlib_queue_builtin.c`, with unary collection
+`src/codegen/c/transpiler_expr_stdlib_queue_builtin.c`, with unary collection
 metadata validation owned by the same support owner. Result/Option builtin
 dispatch and lowering moved from
 `transpiler_call_result_option_builtin_emit.h` into
-`src/codegen/transpiler_call_result_option_builtin_emit.c`; linked owners now
-consume `src/codegen/transpiler_option_context.h` for Option context
+`src/codegen/c/transpiler_call_result_option_builtin_emit.c`; linked owners now
+consume `src/codegen/c/transpiler_option_context.h` for Option context
 declarations instead of pulling in the broad helper shim. Intent observability
 builtin lowering moved from `transpiler_intent_observability_builtin_emit.h`
-into `src/codegen/transpiler_intent_observability_builtin_emit.c`.
+into `src/codegen/c/transpiler_intent_observability_builtin_emit.c`.
 Projection/world lookup seams also moved into
-`src/codegen/transpiler_projection.c`: overlay domain-slot lookup,
+`src/codegen/c/transpiler_projection.c`: overlay domain-slot lookup,
 projection-target detection, and world-state lookup are linked owner APIs
 instead of implementation-header static helpers, and source inventory smoke
 rejects reopening the old local helper names. Domain query builtin lowering for
 `HasProjection`, `HasLayer`, `HasState`, `HasZone`, `HasZoneProjection`,
 `HasZoneLayer`, and `HasZoneState` now lives in
-`src/codegen/transpiler_expr_domain_query_builtin.c` instead of the builtin
+`src/codegen/c/transpiler_expr_domain_query_builtin.c` instead of the builtin
 dispatch header. I/O and time builtin lowering moved to
-`src/codegen/transpiler_expr_io_builtin.c`, so file/runtime call bodies no
+`src/codegen/c/transpiler_expr_io_builtin.c`, so file/runtime call bodies no
 longer live in the builtin dispatch header either. Domain constructor emission
 moved from the constructor-result call dispatcher to
-`src/codegen/transpiler_domain_constructor_emit.c`, so class compound literals,
+`src/codegen/c/transpiler_domain_constructor_emit.c`, so class compound literals,
 party/roster/relation/effect/zone/world designated initializers, projection
 dirty defaults, world dirty defaults, and enum variant constructor call strings
 now share a compiled owner. The remaining constructor header is a thin dispatch
 wrapper around the local generic-class specialization seam. Expression core
-lowering moved to `src/codegen/transpiler_expr_core_emit.c`, tuple/Array
+lowering moved to `src/codegen/c/transpiler_expr_core_emit.c`, tuple/Array
 literal lowering moved to
-`src/codegen/transpiler_expr_composite_literal_emit.c`, and Array/Slice checked
-access lowering moved to `src/codegen/transpiler_expr_array_access_emit.c`; all
+`src/codegen/c/transpiler_expr_composite_literal_emit.c`, and Array/Slice checked
+access lowering moved to `src/codegen/c/transpiler_expr_array_access_emit.c`; all
 three headers are now declaration-only. Channel let lowering also moved to
-`src/codegen/transpiler_let_channel_emit.c`, leaving
+`src/codegen/c/transpiler_let_channel_emit.c`, leaving
 `transpiler_let_channel_emit.h` declaration-only. Future/RemoteFuture type
-queries moved to `src/codegen/transpiler_future_type_query.c`, and post-let
-type registration moved to `src/codegen/transpiler_let_type_register_emit.c`,
+queries moved to `src/codegen/c/transpiler_future_type_query.c`, and post-let
+type registration moved to `src/codegen/c/transpiler_let_type_register_emit.c`,
 removing another pair of static include-order bodies from spawn/let lowering.
 Box/Rc let lowering moved to
-`src/codegen/transpiler_let_box_emit.c`, leaving
+`src/codegen/c/transpiler_let_box_emit.c`, leaving
 `transpiler_let_box_emit.h` declaration-only for `Box<T>`, `Box<Array<T>>`, and
 `Rc<T>` constructor let paths. Collection let lowering moved to
-`src/codegen/transpiler_let_collection_emit.c`, leaving
+`src/codegen/c/transpiler_let_collection_emit.c`, leaving
 `transpiler_let_collection_emit.h` declaration-only for `Option<T>` and stable
 collection constructor let paths. Slot/View let lowering moved to
-`src/codegen/transpiler_let_slot_emit.c`, leaving
+`src/codegen/c/transpiler_let_slot_emit.c`, leaving
 `transpiler_let_slot_emit.h` declaration-only for
 ClaimSlot/ClaimSecureSlot/ClaimDeviceSlot, ReadView/WriteView/MoveToken, and
 Slot/SecureSlot sugar paths. Zone specialization emission is now linked
-through `src/codegen/transpiler_zone_specialization_emit.c` instead of relying
+through `src/codegen/c/transpiler_zone_specialization_emit.c` instead of relying
 on a declaration-only header without a source inventory entry. Zone struct and
 layer accessor emission also moved from `transpiler_zone_struct_emit.h` into
-the compiled owner `src/codegen/transpiler_zone_struct_emit.c`, so generated
+the compiled owner `src/codegen/c/transpiler_zone_struct_emit.c`, so generated
 zone fields and accessors no longer live in an implementation header. The redundant
 `transpiler_mir_emit_predicates.h` wrapper header is gone; function and intent
 emitters now call the reason-capable MIR contract APIs directly.
 MIR match condition lowering moved from `transpiler_mir_match_condition_emit.h`
-to `src/codegen/transpiler_mir_match_condition_emit.c`, so Option/Result
+to `src/codegen/c/transpiler_mir_match_condition_emit.c`, so Option/Result
 destructor pattern conditions and payload binding no longer live in a static
 implementation header.
 Expression builtin dispatch moved to
-`src/codegen/transpiler_expr_builtin_dispatch.c`, so the `BuiltinKind` routing
+`src/codegen/c/transpiler_expr_builtin_dispatch.c`, so the `BuiltinKind` routing
 switch no longer lives in the expression-emitter include chain.
 Control-flow statement lowering moved to
-`src/codegen/transpiler_control_flow_emit.c`, leaving
+`src/codegen/c/transpiler_control_flow_emit.c`, leaving
 `transpiler_control_flow_emit.h` declaration-only for `if`/`for`/`while`,
 loop-label lookup, and the condition-head formatter shared with MIR branch
 terminator emission.
 MIR CFG control lowering moved to
-`src/codegen/transpiler_mir_cfg_control_emit.c`, leaving
+`src/codegen/c/transpiler_mir_cfg_control_emit.c`, leaving
 `transpiler_mir_cfg_control_emit.h` declaration-only for MIR loop init, for-in
 binding, backedge increment, branch-condition rendering, and select readiness
 rendering.
 `pergyra_ast_type_to_c_copy(...)` moved to
-`src/codegen/transpiler_type_render.c`, so shared AST type-to-C conversion no
+`src/codegen/c/transpiler_type_render.c`, so shared AST type-to-C conversion no
 longer lives in the forward-helper include. Dependent
 emitters now include the type-mapping, collection-support, Option-context,
 intent-observability, or role-ability declarations they consume directly instead
@@ -142,20 +142,20 @@ runtime/codegen/compiler `.inc` size gate is green again with
 `src/compiler/mir_public_part_a.inc=959` and
 `src/compiler/mir_public_part_b.inc=800`. The first lean debt-slice after the
 process change moved C backend type-alias declaration emission out of a near-cap
-include body into `src/codegen/transpiler_type_alias.c`, reducing
+include body into `src/codegen/c/transpiler_type_alias.c`, reducing
 `src/codegen/transpiler_emitters_base_b_part_c.inc` to 976 LOC without adding a
 new `.inc` split. The next debt-slice deleted
 `src/codegen/transpiler_emitters_type_require.inc` and moved type requirement
-checks into `src/codegen/transpiler_type_require.c`, reducing the source `.inc`
+checks into `src/codegen/c/transpiler_type_require.c`, reducing the source `.inc`
 cap to 159 while keeping `src/codegen/transpiler_emitters_base_a_part_a.inc` at
 905 LOC. The extern declaration pass now has its own
-`src/codegen/transpiler_extern.c` owner, reducing
+`src/codegen/c/transpiler_extern.c` owner, reducing
 `src/codegen/transpiler_emitters_base_b_part_b.inc` from 998 LOC to 957 LOC.
 Declarator rendering for event-handler/function types now lives in
-`src/codegen/transpiler_type_declarator.c`, reducing
+`src/codegen/c/transpiler_type_declarator.c`, reducing
 `src/codegen/transpiler_helpers_core_b_part_c.inc` from 992 LOC to 849 LOC.
 LogBanner indentation normalization now lives in
-`src/codegen/transpiler_log_normalize.c`, reducing
+`src/codegen/c/transpiler_log_normalize.c`, reducing
 `src/codegen/transpiler_expr_emitters_part_a.inc` from 991 LOC to 878 LOC.
 Generated-C runtime intent exit cleanup now lives in
 `src/runtime/pgy_runtime_intent_exit.h`, preserving the
@@ -174,48 +174,48 @@ making active/recent ABI owner checks explicit. LLVM-linkable intent borrowed
 exports now live in `src/runtime/pgy_runtime_lib_intent_exports.h`, reducing
 `src/runtime/pgy_runtime_lib_part_b_part_c.inc` from 852 LOC to 315 LOC and
 keeping C/LLVM intent ABI pipeline cases green. LLVM method-call projection
-sync helpers now live in `src/codegen/llvm_expr_call_projection_sync.h`,
+sync helpers now live in `src/codegen/llvm/llvm_expr_call_projection_sync.h`,
 reducing `src/codegen/llvm_expr_call_methods_part_a.inc` from 880 LOC to
 671 LOC while keeping world/zone projection backend compare green.
 LLVM method-call domain action sync and slice/member-call helpers now live in
-`src/codegen/llvm_expr_call_methods_domain_slice.h`, removing the remaining
+`src/codegen/llvm/llvm_expr_call_methods_domain_slice.h`, removing the remaining
 `src/codegen/llvm_expr_call_methods_part_a.inc` body while preserving
 `llvm_expr.c` include order.
-The LLVM call dispatcher now lives in `src/codegen/llvm_expr_call_dispatch.h`,
+The LLVM call dispatcher now lives in `src/codegen/llvm/llvm_expr_call_dispatch.h`,
 removing the former `src/codegen/llvm_expr_calls_main.inc` body while preserving
 the call-family helper shim order.
 LLVM expression host/self, projection binding, spawn expression, operator
 suffix, enum lookup, and number/string literal helpers now live in
-`src/codegen/llvm_expr_host_spawn_literal_helpers.h`, removing the former
+`src/codegen/llvm/llvm_expr_host_spawn_literal_helpers.h`, removing the former
 `src/codegen/llvm_expr_helpers_part_b.inc` body while preserving `llvm_expr.c`
 helper include order.
 LLVM expression boundary call argument helpers, projection field helpers,
 world/zone lookup helpers, and host-class lookup helpers now live in
-`src/codegen/llvm_expr_boundary_projection_helpers.h`, removing the former
+`src/codegen/llvm/llvm_expr_boundary_projection_helpers.h`, removing the former
 `src/codegen/llvm_expr_helpers_part_a.inc` body while preserving `llvm_expr.c`
 helper include order.
 C backend MIR SSA identifier contract helpers now live in
-`src/codegen/transpiler_mir_ssa_contract.h`, reducing
+`src/codegen/c/transpiler_mir_ssa_contract.h`, reducing
 `src/codegen/transpiler_emitters_base_a_part_d.inc` from 849 LOC to 677 LOC
 while keeping `test-transpile` green.
 C backend MIR routine lookup, active SSA name resolution/rendering,
 token-local filtering, and local type-name lookup now live in
-`src/codegen/transpiler_mir_ssa_names.h`, removing the former
+`src/codegen/c/transpiler_mir_ssa_names.h`, removing the former
 `src/codegen/transpiler_emitters_mir_inventory_ssa_names.inc` body while
 preserving the MIR inventory/SSA shim order.
 C backend primitive, slot/channel, constructed generic, and local type-name
-rendering now live in `src/codegen/transpiler_type_mapping_helpers.h`, removing
+rendering now live in `src/codegen/c/transpiler_type_mapping_helpers.h`, removing
 the former `src/codegen/transpiler_helpers_core_types.inc` body while preserving
 the helper-core shim order.
 C backend world sync declaration, select lowering, and event
 declaration/subscription lowering now live in
-`src/codegen/transpiler_world_select_event_emit.c`; the remaining header is
+`src/codegen/c/transpiler_world_select_event_emit.c`; the remaining header is
 declaration-only. This removes the former
 `src/codegen/transpiler_domain_role_part_d.inc` body and the later
 implementation-header owner while preserving the domain-role shim order.
 LLVM expression assignment, member lvalue/member access, projection
 invalidation, and embedded world projection assignment sync now live in
-`src/codegen/llvm_expr_assignment_member_projection.h`, removing the former
+`src/codegen/llvm/llvm_expr_assignment_member_projection.h`, removing the former
 `src/codegen/llvm_expr_values.inc` body while preserving `llvm_expr.c` include
 order.
 LLVM-linkable runtime authority rejection state, checked arithmetic exports,
@@ -243,22 +243,22 @@ stable `Int`/`String` instantiations now live in
 include order.
 C backend zone sync, projection readiness/dirty fields, layer/state frontier
 sync, bounded recompute, and the MIR hosted-method metadata guard now live in
-`src/codegen/transpiler_zone_decl_emit.c`; `transpiler_zone_decl_emit.h` is
+`src/codegen/c/transpiler_zone_decl_emit.c`; `transpiler_zone_decl_emit.h` is
 declaration-only. This removes the former implementation-header owner created
 from `src/codegen/transpiler_domain_role_part_c.inc` while preserving the
 domain-role shim order through a hosted-method bridge.
 C backend block auto-release emission, intent participant/action lookup,
 inferred causes lookup, and effective-zone sync helpers now live in
-`src/codegen/transpiler_block_intent_helpers.c`, removing the former
+`src/codegen/c/transpiler_block_intent_helpers.c`, removing the former
 `src/codegen/transpiler_emitters_base_b_part_c.inc` body while preserving the
 base-B shim order and reducing the production `.inc` inventory to
 77 files / 19,652 LOC.
 C backend intent cleanup/rollback/invalidation tail emission now lives in
-`src/codegen/transpiler_intent_cleanup_emit.c`; the matching header exposes
+`src/codegen/c/transpiler_intent_cleanup_emit.c`; the matching header exposes
 only the cleanup-tail seam and the MIR carrier-missing diagnostic path remains
 shared through `transpiler_set_mir_intent_carrier_missing(...)`.
 C backend intent signature/runtime-entry emission now lives in
-`src/codegen/transpiler_intent_prologue_emit.c`; the matching header exposes
+`src/codegen/c/transpiler_intent_prologue_emit.c`; the matching header exposes
 only the prologue seam.
 Generated-C inline file/string helpers, `StringSplit` allocation, and the toy
 Qubit runtime now live in `src/runtime/pgy_runtime_io_qubit_inline.h`, removing
@@ -269,7 +269,7 @@ deleted include paths. The production `.inc` inventory is now
 76 files / 19,110 LOC.
 C backend domain/party constructor dispatch and Result/Option builtin call
 lowering now live behind compiled owners, with the remaining constructor
-dispatch wrapper in `src/codegen/transpiler_call_constructor_result_emit.c`.
+dispatch wrapper in `src/codegen/c/transpiler_call_constructor_result_emit.c`.
 This removed the former `src/codegen/transpiler_expr_emitters_part_c.inc` body
 while preserving the expression emitter shim order. The production `.inc`
 inventory was 75 files / 18,573 LOC at that extraction point.
@@ -287,7 +287,7 @@ effect-layer checks, and movable resource predicates now live in
 `type_checker.c` include order. The production `.inc` inventory is now
 73 files / 17,448 LOC.
 Semantic builtin name resolution and Slot/SecureSlot/DeviceSlot operation
-validation now live in `src/semantic/type_checker_builtins_slotops.h`, removing
+validation now live in `src/semantic/type_checker/type_checker_builtins_slotops.h`, removing
 the former `src/semantic/type_checker_builtins_slotops.inc` body while
 preserving `type_checker_builtins.c` include order. The production `.inc`
 inventory is now 72 files / 16,923 LOC.
@@ -300,7 +300,7 @@ compiler runtime cache freshness now point at the new named owner. The
 production `.inc` inventory is now 71 files / 16,402 LOC.
 C backend overlay projection invalidation, zone/effect propagation snippets,
 and world-state lookup helpers now live in
-`src/codegen/transpiler_projection_sync.h`, removing the former
+`src/codegen/c/transpiler_projection_sync.h`, removing the former
 `src/codegen/transpiler_helpers_core_a_part_c.inc` body while preserving the
 helper-core-A shim order. The production `.inc` inventory is now
 70 files / 15,883 LOC.
@@ -312,18 +312,18 @@ step ok/fail tracing, and MIR resource trace hooks now live in
 runtime cache freshness now point at the new named owner. The production `.inc`
 inventory is now 69 files / 15,370 LOC.
 LLVM extended List/Set/HashMap raw-call lowering now lives in
-`src/codegen/llvm_expr_call_collections_extended.h`, removing the former
+`src/codegen/llvm/llvm_expr_call_collections_extended.h`, removing the former
 `src/codegen/llvm_expr_call_collections_extended.inc` body while preserving
 `llvm_expr_calls.inc` dispatcher include order. The production `.inc` inventory
 is now 68 files / 14,862 LOC.
 C backend helper-root string helpers, MIR resource-op/DEF helper emission, and
 the expression-emitter include root now live in
-`src/codegen/transpiler_helpers.h`, removing the former
+`src/codegen/c/transpiler_helpers.h`, removing the former
 `src/codegen/transpiler_helpers.inc` body while preserving `transpiler.c`
 top-level include order. The production `.inc` inventory is now
 67 files / 14,356 LOC.
 C backend Log/LogRaw/LogBanner lowering and core binary expression lowering now
-live in `src/codegen/transpiler_expr_core_emit.h`, removing the former
+live in `src/codegen/c/transpiler_expr_core_emit.h`, removing the former
 `src/codegen/transpiler_expr_emitters_part_a.inc` body while preserving
 `transpiler_expr_emitters.inc` include order. The production `.inc` inventory is
 now 66 files / 13,869 LOC.
@@ -334,28 +334,28 @@ specialization collection now live in
 `transpiler_helpers_core_b.inc` include order. The production `.inc` inventory
 is now 65 files / 13,402 LOC.
 C backend ability, role, party, roster, relation, and effect declaration
-emission now lives in `src/codegen/transpiler_domain_nominal_emit.h`, removing
+emission now lives in `src/codegen/c/transpiler_domain_nominal_emit.h`, removing
 the former `src/codegen/transpiler_domain_role_part_b.inc` body while
 preserving `transpiler_domain_role.inc` include order. The production `.inc`
 inventory is now 64 files / 12,937 LOC.
 C backend `emit_expression()` dispatch now lives in
-`src/codegen/transpiler_expr_dispatch_emit.c`, removing the former
+`src/codegen/c/transpiler_expr_dispatch_emit.c`, removing the former
 `src/codegen/transpiler_expr_emitters_part_f.inc` body while preserving
 `transpiler_expr_emitters.inc` include order. Runtime panic contract smoke now
 reads the new owner path for checked array/slice lowering. The production
 `.inc` inventory is now 63 files / 12,486 LOC.
 MIR public validation/inventory surface now lives in
-`src/compiler/mir_public_surface.c`; `src/compiler/mir_public_surface.h` is
+`src/compiler/mir/mir_public_surface.c`; `src/compiler/mir/mir_public_surface.h` is
 declaration-only and no longer carries validation bodies through `mir.c` include
 order.
 Semantic generic parameter lookup, default-bound validation, and
 class-specialization where-bound validation now live in
-`src/semantic/type_checker_generic_contracts.c`, removing the former
+`src/semantic/type_checker/type_checker_generic_contracts.c`, removing the former
 `src/semantic/type_checker_generic_contracts.inc` body and the temporary
 implementation-header dependency. The production `.inc` inventory was
 61 files / 11,663 LOC at that extraction point.
 LLVM member-call dispatch and nominal hosted-method self argument lowering now
-live in `src/codegen/llvm_member_call_emit.h`, removing the former
+live in `src/codegen/llvm/llvm_member_call_emit.h`, removing the former
 `src/codegen/llvm_expr_call_methods_part_b.inc` body while preserving
 `llvm_expr.c` include order. The production `.inc` inventory is now
 60 files / 11,262 LOC.
@@ -379,33 +379,33 @@ now read the named owner path. The production `.inc` inventory is now
 57 files / 10,123 LOC.
 LLVM identifier emission, direct Slot/SecureSlot fallback lowering, slot target
 resolution, and banner literal normalization now live in
-`src/codegen/llvm_expr_identifier_slot_helpers.h`, removing the former
+`src/codegen/llvm/llvm_expr_identifier_slot_helpers.h`, removing the former
 `src/codegen/llvm_expr_helpers_part_c.inc` body while preserving `llvm_expr.c`
 include order. The production `.inc` inventory is now 56 files / 9,753 LOC.
 Semantic spawn token boundary checks and channel send/recv ownership
-diagnostics now live in `src/semantic/type_checker_async_channel.c`, removing
+diagnostics now live in `src/semantic/type_checker/type_checker_async_channel.c`, removing
 the former `src/semantic/type_checker_async_channel.inc` body and superseding
 the temporary implementation header. The production `.inc` inventory at that
 extraction point was 55 files / 9,384 LOC.
 LLVM callable/event signature helpers, scalar string coercion, binary lowering,
 unary lowering, and `?` propagation lowering now live in
-`src/codegen/llvm_expr_scalar_core.h`, removing the former
+`src/codegen/llvm/llvm_expr_scalar_core.h`, removing the former
 `src/codegen/llvm_expr_core.inc` body while preserving `llvm_expr.c` include
 order. Runtime panic contract smoke now reads the named owner path. The
 production `.inc` inventory is now 54 files / 9,024 LOC.
 Semantic generic subject signature formatting and effective default generic
 argument derivation now live in
-`src/semantic/type_checker_generic_support.c`, removing the former
+`src/semantic/type_checker/type_checker_generic_support.c`, removing the former
 `src/semantic/type_checker_generic_support.inc` body and the temporary
 `type_checker.c` include-order dependency. The production `.inc` inventory was
 53 files / 8,666 LOC at that extraction point.
 LLVM projection field-copy lowering and bounded projection sync loop generation
-now live in `src/codegen/llvm_domain_projection_sync_helpers.h`, removing the
+now live in `src/codegen/llvm/llvm_domain_projection_sync_helpers.h`, removing the
 former `src/codegen/llvm_domain_helpers_part_b.inc` body while preserving
 `llvm_domain.c` include order. Runtime frontier contract smoke now reads the
 named owner path. The production `.inc` inventory is now 52 files / 8,333 LOC.
 C backend parallel block emission and async block spawning now live in
-`src/codegen/transpiler_async_parallel_emit.c` behind a declaration-only
+`src/codegen/c/transpiler_async_parallel_emit.c` behind a declaration-only
 header, retiring another implementation-header owner from the execution
 family surface.
 Semantic type resolution now lives in `src/semantic/type_checker_resolve.c`,
@@ -415,25 +415,25 @@ removing the former `src/semantic/type_checker_resolve.inc` body. The memoized
 public APIs replace direct resolver entry. The production `.inc` inventory is
 now 50 files / 7,701 LOC.
 Semantic domain-query builtin validation now lives in
-`src/semantic/type_checker_builtins_query_domain.h`, removing the former
+`src/semantic/type_checker/type_checker_builtins_query_domain.h`, removing the former
 `src/semantic/type_checker_builtins_query_domain.inc` body while preserving
 `type_checker_builtins.c` include order. HasProjection/HasZoneProjection
 source-field lookup and zone/world query validation now have a named private
 owner. The production `.inc` inventory is now 49 files / 7,387 LOC.
 CFG/body-flow loop analysis now lives in
-`src/semantic/type_checker_flow_loops.h`, removing the former
+`src/semantic/type_checker/type_checker_flow_loops.h`, removing the former
 `src/semantic/type_checker_flow_loops.inc` body while preserving
 `type_checker_flow.c` include order. Loop resource snapshots, bounded loop
 analysis, and effect merge logic now have a named private owner. The production
 `.inc` inventory is now 48 files / 7,086 LOC.
 C backend function-forward helpers now live in
-`src/codegen/transpiler_func_forward_helpers.h`, removing the former
+`src/codegen/c/transpiler_func_forward_helpers.h`, removing the former
 `src/codegen/transpiler_helpers_core_b_part_c.inc` body while preserving
 `transpiler_helpers_core_b.inc` include order. Spawn/future return inference,
 early type forward-declaration checks, generic call binding inference, and
 hosted-method forward declarations now have a named private owner. The
 production `.inc` inventory is now 47 files / 6,790 LOC.
-MIR lowering public API now lives in `src/compiler/mir_lower_public_api.h`,
+MIR lowering public API now lives in `src/compiler/mir/mir_lower_public_api.h`,
 removing the former `src/compiler/mir_public_part_a.inc` body while preserving
 `mir.c` include order. `mir_lower(...)`, MIR routine lookup, declaration header
 lookup, liveness pass entry, and DCE pass entry now have a named private owner.
@@ -446,17 +446,17 @@ deadline helper, and primitive `Slot<Int/Long/Float>` exports now have a named
 private owner. The production `.inc` inventory is now 45 files / 6,212 LOC.
 C backend match lowering moved out of the old
 `src/codegen/transpiler_emitters_match.inc` body and now lives in the compiled
-owner `src/codegen/transpiler_match_emit.c`; the header is declaration-only.
+owner `src/codegen/c/transpiler_match_emit.c`; the header is declaration-only.
 Result, Option, and enum destructor pattern lowering now have a named private
 owner outside the include chain. The production `.inc` inventory is now 44
 files / 5,932 LOC.
 LLVM domain query call lowering now lives in
-`src/codegen/llvm_expr_domain_query_calls.h`, removing the former
+`src/codegen/llvm/llvm_expr_domain_query_calls.h`, removing the former
 `src/codegen/llvm_expr_call_domain_queries.inc` body while preserving
 `llvm_expr_calls.inc` include order. `HasProjection`, `HasLayer`, `HasState`,
 `HasZone`, and zone-detail query lowering now have a named private owner. The
 production `.inc` inventory is now 43 files / 5,657 LOC.
-MIR base helpers now live in `src/compiler/mir_base_helpers.h`, removing the
+MIR base helpers now live in `src/compiler/mir/mir_base_helpers.h`, removing the
 former `src/compiler/mir_base.inc` body. RIR public dump/destroy surface now
 lives in `src/compiler/rir_public_surface.h`, removing
 `src/compiler/rir_public.inc` and keeping the RIR include chain owner-named. The
@@ -467,85 +467,85 @@ Runtime quantum exports now live in
 source packaging and ABI lifetime inventory pointed at a named owner. The
 production `.inc` inventory is now 40 files / 4,866 LOC.
 LLVM slot/device call lowering now lives in
-`src/codegen/llvm_expr_slot_device_calls.h`, removing the former
+`src/codegen/llvm/llvm_expr_slot_device_calls.h`, removing the former
 `src/codegen/llvm_expr_call_slots.inc` body while preserving
 `llvm_expr_calls.inc` dispatcher order. The production `.inc` inventory is now
 39 files / 4,621 LOC.
 C backend intent-zone binding emit helpers now live in
-`src/codegen/transpiler_intent_zone_binding_emit.c`; the header is
+`src/codegen/c/transpiler_intent_zone_binding_emit.c`; the header is
 declaration-only. LLVM constructor, RC, and
-task/channel call lowering now live in `src/codegen/llvm_expr_constructor_calls.h`,
-`src/codegen/llvm_expr_rc_calls.h`, and
-`src/codegen/llvm_expr_task_channel_calls.h`. This removes four more anonymous
+task/channel call lowering now live in `src/codegen/llvm/llvm_expr_constructor_calls.h`,
+`src/codegen/llvm/llvm_expr_rc_calls.h`, and
+`src/codegen/llvm/llvm_expr_task_channel_calls.h`. This removes four more anonymous
 `.inc` bodies while preserving backend include order. The production `.inc`
 inventory is now 35 files / 3,689 LOC.
 C backend control-flow emission, semantic resource-flow dataflow, LLVM
 collection-base calls, and LLVM Result/Option calls now live in
-`src/codegen/transpiler_control_flow_emit.h`,
-`src/semantic/type_checker_flow_resources.h`,
-`src/codegen/llvm_expr_collection_base_calls.h`, and
-`src/codegen/llvm_expr_result_option_calls.h`. The production `.inc` inventory
+`src/codegen/c/transpiler_control_flow_emit.h`,
+`src/semantic/type_checker/type_checker_flow_resources.h`,
+`src/codegen/llvm/llvm_expr_collection_base_calls.h`, and
+`src/codegen/llvm/llvm_expr_result_option_calls.h`. The production `.inc` inventory
 is now 31 files / 2,814 LOC.
 Semantic channel query builtins, operator expression checking, LLVM MIR
 local/block emission, DAG graph core, and enum declaration emission now live in
-`src/semantic/type_checker_builtins_query_channel.h`,
+`src/semantic/type_checker/type_checker_builtins_query_channel.h`,
 `src/semantic/type_checker_operator_expr.h`,
-`src/codegen/llvm_mir_local_emit.h`, `src/codegen/llvm_mir_block_emit.h`,
-`src/semantic/type_checker_resolution_graph_core.c`, and
-`src/codegen/transpiler_enum_decl_emit.c`. The production `.inc` inventory is
+`src/codegen/llvm/llvm_mir_local_emit.h`, `src/codegen/llvm/llvm_mir_block_emit.h`,
+`src/semantic/type_checker/type_checker_resolution_graph_core.c`, and
+`src/codegen/c/transpiler_enum_decl_emit.c`. The production `.inc` inventory is
 now 25 files / 1,675 LOC.
 Semantic context helpers, LLVM log/array calls, and C backend MIR/base emitter
-tails now live in `src/semantic/type_checker_context_helpers.c`,
-`src/codegen/llvm_expr_log_calls.h`, `src/codegen/llvm_expr_array_calls.h`,
-`src/codegen/transpiler_mir_emit_state.h`,
-`src/codegen/transpiler_mir_emit_decls.h`, and
-`src/codegen/transpiler_mir_pending_uses.c`. The production `.inc` inventory is
+tails now live in `src/semantic/type_checker/type_checker_context_helpers.c`,
+`src/codegen/llvm/llvm_expr_log_calls.h`, `src/codegen/llvm/llvm_expr_array_calls.h`,
+`src/codegen/c/transpiler_mir_emit_state.h`,
+`src/codegen/c/transpiler_mir_emit_decls.h`, and
+`src/codegen/c/transpiler_mir_pending_uses.c`. The production `.inc` inventory is
 now 19 files / 835 LOC.
 Formatter layout/io, semantic flow effects, LLVM intent observability calls,
 and assignment checking now live in `src/compiler/fmt_layout.h`,
-`src/compiler/fmt_io.h`, `src/semantic/type_checker_flow_effects.h`,
-`src/codegen/llvm_expr_intent_observability_calls.h`, and
-`src/semantic/type_checker_assignment.h`. The production `.inc` inventory is now
+`src/compiler/fmt_io.h`, `src/semantic/type_checker/type_checker_flow_effects.h`,
+`src/codegen/llvm/llvm_expr_intent_observability_calls.h`, and
+`src/semantic/type_checker/type_checker_assignment.h`. The production `.inc` inventory is now
 13 files / 297 LOC.
 The former semantic flow parallel implementation header has since moved to the
-compiled owner `src/semantic/type_checker_flow_parallel.c`.
+compiled owner `src/semantic/type_checker/type_checker_flow_parallel.c`.
 C backend MIR emission contract/resource-hook helpers now live in
-`src/codegen/transpiler_mir_emission_contract.c`, removing the remaining
+`src/codegen/c/transpiler_mir_emission_contract.c`, removing the remaining
 `src/codegen/transpiler_emitters_base_a_part_d.inc` body while preserving the
 base-A include order.
 C backend slot/device builtin expression emitters now live in
-`src/codegen/transpiler_slot_builtin_emit.h`, reducing
+`src/codegen/c/transpiler_slot_builtin_emit.h`, reducing
 `src/codegen/transpiler_expr_emitters_part_a.inc` from 797 LOC to 531 LOC while
 keeping slot sugar, secure slot token, and panic codegen smoke green.
 C backend expression type inference now lives in
-`src/codegen/transpiler_expr_type_infer.h`, reducing
+`src/codegen/c/transpiler_expr_type_infer.h`, reducing
 `src/codegen/transpiler_helpers_core_b_part_c.inc` from 797 LOC to 296 LOC
 while keeping the C transpile suite green.
 C backend statement dispatch now lives in
-`src/codegen/transpiler_statement_dispatch.c`, reducing
+`src/codegen/c/transpiler_statement_dispatch.c`, reducing
 `src/codegen/transpiler_emitters_base_b_part_c.inc` from 803 LOC to 546 LOC
 while keeping representative control-flow, parallel, and intent backend
 compare paths green.
 C backend role method emission, ability/vtable emission, hidden provenance
 helpers, and role operator aliases now live in
-`src/codegen/transpiler_domain_role_ability_emit.h`, removing the former
+`src/codegen/c/transpiler_domain_role_ability_emit.h`, removing the former
 `src/codegen/transpiler_domain_role_part_a.inc` body while preserving
 domain-role shim order.
 The shared domain hosted-method MIR body path has since been lifted out to
-`src/codegen/transpiler_hosted_method_body_emit.c`, so party/roster/relation/
+`src/codegen/c/transpiler_hosted_method_body_emit.c`, so party/roster/relation/
 effect/zone/world method bodies no longer depend on a role/ability-local
 include-order helper.
 Relation/effect declaration emission has also moved into
-`src/codegen/transpiler_relation_effect_emit.c`, leaving its header as a
+`src/codegen/c/transpiler_relation_effect_emit.c`, leaving its header as a
 declaration-only seam.
 Zone hosted-method forwarding/body emission now lives in
-`src/codegen/transpiler_zone_methods_emit.c`, and `transpiler.c` no longer owns
+`src/codegen/c/transpiler_zone_methods_emit.c`, and `transpiler.c` no longer owns
 a late include-order bridge for zone methods.
 Ability-vtable specialization emission now lives in
-`src/codegen/transpiler_domain_role_ability_emit.c`; the matching header is
+`src/codegen/c/transpiler_domain_role_ability_emit.c`; the matching header is
 declaration-only.
 Ability/role/party nominal declaration emission now lives in
-`src/codegen/transpiler_domain_nominal_emit.c`; the matching header is
+`src/codegen/c/transpiler_domain_nominal_emit.c`; the matching header is
 declaration-only and no longer carries roster/relation implementation includes.
 Generated-C `HashMap<String>` and map-keys inline runtime now lives in
 `src/runtime/pgy_runtime_map_string_inline.h`, reducing
@@ -553,19 +553,19 @@ Generated-C `HashMap<String>` and map-keys inline runtime now lives in
 keeping runtime ABI, panic codegen, and representative collection backend
 compare paths green.
 C backend MIR function emission now lives in
-`src/codegen/transpiler_mir_func_emit.c`, reducing
+`src/codegen/c/transpiler_mir_func_emit.c`, reducing
 `src/codegen/transpiler_emitters_base_b_part_a.inc` from 766 LOC to 162 LOC.
 Generated-C runtime array sort kernels and scalar std/log/math helpers now live
 in `src/runtime/pgy_runtime_array_sort_inline.h` and
 `src/runtime/pgy_runtime_scalar_std_inline.h`, reducing
 `src/runtime/pgy_runtime_part_ba_part_c.inc` from 759 LOC to 535 LOC while
 keeping C transpile, ABI, panic codegen, and representative C/LLVM parity green.
-MIR ABI layout lookup now lives in `src/compiler/mir_abi_layout.h`, reducing
+MIR ABI layout lookup now lives in `src/compiler/mir/mir_abi_layout.h`, reducing
 `src/compiler/mir_public_part_b.inc` from 753 LOC to 420 LOC while keeping DAG,
 AIR drift, and ABI smoke green. CFG contract validation now lives in compiled
-owners: `src/compiler/mir_cfg_contract_validate.c` handles non-cleanup CFG
+owners: `src/compiler/mir/mir_cfg_contract_validate.c` handles non-cleanup CFG
 shape/source/fallback checks, and
-`src/compiler/mir_cfg_contract_validate_cleanup.c` handles cleanup-edge,
+`src/compiler/mir/mir_cfg_contract_validate_cleanup.c` handles cleanup-edge,
 rollback/invalidation, and cleanup-convergence checks. RIR validation now lives in
 `src/compiler/rir_validation.h`, reducing `src/compiler/rir_public.inc` from
 741 LOC to 269 LOC while keeping DAG, CFG body-dataflow, AIR drift, and ABI
@@ -573,33 +573,33 @@ smoke green. RIR lowering/enrichment now lives in
 `src/compiler/rir_builder.h`, removing the former `src/compiler/rir_builder.inc`
 body while preserving the `rir.c` flow -> build -> names -> validation include
 order. C backend MIR intent inventory helpers now live in
-`src/codegen/transpiler_mir_inventory_intent.h`, removing the old
+`src/codegen/c/transpiler_mir_inventory_intent.h`, removing the old
 `transpiler_emitters_mir_inventory_intent.inc` body while preserving the
 existing SSA include-order shim. C backend call/spawn/channel expression
-emission now lives in `src/codegen/transpiler_expr_call_spawn_emit.h`, removing
+emission now lives in `src/codegen/c/transpiler_expr_call_spawn_emit.h`, removing
 the old `transpiler_expr_emitters_part_e.inc` body while preserving the
 expression emitter include order. Spawn wrapper and channel send/receive
-lowering now live in `src/codegen/transpiler_spawn_channel_emit.c`, with the
+lowering now live in `src/codegen/c/transpiler_spawn_channel_emit.c`, with the
 matching header declaration-only. Member-style slot/host/slice call lowering
-now lives in `src/codegen/transpiler_expr_call_member_emit.c`, reducing that
+now lives in `src/codegen/c/transpiler_expr_call_member_emit.c`, reducing that
 header to the call-dispatch shim. C backend builtin-call dispatch now lives in
-`src/codegen/transpiler_expr_builtin_dispatch.h`, removing the old
+`src/codegen/c/transpiler_expr_builtin_dispatch.h`, removing the old
 `transpiler_expr_emitters_part_b.inc` body while preserving builtin-call
 lowering order. Semantic builtin query and nominal contracts now live in
-`src/semantic/type_checker_builtins_query.h` and
-`src/semantic/type_checker_builtins_nominal.h`, removing two more production
+`src/semantic/type_checker/type_checker_builtins_query.h` and
+`src/semantic/type_checker/type_checker_builtins_nominal.h`, removing two more production
 `.inc` bodies and closing the former split `BuiltinKind builtin_resolve(...)`
 return-type boundary. Generated-C runtime pool/FSM/timer helpers now live in
 `src/runtime/pgy_runtime_pool_fsm_timer_inline.h`, so runtime part E is focused
 on parallel/zone authority/effect-pool/unsafe/result/option helpers and runtime
 cache freshness tracks the new owner directly. Semantic expression checking now
-lives in `src/semantic/type_checker_expr.h`, and CFG body-dataflow smoke
+lives in `src/semantic/type_checker/type_checker_expr.h`, and CFG body-dataflow smoke
 follows that owner path instead of the former `.inc` body. C backend
 function/class/control-flow emission now lives in
-`src/codegen/transpiler_func_class_flow_emit.h`, removing the former
+`src/codegen/c/transpiler_func_class_flow_emit.h`, removing the former
 `transpiler_emitters_base_b_part_b.inc` body while preserving base-B include
 order. Function fallback policy helpers now live in
-`src/codegen/transpiler_func_flow_policy.c`, so the remaining function-flow
+`src/codegen/c/transpiler_func_flow_policy.c`, so the remaining function-flow
 header keeps emission orchestration instead of owning policy lookup/formatting
 statics. Generated-C runtime Box/Arena/Allocator/Array/Rc/primitive-slot helpers
 now live in `src/runtime/pgy_runtime_memory_array_slot_inline.h`, and runtime
@@ -608,7 +608,7 @@ part-B `.inc`. LLVM domain core helpers now live in
 `src/codegen/llvm_domain_core_helpers.h`, removing the old
 `llvm_domain_helpers_part_a.inc` body while preserving LLVM domain lowering
 order. Semantic relation/effect/projection helpers now live in
-`src/semantic/type_checker_helpers_effects.h`, and CFG body-dataflow smoke
+`src/semantic/type_checker/type_checker_helpers_effects.h`, and CFG body-dataflow smoke
 tracks that owner path instead of the former `.inc` body. Semantic function-body
 checking now lives in `src/semantic/type_checker_program.h`, removing the former
 `src/semantic/type_checker_program.inc` body while preserving the top-level
@@ -632,7 +632,7 @@ keeping exported symbol names unchanged. LLVM-linkable raw `List<T>` exports
 now live in `src/runtime/pgy_runtime_lib_list_raw_exports.h`, reducing
 `src/runtime/pgy_runtime_lib_part_b_part_a.inc` further from 909 LOC to 759 LOC
 while keeping raw collection ABI smoke green. C backend `let` destructuring lowering
-now lives in `src/codegen/transpiler_destructure_emit.c`, superseding the
+now lives in `src/codegen/c/transpiler_destructure_emit.c`, superseding the
 temporary implementation header and keeping `transpiler_destructure_emit.h`
 declaration-only. The original extraction reduced
 `src/codegen/transpiler_emitters_base_b_part_c.inc` from 976 LOC to 873 LOC and
@@ -651,36 +651,36 @@ standard string/conversion/math/random exports now live in
 `src/runtime/pgy_runtime_lib_std_exports.h`, reducing
 `src/runtime/pgy_runtime_lib_part_b_part_e.inc` from 817 LOC to 761 LOC while
 keeping runtime ABI lifetime and ABI pipeline smoke green. MIR declaration
-header inventory helpers now live in `src/compiler/mir_decl_headers.h`, reducing
+header inventory helpers now live in `src/compiler/mir/mir_decl_headers.h`, reducing
 `src/compiler/mir_public_part_a.inc` from 959 LOC to 789 LOC while keeping DAG,
 AIR drift, and ABI smoke green. RIR public vocabulary name helpers now live in
 `src/compiler/rir_names.h`, reducing `src/compiler/rir_public.inc` from 911 LOC
 to 804 LOC while keeping RIR validation/dump consumers on the same vocabulary.
 C backend parallel capture analysis now lives in
-`src/codegen/transpiler_parallel_capture.c`, reducing
+`src/codegen/c/transpiler_parallel_capture.c`, reducing
 `src/codegen/transpiler_emitters_base_b_part_b.inc` from 957 LOC to 730 LOC
 while keeping the parallel channel-sum backend-compare path green.
 C backend stdlib call lowering now lives in
-`src/codegen/transpiler_expr_stdlib_builtin.h`, reducing
+`src/codegen/c/transpiler_expr_stdlib_builtin.h`, reducing
 `src/codegen/transpiler_expr_emitters_part_d.inc` from 946 LOC to 26 LOC while
 keeping representative stdlib/string/collection backend-compare paths green.
 C backend overlay/projection invalidation and zone-layer bind helpers now live
-in `src/codegen/transpiler_overlay_projection.h`; the old
+in `src/codegen/c/transpiler_overlay_projection.h`; the old
 `transpiler_helpers_core_a_part_b.inc` include body was removed and the source
 `.inc` count is now 158/159. The runtime frontier contract smoke also now reads
 the real world frontier owner in `transpiler_domain_role_part_d.inc`.
 C backend `let` declaration lowering now lives in
-`src/codegen/transpiler_let_emit.c`, reducing
+`src/codegen/c/transpiler_let_emit.c`, reducing
 `src/codegen/transpiler_emitters_base_a_part_a.inc` from 905 LOC to 138 LOC
 while keeping the C transpile suite and representative let-heavy backend
 compare cases green.
 C backend MIR block statement emission now lives in
-`src/codegen/transpiler_mir_block_emit.c`; the old
+`src/codegen/c/transpiler_mir_block_emit.c`; the old
 `transpiler_emitters_base_a_part_c.inc` include body was removed, dropping
 source `.inc` total to 49,911 LOC while keeping MIR/DAG/AIR smoke and
 representative MIR-heavy backend compare paths green.
 C backend intent declaration emission now lives in
-`src/codegen/transpiler_intent_emit.c`; the old
+`src/codegen/c/transpiler_intent_emit.c`; the old
 `transpiler_emitters_intent.inc` include body was removed, dropping source
 `.inc` total to 48,949 LOC and leaving no production `.inc` above 900 LOC.
 The header is now declaration-only, and intent cleanup MIR eligibility is read

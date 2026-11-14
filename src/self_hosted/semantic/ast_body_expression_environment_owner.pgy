@@ -3,7 +3,7 @@
 import "ast_artifact_verdict_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
-import "ast_expression_function_table_fact_owner.pgy";
+import "ast_expression/ast_expression_function_table_fact_owner.pgy";
 import "ast_intent_expression_environment_owner.pgy";
 
 func SemanticAstBodyExpressionEnvironmentSeed(

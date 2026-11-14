@@ -172,10 +172,10 @@ fixture로 방어한다.
 
 - `src/semantic/boundary_witness.{h,c}`가 `PgyBoundaryWitnessSummary`를
   소유한다.
-- `src/semantic/type_checker_flow_resources.c`는 AST 재스캔이 아니라
+- `src/semantic/type_checker/type_checker_flow_resources.c`는 AST 재스캔이 아니라
   `ResourceConsumeSnapshot` delta에서 `OpAcqR` / `OpAcqW` / `OpRel`
   witness를 기록한다.
-- `src/semantic/type_checker_flow_parallel.c`는 sibling task 사이 slot
+- `src/semantic/type_checker/type_checker_flow_parallel.c`는 sibling task 사이 slot
   read/write overlap을 warning이 아니라 `PGY_SEM_PARALLEL_SLOT_RACE_RISK`
   error로 닫는다. shared read/read만 허용된다.
 - `src/tests/semantic/test_semantic_parallel_context.cases.h`가 작은

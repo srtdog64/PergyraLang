@@ -35,7 +35,7 @@ Base revision `db8350709` on `claude/p0-native-checker`.
 
 ## Measurement
 
-The fixed input is `src/self_hosted/compiler/driver_bootstrap_main.pgy`.
+The fixed input is `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`.
 Each run is one census-mode analysis (every error downgraded, every final
 owner run) of the census tree.
 

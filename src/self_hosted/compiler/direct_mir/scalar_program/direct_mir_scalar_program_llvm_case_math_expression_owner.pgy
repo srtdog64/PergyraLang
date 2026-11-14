@@ -1,0 +1,65 @@
+// LLVM StringReplace/checked numeric calls from one sealed runtime projection.
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_checked_int_owner.pgy";
+import "../../../codegen/text/text_owner.pgy";
+
+func DirectMirScalarProgramLlvmCaseMathExpressionAt(kind: Int, result: String, left: String, right: String,
+    ref arguments: Array<String>, ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if DirectMirScalarProgramCheckedIntKind(kind) {
+        let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(kind);
+        if !abi.ok { return DirectMirScalarProgramLlvmStringExpression(true, false, "", ""); }
+        var output: String = "  " + result + ".lhs = trunc i64 " + left + " to i32\n";
+        output = output + "  " + result + ".rhs = trunc i64 " + right + " to i32\n";
+        output = output + "  " + result + ".i32 = call i32 @" + abi.symbol +
+            "(i32 " + result + ".lhs, i32 " + result + ".rhs)\n";
+        output = output + "  " + result + " = sext i32 " + result + ".i32 to i64\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+    }
+    var symbol: String = "";
+    var ready: Bool = false;
+    var return_type: String = "i64";
+    var argument_type: String = "i64";
+    var values: Array<String> = [];
+    if kind == DirectMirScalarProgramExprStringReplace() {
+        symbol = runtime.case_math.replace.symbol;
+        ready = runtime.case_math.replace.ok; return_type = "ptr";
+        argument_type = "ptr";
+        var ordinal: Int = 0;
+        while ordinal < ArrayLength(arguments) {
+            ArrayPush(values, Concat("", arguments[ordinal])); ordinal = ordinal + 1;
+        }
+    } else if kind == DirectMirScalarProgramExprAbsInt() {
+        symbol = runtime.case_math.abs.symbol;
+        ready = runtime.case_math.abs.ok;
+        ArrayPush(values, left);
+    } else if kind == DirectMirScalarProgramExprMinInt() {
+        symbol = runtime.case_math.min.symbol;
+        ready = runtime.case_math.min.ok;
+        ArrayPush(values, left); ArrayPush(values, right);
+    } else if kind == DirectMirScalarProgramExprMaxInt() {
+        symbol = runtime.case_math.max.symbol;
+        ready = runtime.case_math.max.ok;
+        ArrayPush(values, left); ArrayPush(values, right);
+    } else if kind == DirectMirScalarProgramExprModuloInt() || kind == DirectMirScalarProgramExprModuloLong() {
+        symbol = runtime.case_math.long_modulo.symbol;
+        ready = runtime.case_math.long_modulo.ok;
+        ArrayPush(values, left); ArrayPush(values, right);
+    } else if kind == DirectMirScalarProgramExprDivideLong() {
+        symbol = runtime.case_math.long_division.symbol;
+        ready = runtime.case_math.long_division.ok;
+        ArrayPush(values, left); ArrayPush(values, right);
+    } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    if !ready || ArrayLength(values) < 1 { return DirectMirScalarProgramLlvmStringExpression(true, false, "", ""); }
+    var output: String = "  ${result} = call ${return_type} @${symbol}(";
+    var ordinal: Int = 0;
+    while ordinal < ArrayLength(values) {
+        if ordinal > 0 { output = Concat(output, ", "); }
+        output = Concat(output, Concat(argument_type, Concat(" ", values[ordinal])));
+        ordinal = ordinal + 1;
+    }
+    output = Concat(output, ")\n");
+    return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+}

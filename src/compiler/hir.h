@@ -10,7 +10,7 @@
 #include "../common/arena.h"
 #include "../semantic/resource_flow_fact.h"
 #include "../semantic/loop_flow_fact.h"
-#include "../semantic/function_param_flow_fact.h"
+#include "../semantic/function_param_flow/function_param_flow_fact.h"
 #include "../semantic/iteration_type_fact.h"
 #include "../semantic/destructure_type_fact.h"
 #include "../semantic/match_binding_type_fact.h"

@@ -14,9 +14,9 @@ REL="${WORK#"$ROOT_DIR/"}"
 cd "$ROOT_DIR"
 fail() { echo "[collection-owned-generation] $*; evidence=$REL" >&2; exit 1; }
 "${PYTHON_BIN:-python3}" scripts/source_size_count.py --caps <<'CAPS'
-110	src/self_hosted/semantic/ast_collection_owned_generation_order_owner.pgy
-150	src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy
-230	src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy
+110	src/self_hosted/semantic/ast_collection/ast_collection_owned_generation_order_owner.pgy
+150	src/self_hosted/semantic/ast_collection/ast_collection_owned_argument_admission_owner.pgy
+230	src/self_hosted/semantic/ast_collection/ast_collection_ownership_argument_transfer_owner.pgy
 CAPS
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.pgy

@@ -1,0 +1,88 @@
+// Scalar-CFG routine identity query.
+
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_callable_signature_owner.pgy";
+import "direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_cfg_program_routine_identity_schema_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_opaque_readonly_zone_fact_owner.pgy";
+
+func DirectMirScalarCfgProgramRoutineIdentityFromOwners(
+    ref instances: DirectMirRoutineInstanceInventory,
+    cfg_digests: Array<Int>,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact
+) -> DirectMirScalarCfgProgramRoutineIdentity {
+    var roles: Array<Int> = [];
+    var source_rows: Array<Int> = []; var source_syntax_ids: Array<Int> = [];
+    var instance_keys: Array<String> = [];
+    var names: Array<String> = []; var return_types: Array<String> = [];
+    var receiver_carriages: Array<String> = [];
+    var receiver_owner_rows: Array<Int> = [];
+    var parameter_counts: Array<Int> = [];
+    var parameter_starts: Array<Int> = [];
+    var parameter_types: Array<String> = [];
+    var parameter_carriages: Array<String> = [];
+    var signature_digests: Array<Int> = [];
+    var identity_valid: Bool = true;
+    if ArrayLength(instances.source_rows) < 1 ||
+        ArrayLength(instances.source_rows) != ArrayLength(cfg_digests) {
+        identity_valid = false;
+    }
+    var ordinal: Int = 0;
+    while identity_valid && ordinal < ArrayLength(instances.source_rows) {
+        let routine_row: Int = instances.source_rows[ordinal];
+        let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(instances, ordinal);
+        if !DirectMirRoutineSignatureFactReady(signature) ||
+            (ordinal == 0 && (signature.name != "Main" ||
+             !DirectMirScalarCfgEntrypointReturnTypeSupported(
+                 signature.return_type) || signature.param_count != 0)) ||
+            (ordinal > 0 &&
+             !DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
+                signature, logical_record, payload_free_enum,
+                referenced_enum, opaque_readonly_zones)) ||
+            cfg_digests[ordinal] == 0 {
+            identity_valid = false;
+        } else {
+            ArrayPush(roles, DirectMirScalarCfgRoutineRoleCallable());
+            if ordinal == 0 {
+                ArraySet(roles, 0, DirectMirScalarCfgRoutineRoleEntrypoint());
+            }
+            ArrayPush(source_rows, routine_row);
+            ArrayPush(source_syntax_ids, signature.source_syntax_id);
+            var key: String = "";
+            if instances.instance_rows[ordinal] >= 0 {
+                key = GenericInstanceActualTupleKey(instances.generic_instances, instances.instance_rows[ordinal]);
+            }
+            ArrayPush(instance_keys, key);
+            ArrayPush(names, signature.name);
+            ArrayPush(return_types, signature.return_type);
+            ArrayPush(receiver_carriages, signature.receiver_carriage);
+            ArrayPush(receiver_owner_rows, signature.receiver_owner_row);
+            ArrayPush(parameter_counts, signature.param_count);
+            ArrayPush(parameter_starts, ArrayLength(parameter_types));
+            if !DirectMirScalarCfgProgramAppendParameterTypes(
+                    parameter_types, signature) { identity_valid = false; }
+            var parameter: Int = 0;
+            while parameter < signature.param_count {
+                ArrayPush(parameter_carriages,
+                    signature.parameters.carriages[parameter]);
+                parameter = parameter + 1;
+            }
+            ArrayPush(signature_digests, signature.digest);
+        }
+        ordinal = ordinal + 1;
+    }
+    return DirectMirScalarCfgProgramRoutineIdentity(
+        identity_valid && ArrayLength(roles) == ArrayLength(instances.source_rows),
+        roles, source_rows,
+        source_syntax_ids, instance_keys, names, return_types,
+        receiver_carriages, receiver_owner_rows, parameter_counts,
+        parameter_starts, parameter_types, parameter_carriages,
+        signature_digests, cfg_digests
+    );
+}
+

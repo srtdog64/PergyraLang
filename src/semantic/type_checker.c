@@ -5,8 +5,8 @@
  * Type Checker implementation
  */
 
-#include "type_checker_internal.h"
-#include "type_checker_flow_internal.h"
+#include "type_checker/type_checker_internal.h"
+#include "type_checker/type_checker_flow_internal.h"
 
 /* type_check_ability_decl body moved to type_checker_ability_decl.c.
  * See docs/101_semantic_split_template.md. */

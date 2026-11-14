@@ -5,7 +5,7 @@
 
 #include "callable_capability_inference.h"
 #include "default_aggregate_move_rule.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "../parser/ast_api.h"
 
 bool

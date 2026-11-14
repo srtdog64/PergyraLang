@@ -12,8 +12,8 @@
 #include <string.h>
 
 #include "air.h"
-#include "air_evidence_certificate.h"
-#include "mir_parallel_capture_facts.h"
+#include "air/air_evidence_certificate.h"
+#include "mir/mir_parallel_capture_facts.h"
 #include "../parser/ast_api.h"
 
 static uint64_t

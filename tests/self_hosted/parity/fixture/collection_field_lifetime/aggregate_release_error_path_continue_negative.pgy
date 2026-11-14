@@ -1,6 +1,6 @@
 // The earlier release does not leave the routine, so both releases of the
 // same tables can run.
-import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+import "../../../../../src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy";
 
 struct TableHolder {
     tables: SemanticAstExpressionFunctionTableFacts;

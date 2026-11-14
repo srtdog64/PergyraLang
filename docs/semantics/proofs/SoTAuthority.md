@@ -85,7 +85,7 @@ fallback consumers are gone.
   names and ordered field rows consumed by `CollectStructs`;
 - `src/self_hosted/semantic/ast_role_fact_owner.pgy` owns role names, target
   types, and method `NodeId` rows consumed by operator binding and receiver ABI;
-- `src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy` owns
+- `src/self_hosted/semantic/ast_expression/ast_expression_surface_fact_owner.pgy` owns
   expression atom/value/auxiliary rows and call/token queries consumed by
   runtime usage projection; its condition subset also owns stable normalized
   expression handles and child edges consumed by `if`/`while` codegen, while

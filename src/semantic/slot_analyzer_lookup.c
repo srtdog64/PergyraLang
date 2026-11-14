@@ -6,7 +6,7 @@
  */
 
 #include "slot_analyzer_internal.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 ASTNode *
 slot_analyzer_find_function_decl(const SlotFunctionLookup *lookup,

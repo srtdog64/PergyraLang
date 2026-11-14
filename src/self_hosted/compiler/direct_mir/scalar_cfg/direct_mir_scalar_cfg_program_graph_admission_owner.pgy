@@ -1,0 +1,169 @@
+// Sole arbitrary-routine issuer for the one immutable scalar GraphPlan.
+import "direct_mir_scalar_cfg_program_routine_admission_owner.pgy";
+import "direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
+import "direct_mir_scalar_cfg_graph_plan_seal_owner.pgy";
+import "direct_mir_scalar_cfg_program_admission_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_callable_inventory_owner.pgy";
+import "../direct_mir_option_match_abi_fact_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
+import "../direct_mir_routine_instance_input_owner.pgy";
+// A probe that only seals a plan treats a routine refusal as fatal.
+func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput, own route: DirectMirScalarProgramRouteFact) -> DirectMirScalarCfgGraphPlan {
+    var refusal: String = "";
+    let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanAdmission(admitted, route, refusal);
+    if refusal != "" { Die(refusal); }
+    return plan;
+}
+// Sets `refusal` and returns the refused plan when a routine is one this
+// route cannot emit; the seal stays the one terminal return.
+func DirectMirScalarCfgProgramGraphPlanAdmission(ref admitted: MirMachineLayerAdmittedJsonInput, own route: DirectMirScalarProgramRouteFact,
+    inout refusal: String) -> DirectMirScalarCfgGraphPlan {
+    if !DirectMirScalarProgramRouteFactReady(route) {
+        Die("direct MIR scalar CFG program route is invalid"); }
+    var cell: Int = 0;
+    while cell < ArrayLength(route.logical_record.identity_cells.names) {
+        if route.logical_record.identity_cells.nominal_kinds[cell] == "zone" &&
+            (ArrayLength(admitted.domain_topology_plan.owner_names) != 0 ||
+             ArrayLength(admitted.domain_topology_plan.node_names) != 0 ||
+             ArrayLength(admitted.domain_topology_plan.edge_from_node_indexes) != 0) {
+            Die("direct MIR Zone topology requires an executable boundary plan");
+        }
+        cell = cell + 1;
+    }
+    let producer: DirectMirArrayIntProducerFact = DirectMirArrayIntProducerFactEmpty();
+    let entry_signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(route.routine_instances, 0);
+    let entry: DirectMirScalarCfgGraphInput = DirectMirScalarCfgProgramGraphInputFromAdmitted(admitted, route.entrypoint_row, producer, entry_signature.parameters.names);
+    let callables: DirectMirScalarCfgProgramCallableInventory =
+        DirectMirScalarCfgProgramCallableInventoryFromAdmitted(admitted, route.routine_instances,
+            route.logical_record, route.payload_free_enum,
+            route.referenced_enum, route.opaque_readonly_zones);
+    if !DirectMirScalarCfgProgramCallableInventoryReady(
+            callables, route.routine_instances,
+            ArrayLength(route.routine_rows)) {
+        Die("direct MIR scalar CFG program callable inventory is invalid"); }
+    // Keep the routine fold in one owner.  A separate call-result carrier
+    // would only borrow the String-bearing rows returned from the prior
+    // accumulator and could not prove their retirement across the loop.
+    var routine_state: DirectMirScalarCfgProgramRoutineAdmission =
+        DirectMirScalarCfgProgramRoutineAdmission(
+            true, DirectMirScalarCfgProgramGraphStorageEmpty(),
+            DirectMirScalarProgramExpressionSetEmpty(),
+            DirectMirScalarProgramLogicalRecordOptionIntAbiFromFact(
+                route.logical_record),
+            DirectMirScalarResultAbiSetEmpty(),
+            DirectMirOptionMatchAbiFactEmpty(),
+            DirectMirOptionMatchAbiFactEmpty(),
+            DirectMirScalarCfgRangeFactSetEmpty(),
+            DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty()
+        );
+    var cfg_digests: Array<Int> = [];
+    var parameter_flow_masks: Array<Int> = [];
+    var parameter_array_preserved: Array<Int> = [];
+    var ordinal: Int = 0;
+    while ordinal < ArrayLength(route.routine_rows) {
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineInstanceSignatureAt(
+                route.routine_instances, ordinal);
+        var input: DirectMirScalarCfgGraphInput = entry;
+        if ordinal > 0 {
+            input = DirectMirScalarCfgProgramGraphInputFromAdmitted(
+                admitted, route.routine_rows[ordinal], producer, signature.parameters.names);
+        }
+        ArrayPush(cfg_digests, DirectMirCfgDigestFromIndex(input.index));
+        input = DirectMirRoutineInstanceGraphInput(
+            input, admitted.routines.source_json, admitted.routines.source_json_extent, route.routine_instances, ordinal);
+        var flow_row: Int = 0;
+        while flow_row < ArrayLength(
+                input.index.function_param_flow_parameter_indices) {
+            if input.index.function_param_flow_parameter_indices[flow_row] >=
+                    signature.param_count {
+                Die("direct MIR scalar CFG parameter flow identity is invalid");
+            }
+            flow_row = flow_row + 1;
+        }
+        var parameter: Int = 0;
+        while parameter < signature.param_count {
+            var mask: Int = -1;
+            var preserved: Int = -1;
+            flow_row = 0;
+            while flow_row < ArrayLength(
+                    input.index.function_param_flow_parameter_indices) {
+                if input.index.function_param_flow_parameter_indices[
+                        flow_row] == parameter {
+                    mask = input.index.function_param_flow_masks[flow_row];
+                    preserved = input.index.
+                        function_param_flow_array_preserved[flow_row];
+                }
+                flow_row = flow_row + 1;
+            }
+            ArrayPush(parameter_flow_masks, mask);
+            ArrayPush(parameter_array_preserved, preserved);
+            parameter = parameter + 1;
+        }
+        routine_state = DirectMirScalarCfgProgramAppendRoutine(
+                admitted, route.routine_rows[ordinal], ordinal, callables,
+                route.routine_instances, input,
+                routine_state.storage, routine_state.expressions,
+                routine_state.ranges,
+                routine_state.collection_ownership,
+                routine_state.option_int_abi, routine_state.option_string_abi,
+                routine_state.option_bool_abi, routine_state.result_abi,
+                route.logical_record,
+                route.payload_free_enum, route.referenced_enum,
+                route.array_int_value_result, route.array_bool_abi,
+                route.array_string_abi, refusal
+            );
+        if !routine_state.valid {
+            if refusal != "" { return DirectMirScalarCfgGraphPlanRefused(); }
+            Die(Concat("direct MIR scalar CFG program routine admission is invalid: ordinal=",
+                ToString(ordinal))); }
+        ordinal = ordinal + 1;
+    }
+    let partition: DirectMirScalarCfgRoutinePartitionFact =
+        DirectMirScalarCfgProgramRoutinePartitionFromOwners(
+            route.routine_instances, cfg_digests, routine_state.storage.routines.local_counts,
+            routine_state.storage.routines.value_counts,
+            routine_state.storage.routines.block_counts,
+            routine_state.storage.routines.operation_counts,
+            routine_state.storage.routines.phi_counts,
+            parameter_flow_masks, parameter_array_preserved,
+            route.logical_record, route.payload_free_enum,
+            route.referenced_enum, route.opaque_readonly_zones
+        );
+    let preparation: DirectMirScalarCfgProgramExtensionPreparation = DirectMirScalarCfgProgramExtensionPreparationFromOwners(
+            admitted, route, callables, routine_state.storage,
+            routine_state.expressions, routine_state.option_int_abi,
+            routine_state.result_abi, routine_state.option_string_abi, routine_state.option_bool_abi);
+    let program: DirectMirScalarCfgProgramExtensionFact = DirectMirScalarCfgProgramExtensionFromPreparation(
+            preparation, routine_state.collection_ownership,
+            routine_state.storage.blocks.condition_expression_rows,
+            routine_state.storage.operations.expression_rows,
+            routine_state.storage.operations.secondary_expression_rows,
+            routine_state.storage.operations.target_paths,
+            routine_state.storage.blocks.return_expression_rows
+        );
+    let value_storage: DirectMirScalarCfgProgramValueStorage = routine_state.storage.values;
+    let value_plans: DirectMirScalarCfgProgramValuePlans =
+        DirectMirScalarCfgProgramValuePlansFromStorage(value_storage);
+    let locals: DirectMirScalarCfgLocalRefPlan = value_plans.locals;
+    let types: DirectMirScalarCfgValueTypePlan = value_plans.types;
+    let partition_digest: Int = partition.digest;
+    return DirectMirScalarCfgSealGraphPlan(
+        admitted, partition, partition_digest, locals, types,
+        routine_state.storage.blocks.succ_true, routine_state.storage.blocks.succ_false,
+        routine_state.storage.blocks.operation_starts, routine_state.storage.blocks.operation_counts,
+        routine_state.storage.blocks.condition_kinds, routine_state.storage.blocks.condition_left_values,
+        routine_state.storage.blocks.condition_right_values, routine_state.storage.blocks.condition_left_locals,
+        routine_state.storage.blocks.condition_right_locals, routine_state.storage.blocks.condition_left_literals,
+        routine_state.storage.blocks.condition_right_literals, routine_state.storage.operations.kinds,
+        routine_state.storage.operations.result_values, routine_state.storage.operations.left_values,
+        routine_state.storage.operations.right_values, routine_state.storage.operations.left_locals,
+        routine_state.storage.operations.right_locals, routine_state.storage.operations.left_literals,
+        routine_state.storage.operations.right_literals, routine_state.storage.operations.phi_starts,
+        routine_state.storage.operations.phi_counts, routine_state.storage.operations.phi_predecessor_blocks,
+        routine_state.storage.operations.phi_incoming_values,
+        routine_state.ranges, entry.foreach_facts,
+        entry.foreach_elements, entry.string_arrays,
+        entry.array_int_program, entry.collections, program
+    );
+}

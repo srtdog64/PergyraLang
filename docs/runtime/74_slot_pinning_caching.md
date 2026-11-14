@@ -51,7 +51,7 @@ Current beta status:
 - C source-block emission now lowers a recognized pin block to a typed wrapper
   local with a GCC cleanup hook (`pgy_unpin_cleanup_*` /
   `pgy_secure_unpin_cleanup_*`). C MIR emission consumes pin-region metadata
-  through `src/codegen/transpiler_mir_pin_emit.h`. For plain `Slot<T>` MIR pin
+  through `src/codegen/c/transpiler_mir_pin_emit.h`. For plain `Slot<T>` MIR pin
   regions with cleanup-edge evidence, it emits a preflight local plus
   `PgyPinnedSlotView_*` initializer directly; secure pin still emits typed
   secure pin/unpin calls before successor and return exits.

@@ -213,21 +213,21 @@ Recently closed:
 
 | slice | 대상 | 새 TU | 구 `.inc` 폐기 | LOC |
 |---|---|---|---|---|
-| 1 차 | relation | `src/semantic/type_checker_relation_decl.c` | `type_checker_decls_relation.inc` | 94 |
-| 1 차 | effect | `src/semantic/type_checker_effect_decl.c` | `type_checker_decls_effect.inc` | 66 |
-| 2 차 | zone | `src/semantic/type_checker_zone_decl.c` | `type_checker_decls_zone.inc` | 1076 |
-| 3 차 | ability | `src/semantic/type_checker_ability_decl.c` | (type_checker.c 에서 본체 추출) | 80 |
-| 4 차 | world | `src/semantic/type_checker_world_decl.c` | `type_checker_decls_world.inc` | 856 |
-| 4-B | intent | `src/semantic/type_checker_intent_decl.c` + `type_checker_intent_helpers_internal.h` | `type_checker_decls_intent.inc` + `type_checker_decls_intent_world.inc` | 919 |
-| 3-B | role | `src/semantic/type_checker_role_decl.c` + `type_checker_decls_a_helpers_internal.h` | (decls_a.inc 에서 body 추출) | 383 |
-| 3-B | party | `src/semantic/type_checker_party_decl.c` | (decls_a.inc 에서 body 추출) | 147 |
-| 3-B | roster | `src/semantic/type_checker_roster_decl.c` | (decls_a.inc 에서 body 추출) | 80 |
-| 4-C | class/extern | `src/semantic/type_checker_class_decl.c` | (`type_checker_program.inc` 에서 body 추출) | 215 |
-| 4-D | program orchestration | `src/semantic/type_checker_program.c` | (`type_checker_program.inc` 에서 body 추출) | 381 |
-| 4-E | type-resolution stage | `src/semantic/type_checker_resolution_stage.c` | `type_checker_resolution_stage.inc` | 999 |
-| 4-F | builtin projection | `src/semantic/type_checker_builtins_projection.c` | (`type_checker_builtins_nominal.inc` 에서 body 추출) | 167 |
-| 4-G | expression operators/index access | `src/semantic/type_checker_expr_ops.c` | (`type_checker_expr.inc` 에서 body 추출) | 141 |
-| 4-H | expression name helpers | `src/semantic/type_checker_expr_names.c` | (`type_checker_helpers_late.inc` 에서 helper 추출) | 73 |
+| 1 차 | relation | `src/semantic/type_checker/type_checker_relation_decl.c` | `type_checker_decls_relation.inc` | 94 |
+| 1 차 | effect | `src/semantic/type_checker/type_checker_effect_decl.c` | `type_checker_decls_effect.inc` | 66 |
+| 2 차 | zone | `src/semantic/type_checker/type_checker_zone_decl.c` | `type_checker_decls_zone.inc` | 1076 |
+| 3 차 | ability | `src/semantic/type_checker/type_checker_ability_decl.c` | (type_checker.c 에서 본체 추출) | 80 |
+| 4 차 | world | `src/semantic/type_checker/type_checker_world_decl.c` | `type_checker_decls_world.inc` | 856 |
+| 4-B | intent | `src/semantic/type_checker/type_checker_intent_decl.c` + `type_checker_intent_helpers_internal.h` | `type_checker_decls_intent.inc` + `type_checker_decls_intent_world.inc` | 919 |
+| 3-B | role | `src/semantic/type_checker/type_checker_role_decl.c` + `type_checker_decls_a_helpers_internal.h` | (decls_a.inc 에서 body 추출) | 383 |
+| 3-B | party | `src/semantic/type_checker/type_checker_party_decl.c` | (decls_a.inc 에서 body 추출) | 147 |
+| 3-B | roster | `src/semantic/type_checker/type_checker_roster_decl.c` | (decls_a.inc 에서 body 추출) | 80 |
+| 4-C | class/extern | `src/semantic/type_checker/type_checker_class_decl.c` | (`type_checker_program.inc` 에서 body 추출) | 215 |
+| 4-D | program orchestration | `src/semantic/type_checker/type_checker_program.c` | (`type_checker_program.inc` 에서 body 추출) | 381 |
+| 4-E | type-resolution stage | `src/semantic/type_checker/type_checker_resolution_stage.c` | `type_checker_resolution_stage.inc` | 999 |
+| 4-F | builtin projection | `src/semantic/type_checker/type_checker_builtins_projection.c` | (`type_checker_builtins_nominal.inc` 에서 body 추출) | 167 |
+| 4-G | expression operators/index access | `src/semantic/type_checker/type_checker_expr_ops.c` | (`type_checker_expr.inc` 에서 body 추출) | 141 |
+| 4-H | expression name helpers | `src/semantic/type_checker/type_checker_expr_names.c` | (`type_checker_helpers_late.inc` 에서 helper 추출) | 73 |
 
 **3-B 에서 추가로 externalize 된 5 helper**: `any_subject_role_has_ability`, `any_subject_role_find_base_ability_impl`, `validate_ability_require_fields_for_role`, `find_generic_param_index`, `concrete_type_satisfies_bound`. `static` 제거 site 7 개 + 선언 승격 (`type_checker_decls_a_helpers_internal.h` 신설 + `type_checker_internal.h` 확장).
 
@@ -235,27 +235,27 @@ Recently closed:
 
 **빌드 가드 추가**: 4-B 과정에서 포인터 반환 helper의 implicit declaration 이 런타임 세그폴트로 이어질 수 있음을 확인했다. 기본 `CFLAGS`에 `-Werror=implicit-function-declaration -Werror=implicit-int`를 추가해, 이후 `.inc` → `.c` 분리 중 숨은 helper 의존이 테스트 실행 전 컴파일 단계에서 실패하도록 고정했다.
 
-**DAG zone slice**: zone refresh projection field-map edge collector를 `src/semantic/type_checker_resolution_graph_zone.c`로 이동했다. 이후 graph inventory body는 `src/semantic/type_checker_resolution_graph_inventory.c`로 승격되어 include-order debt에서 빠졌다.
+**DAG zone slice**: zone refresh projection field-map edge collector를 `src/semantic/type_checker/type_checker_resolution_graph_zone.c`로 이동했다. 이후 graph inventory body는 `src/semantic/type_checker/type_checker_resolution_graph_inventory.c`로 승격되어 include-order debt에서 빠졌다.
 
-**Stage domain slice**: world/zone local-contract replay를 `src/semantic/type_checker_resolution_stage_domain.c`로 이동했다. `type_checker_resolution_stage.inc`는 969 LOC가 되었고, 남은 stage debt는 top-level declaration staging과 generic/function/event staging 쪽으로 압축됐다.
+**Stage domain slice**: world/zone local-contract replay를 `src/semantic/type_checker/type_checker_resolution_stage_domain.c`로 이동했다. `type_checker_resolution_stage.inc`는 969 LOC가 되었고, 남은 stage debt는 top-level declaration staging과 generic/function/event staging 쪽으로 압축됐다.
 
-**Stage TU closure**: `type_checker_resolution_stage.inc`를 제거하고 `src/semantic/type_checker_resolution_stage.c`로 승격했다. top-level declaration staging, generic/function/event signature staging, graph host lookup이 실제 TU에서 빌드되며, `type_checker_resolution.inc`는 graph include shim만 남았다.
+**Stage TU closure**: `type_checker_resolution_stage.inc`를 제거하고 `src/semantic/type_checker/type_checker_resolution_stage.c`로 승격했다. top-level declaration staging, generic/function/event signature staging, graph host lookup이 실제 TU에서 빌드되며, `type_checker_resolution.inc`는 graph include shim만 남았다.
 
-**Program declaration/orchestration slice**: class/extern declaration checking을 `src/semantic/type_checker_class_decl.c`로, top-level program orchestration을 `src/semantic/type_checker_program.c`로 이동했다. `nominal_flavor_from_decl`, `declared_effects_from_function_node`, graph topo/validation, program precollect/worklist, resolver stats는 include-order static helper에서 internal API로 승격했다. `type_checker_program.inc`는 624 LOC가 되어 semantic 800 LOC stop condition 아래로 내려갔다.
+**Program declaration/orchestration slice**: class/extern declaration checking을 `src/semantic/type_checker/type_checker_class_decl.c`로, top-level program orchestration을 `src/semantic/type_checker/type_checker_program.c`로 이동했다. `nominal_flavor_from_decl`, `declared_effects_from_function_node`, graph topo/validation, program precollect/worklist, resolver stats는 include-order static helper에서 internal API로 승격했다. `type_checker_program.inc`는 624 LOC가 되어 semantic 800 LOC stop condition 아래로 내려갔다.
 
-**Builtin projection slice**: `ToObject` / `ToTObject` semantic checker를 `src/semantic/type_checker_builtins_projection.c`로 이동했다. `type_checker_builtins_nominal.inc`는 659 LOC가 되어 semantic 800 LOC stop condition 아래로 내려갔고, projection diagnostics helper boundary가 builtin dispatcher에서 분리됐다.
+**Builtin projection slice**: `ToObject` / `ToTObject` semantic checker를 `src/semantic/type_checker/type_checker_builtins_projection.c`로 이동했다. `type_checker_builtins_nominal.inc`는 659 LOC가 되어 semantic 800 LOC stop condition 아래로 내려갔고, projection diagnostics helper boundary가 builtin dispatcher에서 분리됐다.
 
-**Expression operator/name slices**: binary/unary operator checker, array literal/indexed access checker를 `src/semantic/type_checker_expr_ops.c`로 이동했다. static member path flattening과 consumed-boundary identifier lookup은 `src/semantic/type_checker_expr_names.c`로 이동했다. `type_checker_expr.inc`는 758 LOC, `type_checker_helpers_late.inc`는 773 LOC가 되어 semantic 800 LOC stop condition 아래로 내려갔다.
+**Expression operator/name slices**: binary/unary operator checker, array literal/indexed access checker를 `src/semantic/type_checker/type_checker_expr_ops.c`로 이동했다. static member path flattening과 consumed-boundary identifier lookup은 `src/semantic/type_checker/type_checker_expr_names.c`로 이동했다. `type_checker_expr.inc`는 758 LOC, `type_checker_helpers_late.inc`는 773 LOC가 되어 semantic 800 LOC stop condition 아래로 내려갔다.
 
 **Ownership consumer slices**: return, assignment rebind, array literal store, boundary validation, call-argument, destructuring, let-binding, and parameter escape-summary checks now live in
-`src/semantic/type_checker_ownership_return.c`,
-`src/semantic/type_checker_ownership_assign.c`,
-`src/semantic/type_checker_ownership_array_store.c`,
-`src/semantic/type_checker_ownership_boundaries.c`,
-`src/semantic/type_checker_ownership_call.c`,
-`src/semantic/type_checker_ownership_destructure.c`,
-`src/semantic/type_checker_ownership_let.c`, and
-`src/semantic/type_checker_ownership_param_summary.c`. The old behavior-owning `.inc`
+`src/semantic/type_checker/type_checker_ownership_return.c`,
+`src/semantic/type_checker/type_checker_ownership_assign.c`,
+`src/semantic/type_checker/type_checker_ownership_array_store.c`,
+`src/semantic/type_checker/type_checker_ownership_boundaries.c`,
+`src/semantic/type_checker/type_checker_ownership_call.c`,
+`src/semantic/type_checker/type_checker_ownership_destructure.c`,
+`src/semantic/type_checker/type_checker_ownership_let.c`, and
+`src/semantic/type_checker/type_checker_ownership_param_summary.c`. The old behavior-owning `.inc`
 files were deleted. Current `src/semantic/**/*.inc` total is 0 files / 0 LOC;
 `src/semantic/type_checker_ownership_*.inc` is likewise zero.
 
@@ -559,4 +559,4 @@ semantic_classify_ownership_type
 
 - [TODO.md P1 (구조/운영 폐인 포인트)](../../TODO.md)
 - [`docs/tooling/91_build_troubleshooting.md`](../tooling/91_build_troubleshooting.md) — `make rebuild` 작동 메커니즘
-- [`src/semantic/type_checker_internal.h`](../../src/semantic/type_checker_internal.h) — 현재 extern 인터페이스
+- [`src/semantic/type_checker/type_checker_internal.h`](../../src/semantic/type_checker/type_checker_internal.h) — 현재 extern 인터페이스

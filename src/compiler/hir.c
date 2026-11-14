@@ -7,7 +7,7 @@
 
 #include "../common/string_compat.h"
 
-#include "hir_internal.h"
+#include "hir/hir_internal.h"
 
 static bool
 hir_next_capacity(size_t *capacity, size_t initial, size_t elem_size)

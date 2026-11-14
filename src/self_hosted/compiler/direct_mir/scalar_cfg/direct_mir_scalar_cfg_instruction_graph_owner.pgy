@@ -1,0 +1,12 @@
+// Persisted instruction expression graph access shared by typed CFG owners.
+
+import "../../../mir_lower/expression_graph_sequence_owner.pgy";
+
+func DirectMirScalarCfgInstructionGraphAt(
+    ref object_table: JsonObjectFactTable, key: String
+) -> MirExpressionGraphSequence {
+    return MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(),
+        JsonObjectFactObjectTable(object_table, key)
+    );
+}

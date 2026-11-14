@@ -1,6 +1,6 @@
 #include "debugger.h"
 
-#include "self_host_debug_driver.h"
+#include "self_host/self_host_debug_driver.h"
 
 #include <stdio.h>
 #include <string.h>

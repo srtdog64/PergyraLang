@@ -5,7 +5,7 @@
 # The self-host SEA ExecutionLane classifier (src/self_hosted/sea/execution_lane.pgy)
 # must make the SAME lane decision as the C policy (src/compiler/execution_lane.c)
 # and the same boundary evidence -> capture-fact decisions as
-# src/compiler/air_execution_lane.c, on both backends. The golden file is a
+# src/compiler/air/air_execution_lane.c, on both backends. The golden file is a
 # named case-row artifact over the C decision table plus AIR evidence-shape
 # proof output, so a match proves:
 #   - self-host (Pergyra) policy/evidence shape == C policy/evidence shape

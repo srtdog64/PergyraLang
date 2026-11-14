@@ -122,7 +122,7 @@ backend는 추가로 내부 세 구간으로 나뉜다.
 - 지원 대상별 최소 ISA와 OS/ABI를 확인한다. x86-64와 AArch64에서의 정수
   연산 지원만으로 기본 정수 폭이나 모든 저장소의 폭을 결정하지 않는다.
 - 배포용 최소 ISA와 빌드 PC 전용 최적화를 구분한다. 2026-10-08 소스에서
-  `src/codegen/llvm_target_machine.c`의 `llvm_create_host_machine`은 호스트 CPU
+  `src/codegen/llvm/llvm_target_machine.c`의 `llvm_create_host_machine`은 호스트 CPU
   이름과 기능을 사용하고, `src/compiler/compiler_llvm.c`의 비-Windows release
   링크 경로에는 `-march=native`가 있다. 타 CPU 배포 호환성을 확인할 대상이며,
   실제 실행 실패나 모든 산출물의 비호환을 입증한 결과는 아니다.

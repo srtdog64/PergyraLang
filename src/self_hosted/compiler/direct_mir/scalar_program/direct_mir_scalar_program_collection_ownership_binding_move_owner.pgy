@@ -1,0 +1,63 @@
+// A plain binding move `let alias = source;` of an Array<String> local whose
+// MIR row is retired. The facts already say so: the destination row's origin
+// is `binding` from the source binding, and the source row is retired. This
+// owner only matches the definition operation to those two rows. Owned
+// element rows take the same move through the owned CFG flow instead.
+import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_op_code_owner.pgy";
+
+// The moved source local's row, or -1 when the operation moves nothing.
+func DirectMirCollectionOwnershipBindingMoveSource(
+    ref index: MirRoutineFactIndex,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation: Int, local_start: Int, local_end: Int
+) -> Int {
+    if operation < 0 || operation >= ArrayLength(storage.operations.kinds) ||
+        storage.operations.kinds[operation] != DirectMirScalarCfgOpExpressionDefinition() {
+        return -1;
+    }
+    let graph: Int = storage.operations.expression_rows[operation];
+    if graph < 0 || graph >= ArrayLength(expressions.graph_roots) { return -1; }
+    let root: Int = expressions.graph_roots[graph];
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
+        expressions.node_kinds[root] != DirectMirScalarProgramExprLocal() { return -1; }
+    let source_local: Int = expressions.node_local_rows[root];
+    let result: Int = storage.operations.result_values[operation];
+    if result < 0 || result >= ArrayLength(storage.values.value_local_rows) { return -1; }
+    let destination_local: Int = storage.values.value_local_rows[result];
+    if destination_local < local_start || destination_local >= local_end ||
+        destination_local == source_local { return -1; }
+    var source_binding: Int = 0;
+    var retired: Bool = false;
+    var destinations: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(index.collection_ownership_facts.binding_syntax_ids) {
+        let binding: Int = index.collection_ownership_facts.binding_syntax_ids[row];
+        let bound_local: Int = DirectMirCollectionOwnershipBindingLocalRow(
+            index, storage, binding, local_start, local_end);
+        if bound_local == destination_local &&
+            index.collection_ownership_facts.origins[row] == "binding" {
+            source_binding = index.collection_ownership_facts.source_binding_syntax_ids[row];
+            destinations = destinations + 1;
+        }
+        row = row + 1;
+    }
+    if destinations != 1 || source_binding <= 0 ||
+        DirectMirCollectionOwnershipBindingLocalRow(
+            index, storage, source_binding, local_start, local_end) != source_local {
+        return -1;
+    }
+    row = 0;
+    while row < ArrayLength(index.collection_ownership_facts.binding_syntax_ids) {
+        if index.collection_ownership_facts.binding_syntax_ids[row] == source_binding &&
+            index.collection_ownership_facts.dispositions[row] == "retired" {
+            retired = true;
+        }
+        row = row + 1;
+    }
+    if !retired { return -1; }
+    return source_local;
+}

@@ -47,7 +47,7 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
   oracle-빌드 codegen 산출, (c) gcc/실행은 기존 하니스가 마무리.
   **world 소비 의무**: rung-0부터 `CompilerStagePathManifestReady()` 등
   stage fact를 실행 경로에서 소비 — world가 장식으로 남지 않게.
-  **현재 landed**: `src/self_hosted/compiler/driver_rung0_owner.pgy`가
+  **현재 landed**: `src/self_hosted/compiler/driver/driver_rung0_owner.pgy`가
   source path → self-parser AST text → self-codegen C text 조립을 소유하고
   path/stage/target readiness facts를 먼저 소비한다. `CompileSourceToAst`,
   `CompileAstToC`, `CompileSourceToC`가 AST/C artifact boundary를 각각
@@ -209,9 +209,9 @@ planned로 둔다. 착지 시 같은 커밋에서 행을 갱신한다.
 <!-- DRIVER-LSP-RUNG-BEGIN -->
 | track | rung | status | artifact | gate |
 | --- | --- | --- | --- | --- |
-| driver | DRV-0 | landed | src/self_hosted/compiler/driver_rung0_main.pgy | tests/self_hosted/parity/driver/driver_rung0_parity.sh |
-| driver | DRV-1 | landed | src/self_hosted/compiler/driver_rung1_main.pgy | tests/self_hosted/parity/driver/driver_rung1_parity.sh |
-| driver | DRV-2 | landed | src/self_hosted/compiler/driver_rung2_main.pgy | tests/self_hosted/parity/driver/driver_rung2_body_parity.sh |
+| driver | DRV-0 | landed | src/self_hosted/compiler/driver/driver_rung0_main.pgy | tests/self_hosted/parity/driver/driver_rung0_parity.sh |
+| driver | DRV-1 | landed | src/self_hosted/compiler/driver/driver_rung1_main.pgy | tests/self_hosted/parity/driver/driver_rung1_parity.sh |
+| driver | DRV-2 | landed | src/self_hosted/compiler/driver/driver_rung2_main.pgy | tests/self_hosted/parity/driver/driver_rung2_body_parity.sh |
 | driver | DRV-3 | planned | - | - |
 | lsp | LSP-0 | landed | src/self_hosted/lsp/main.pgy | tests/self_hosted/parity/lsp/lsp_diagnostics_parity.sh |
 | lsp | LSP-1 | landed | src/self_hosted/lsp/squiggle_owner.pgy | tests/self_hosted/parity/lsp/lsp_diagnostics_parity.sh |

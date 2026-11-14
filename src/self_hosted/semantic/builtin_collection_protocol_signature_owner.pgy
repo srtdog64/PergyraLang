@@ -1,5 +1,5 @@
 // One generic callable signature from admitted collection protocol metadata.
-import "ast_expression_graph_collection_call_protocol_owner.pgy";
+import "ast_expression/ast_expression_graph_collection_call_protocol_owner.pgy";
 
 func SemanticBuiltinCollectionProtocolSignatureRow(
     ref protocol: SemanticExpressionGraphCollectionCallProtocolFact

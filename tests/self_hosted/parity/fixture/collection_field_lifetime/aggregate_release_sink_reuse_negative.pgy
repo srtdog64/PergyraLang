@@ -1,5 +1,5 @@
 // The caller reads a released path after the default-mode crossing.
-import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+import "../../../../../src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy";
 
 struct TableHolder {
     tables: SemanticAstExpressionFunctionTableFacts;

@@ -34,20 +34,20 @@ Inspected source facts:
   extraction without element proof, but lines 788-790 still admit it when the
   source binding is a current aggregate parameter. The borrowed formal-field
   negatives below are falsifiers of that exemption, not already observed rejects.
-- `src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:33-41`
+- `src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_move_owner.pgy:33-41`
   resolves a scoped local root. It has no demonstrated formal-root identity join.
   A spelling such as `value` and an `inout` mode cannot fill that gap.
-- `src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy:294-321`
+- `src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy:294-321`
   checks `SemanticAstCollectionOwnershipBuiltinCall` before dispatching ownership
   operations and names `borrow_boundary_escape` for a deep drop lacking binding
   provenance. Neither function spelling nor type alone proves builtin identity.
   These drafts declare no user callable with either builtin name.
-- `src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy:6-18`
+- `src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy:6-18`
   defines `ok/names/returns/params`; Ready checks `ok` and equal lengths only.
   Its real Release at lines 31-43 extracts three fields, deep drops them, writes
   the retired descriptors back, and sets `ok=false`. Ready and `ok` are shape
   checks, not String-element ownership evidence.
-- `src/self_hosted/semantic/ast_expression_environment_owner.pgy:107-152,256-305`
+- `src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy:107-152,256-305`
   and `src/self_hosted/semantic/builtin_signature_owner.pgy:237-239` construct
   owned rows using the actual `ArrayPushOwnedString` builtin, including builtin,
   constructor, user-function, enum and intent contributions. The draft populated
@@ -107,7 +107,7 @@ exception, or this report. The borrowed-table counterexample specifically
 prevents granting every table of this nominal type the same release authority.
 
 Actual DRV-2 retirement remains mandatory:
-`src/self_hosted/compiler/driver_rung2_owner.pgy:178-186` releases the MIR
+`src/self_hosted/compiler/driver/driver_rung2_owner.pgy:178-186` releases the MIR
 projection's analysis table, and its source-C route at lines 373-382 retires the
 table only after `CodegenAdmittedCViewFromFactsOrDie`. The source fact owner's
 comment mentioning body analysis does not authorize moving that later boundary.
@@ -128,16 +128,16 @@ HEAD. Working-tree content, not HEAD alone, identifies the inspected owners.
 
 ```text
 2C1FE4058BA60DD4300913D805E5A53A9D48B0D198EA5942EB463DE472DDAA39  src/semantic/collection_ownership_fact.c
-3504AB775DB78CA434399CE5BCB9000501D92A15805EA68D1FD4B3DD51B9E02E  src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy
-CDD2DD93093A40BC64573093B2EB7E9C20269B838B6709529FD9C3B1F0C614F4  src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy
-F3EDDEF784F5B08FFE2B5BB06742E1A2A456CC1430133376987C9EEB7E38E04F  src/self_hosted/semantic/ast_expression_environment_owner.pgy
-85D206EE7ABBAEAB5B95B1F227B4EB063697847336007D0BE26CE265BD345B9D  src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy
+3504AB775DB78CA434399CE5BCB9000501D92A15805EA68D1FD4B3DD51B9E02E  src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_move_owner.pgy
+CDD2DD93093A40BC64573093B2EB7E9C20269B838B6709529FD9C3B1F0C614F4  src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy
+F3EDDEF784F5B08FFE2B5BB06742E1A2A456CC1430133376987C9EEB7E38E04F  src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy
+85D206EE7ABBAEAB5B95B1F227B4EB063697847336007D0BE26CE265BD345B9D  src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy
 66F4F4C065449E224705BD2F762082490120A0F032E597E5F0C91F4A8C634DF2  tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
 3B07A6A1867CACBF220FF06071D1E43A761335255CED65AB8EBCC3859110CBA3  docs/semantics/sot_owner_spine_registry.md
 F2E1252C539965B5276C3AFC82C6E57E125FF6122B2C61F08B87E7776E68EEBA  src/self_hosted/parser/program_parse_owner.pgy
 34569399CFB3FCB2512C5DFA40278A67F5F7E9AEA8ECC4A95AED9FC085A1CAF8  src/self_hosted/semantic/ast_artifact_verdict_owner.pgy
 5E759D63E2246F63DCF203CB9606C13D449E0EF9B4456BE82F8A3FE030FC11F0  src/self_hosted/semantic/builtin_signature_owner.pgy
-9429C47E150CD57298682AE8EAF83AE884DECBCC4B500327B5B2B8EE0520C5B5  src/self_hosted/compiler/driver_rung2_owner.pgy
+9429C47E150CD57298682AE8EAF83AE884DECBCC4B500327B5B2B8EE0520C5B5  src/self_hosted/compiler/driver/driver_rung2_owner.pgy
 ```
 
 Only static path/reference and whitespace checks are permitted for this packet.

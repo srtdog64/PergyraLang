@@ -46,7 +46,7 @@ match rewrite.
 - `src/self_hosted/semantic/ast_match_materialization_fact_owner.pgy`
 - `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy`
 - `src/self_hosted/semantic/ast_body_type_bundle_readiness_owner.pgy`
-- `src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy`
+- `src/self_hosted/semantic/ast_expression/ast_expression_identity_resolution_owner.pgy`
 - `src/self_hosted/mir/routine_input_owner.pgy`
 - `src/self_hosted/mir/routine_local_inventory_owner.pgy`
 - `src/self_hosted/mir/routine_match_owner.pgy`

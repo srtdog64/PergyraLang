@@ -1,5 +1,5 @@
 // A field some routine releases may not hand its elements to a retaining formal.
-import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+import "../../../../../src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy";
 
 func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
     var names: Array<String> = [];

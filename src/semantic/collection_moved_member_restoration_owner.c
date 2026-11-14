@@ -10,7 +10,7 @@
 #include "loan_copy_landing_owner.h"
 #include "symbol_table.h"
 #include "type_checker.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "../parser/ast_api.h"
 
 static Symbol *

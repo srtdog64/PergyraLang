@@ -1,0 +1,42 @@
+// Owns the default surface-order and empty owned-store inputs for formal-use analysis.
+import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_formal_effect_fact_owner.pgy";
+import "../ast_expression/ast_expression_graph_view_owner.pgy";
+import "../ast_statement_fact_owner.pgy";
+import "../ast_owned_string_result_domain_owner.pgy";
+
+func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref scopes: SemanticAstFunctionScopeFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts
+) -> SemanticAstCollectionFormalEffects {
+    let no_synthetic_roots: Array<Int> = [];
+    let order: SemanticExpressionGraphSurfaceOrder =
+        SemanticExpressionGraphSurfaceOrderFromFacts(
+            surfaces, no_synthetic_roots, no_synthetic_roots);
+    return SemanticAstCollectionFormalEffectsWithSurfaceOrder(
+        artifact, signatures, scopes, locals, initializer_types, surfaces,
+        statements, owned_string_results, order);
+}
+
+func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref scopes: SemanticAstFunctionScopeFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref order: SemanticExpressionGraphSurfaceOrder
+) -> SemanticAstCollectionFormalEffects {
+    let no_owned_store_landings: Array<Int> = [];
+    return SemanticAstCollectionFormalEffectsWithSurfaceOrderAndOwnedStoreLandings(
+        artifact, signatures, scopes, locals, initializer_types, surfaces,
+        statements, owned_string_results, no_owned_store_landings, order);
+}

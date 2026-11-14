@@ -1,8 +1,8 @@
 // Persisted expression identity fields shared by String and file writers.
-import "../semantic/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_fact_owner.pgy";
 import "../compiler/artifact_zone_owner.pgy";
 import "../lib/json_emit.pgy";
-import "../semantic/ast_expression_graph_node_view_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
 struct SelfMirJsonExpressionIdentityProjection {
     ready: Bool;
     call_target_syntax_id: Int;

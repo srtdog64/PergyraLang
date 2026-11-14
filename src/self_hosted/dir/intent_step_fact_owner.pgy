@@ -7,7 +7,7 @@ import "../semantic/ast_intent_action_call_fact_owner.pgy";
 import "../semantic/ast_intent_call_fact_owner.pgy";
 import "../semantic/ast_intent_signature_fact_owner.pgy";
 import "../semantic/ast_intent_transition_row_owner.pgy";
-import "../semantic/ast_expression_surface_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_surface_fact_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
 import "intent_step_clause_fact_owner.pgy";

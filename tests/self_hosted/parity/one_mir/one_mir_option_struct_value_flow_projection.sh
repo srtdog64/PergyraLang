@@ -31,23 +31,23 @@ assert_owner_ratchet() {
             fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
         total=$((total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_nominal_classification_owner.pgy|150
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_nominal_program_admission_owner.pgy|80
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_nominal_projection_owner.pgy|55
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_program_admission_owner.pgy|30
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_program_identity_owner.pgy|230
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_graph_shape_owner.pgy|140
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_graph_fact_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_instruction_admission_owner.pgy|280
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_abi_fact_owner.pgy|220
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_plan_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_c_emission_owner.pgy|190
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_llvm_emission_owner.pgy|220
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_struct_value_flow_projection_owner.pgy|40
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_two_routine_nominal_classification_owner.pgy|150
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_two_routine_nominal_program_admission_owner.pgy|80
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_two_routine_nominal_projection_owner.pgy|55
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_program_admission_owner.pgy|30
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_program_identity_owner.pgy|230
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_graph_shape_owner.pgy|140
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_graph_fact_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_instruction_admission_owner.pgy|280
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_abi_fact_owner.pgy|220
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_plan_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_c_emission_owner.pgy|190
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_llvm_emission_owner.pgy|220
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_option_struct_value_flow_projection_owner.pgy|40
 EOF
     [[ "$total" -le 1800 ]] ||
         fail "Option nominal value-flow owner family cap exceeded: $total/1800"
-    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")" || fail "source-size measurement failed"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy")" || fail "source-size measurement failed"
     [[ "$lines" -le 110 ]] || fail "multi-routine root cap exceeded: $lines/110"
 }
 

@@ -1,0 +1,40 @@
+// A read-only ref of a scalar (Int, Long, Float, Bool) or of a Slice
+// descriptor passes the value itself, as a read-only String passes its view:
+// nothing writes through the ref, so the callee reads what a copy holds.
+// Native MIR names a Slice layout and self-host MIR names none; a required
+// layout still needs its id.
+import "../direct_mir_routine_signature_fact_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_scalar_type_family_owner.pgy";
+
+func DirectMirScalarProgramReadonlyValueTypeSupported(type_name: String) -> Bool {
+    return (DirectMirScalarCfgScalarTypeSupported(type_name) &&
+            type_name != CompilerAbiLayoutStringTypeName()) ||
+        DirectMirScalarCfgSliceTypeSupported(type_name);
+}
+
+func DirectMirScalarProgramReadonlyValueParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    if ordinal < 0 || ordinal >= signature.param_count { return false; }
+    return DirectMirScalarProgramReadonlyValueTypeSupported(
+            signature.parameters.type_names[ordinal]) &&
+        signature.parameters.carriages[ordinal] == "readonly-ref" &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        (!signature.parameters.abi_required[ordinal] ||
+         signature.parameters.abi_layout_ids[ordinal] > 0);
+}
+
+func DirectMirScalarProgramReadonlyValueTargetAt(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(routines.parameter_counts) ||
+        ordinal < 0 || ordinal >= routines.parameter_counts[routine] { return false; }
+    let row: Int = routines.parameter_starts[routine] + ordinal;
+    return row >= 0 && row < ArrayLength(routines.parameter_types) &&
+        DirectMirScalarProgramReadonlyValueTypeSupported(
+            routines.parameter_types[row]) &&
+        routines.parameter_carriages[row] == "readonly-ref";
+}

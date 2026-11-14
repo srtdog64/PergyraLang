@@ -91,7 +91,7 @@ else:
 assert stream.requests == [module.MAX_RECEIPT_BYTES + 1]
 PY
 grep -Fq 'plan.program.runtime_abi.bool_to_string_id != 0 ||' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy" ||
     fail "self-host LLVM foreign declarations omit Bool-to-String malloc ownership"
 
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"

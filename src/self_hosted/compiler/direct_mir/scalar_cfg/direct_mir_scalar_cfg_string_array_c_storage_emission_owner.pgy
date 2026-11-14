@@ -1,0 +1,71 @@
+// C storage materialization for the sealed String-array plan.
+
+import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
+import "../direct_mir_array_string_abi_projection_owner.pgy";
+
+func DirectMirScalarCfgStringArrayCPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarCfgStringArrayPlanAbsent(plan.string_arrays) { return ""; }
+    let fact: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, 0);
+    let abi: DirectMirArrayStringAbiProjection =
+        DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+            fact.data_offset, fact.length_offset, fact.capacity_offset,
+            fact.allocator_offset
+        );
+    return Concat(
+        "#include <stdint.h>\n#include <stddef.h>\n",
+        DirectMirScalarCfgArrayCStruct(
+            abi.c_element_type, abi.c_array_type, abi.storage
+        )
+    );
+}
+
+func DirectMirScalarCfgStringArrayCDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    var output: String = ""; var row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayCollectionCount(
+        plan.string_arrays
+    ) {
+        let fact: DirectMirScalarCfgArrayStringCollectionFact =
+            DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, row);
+        let abi: DirectMirArrayStringAbiProjection =
+            DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+                target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+                fact.data_offset, fact.length_offset, fact.capacity_offset,
+                fact.allocator_offset
+            );
+        let initial: Int = ArrayLength(fact.elements);
+        let capacity: Int = DirectMirScalarCfgStringArrayStaticCapacity(
+            plan.string_arrays, row
+        );
+        if capacity < initial { Die("direct MIR String array C capacity is invalid"); }
+        if capacity > 0 {
+            output = Concat(output, Concat("    ", abi.c_element_type));
+            output = Concat(output, " pgy_indexed_storage_");
+            output = Concat(output, Concat(ToString(row), Concat("[",
+                Concat(ToString(capacity), "] = {")
+            )));
+            if initial == 0 { output = Concat(output, "NULL"); }
+            else { output = Concat(output,
+                DirectMirScalarCfgArrayStringCElementList(fact.elements)); }
+            output = Concat(output, "};\n");
+        }
+        output = Concat(output, Concat("    ", abi.c_array_type));
+        output = Concat(output, " pgy_indexed_collection_");
+        output = Concat(output, Concat(ToString(row), " = "));
+        var data: String = "NULL";
+        if capacity > 0 { data = Concat("pgy_indexed_storage_", ToString(row)); }
+        output = Concat(output, DirectMirScalarCfgArrayCInitializer(
+            abi.storage, data, ToString(initial), ToString(capacity), "NULL"));
+        output = Concat(output, ";\n");
+        row = row + 1;
+    }
+    return output;
+}

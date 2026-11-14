@@ -30,17 +30,17 @@ assert_owner_ratchet() {
         [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
         shared_total=$((shared_total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_graph_fact_owner.pgy|150
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_program_identity_owner.pgy|200
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_route_fact_owner.pgy|110
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_instruction_envelope_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_abi_absence_owner.pgy|120
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_program_admission_owner.pgy|220
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy|110
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_literal_declaration_fact_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_literal_graph_fact_owner.pgy|150
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_literal_program_identity_owner.pgy|200
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_literal_route_fact_owner.pgy|110
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_literal_instruction_envelope_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_literal_abi_absence_owner.pgy|120
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_literal_program_admission_owner.pgy|220
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_nominal_literal_projection_owner.pgy|110
 EOF
     [[ "$shared_total" -le 900 ]] || fail "shared nominal literal owner cap exceeded: $shared_total/900"
-    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy" | tr -d ' ')" || fail "source-size measurement failed"
+    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_exact_json_array_cardinality_owner.pgy" | tr -d ' ')" || fail "source-size measurement failed"
     [[ "$source_size_lines" -le 90 ]] || fail "exact JSON-array cardinality owner hard cap exceeded"
 }
 

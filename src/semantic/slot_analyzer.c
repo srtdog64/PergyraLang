@@ -11,7 +11,7 @@
 #include "slot_analyzer_internal.h"
 #include "type_checker.h"
 #include "diag_codes.h"
-#include "function_param_publication_owner.h"
+#include "function_param_flow/function_param_publication_owner.h"
 
 #define INITIAL_ENTRY_CAPACITY 16
 

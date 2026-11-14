@@ -46,7 +46,7 @@ derived from a TLS/task execution machine:
 ## Evidence boundary
 
 These are model theorems, not implementation verification. The live owners are
-`src/semantic/type_checker_future_lifecycle.c`, the Future state carrier and
+`src/semantic/type_checker/type_checker_future_lifecycle.c`, the Future state carrier and
 flow merge, and `src/runtime/pgy_runtime_context.h`. The static
 `tests/async_model_adequacy_smoke.sh` gate binds every modeled decision back to
 those owners. These text anchors are not a semantic simulation. Existing

@@ -1,0 +1,109 @@
+// Conditional entry obligations, not storage or element ownership grants.
+// Consume the already admitted member-origin rows; never rebuild their AST.
+import "../ast_signature_fact_owner.pgy";
+import "../ast_local_binding_fact_owner.pgy";
+
+struct SemanticAstCollectionAggregateFieldEntryRequirements {
+    ok: Bool;
+    function_ids: Array<Int>;
+    formal_ids: Array<Int>;
+    formal_ordinals: Array<Int>;
+    formal_modes: Array<Int>;
+    field_ids: Array<Int>;
+    path_starts: Array<Int>;
+    path_counts: Array<Int>;
+    path_field_ids: Array<Int>;
+    local_ids: Array<Int>;
+    effect_masks: Array<Int>;
+    row_by_local: HashMap<String, Int>;
+}
+
+func SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() -> Int {
+    return 1;
+}
+
+func SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() -> Int {
+    return 2;
+}
+
+func SemanticAstCollectionAggregateRequirementHasEffect(
+    effect_mask: Int, effect: Int
+) -> Bool {
+    if effect ==
+            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() {
+        return effect_mask == effect || effect_mask == 3;
+    }
+    if effect ==
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() {
+        return effect_mask == effect || effect_mask == 3;
+    }
+    return false;
+}
+
+func SemanticAstCollectionAggregateFieldEntryRequirementsEmpty() -> SemanticAstCollectionAggregateFieldEntryRequirements {
+    let functions: Array<Int> = [];
+    let formals: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    let modes: Array<Int> = [];
+    let fields: Array<Int> = [];
+    let path_starts: Array<Int> = [];
+    let path_counts: Array<Int> = [];
+    let path_fields: Array<Int> = [];
+    let locals: Array<Int> = [];
+    let effects: Array<Int> = [];
+    let rows: HashMap<String, Int> = MapNew();
+    return SemanticAstCollectionAggregateFieldEntryRequirements(
+        true, functions, formals, ordinals, modes, fields,
+        path_starts, path_counts, path_fields, locals, effects, rows);
+}
+
+// Validate the exact index domain without retaining a ref fact's descriptor.
+func SemanticAstCollectionAggregateFieldEntryIndexReady(rows: HashMap<String, Int>, ref local_ids: Array<Int>) -> Bool {
+    let count: Int = ArrayLength(local_ids);
+    if MapSize(rows) != count { return false; }
+    var row: Int = 0;
+    while row < count {
+        let key: String = ToString(local_ids[row]);
+        if !MapHas(rows, key) || MapGet(rows, key) != row { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateFieldEntryIndexRow(rows: HashMap<String, Int>, local_id: Int) -> Int {
+    let key: String = ToString(local_id);
+    if !MapHas(rows, key) { return -1; }
+    return MapGet(rows, key);
+}
+
+func SemanticAstCollectionAggregateFieldEntryRequirementsReady(
+    ref facts: SemanticAstCollectionAggregateFieldEntryRequirements
+) -> Bool {
+    let count: Int = ArrayLength(facts.local_ids);
+    if !facts.ok || ArrayLength(facts.function_ids) != count || ArrayLength(facts.formal_ids) != count ||
+        ArrayLength(facts.formal_ordinals) != count || ArrayLength(facts.formal_modes) != count || ArrayLength(facts.field_ids) != count ||
+        ArrayLength(facts.path_starts) != count || ArrayLength(facts.path_counts) != count ||
+        ArrayLength(facts.effect_masks) != count {
+        return false;
+    }
+    if !SemanticAstCollectionAggregateFieldEntryIndexReady(facts.row_by_local, facts.local_ids) { return false; }
+    var path_cursor: Int = 0;
+    var row: Int = 0;
+    while row < count {
+        if facts.function_ids[row] <= 0 || facts.formal_ids[row] <= 0 || facts.formal_ordinals[row] < 0 ||
+            facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3 || facts.field_ids[row] <= 0 || facts.local_ids[row] <= 0 ||
+            facts.effect_masks[row] <= 0 || facts.effect_masks[row] > 3 ||
+            facts.path_starts[row] != path_cursor || facts.path_counts[row] <= 0 ||
+            facts.path_counts[row] > ArrayLength(facts.path_field_ids) - path_cursor { return false; }
+        let path_end: Int = path_cursor + facts.path_counts[row];
+        var path_row: Int = path_cursor;
+        while path_row < path_end {
+            if facts.path_field_ids[path_row] <= 0 { return false; }
+            path_row = path_row + 1;
+        }
+        if facts.path_field_ids[path_end - 1] != facts.field_ids[row] { return false; }
+        path_cursor = path_end;
+        row = row + 1;
+    }
+    return path_cursor == ArrayLength(facts.path_field_ids);
+}

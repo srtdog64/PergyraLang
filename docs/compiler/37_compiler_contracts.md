@@ -101,7 +101,7 @@ Concrete rules:
 
 ## 3. Cleanup And Pin Contract
 
-MIR cleanup fact names are owned by `src/compiler/mir_cleanup_fact_names.h`.
+MIR cleanup fact names are owned by `src/compiler/mir/mir_cleanup_fact_names.h`.
 Consumers must use that vocabulary instead of duplicating string literals.
 
 Required facts:

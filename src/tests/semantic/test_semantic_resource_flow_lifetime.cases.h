@@ -1,5 +1,5 @@
-#include "semantic/type_checker_flow_resources.h"
-#include "semantic/type_checker_flow_universe.h"
+#include "semantic/type_checker/type_checker_flow_resources.h"
+#include "semantic/type_checker/type_checker_flow_universe.h"
 
 static void
 test_resource_flow_symbol_lifetime(void)

@@ -1,6 +1,6 @@
 // An error-path release leaves the routine through a Never call, so the
 // normal-path release of the same tables cannot run after it.
-import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+import "../../../../../src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy";
 
 struct TableHolder {
     tables: SemanticAstExpressionFunctionTableFacts;

@@ -5,7 +5,7 @@
 
 import "../../semantic/ast_body_type_bundle_owner.pgy";
 import "../../semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
-import "../../semantic/ast_expression_call_return_type_diagnostic_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_call_return_type_diagnostic_owner.pgy";
 import "../text/text_owner.pgy";
 import "semantic_assignment_codegen_view_owner.pgy";
 import "semantic_statement_codegen_view_owner.pgy";

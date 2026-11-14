@@ -420,28 +420,28 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     tests/self_hosted/parity/direct_mir/direct_mir_owned_collection_execution_owner.sh \
     tests/self_hosted/parity/direct_mir/direct_mir_owned_collection_execution_mutations.py \
     tests/self_hosted/parity/direct_mir/direct_mir_owned_collection_refusal_protocol.sh \
-    src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_definition_owner.pgy \
-    src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_block_owner.pgy \
-    src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_flow_owner.pgy \
-    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_final_claim_owner.pgy \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_projection_owner.pgy \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_program_parameter_identity_owner.pgy \
-    src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy \
-    src/self_hosted/compiler/direct_mir_scalar_program_return_expression_abi_owner.pgy \
-    src/self_hosted/semantic/ast_collection_builtin_receipt_issue_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_collection_definition_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_collection_block_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_collection_flow_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_final_claim_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_value_type_projection_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_value_type_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_parameter_identity_owner.pgy \
+    src/self_hosted/compiler/direct_mir/direct_mir_routine_signature_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_return_expression_abi_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_builtin_receipt_issue_owner.pgy \
     src/self_hosted/mir/local_ref_json_projection_owner.pgy \
     src/self_hosted/mir/collection_ownership_fact_owner.pgy \
-    src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_wire_local_ref_owner.pgy \
     tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy \
     tests/self_hosted/fixtures/numeric_string_allocation_unit.pgy \
     tests/self_hosted/fixtures/owned_string_allocator_domain_unit.pgy \
     tests/self_hosted/fixtures/generic_default_selection_unit.pgy \
     tests/self_hosted/fixtures/collection_storage_mutation_identity_unit.pgy \
-    src/self_hosted/semantic/ast_collection_storage_mutation_owner.pgy \
-    src/self_hosted/semantic/ast_collection_storage_observation_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_storage_mutation_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_storage_observation_owner.pgy \
     src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy \
-    src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy \
+    src/self_hosted/semantic/ast_expression/ast_expression_identity_resolution_owner.pgy \
     src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy \
     src/self_hosted/semantic/ast_signature_fact_owner.pgy \
     src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy \
@@ -452,79 +452,79 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_body_type_bundle_readiness_owner.pgy \
     src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy \
     src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_schema_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_effect_fact_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_statement_effect_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_effect_admission_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_effect_fixed_point_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_effect_graph_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_effect_closure_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
-    src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy \
-    src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy \
-    src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy \
-    src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy \
-    src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_identity_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_execution_context_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_fact_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_statement_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_admission_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_use_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_fixed_point_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_graph_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_closure_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_readiness_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_descriptor_retention_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_descriptor_retention_entry_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_terminal_storage_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_constructor_storage_escape_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_constructor_field_input_owner.pgy \
     src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy \
-    src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy \
-    src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy \
-    src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy \
-    src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy \
-    src/self_hosted/semantic/ast_collection_definition_fact_owner.pgy \
-    src/self_hosted/semantic/ast_collection_definition_query_owner.pgy \
-    src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy \
-    src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy \
-    src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy \
-    src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy \
-    src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy \
-    src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy \
-    src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy \
-    src/self_hosted/semantic/ast_collection_repeated_local_generation_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy \
-    src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy \
-    src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy \
-    src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy \
-    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy \
-    src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy \
-    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy \
-    src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy \
-    src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy \
-    src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy \
-    src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_effect_fact_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_effect_closure_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_argument_permission_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_formal_storage_permission_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_fact_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_query_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_assignment_definition_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_storage_authority_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_storage_producer_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_definition_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_assignment_alias_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_binding_move_use_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_argument_verdict_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_argument_effect_verdict_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_retirement_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_repeated_local_generation_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_state_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_owned_argument_admission_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_owned_parameter_identity_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_owned_element_parameter_requirement_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_field_entry_requirement_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_plan_schema_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_value_exclusivity_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_value_lineage_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_plan_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_argument_transfer_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_argument_event_order_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_lifetime_event_order_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_builtin_transition_owner.pgy \
     src/self_hosted/semantic/ast_local_binding_fact_owner.pgy \
-    src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy \
-    src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy \
+    src/self_hosted/semantic/ast_expression/ast_expression_surface_fact_owner.pgy \
+    src/self_hosted/semantic/ast_expression/ast_expression_identity_fact_owner.pgy \
     src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy \
     src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_validation_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_statement_transition_owner.pgy \
     src/self_hosted/semantic/ast_assignment_fact_owner.pgy \
-    src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_read_hazard_site_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_read_hazard_normalization_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_read_fact_query_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_read_completion_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_local_use_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_local_transition_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_read_block_transition_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_member_restoration_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy \
-    src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy \
+    src/self_hosted/semantic/ast_expression/ast_expression_graph_call_argument_edge_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_identity_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_root_identity_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_read_hazard_site_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_read_hazard_normalization_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_read_fact_query_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_read_completion_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_local_use_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_local_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_read_block_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_result_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_restoration_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_capture_obligation_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_capture_source_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_capture_site_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_member_read_permission_owner.pgy \
+    src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_result_domain_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_domain_exposure_owner.pgy \

@@ -4,7 +4,7 @@
 import "ast_body_verdict_owner.pgy";
 import "ast_body_analysis_shape_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
-import "ast_expression_surface_fact_owner.pgy";
+import "ast_expression/ast_expression_surface_fact_owner.pgy";
 
 func SemanticAstSubjectBoundaryType(ref subject_types: Array<String>, type_name: String) -> Bool {
     var row: Int = 0;

@@ -1,0 +1,30 @@
+// Checked read-only last consumer for installed source-C stdout requests.
+
+import "../compiler_world_direct_mir_owner.pgy";
+
+func DriverRung2CliLogSourceCPayloadOrDie(
+    inout compiler_world: PgyCompilerWorld,
+    source_path: String,
+    request: DriverSourceCRequest
+) -> Void with caps io_read {
+    let request_identity: DriverSourceCRequestIdentity =
+        DriverSourceCRequestIdentitySnapshot(request);
+    let admission: DriverSourceCPayloadAdmission =
+        ProduceSourceCThroughPgyCompilerWorld(
+            compiler_world, source_path, request
+        );
+    if !DriverSourceCPayloadAdmissionReadyFor(
+        admission, source_path, request_identity
+    ) {
+        Log(DriverSourceCPayloadAdmissionDiagnostic(
+            admission, source_path, request_identity
+        ));
+        Exit(1);
+    }
+    match admission {
+        case DriverSourceCPayloadAdmitted(receipt):
+            Log(receipt.artifact.payload);
+        case DriverSourceCPayloadDenied(rejection):
+            Die("source C stdout request returned an unchecked rejection");
+    }
+}

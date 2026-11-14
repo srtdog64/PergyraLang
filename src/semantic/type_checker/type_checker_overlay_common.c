@@ -1,0 +1,129 @@
+#include "type_checker_internal.h"
+#include "../diag_codes.h"
+#include "parser/ast_api.h"
+#include "../../common/string_compat.h"
+
+#include <stdlib.h>
+
+bool
+type_check_overlay_bind_shared_fields(ASTNode **shared_fields,
+                                       size_t shared_count,
+                                       SemanticContext *ctx)
+{
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
+        const char *shared_name = ast_party_shared_name(shared);
+        if (shared == NULL || shared_name == NULL)
+            continue;
+        Type *field_type = TYPE_UNKNOWN;
+        if (ast_party_shared_type(shared) != NULL)
+            field_type = domain_lookup_shared_type_metadata(shared, ctx);
+        Symbol *field_sym = calloc(1, sizeof(Symbol));
+        if (field_sym == NULL) {
+            semantic_error(ctx, shared, "Out of memory while binding hosted field");
+            return false;
+        }
+        field_sym->name = pergyra_strdup(shared_name);
+        field_sym->kind = SYMBOL_VARIABLE;
+        field_sym->type = field_type;
+        field_sym->decl_line = shared->line;
+        field_sym->decl_col = shared->column;
+        symbol_mark_declaration(field_sym, ast_node_stable_id(shared), false);
+        field_sym->is_host_field = true;
+        field_sym->is_mut_binding = true;
+        if (field_sym->name == NULL || !scope_declare(ctx->scope, field_sym)) {
+            symbol_destroy(field_sym);
+            semantic_error(ctx, shared, "Cannot register hosted field binding '%s'",
+                shared_name);
+            return false;
+        }
+    }
+    /* This owner reports only whether hosted-field bindings were published.
+     * Earlier diagnostics belong to earlier statements and must not suppress
+     * the current host's method pass. */
+    return true;
+}
+
+bool
+type_check_overlay_decl_common(ASTNode *node,
+                               SemanticContext *ctx,
+                               const char *name,
+                               SymbolKind kind,
+                               ASTNode **shared_fields,
+                               size_t shared_count,
+                               ASTNode **methods,
+                               size_t method_count,
+                               const char *kind_name)
+{
+    Symbol *sym = calloc(1, sizeof(Symbol));
+    sym->name = pergyra_strdup(name);
+    sym->kind = kind;
+    sym->type = create_overlay_nominal_type(name);
+    sym->decl_line = node->line;
+    sym->decl_col = node->column;
+    symbol_mark_declaration(sym, ast_node_stable_id(node), false);
+
+    Symbol *existing = scope_lookup_current(ctx->scope, name);
+    if (symbol_is_forward_declaration_for(existing,
+            kind, ast_node_stable_id(node))) {
+        if (existing->type == NULL || existing->type == TYPE_VOID)
+            existing->type = create_overlay_nominal_type(name);
+        symbol_complete_forward_declaration(existing);
+        symbol_destroy(sym);
+    } else if (existing != NULL) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_REDECLARATION,
+            PGY_CAUSE_OVERLAY_DUPLICATE_NAME,
+            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
+            node, "Redeclaration of %s '%s'", kind_name, name);
+        symbol_destroy(sym);
+        return false;
+    } else {
+        scope_declare(ctx->scope, sym);
+    }
+
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
+        if (ast_party_shared_type(shared) != NULL)
+            domain_lookup_shared_type_metadata(shared, ctx);
+        if (ast_party_shared_initializer(shared) != NULL)
+            type_check_expression(ast_party_shared_initializer(shared), ctx);
+    }
+
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    /* Register domain slots so bare slot access works in hosted funcs. */
+    if (node->type == AST_ZONE_DECL) {
+        ASTNode **slots;
+        size_t slot_count;
+
+        slots = ast_zone_slots(node, &slot_count);
+        for (size_t i = 0; i < slot_count; i++) {
+            ASTNode *slot = slots[i];
+            const char *slot_name = ast_domain_slot_name(slot);
+            if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+                && slot_name != NULL
+                && ast_domain_slot_type(slot) != NULL) {
+                Type *slot_type = domain_lookup_slot_type_metadata(slot, ctx);
+                Symbol *slot_sym = calloc(1, sizeof(Symbol));
+                slot_sym->name = pergyra_strdup(slot_name);
+                slot_sym->kind = SYMBOL_VARIABLE;
+                slot_sym->type = slot_type != NULL ? slot_type : TYPE_UNKNOWN;
+                slot_sym->decl_line = slot->line;
+                slot_sym->decl_col = slot->column;
+                symbol_mark_declaration(slot_sym, ast_node_stable_id(slot), false);
+                slot_sym->is_host_field = true;
+                scope_declare(ctx->scope, slot_sym);
+            }
+        }
+    }
+    /* Register shared fields so bare field access works in hosted funcs. */
+    if (!type_check_overlay_bind_shared_fields(shared_fields, shared_count, ctx)) {
+        scope_exit(&ctx->scope);
+        return false;
+    }
+    for (size_t i = 0; i < method_count; i++)
+        type_check_func_decl(methods[i], ctx);
+    scope_exit(&ctx->scope);
+
+    return !ctx->has_error;
+}

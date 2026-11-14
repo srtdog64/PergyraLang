@@ -1,0 +1,68 @@
+// Join one method declaration to its target and normalize receiver-first ABI.
+
+import "direct_mir_routine_parameter_set_admission_owner.pgy";
+import "direct_mir_routine_receiver_parameter_set_owner.pgy";
+import "../../mir_lower/program_routine_index_owner.pgy";
+import "../../mir_lower/program_routine_receiver_target_owner.pgy";
+import "../../mir_lower/routine_inventory_owner.pgy";
+
+struct DirectMirRoutineMethodSignatureProjection {
+    let valid: Bool;
+    let receiver_type: String;
+    let receiver_owner_row: Int;
+    let source_parameter_offset: Int;
+    let parameters: DirectMirRoutineParameterSetFact;
+}
+
+func DirectMirRoutineMethodSignatureProjectionInvalid(
+) -> DirectMirRoutineMethodSignatureProjection {
+    return DirectMirRoutineMethodSignatureProjection(
+        false, "", -1, 0, DirectMirRoutineParameterSetFactInvalid());
+}
+
+func DirectMirRoutineMethodSignatureFromBounds(
+    ref routines: MirProgramRoutineIndex, row: Int,
+    param_names: Array<String>, param_types: Array<String>,
+    param_carriages: Array<String>, param_resources: Array<String>,
+    param_pass_shapes: Array<String>, start: Int, end: Int
+) -> DirectMirRoutineMethodSignatureProjection {
+    let invalid: DirectMirRoutineMethodSignatureProjection =
+        DirectMirRoutineMethodSignatureProjectionInvalid();
+    if !MirProgramRoutineIndexRowReady(routines, row) ||
+        routines.kinds[row] != "method" { return invalid; }
+    let value_receiver: Bool = CallableReceiverNominalKindUsesValue(
+            routines.owner_nominal_kinds[row]) &&
+        routines.receiver_carriages[row] == "value";
+    let identity_receiver: Bool =
+        CallableReceiverNominalKindUsesMutableIdentity(
+            routines.owner_nominal_kinds[row]) &&
+        routines.receiver_carriages[row] == "mutable-identity";
+    let target: MirProgramRoutineReceiverTargetCapture =
+        CaptureMirProgramRoutineReceiverTarget(
+            routines.source_json, routines.source_json_extent,
+            routines.declarations, routines.owners[row],
+            routines.owner_nominal_kinds[row],
+            routines.owner_declaration_rows[row]);
+    if (!value_receiver && !identity_receiver) || !target.valid {
+        return invalid;
+    }
+    var source_offset: Int = 0;
+    if ArrayLength(param_names) == 0 ||
+        param_names[0] != "self" { source_offset = 1; }
+    var source_receiver_type: String = "";
+    if source_offset == 0 { source_receiver_type = target.type_name; }
+    let source: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFactFromBounds(
+            routines.source_json, routines.source_json_extent, start, end,
+            param_names, param_types, param_carriages, param_resources,
+            param_pass_shapes,
+            source_receiver_type);
+    let parameters: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineReceiverParameterSetFact(
+            source, target.type_name, routines.receiver_carriages[row],
+            ToInt(routines.source_syntax_ids[row]), source_offset);
+    if !DirectMirRoutineParameterSetFactReady(parameters) { return invalid; }
+    return DirectMirRoutineMethodSignatureProjection(
+        true, target.type_name, target.declaration_row, source_offset,
+        parameters);
+}

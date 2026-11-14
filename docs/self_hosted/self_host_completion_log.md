@@ -6472,7 +6472,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   now be rejected by the C oracle with the mapped JSON root code. A backend-native
   fallthrough with no semantic JSON code is a gate failure.
 - Closed the scalar builtin signature gap in
-  `src/semantic/type_checker_builtins_stdlib_scalar.c`: `Sqrt`/trig/log unary
+  `src/semantic/type_checker/type_checker_builtins_stdlib_scalar.c`: `Sqrt`/trig/log unary
   Float builtins, `Pow`, `Atan2`, `Random`, and `Clamp` now check their argument
   types in the semantic owner instead of letting native C compilation discover
   the mismatch later.
@@ -7221,7 +7221,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 ### 2026-06-28 -- Backend comparator consumes harness artifact rows
 
 - Added comparable artifact path facts and finding-cap policy to
-  `src/self_hosted/compiler/test_harness_owner.pgy`.
+  `src/self_hosted/compiler/test_harness/test_harness_owner.pgy`.
 - Repointed `backend_output_comparator` so expected/actual fixture paths and
   mismatch finding locations come from the `TestHarness` owner rather than
   tool-local string constants.
@@ -7381,7 +7381,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 ### 2026-06-28 -- Comparator consumes artifact pair rows through argv
 
 - Added projection-index validation to
-  `src/self_hosted/compiler/test_harness_owner.pgy`, including the
+  `src/self_hosted/compiler/test_harness/test_harness_owner.pgy`, including the
   `self_hosted` projection row.
 - Repointed `backend_output_comparator` so artifact paths and projection row
   indexes can be supplied through `Args()` while preserving the no-arg fixture

@@ -1,0 +1,87 @@
+// Sealed runtime ABI IDs required by one normalized scalar-program arena.
+import "../scalar_cfg/direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy";
+import "direct_mir_scalar_program_string_index_runtime_owner.pgy";
+import "direct_mir_scalar_program_string_trim_runtime_owner.pgy";
+struct DirectMirScalarProgramRuntimeAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let string_compare_id: Int;
+    let string_concat_id: Int;
+    let string_to_string_id: Int;
+    let bool_to_string_id: Int;
+    let string_to_upper_id: Int;
+    let string_to_lower_id: Int;
+    let string_length_id: Int;
+    let string_char_code_id: Int;
+    let string_char_at_n_id: Int;
+    let string_substring_id: Int;
+    let string_substring_with_len_id: Int;
+    let string_sub_equals_with_len_id: Int;
+    let string_sub_index_with_len_id: Int;
+    let string_sub_contains_with_len_id: Int;
+    let string_sub_starts_with_len_id: Int;
+    let string_index: DirectMirScalarProgramStringIndexRuntimeFact;
+    let string_trim: DirectMirScalarProgramStringTrimRuntimeFact;
+    let string_contains_id: Int;
+    let string_split_id: Int;
+    let string_join_id: Int;
+    let string_to_int_id: Int;
+    let array_string_length_id: Int;
+    let array_string_get_id: Int;
+    let process_args_id: Int;
+    let dir_walk_id: Int;
+    let file_exists_id: Int;
+    let read_file_id: Int;
+    let write_file_id: Int;
+    let compiler_artifact_write_id: Int;
+    let compiler_artifact_begin_id: Int;
+    let compiler_artifact_commit_id: Int;
+    let compiler_artifact_abort_id: Int;
+    let case_math: DirectMirScalarProgramCaseMathRuntimeIds;
+}
+func DirectMirScalarProgramRuntimeAbiFactEmpty(
+) -> DirectMirScalarProgramRuntimeAbiFact {
+    return DirectMirScalarProgramRuntimeAbiFact(
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        DirectMirScalarProgramStringIndexRuntimeFactEmpty(),
+        DirectMirScalarProgramStringTrimRuntimeFactEmpty(), 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        DirectMirScalarProgramCaseMathRuntimeIdsEmpty()
+    );
+}
+
+func DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
+    ref fact: DirectMirScalarProgramRuntimeAbiFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.string_compare_id == 0 &&
+        fact.string_concat_id == 0 && fact.string_to_string_id == 0 &&
+        fact.bool_to_string_id == 0 &&
+        fact.string_to_upper_id == 0 && fact.string_to_lower_id == 0 &&
+        fact.string_length_id == 0 && fact.string_char_code_id == 0 &&
+        fact.string_char_at_n_id == 0 &&
+        fact.string_substring_id == 0 &&
+        fact.string_substring_with_len_id == 0 &&
+        fact.string_sub_equals_with_len_id == 0 &&
+        fact.string_sub_index_with_len_id == 0 &&
+        fact.string_sub_contains_with_len_id == 0 &&
+        fact.string_sub_starts_with_len_id == 0 &&
+        DirectMirScalarProgramStringIndexRuntimeFactCanonicalEmpty(
+            fact.string_index) &&
+        DirectMirScalarProgramStringTrimRuntimeFactCanonicalEmpty(
+            fact.string_trim) &&
+        fact.string_contains_id == 0 && fact.string_split_id == 0 &&
+        fact.string_join_id == 0 &&
+        fact.string_to_int_id == 0 && fact.array_string_length_id == 0 &&
+        fact.array_string_get_id == 0 && fact.process_args_id == 0 &&
+        fact.dir_walk_id == 0 &&
+        fact.file_exists_id == 0 &&
+        fact.read_file_id == 0 &&
+        fact.write_file_id == 0 &&
+        fact.compiler_artifact_write_id == 0 &&
+        fact.compiler_artifact_begin_id == 0 &&
+        fact.compiler_artifact_commit_id == 0 &&
+        fact.compiler_artifact_abort_id == 0 &&
+        DirectMirScalarProgramCaseMathRuntimeIdsCanonicalEmpty(
+            fact.case_math);
+}

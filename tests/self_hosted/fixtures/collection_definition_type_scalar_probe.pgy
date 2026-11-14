@@ -1,4 +1,4 @@
-import "../../../src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_ownership_identity_owner.pgy";
 
 func Classify(ref types: Array<String>, row: Int) -> Bool {
     let type_name: String = Concat("", types[row]);

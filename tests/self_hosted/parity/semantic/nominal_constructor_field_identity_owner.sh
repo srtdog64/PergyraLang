@@ -16,9 +16,9 @@ SOURCE=tests/self_hosted/fixtures/nominal_constructor_field_identity.pgy
 cd "$ROOT_DIR"
 sha256sum "$SOURCE" \
     src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy \
-    src/self_hosted/semantic/ast_expression_graph_nominal_constructor_argument_owner.pgy \
-    src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy \
-    src/self_hosted/semantic/ast_expression_verdict_owner.pgy >"$WORK/source.before.sha256"
+    src/self_hosted/semantic/ast_expression/ast_expression_graph_nominal_constructor_argument_owner.pgy \
+    src/self_hosted/semantic/ast_expression/ast_expression_graph_nominal_constructor_call_owner.pgy \
+    src/self_hosted/semantic/ast_expression/ast_expression_verdict_owner.pgy >"$WORK/source.before.sha256"
 sha256sum "$PGY" "$DRIVER" >"$WORK/native.before.sha256"
 for ((i=0; i<32; i++)); do printf 'true\n'; done >"$WORK/expected"
 for backend in c llvm; do

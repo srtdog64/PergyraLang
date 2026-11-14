@@ -148,7 +148,7 @@ C#식 규칙을 적었지만, 코퍼스를 측정해 보고 바꿨다. C#식은 
 - 매개변수는 함수 전체에서 보이므로, 같은 이름의 지역 바인딩은 항상 거부한다.
 - `shared` 같은 호스트 필드는 지역 바인딩이 아니므로 지역 이름이 가릴 수 있다.
 - native: `semantic_local_name_rule_check`
-  (`src/semantic/type_checker_local_name_rule.c`)가 let, destructure, for,
+  (`src/semantic/type_checker/type_checker_local_name_rule.c`)가 let, destructure, for,
   match 바인딩과 람다 매개변수를 선언할 때 감싸는 범위를 본다. 람다 본문은
   바깥 함수의 로컬을 보므로 규칙은 람다 경계를 넘고, 이름 있는 함수의 범위에서
   멈춘다. 위반을 보고한 뒤에도 새 바인딩을 선언하므로, 뒤의 사용이 타입이 다른

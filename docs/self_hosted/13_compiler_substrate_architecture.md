@@ -356,16 +356,16 @@ facts, parser AST-tree text facts, semantic verdict facts, MIR fact graph rows,
 or the codegen typed-AST arena migration contract. That is the load-bearing
 replacement for the old stage `return true` scaffolding.
 
-`src/self_hosted/compiler/driver_pipeline_owner.pgy` is the single executable
+`src/self_hosted/compiler/driver/driver_pipeline_owner.pgy` is the single executable
 pipeline owner for `CompileSourceToAst`, `CompileAstToC`, and
 `CompileSourceToC`. It composes self-parser and self-codegen payload facts;
 driver policy and bootstrap policy are consumers, not alternate
 implementations.
 
-`src/self_hosted/compiler/driver_rung0_owner.pgy` is the DRV-0 compiler-world
+`src/self_hosted/compiler/driver/driver_rung0_owner.pgy` is the DRV-0 compiler-world
 policy owner. It consumes the path manifest, stage artifact readiness, target
 capability envelope, and shared pipeline readiness before routing artifacts.
-`src/self_hosted/compiler/driver_rung0_main.pgy` is only the runnable artifact
+`src/self_hosted/compiler/driver/driver_rung0_main.pgy` is only the runnable artifact
 boundary for those facts. `tests/self_hosted/parity/driver/driver_rung0_parity.sh`
 compares assembled AST text against a separately built self-parser AST producer
 and compares C/LLVM-built in-process driver emission against a C-built driver
@@ -378,7 +378,7 @@ expression and match-pattern graphs, then forced the consumer to recover
 semantic facts from text. Standalone codegen retains its own bootstrap and
 parity gates, while driver parity preserves the typed artifact in-process.
 
-`src/self_hosted/compiler/driver_bootstrap_main.pgy` is a smaller runnable
+`src/self_hosted/compiler/driver/driver_bootstrap_main.pgy` is a smaller runnable
 source/MIR/output-file boundary over the same pipeline owner. The strengthened
 `driver_bootstrap.sh` consumes the fresh codegen-bootstrap seed, builds it with
 the Pergyra-built codegen, and compares its

@@ -61,7 +61,7 @@ func SemanticBuiltinRetentionSourceContractKnown(name: String) -> Bool {
     return SemanticBuiltinRetentionSourceSignatureKnown(name) ||
         SemanticBuiltinRetentionCollectionContractKnown(name);
 }
-import "ast_expression_function_table_fact_owner.pgy";
+import "ast_expression/ast_expression_function_table_fact_owner.pgy";
 import "builtin_shadow_owner.pgy";
 
 func SemanticAstBuiltinArgumentRetentionSelectionFromFacts(

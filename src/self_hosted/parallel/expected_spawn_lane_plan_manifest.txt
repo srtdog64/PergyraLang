@@ -26,5 +26,5 @@ require|src/compiler/compiler.c|pgy_verified_spawn_lane_plan_from_air(air
 require|src/compiler/compiler.c|pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan)
 require|src/compiler/compiler_llvm.c|pgy_verified_spawn_lane_plan_from_air(air
 require|src/compiler/compiler_llvm.c|pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan)
-forbid|src/codegen/transpiler_spawn_channel_emit.c|pgy_verified_spawn_lane_plan_from_air
-forbid|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_verified_spawn_lane_plan_from_air
+forbid|src/codegen/c/transpiler_spawn_channel_emit.c|pgy_verified_spawn_lane_plan_from_air
+forbid|src/codegen/llvm/llvm_expr_spawn_call_helpers.c|pgy_verified_spawn_lane_plan_from_air

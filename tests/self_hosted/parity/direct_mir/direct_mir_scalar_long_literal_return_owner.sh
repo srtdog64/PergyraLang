@@ -23,13 +23,13 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 grep -Fq 'DirectMirScalarProgramExprLongLiteral() -> Int { return 53; }' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_expression_kind_id_owner.pgy" ||
     fail "Long literal expression identity drifted"
 grep -Fq 'DirectMirScalarProgramExprArrayIntEmptyLiteral() -> Int { return 51; }' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_expression_kind_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_expression_kind_owner.pgy" ||
     fail "Long literal identity collides with Array<Int>"
 grep -Fq 'DirectMirScalarProgramExprArrayBoolEmptyLiteral() -> Int { return 52; }' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_bool_expression_kind_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_bool_expression_kind_owner.pgy" ||
     fail "Long literal identity collides with Array<Bool>"
 
 mkdir -p "$WORK_DIR"

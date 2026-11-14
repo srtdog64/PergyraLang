@@ -1,4 +1,4 @@
-import "../../../src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/direct_mir_array_argument_plan_owner.pgy";
 import "../../../src/self_hosted/mir_lower/match_json_fact_owner.pgy";
 struct OwnershipPlanRows { let rows: Array<Int>; }
 struct OwnershipGraphPlan { let routine: OwnershipPlanRows; let locals: OwnershipPlanRows; let types: OwnershipPlanRows; }

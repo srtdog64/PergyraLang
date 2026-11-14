@@ -103,7 +103,7 @@ Every run below uses the complete import-composed input:
 
 ```sh
 pgy.exe --native-pipeline --mir-json \
-  src/self_hosted/compiler/driver_bootstrap_main.pgy
+  src/self_hosted/compiler/driver/driver_bootstrap_main.pgy
 ```
 
 The existing pressure owner binds all 2531 tracked self-host source files

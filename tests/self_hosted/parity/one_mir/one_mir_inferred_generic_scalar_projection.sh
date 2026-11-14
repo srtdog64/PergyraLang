@@ -31,22 +31,22 @@ assert_owner_ratchet() {
         [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
         total=$((total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_shape_owner.pgy|40
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy|110
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy|80
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_generic_routine_program_envelope_owner.pgy|60
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_generic_nominal_graph_shape_owner.pgy|90
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_instruction_abi_absence_owner.pgy|50
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_mixed_lane_generic_specialization_fact_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_program_admission_owner.pgy|80
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_graph_fact_owner.pgy|170
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_program_identity_owner.pgy|220
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_instruction_admission_owner.pgy|230
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_abi_fact_owner.pgy|80
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_plan_owner.pgy|140
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_c_emission_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_llvm_emission_owner.pgy|90
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_projection_owner.pgy|40
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_three_routine_shape_owner.pgy|40
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_three_routine_classification_owner.pgy|110
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_three_routine_projection_owner.pgy|80
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_generic_routine_program_envelope_owner.pgy|60
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_generic_nominal_graph_shape_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_instruction_abi_absence_owner.pgy|50
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_mixed_lane_generic_specialization_fact_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_scalar_program_admission_owner.pgy|80
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_scalar_graph_fact_owner.pgy|170
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_scalar_program_identity_owner.pgy|220
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_scalar_instruction_admission_owner.pgy|230
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_scalar_abi_fact_owner.pgy|80
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_scalar_plan_owner.pgy|140
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_scalar_c_emission_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_scalar_llvm_emission_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_scalar_projection_owner.pgy|40
 EOF
     [[ "$total" -le 1800 ]] || fail "inferred generic scalar owner family cap exceeded: $total/1800"
 }

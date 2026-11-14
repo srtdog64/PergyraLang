@@ -1,0 +1,204 @@
+// Exact operation or block-boundary location for each HashMap local use.
+import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_hashmap_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
+
+func DirectMirScalarProgramHashMapExpressionRowContainingNode(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Int {
+    var row: Int = 0;
+    while row < ArrayLength(facts.graph_starts) {
+        if node >= facts.graph_starts[row] &&
+            node < facts.graph_starts[row] + facts.graph_counts[row] {
+            return row;
+        }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramHashMapExpressionOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
+) -> Int {
+    var found: Int = -1;
+    var operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        var matches: Int = 0;
+        if plan.program.operation_expression_rows[operation] ==
+                expression_row { matches = matches + 1; }
+        if plan.program.operation_secondary_expression_rows[operation] ==
+                expression_row { matches = matches + 1; }
+        if matches > 0 {
+            if matches != 1 || found != -1 { return -2; }
+            found = operation;
+        }
+        operation = operation + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramHashMapBoundaryBlock(
+    ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
+) -> Int {
+    if ArrayLength(plan.program.block_condition_expression_rows) !=
+            ArrayLength(plan.program.block_return_expression_rows) {
+        return -2;
+    }
+    var found: Int = -1;
+    var block: Int = 0;
+    while block < ArrayLength(
+            plan.program.block_condition_expression_rows) {
+        var matches: Int = 0;
+        if plan.program.block_condition_expression_rows[block] ==
+                expression_row { matches = matches + 1; }
+        if plan.program.block_return_expression_rows[block] ==
+                expression_row { matches = matches + 1; }
+        if matches > 0 {
+            if matches != 1 || found != -1 { return -2; }
+            found = block;
+        }
+        block = block + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramHashMapReturnTransferUseReady(
+    ref plan: DirectMirScalarCfgGraphPlan, node: Int,
+    local_row: Int, expression_row: Int
+) -> Bool {
+    let block: Int = DirectMirScalarProgramHashMapBoundaryBlock(
+        plan, expression_row);
+    if block < 0 || plan.program.block_return_expression_rows[block] !=
+            expression_row ||
+        plan.program.expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprLocal() ||
+        plan.program.expressions.node_local_rows[node] != local_row {
+        return false;
+    }
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    let end: Int = plan.program.expressions.graph_starts[expression_row] +
+        plan.program.expressions.graph_counts[expression_row];
+    var current: Int = node;
+    while current != root {
+        var parent: Int = -1;
+        var parent_count: Int = 0;
+        var candidate: Int = current + 1;
+        while candidate < end {
+            let operands: DirectMirScalarProgramArgumentView =
+                DirectMirScalarProgramArgumentViewFromNode(
+                    plan.program.expressions, candidate);
+            var ordinal: Int = 0;
+            while operands.valid && ordinal < operands.count {
+                if DirectMirScalarProgramArgumentViewAt(
+                        plan.program.expressions, operands, ordinal) ==
+                        current {
+                    parent = candidate; parent_count = parent_count + 1;
+                }
+                ordinal = ordinal + 1;
+            }
+            candidate = candidate + 1;
+        }
+        if parent_count != 1 || parent < 0 ||
+            plan.program.expressions.node_kinds[parent] !=
+                DirectMirScalarProgramExprLogicalRecordConstructor() {
+            return false;
+        }
+        current = parent;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramHashMapLocalNodeUseReady(
+    ref plan: DirectMirScalarCfgGraphPlan, node: Int,
+    local_row: Int, creation_operation: Int, allow_mutation: Bool,
+    allow_return_transfer: Bool
+) -> Bool {
+    let local_routine: Int = DirectMirScalarCfgRoutinePartitionLocalOwner(
+        plan.routines, local_row);
+    if local_routine < 0 { return false; }
+    let expression_row: Int =
+        DirectMirScalarProgramHashMapExpressionRowContainingNode(
+            plan.program.expressions, node);
+    if expression_row < 0 { return false; }
+    let operation: Int = DirectMirScalarProgramHashMapExpressionOperation(
+        plan, expression_row);
+    var use_block: Int = -1;
+    if operation >= 0 {
+        if operation <= creation_operation ||
+            DirectMirScalarCfgRoutinePartitionOperationOwner(
+                plan.routines, operation) !=
+                local_routine { return false; }
+        use_block = DirectMirScalarCfgRoutinePartitionRangeOwner(
+            plan.block_operation_starts,
+            plan.block_operation_counts, operation);
+    } else if operation == -1 {
+        use_block = DirectMirScalarProgramHashMapBoundaryBlock(
+            plan, expression_row);
+    } else { return false; }
+    if use_block < 0 || DirectMirScalarCfgRoutinePartitionBlockOwner(
+            plan.routines, use_block) !=
+            local_routine { return false; }
+    if allow_return_transfer &&
+        DirectMirScalarProgramHashMapReturnTransferUseReady(
+            plan, node, local_row, expression_row) { return true; }
+    let start: Int = plan.program.expressions.graph_starts[expression_row];
+    let end: Int = start +
+        plan.program.expressions.graph_counts[expression_row];
+    var parent: Int = -1;
+    var parent_count: Int = 0;
+    var candidate: Int = start;
+    while candidate < end {
+        if plan.program.expressions.node_lefts[candidate] == node ||
+            plan.program.expressions.node_rights[candidate] == node {
+            parent = candidate; parent_count = parent_count + 1;
+        }
+        let operands: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+            plan.program.expressions.nary_operands, candidate);
+        var operand: Int = 0;
+        while operand < ArrayLength(operands) {
+            if operands[operand] == node {
+                parent = candidate; parent_count = parent_count + 1;
+            }
+            operand = operand + 1;
+        }
+        candidate = candidate + 1;
+    }
+    if parent_count != 1 || parent < 0 ||
+        DirectMirScalarProgramHashMapOperation(
+            plan.program.expressions.node_kinds[parent]) == "MapNew" {
+        return false;
+    }
+    if plan.program.expressions.node_kinds[parent] ==
+            DirectMirScalarProgramExprDirectCall() {
+        let arguments: DirectMirScalarProgramArgumentView =
+            DirectMirScalarProgramArgumentViewFromNode(
+                plan.program.expressions, parent);
+        var argument_ordinal: Int = -1;
+        var ordinal: Int = 0;
+        while arguments.valid && ordinal < arguments.count {
+            if DirectMirScalarProgramArgumentViewAt(
+                    plan.program.expressions, arguments, ordinal) == node {
+                if argument_ordinal >= 0 { return false; }
+                argument_ordinal = ordinal;
+            }
+            ordinal = ordinal + 1;
+        }
+        let target: Int =
+            plan.program.expressions.node_callable_rows[parent];
+        return argument_ordinal >= 0 && target >= 0 &&
+            DirectMirScalarCfgProgramDirectCallCarriageReady(
+                plan, plan.program.expressions, parent, local_routine,
+                start, target, node, argument_ordinal);
+    }
+    let operation_name: String = DirectMirScalarProgramHashMapOperation(
+        plan.program.expressions.node_kinds[parent]);
+    if !allow_mutation &&
+        (operation_name == "MapSet" || operation_name == "MapRemove") {
+        return false;
+    }
+    let map_arguments: Array<Int> =
+        DirectMirScalarProgramHashMapArgumentRows(
+            plan.program.expressions, parent);
+    return ArrayLength(map_arguments) > 0 && map_arguments[0] == node &&
+        plan.program.expressions.node_local_rows[node] == local_row;
+}

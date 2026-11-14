@@ -15,7 +15,7 @@ cd "$ROOT_DIR"
 PROBE=tests/self_hosted/fixtures/enum_qualified_environment_fact_probe.pgy
 sha256sum "$PGY" "$PROBE" \
     src/self_hosted/semantic/ast_enum_fact_owner.pgy \
-    src/self_hosted/semantic/ast_expression_environment_owner.pgy \
+    src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy \
     src/self_hosted/semantic/enum_callable_signature_owner.pgy >"$WORK/inputs.sha256"
 for backend in c llvm; do
     pgy_run_with_timeout 240 "$WORK/$backend.compile" "$WORK/$backend.compile.err" \

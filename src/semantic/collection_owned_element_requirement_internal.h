@@ -9,7 +9,7 @@
 #include "collection_owned_element_requirement_owner.h"
 #include "collection_ownership_fact.h"
 #include "collection_ownership_fact_internal.h"
-#include "function_param_publication_owner.h"
+#include "function_param_flow/function_param_publication_owner.h"
 
 #include <stdint.h>
 

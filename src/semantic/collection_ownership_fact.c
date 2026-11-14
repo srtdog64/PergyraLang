@@ -8,12 +8,12 @@
 #include "diag_codes.h"
 #include "symbol_table.h"
 #include "type_checker.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "array_storage_deferred_preservation_owner.h"
 #include "array_storage_defer_release_owner.h"
 #include "array_storage_release_owner.h"
 #include "array_storage_element_lifetime_owner.h"
-#include "function_param_publication_owner.h"
+#include "function_param_flow/function_param_publication_owner.h"
 #include "../parser/ast_api.h"
 
 bool

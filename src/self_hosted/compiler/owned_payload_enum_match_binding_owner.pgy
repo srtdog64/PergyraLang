@@ -1,7 +1,7 @@
 // Maps one admitted payload-enum match local back to its exact source formal.
 
-import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
-import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 
 func DirectMirOwnedPayloadEnumMatchBindingSourceParameter(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int

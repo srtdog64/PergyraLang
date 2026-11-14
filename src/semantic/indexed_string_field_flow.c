@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "function_param_publication_internal.h"
-#include "type_checker_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 static bool field_id(const ASTNode *node, uint32_t id)
 { return node != NULL && id != 0 && ast_node_stable_id(node) == id; }

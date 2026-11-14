@@ -33,7 +33,7 @@ if [[ -n "$DRIVER" ]]; then
 else
     DRIVER="$BUILD_DIR/driver_rung2.exe"
     (cd "$ROOT_DIR" && "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy")" \
+        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/compiler/driver/driver_bootstrap_main.pgy")" \
         --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER")" \
         >"$BUILD_DIR/driver.compile.log" 2>&1) \
         || { tail -c 65536 "$BUILD_DIR/driver.compile.log" >&2; fail "driver build failed"; }

@@ -3,7 +3,7 @@ import "hashmap_key_abi_projection_owner.pgy";
 import "../text/text_owner.pgy";
 import "collection_runtime_owner.pgy";
 import "../../semantic/ast_type_name_canonical_owner.pgy";
-import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 

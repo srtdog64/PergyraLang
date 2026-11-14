@@ -1,6 +1,6 @@
 // A default-mode formal stores the tables toward their release and the
 // caller passes them as their last use: the inferred sink consumes them.
-import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+import "../../../../../src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy";
 
 struct TableHolder {
     tables: SemanticAstExpressionFunctionTableFacts;

@@ -3,7 +3,7 @@
 import "ast_member_write_verdict_owner.pgy";
 import "ast_local_binding_identity_owner.pgy";
 import "ast_body_flow_calculus_owner.pgy";
-import "ast_expression_builtin_member_call_target_owner.pgy";
+import "ast_expression/ast_expression_builtin_member_call_target_owner.pgy";
 import "ast_callable_receiver_source_parameter_owner.pgy";
 
 func SemanticAstSliceDefinitionReachesUse(

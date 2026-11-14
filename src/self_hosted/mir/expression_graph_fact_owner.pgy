@@ -3,8 +3,8 @@
 // The immutable node topology and semantic overlays remain owned by the
 // program semantic graph. MIR carries only instruction-local root handles and
 // the bounded source range needed by projections; it must not copy node rows.
-import "../semantic/ast_expression_graph_fact_owner.pgy";
-import "../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_call_target_fact_owner.pgy";
 struct SelfMirExpressionGraphRows {
     has_roots: Array<Int>;
     roots: Array<Int>;

@@ -2,9 +2,9 @@
 // supplied sources; this unit does not claim raw carrier rows prove ownership.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_member_read_completion_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_call_effect_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_member_read_completion_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_assignment_definition_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_call_effect_owner.pgy";
 
 func CollectionMemberCompletedReadIdentityUnitMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Exit(2); }

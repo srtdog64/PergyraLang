@@ -2,7 +2,7 @@
 
 import "ast_statement_type_fact_owner.pgy";
 import "ast_statement_type_query_owner.pgy";
-import "ast_expression_typed_binding_owner.pgy";
+import "ast_expression/ast_expression_typed_binding_owner.pgy";
 func SemanticAstStatementFunctionTables(artifact: AstTreeArtifact, signatures: SemanticAstFunctionSignatureFacts, constructors: SemanticAstNominalConstructorFacts) -> SemanticAstExpressionFunctionTableFacts {
     return SemanticAstExpressionFunctionTableFactsFromArtifact(artifact, signatures, constructors, SemanticAstEnumFactsFromArtifact(artifact));
 }

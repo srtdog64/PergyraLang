@@ -31,7 +31,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
     fi
 fi
 
-DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
+DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver/driver_bootstrap_main.pgy"
 FIXTURE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 ORDER_DRIFT_FIXTURE="$ROOT_DIR/grammar/04_zone_intent_authority.pgy"
 BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/canonical_identity_epoch_gate"

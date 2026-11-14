@@ -2,7 +2,7 @@
 // comes from the parser/analyzer; deliberately invalid closure rows test order.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_ownership_member_result_owner.pgy";
 
 func CollectionMemberPublicationProbeMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 1 { Exit(2); }

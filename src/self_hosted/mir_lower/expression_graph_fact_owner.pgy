@@ -1,6 +1,6 @@
 // MIR graph facts bound to structured AST expression occurrence identity.
-import "../semantic/ast_expression_surface_fact_owner.pgy";
-import "../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_surface_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_call_target_fact_owner.pgy";
 import "program_routine_index_owner.pgy";
 import "program_instruction_routing_span_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";

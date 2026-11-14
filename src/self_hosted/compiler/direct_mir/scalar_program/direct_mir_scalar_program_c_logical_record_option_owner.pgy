@@ -1,0 +1,71 @@
+// C representation and expressions for ABI-free Option<logical-record> values.
+
+import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "../../target_projection_fact_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordOptionExpression(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    kind: Int, result_type: String, left_type: String, left: String
+) -> Option<String> {
+    var option_type: String = result_type;
+    if kind == DirectMirScalarProgramExprIsSomeLogicalRecord() ||
+        kind == DirectMirScalarProgramExprUnwrapOptionLogicalRecord() {
+        option_type = left_type;
+    }
+    let t: String = DirectMirScalarProgramCLogicalRecordOptionTypeName(
+        fact, option_type);
+    if t == "" { return None; }
+    if kind == DirectMirScalarProgramExprSomeLogicalRecord() {
+        return Some(Concat(t, Concat("_some(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprNoneLogicalRecord() {
+        return Some(Concat(t, "_none()"));
+    }
+    if kind == DirectMirScalarProgramExprIsSomeLogicalRecord() {
+        return Some(Concat(t, Concat("_is_some(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprUnwrapOptionLogicalRecord() {
+        return Some(Concat(t, Concat("_unwrap(", Concat(left, ")"))));
+    }
+    return None;
+}
+
+func DirectMirScalarProgramCLogicalRecordOptionPreamble(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramLogicalRecordFactReady(fact) ||
+        !CompilerTargetProjectionFactReadyFor(
+            target, CompilerTargetCpuCProjection()) {
+        Die("direct MIR logical-record Option C fact is invalid");
+    }
+    var output: String = "";
+    var row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        let option_type: String = Concat(
+            "Option<", Concat(fact.names[row], ">"));
+        let t: String = DirectMirScalarProgramCLogicalRecordOptionTypeName(
+            fact, option_type);
+        let payload: String = DirectMirScalarProgramCLogicalRecordTypeName(
+            fact, fact.names[row]);
+        output = Concat(output, "static inline "); output = Concat(output, t);
+        output = Concat(output, Concat(" ", Concat(t, "_some(")));
+        output = Concat(output, Concat(payload, Concat(" value) { ", t)));
+        output = Concat(output,
+            " out = {true, value}; return out; }\n");
+        output = Concat(output, "static inline "); output = Concat(output, t);
+        output = Concat(output, Concat(" ", Concat(t, "_none(void) { ")));
+        output = Concat(output, Concat(t,
+            " out = {0}; return out; }\n"));
+        output = Concat(output, Concat("static inline bool ", t));
+        output = Concat(output, Concat("_is_some(", Concat(t,
+            " value) { return value.is_some; }\n")));
+        output = Concat(output, Concat("static inline ", payload));
+        output = Concat(output, Concat(" ", Concat(t, "_unwrap(")));
+        output = Concat(output, Concat(t,
+            " value) { if (!value.is_some) abort(); return value.value; }\n"));
+        row = row + 1;
+    }
+    return output;
+}

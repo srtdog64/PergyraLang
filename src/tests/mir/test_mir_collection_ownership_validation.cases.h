@@ -1,7 +1,7 @@
-#include "../../compiler/mir_hir_fact_transfer.h"
-#include "../../compiler/hir_collection_owned_local_transition_adapter.h"
-#include "../../compiler/mir_loop_collection_cleanup.h"
-#include "../../compiler/mir_program_fact_validate.h"
+#include "../../compiler/mir/mir_hir_fact_transfer.h"
+#include "../../compiler/hir/hir_collection_owned_local_transition_adapter.h"
+#include "../../compiler/mir/mir_loop_collection_cleanup.h"
+#include "../../compiler/mir/mir_program_fact_validate.h"
 #include "../../semantic/slot_summary.h"
 
 static void

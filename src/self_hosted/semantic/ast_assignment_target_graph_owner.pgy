@@ -3,7 +3,7 @@
 // Assignment verdicts consume these graph identities; this owner does not
 // infer target types or reopen assignment source text.
 
-import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression/ast_expression_graph_node_view_owner.pgy";
 import "../lib/source_scan_owner.pgy";
 
 func SemanticAstAssignmentIndexRoot(

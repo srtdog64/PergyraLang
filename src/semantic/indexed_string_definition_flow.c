@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "indexed_string_definition_recipe.h"
-#include "function_param_publication_internal.h"
-#include "type_checker_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "indexed_string_borrow_owner.h"
 
 bool indexed_string_definition_source_raw_current(SemanticContext *ctx,

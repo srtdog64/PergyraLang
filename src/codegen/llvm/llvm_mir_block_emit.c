@@ -1,0 +1,760 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ */
+
+#ifdef PGY_LLVM_ENABLED
+
+#include "llvm_mir_block_emit.h"
+#include "llvm_mir_await_emit.h"
+#include "llvm_mir_bind_emit.h"
+#include "llvm_mir_block_scope.h"
+#include "llvm_mir_destructure_results.h"
+#include "llvm_mir_host_field.h"
+#include "llvm_mir_lifecycle_emit.h"
+#include "llvm_mir_local_emit.h"
+#include "llvm_mir_local_expected_type.h"
+#include "llvm_mir_source_def_copy.h"
+#include "llvm_mir_source_resource_defs.h"
+#include "llvm_mir_store_coercion.h"
+
+#include <string.h>
+
+#include "llvm_internal_api.h"
+#include "llvm_mir_resource_view.h"
+#include "llvm_expr_assignment_member_projection.h"
+#include "llvm_expr_member_lvalue.h"
+#include "llvm_expr_scalar_core.h"
+#include "../../compiler/mir/mir_cfg_contract_cleanup_root_membership.h"
+#include "../../compiler/mir/mir_loop_collection_cleanup.h"
+#include "../../parser/ast_api.h"
+
+/* A conditional retirement selects a null receiver on the other edge. The
+ * existing drop ABI accepts null, so predecessor identities and phi edges do
+ * not change, and the already-evaluated condition is never evaluated twice. */
+static bool llvm_mir_collection_retirements(LLVMGenCtx *ctx, const MIRBasicBlock *block,
+    LLVMMirVar *vars, size_t count, size_t target, LLVMValueRef condition, bool inverse)
+{
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->collection_cleanup_kind == 0 || inst->collection_cleanup_target != target) continue;
+        LLVMValueRef storage = llvm_mir_get_var(vars, count, inst->arg0);
+        const MIRResourceRuntimeRow *runtime = mir_collection_retirement_runtime_row(inst);
+        if (inst->collection_cleanup_kind == 3 && runtime == NULL) {
+            llvm_set_mir_topology_invalid(ctx, "MIR scalar retirement has no runtime ABI fact");
+            return false;
+        }
+        const char *name = runtime != NULL ? runtime->runtime_fn :
+            (inst->collection_cleanup_kind == 2 ?
+                "pgy_array_drop_owned_String" : "pgy_array_drop_storage_raw_export");
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, name);
+        if (storage == NULL || fn == NULL || fn->fn == NULL) {
+            llvm_set_mir_topology_invalid(ctx, "MIR collection retirement is missing SSA storage or runtime ABI");
+            return false;
+        }
+        if (condition != NULL) {
+            LLVMValueRef selected = inverse ? LLVMBuildNot(ctx->builder, condition, "retire.edge") : condition;
+            storage = LLVMBuildSelect(ctx->builder, selected, storage,
+                LLVMConstNull(LLVMTypeOf(storage)), "retire.storage");
+        }
+        LLVMValueRef args[] = {storage,
+            LLVMBuildIntCast2(ctx->builder, LLVMSizeOf(ctx->type_i8ptr), ctx->type_i64, false, "retire.element.size")};
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args,
+            runtime != NULL || inst->collection_cleanup_kind == 2 ? 1 : 2, "");
+    }
+    return true;
+}
+
+static bool
+llvm_mir_def_uses_source_statement_emit(const MIRInstruction *inst)
+{
+    return mir_instruction_uses_source_statement_emit(inst);
+}
+
+static bool
+llvm_mir_def_uses_source_local_decl_emit(const MIRInstruction *inst)
+{
+    return mir_instruction_uses_source_local_decl_emit(inst);
+}
+
+static bool
+llvm_mir_def_uses_channel_receive_statement_emit(const MIRInstruction *inst)
+{
+    return mir_instruction_uses_channel_receive_statement_emit(inst);
+}
+
+static const char *
+llvm_mir_instruction_expected_type_name(const MIRRoutine *routine,
+                                        const MIRInstruction *inst)
+{
+    if (inst == NULL)
+        return NULL;
+    return llvm_mir_local_expected_type_name(routine, inst, NULL);
+}
+
+static ASTNode *
+llvm_mir_return_callable_type(LLVMGenCtx *ctx, const MIRRoutine *routine)
+{
+    ASTNode *return_type = llvm_mir_routine_return_type(routine);
+
+    if (return_type != NULL) {
+        if (return_type->type == AST_EVENT_HANDLER_TYPE)
+            return return_type;
+        return NULL;
+    }
+    return llvm_stmt_current_return_callable_type(ctx);
+}
+
+static bool
+llvm_mir_emit_exit_defers(LLVMGenCtx *ctx, const MIRBasicBlock *block)
+{
+    const MIRBasicBlock *saved = ctx->current_defer_exit_block;
+    ctx->current_defer_exit_block = block;
+    llvm_emit_defers_from(ctx, 0);
+    ctx->current_defer_exit_block = saved;
+    return !ctx->has_error;
+}
+
+void
+llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
+                               const MIRRoutine *routine,
+                               LLVMGenCtx *ctx,
+                               LLVMBasicBlockRef *llvm_block_heads,
+                               LLVMBasicBlockRef *llvm_block_tails,
+                               LLVMMirVar *vars, size_t var_count,
+                               LLVMClassTypeEntry *owner_cls, LLVMFuncEntry *owner_sync,
+                               const char *owner_name)
+{
+    if (mir_block == NULL || routine == NULL || ctx == NULL
+        || llvm_block_heads == NULL || llvm_block_tails == NULL)
+        return;
+    if (mir_block->id >= routine->block_count) {
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR block emission failed: block id %llu is outside routine block inventory",
+            (unsigned long long)mir_block->id);
+        return;
+    }
+
+    if (mir_block->instruction_count > 0 && mir_block->instructions == NULL) {
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR block emission failed: block %llu has instruction count without instruction inventory",
+            (unsigned long long) mir_block->id);
+        return;
+    }
+
+    LLVMBasicBlockRef llvm_block = llvm_block_heads[mir_block->id];
+    LLVMPositionBuilderAtEnd(ctx->builder, llvm_block);
+    bool emitted_terminator = false;
+    LLVMTypeRef function_ret_type = ctx->current_function_ret_type;
+    if (function_ret_type == NULL)
+        function_ret_type = ctx->current_ret_type;
+    llvm_block_tails[mir_block->id] = llvm_block;
+
+    if (!llvm_mir_emit_pin_enter(mir_block, ctx))
+        return;
+    llvm_mir_seed_block_entry_scope(mir_block, ctx, vars, var_count);
+    if (ctx->has_error)
+        return;
+    llvm_mir_seed_block_phi_scope(mir_block, ctx, vars, var_count);
+    if (ctx->has_error)
+        return;
+    if (!llvm_mir_emit_for_loop_body_binding(routine, mir_block, ctx))
+        return;
+    if (!llvm_mir_emit_for_in_body_binding(routine, mir_block, ctx))
+        return;
+    if (!llvm_mir_remap_active_match_bindings(routine, mir_block, ctx))
+        return;
+    if (!llvm_mir_emit_match_case_body_binding(routine, mir_block, ctx))
+        return;
+
+    for (size_t i = 0; i < mir_block->instruction_count; i++) {
+        /* MIR lets resource releases and cleanup edges trail a terminator
+         * (transpiler_mir_emission_contract.c). They are unreachable in the C
+         * backend as well, and LLVM rejects any instruction placed after one.
+         * Anything else trailing a terminator is a topology fault, not a
+         * silent drop. */
+        if (emitted_terminator) {
+            MIRInstKind trailing = mir_block->instructions[i].kind;
+            if (trailing != MIR_INST_RESOURCE_OP
+                && trailing != MIR_INST_CLEANUP_EDGE) {
+                llvm_set_mir_topology_invalid(ctx,
+                    "LLVM MIR block %llu carries instruction kind %d after its terminator",
+                    (unsigned long long)mir_block->id, (int)trailing);
+                return;
+            }
+            continue;
+        }
+        const MIRInstruction *inst = &mir_block->instructions[i];
+        ctx->current_mir_instruction = inst;
+        llvm_mir_seed_instruction_use_scope(inst, ctx, vars, var_count);
+        if (ctx->has_error)
+            return;
+        llvm_debug_set_line(ctx, mir_instruction_source_line(inst));
+        if (llvm_debug_detail_enabled()) {
+            fprintf(stderr,
+                "[llvm inst] block=%zu inst=%zu kind=%d line=%u result=%s\n",
+                mir_block->id, i, (int)inst->kind,
+                mir_instruction_source_line(inst),
+                inst->result_name != NULL ? inst->result_name : "-");
+        }
+        switch (inst->kind) {
+        case MIR_INST_RESOURCE_OP:
+            if (mir_instruction_is_with_slot_claim(inst)) {
+                llvm_mir_emit_with_claim_only(inst, ctx);
+            }
+            if (mir_instruction_source_is_with_slot_release(inst)) {
+                llvm_mir_emit_with_release_only(inst, ctx);
+            }
+            if (ctx->has_error)
+                return;
+            /* Borrow rows are evidence. The exact lexical DEF below owns
+             * alias materialization, including missing-storage refusal. */
+            break;
+        case MIR_INST_DEF:
+            if (inst->result_name != NULL) {
+                if (llvm_mir_def_uses_channel_receive_statement_emit(inst)) {
+                    LLVMValueRef mir_alloca =
+                        llvm_mir_get_var(vars, var_count, inst->result_name);
+                    if (llvm_debug_detail_enabled()
+                        && mir_instruction_uses_select_receive_statement_emit(inst)) {
+                        fprintf(stderr, "[llvm inst] emit_select_receive_def\n");
+                    }
+                    if (!llvm_mir_emit_channel_receive_def(inst, ctx,
+                                                           mir_alloca))
+                        return;
+                    break;
+                }
+                if (llvm_mir_def_uses_source_statement_emit(inst)) {
+                    bool await_def_handled = false;
+                    LLVMValueRef alloca;
+                    LLVMValueRef val;
+                    if (!llvm_mir_try_emit_await_local_def(inst, mir_block,
+                            routine, ctx, vars, var_count,
+                            &await_def_handled)) {
+                        return;
+                    }
+                    if (await_def_handled)
+                        break;
+                    if (llvm_debug_detail_enabled())
+                        fprintf(stderr, llvm_mir_def_uses_source_local_decl_emit(inst)
+                            ? "[llvm inst] emit_source_local_decl\n"
+                            : "[llvm inst] emit_source_statement\n");
+                    alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
+                    if (alloca == NULL) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "LLVM MIR source-statement DEF '%s' has no MIR local storage",
+                            inst->result_name != NULL
+                                ? inst->result_name
+                                : "(anonymous-local)");
+                        return;
+                    }
+                    if (inst->expr0 == NULL) {
+                        llvm_set_mir_topology_invalid(ctx,
+                            "LLVM MIR source-statement DEF is missing expression fact");
+                        return;
+                    }
+                    {
+                        bool resource_let_handled = false;
+                        const char *expected_type_name =
+                            llvm_mir_instruction_expected_type_name(
+                                routine, inst);
+                        if (!llvm_mir_try_emit_source_resource_let(inst,
+                                alloca, ctx, expected_type_name,
+                                &resource_let_handled)) {
+                            return;
+                        }
+                        if (resource_let_handled)
+                            break;
+                    }
+                    /* ViewRead/ViewWrite are MIR BorrowRead/BorrowWrite
+                     * aliases, not value reads.  Bind from the lowered
+                     * resource-view fact before generic AST expression
+                     * emission can reinterpret the call as Read/Write. */
+                    if (llvm_mir_def_is_resource_view_alias(inst)) {
+                        if (!llvm_mir_bind_resource_view_def_alias(
+                                inst, mir_block, ctx, vars, var_count))
+                            return;
+                        break;
+                    }
+                    {
+                        const char *saved_expected_type_name =
+                            ctx->expected_type_name;
+                        ASTNode *saved_expected_callable_type =
+                            ctx->expected_callable_type;
+                        LLVMTypeRef saved_current_ret_type =
+                            ctx->current_ret_type;
+                        const char *expected_type_name =
+                            llvm_mir_instruction_expected_type_name(
+                                routine, inst);
+                        LLVMMirVar *target_entry =
+                            llvm_mir_get_var_entry(vars, var_count,
+                                inst->result_name);
+                        ASTNode *emit_expr = inst->expr0;
+                        if (expected_type_name != NULL
+                            && expected_type_name[0] != '\0') {
+                            ctx->expected_type_name = expected_type_name;
+                        }
+                        if (inst->expr1 != NULL
+                            && inst->expr1->type == AST_EVENT_HANDLER_TYPE) {
+                            ctx->expected_callable_type = inst->expr1;
+                        }
+                        if (target_entry != NULL
+                            && target_entry->type != NULL) {
+                            ctx->current_ret_type = target_entry->type;
+                        }
+                        if (mir_instruction_source_is_assignment(inst)) {
+                            if (inst->expr1 == NULL) {
+                                llvm_set_mir_topology_invalid(ctx,
+                                    "LLVM MIR source-statement assignment DEF is missing target fact");
+                                ctx->current_ret_type = saved_current_ret_type;
+                                ctx->expected_callable_type =
+                                    saved_expected_callable_type;
+                                ctx->expected_type_name =
+                                    saved_expected_type_name;
+                                return;
+                            }
+                            if (!llvm_stmt_require_non_void_value(ctx,
+                                    inst->expr0,
+                                    "LLVM MIR source-statement assignment DEF cannot consume a Void expression value")) {
+                                ctx->current_ret_type =
+                                    saved_current_ret_type;
+                                ctx->expected_callable_type =
+                                    saved_expected_callable_type;
+                                ctx->expected_type_name =
+                                    saved_expected_type_name;
+                                return;
+                            }
+                            /* A DEF produces a new SSA value. Writing through
+                             * the current spelling alias first can mutate a
+                             * different lexical binding on a branch edge.
+                             * The exact result alloca is stored below; residual
+                             * memory assignments remain MIR_INST_ASSIGN. */
+                            AstAssignmentOperation operation;
+                            if (!mir_assignment_operation(inst, &operation)) {
+                                llvm_set_mir_topology_invalid(ctx,
+                                    "LLVM MIR assignment DEF opcode is missing or invalid");
+                                ctx->current_ret_type = saved_current_ret_type;
+                                ctx->expected_callable_type = saved_expected_callable_type;
+                                ctx->expected_type_name = saved_expected_type_name;
+                                return;
+                            }
+                            LLVMValueRef old = operation == AST_ASSIGN_SET ? NULL
+                                : llvm_emit_expression(inst->expr1, ctx);
+                            val = llvm_emit_expression(inst->expr0, ctx);
+                            if (operation != AST_ASSIGN_SET)
+                                val = llvm_emit_scalar_binary_values(inst->expr1,
+                                    ast_assignment_binary_operator(operation), old, val,
+                                    inst->expr1, inst->expr0, ctx);
+                        } else {
+                            if (!llvm_stmt_require_non_void_value(ctx,
+                                    emit_expr,
+                                    "LLVM MIR source-statement DEF cannot consume a Void expression value")) {
+                                ctx->current_ret_type =
+                                    saved_current_ret_type;
+                                ctx->expected_callable_type =
+                                    saved_expected_callable_type;
+                                ctx->expected_type_name =
+                                    saved_expected_type_name;
+                                return;
+                            }
+                            val = llvm_emit_expression(emit_expr, ctx);
+                        }
+                        if (val != NULL
+                            && emit_expr != NULL
+                            && emit_expr->type == AST_CALL) {
+                            llvm_stmt_emit_zone_action_effect_runtime(
+                                emit_expr, ctx);
+                        }
+                        ctx->current_ret_type = saved_current_ret_type;
+                        ctx->expected_callable_type =
+                            saved_expected_callable_type;
+                        ctx->expected_type_name = saved_expected_type_name;
+                    }
+                    if (val == NULL) {
+                        if (!ctx->has_error) {
+                            llvm_set_mir_topology_invalid(ctx,
+                                "LLVM MIR source-statement DEF expression could not be lowered");
+                        }
+                        return;
+                    }
+                    {
+                        LLVMMirVar *target_entry =
+                            llvm_mir_get_var_entry(vars, var_count,
+                                inst->result_name);
+                        if (target_entry != NULL
+                            && target_entry->type != NULL) {
+                            val = llvm_mir_coerce_value_for_store(ctx, val,
+                                target_entry->type);
+                        }
+                    }
+                    LLVMBuildStore(ctx->builder, val, alloca);
+                    if (!llvm_mir_copy_source_def_to_versioned_local(
+                            inst, mir_block, ctx, vars, var_count)) {
+                        return;
+                    }
+                } else {
+                    LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
+                    if (llvm_debug_detail_enabled())
+                        fprintf(stderr, "[llvm inst] emit_expression_store\n");
+                    LLVMValueRef val = NULL;
+                    if (inst->expr0 != NULL) {
+                        const char *saved_expected_type_name =
+                            ctx->expected_type_name;
+                        LLVMTypeRef saved_current_ret_type =
+                            ctx->current_ret_type;
+                        const char *expected_type_name =
+                            llvm_mir_instruction_expected_type_name(
+                                routine, inst);
+                        LLVMMirVar *target_entry =
+                            llvm_mir_get_var_entry(vars, var_count,
+                                inst->result_name);
+                        if (expected_type_name != NULL
+                            && expected_type_name[0] != '\0') {
+                            ctx->expected_type_name = expected_type_name;
+                        }
+                        if (target_entry != NULL
+                            && target_entry->type != NULL) {
+                            ctx->current_ret_type = target_entry->type;
+                        }
+                        if (!llvm_stmt_require_non_void_value(ctx, inst->expr0,
+                                "LLVM MIR DEF cannot consume a Void expression value")) {
+                            ctx->current_ret_type = saved_current_ret_type;
+                            ctx->expected_type_name = saved_expected_type_name;
+                            return;
+                        }
+                        val = llvm_emit_expression(inst->expr0, ctx);
+                        ctx->current_ret_type = saved_current_ret_type;
+                        ctx->expected_type_name = saved_expected_type_name;
+                    }
+                    if (val != NULL && alloca != NULL) {
+                        LLVMMirVar *target_entry =
+                            llvm_mir_get_var_entry(vars, var_count,
+                                inst->result_name);
+                        if (target_entry != NULL
+                            && target_entry->type != NULL) {
+                            val = llvm_mir_coerce_value_for_store(ctx, val,
+                                target_entry->type);
+                        }
+                        LLVMBuildStore(ctx->builder, val, alloca);
+                    }
+                }
+            }
+            break;
+        case MIR_INST_PHI:
+            break;
+        case MIR_INST_BRANCH:
+            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) != NULL) {
+                emitted_terminator = true;
+                break;
+            }
+            if (mir_instruction_has_required_branch_lowering_fact(inst)
+                && mir_block->has_succ_true
+                && mir_block->has_succ_false) {
+                LLVMValueRef cond;
+                if (inst->branch_shape == MIR_BRANCH_FOR_RANGE
+                    || inst->branch_shape == MIR_BRANCH_FOR_IN) {
+                    cond = llvm_mir_emit_for_loop_condition(inst, ctx);
+                } else if (inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
+                    cond = llvm_mir_emit_match_case_condition(inst, ctx);
+                } else if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
+                    cond = llvm_mir_emit_select_dispatch_condition(
+                        inst, routine, mir_block->succ_true, ctx);
+                    if (cond == NULL && ctx->has_error)
+                        return;
+                } else {
+                    if (!llvm_stmt_require_non_void_value(ctx, inst->expr0,
+                            "LLVM MIR branch cannot consume a Void expression as condition")) {
+                        return;
+                    }
+                    cond = llvm_emit_expression(inst->expr0, ctx);
+                }
+                if (cond == NULL) {
+                    if (ctx->has_error)
+                        return;
+                    llvm_set_mir_topology_invalid(ctx,
+                        "LLVM MIR branch condition could not be lowered");
+                    return;
+                }
+                if (cond != NULL) {
+                    LLVMBasicBlockRef true_bb = llvm_block_heads[mir_block->succ_true];
+                    LLVMBasicBlockRef false_bb = llvm_block_heads[mir_block->succ_false];
+                    if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                            mir_block->succ_true, cond, false) ||
+                        !llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                            mir_block->succ_false, cond, true)) return;
+                    if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                        return;
+                    llvm_block_tails[mir_block->id] =
+                        LLVMGetInsertBlock(ctx->builder);
+                    LLVMBuildCondBr(ctx->builder, cond, true_bb, false_bb);
+                    emitted_terminator = true;
+                }
+            } else if (mir_block->has_succ_true) {
+                if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                        mir_block->succ_true, NULL, false)) return;
+                if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                    return;
+                llvm_block_tails[mir_block->id] =
+                    LLVMGetInsertBlock(ctx->builder);
+                LLVMBuildBr(ctx->builder, llvm_block_heads[mir_block->succ_true]);
+                emitted_terminator = true;
+            }
+            break;
+        case MIR_INST_RETURN:
+            if (inst->expr0 != NULL) {
+                ASTNode *return_expr = inst->expr0;
+                const char *saved_expected_type_name = ctx->expected_type_name;
+                ASTNode *saved_expected_callable_type =
+                    ctx->expected_callable_type;
+                const char *mir_return_type_name =
+                    llvm_mir_routine_return_type_name(routine);
+                ASTNode *mir_return_type =
+                    llvm_mir_routine_return_type(routine);
+                ASTNode *mir_callable_type =
+                    llvm_mir_return_callable_type(ctx, routine);
+                LLVMValueRef val;
+                if (function_ret_type == ctx->type_void) {
+                    if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                        return;
+                    llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
+                    llvm_set_error_at_with_hints(ctx, return_expr,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM MIR void function return must not carry a value expression");
+                    return;
+                }
+                if (mir_return_type_name != NULL) {
+                    ctx->expected_type_name = mir_return_type_name;
+                } else if (mir_return_type != NULL) {
+                    ctx->expected_type_name =
+                        llvm_stmt_render_type_annotation_copy(ctx, mir_return_type);
+                }
+                if (mir_callable_type != NULL)
+                    ctx->expected_callable_type = mir_callable_type;
+                if (!llvm_stmt_require_non_void_value(ctx, return_expr,
+                        "LLVM MIR return cannot consume a Void expression value")) {
+                    ctx->expected_callable_type = saved_expected_callable_type;
+                    ctx->expected_type_name = saved_expected_type_name;
+                    if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                        return;
+                    llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
+                    return;
+                }
+                val = llvm_emit_expression(return_expr, ctx);
+                ctx->expected_callable_type = saved_expected_callable_type;
+                ctx->expected_type_name = saved_expected_type_name;
+                if (val != NULL) {
+                    /* MIR carries the declared return type separately from
+                     * the expression spelling.  Apply the same checked
+                     * scalar coercion used by ordinary return statements
+                     * before installing the LLVM terminator; otherwise a
+                     * Float literal returned as Double leaves an invalid
+                     * module (ret float in a double function). */
+                    val = llvm_mir_coerce_value_for_store(
+                        ctx, val, function_ret_type);
+                }
+                if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                    return;
+                llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
+                if (val != NULL) {
+                    if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                            SIZE_MAX, NULL, false)) return;
+                    if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                        return;
+                    if (!llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
+                            vars, var_count, ctx))
+                        return;
+                    llvm_mir_region_scope_destroy(ctx);
+                    LLVMBuildRet(ctx->builder, val);
+                    emitted_terminator = true;
+                } else {
+                    if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                        return;
+                    if (!ctx->has_error) {
+                        llvm_set_error_at_with_hints(ctx, return_expr,
+                            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_FIX_INSPECT_MIR_INVENTORY,
+                            "LLVM MIR return could not lower value expression");
+                    }
+                    if (LLVMGetBasicBlockTerminator(
+                            LLVMGetInsertBlock(ctx->builder)) == NULL) {
+                        LLVMBuildUnreachable(ctx->builder);
+                    }
+                    return;
+                }
+            } else {
+                if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                        SIZE_MAX, NULL, false)) return;
+                if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                    return;
+                llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
+                if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                    return;
+                if (!llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
+                        vars, var_count, ctx))
+                    return;
+                if (function_ret_type == ctx->type_void) {
+                    llvm_mir_region_scope_destroy(ctx);
+                    LLVMBuildRetVoid(ctx->builder);
+                } else {
+                    llvm_set_mir_topology_invalid(ctx,
+                        "LLVM MIR non-Void return requires a value expression");
+                    LLVMBuildUnreachable(ctx->builder);
+                }
+            }
+            emitted_terminator = true;
+            break;
+        case MIR_INST_CLEANUP_EDGE:
+            break;
+        case MIR_INST_LOOP_INIT:
+            if (!llvm_mir_emit_for_loop_init(inst, ctx))
+                return;
+            break;
+        case MIR_INST_DESTRUCTURE:
+            llvm_emit_mir_destructure_inst(inst, ctx);
+            if (!llvm_mir_store_destructure_results(inst, ctx, vars, var_count))
+                return;
+            break;
+        case MIR_INST_ASSIGN:
+            if (inst->expr0 == NULL || inst->expr1 == NULL) {
+                llvm_set_mir_topology_invalid(ctx,
+                    "LLVM MIR ASSIGN instruction missing MIR assignment facts");
+                return;
+            }
+            {
+                LLVMValueRef assigned = llvm_emit_mir_assignment_parts(
+                    routine, inst, inst->expr0, inst->expr0,
+                    inst->expr1, ctx);
+                if (assigned == NULL) {
+                    if (!ctx->has_error) {
+                        llvm_set_mir_topology_invalid(ctx,
+                            "LLVM MIR ASSIGN expression could not be lowered");
+                    }
+                    return;
+                }
+            }
+            break;
+        case MIR_INST_STMT:
+            if (mir_instruction_source_is_defer_stmt(inst)) {
+                /* One registration per defer: the body's first row owns it
+                 * even when the body is carried by several rows (docs/205 F5). */
+                if (inst->expr0 != NULL && inst->defer_part_index == 0)
+                    llvm_register_defer(inst->expr0, ctx);
+            } else if (mir_instruction_source_stmt_reemit_is_redundant(inst)) {
+                break;
+            } else if (mir_instruction_has_source_statement_order(inst)) {
+                if (mir_instruction_source_is_cfg_container(inst))
+                    break;
+                if (!mir_instruction_source_stmt_residual_emit_is_allowed(inst)) {
+                    llvm_set_mir_topology_invalid(ctx,
+                        "LLVM MIR residual STMT emit outside allowed residual statement policy");
+                    return;
+                }
+                if (inst->name != NULL && strcmp(inst->name, "bind") == 0) {
+                    if (!llvm_mir_emit_bind_statement(inst, ctx))
+                        return;
+                    break;
+                }
+                if (mir_instruction_source_stmt_call_emit_is_allowed(inst)) {
+                    llvm_mir_emit_lifecycle_guard(inst, ctx);
+                    LLVMValueRef ignored = llvm_emit_expression(inst->expr0, ctx);
+                    if (ignored == NULL && ctx->has_error)
+                        return;
+                    if (ignored != NULL)
+                        llvm_stmt_emit_zone_action_effect_runtime(
+                            inst->expr0, ctx);
+                    break;
+                }
+                if (mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(inst)) {
+                    llvm_emit_statement(inst->expr0, ctx);
+                    if (ctx->has_error)
+                        return;
+                    break;
+                }
+                llvm_set_mir_topology_invalid(ctx,
+                    "LLVM MIR STMT source-payload emission is retired; lower this statement to MIR facts");
+                return;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    ctx->current_mir_instruction = NULL;
+
+    if (!emitted_terminator) {
+        if (mir_block->has_succ_true && mir_block->has_succ_false) {
+            if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                return;
+            llvm_block_tails[mir_block->id] =
+                LLVMGetInsertBlock(ctx->builder);
+            llvm_set_mir_topology_invalid(ctx,
+                "LLVM MIR block %llu has two successors without a branch condition terminator",
+                (unsigned long long)mir_block->id);
+            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                LLVMBuildUnreachable(ctx->builder);
+            return;
+        } else if (mir_block->has_succ_true) {
+            if (!llvm_mir_collection_retirements(ctx, mir_block, vars, var_count,
+                    mir_block->succ_true, NULL, false)) return;
+            if (!llvm_mir_emit_loop_backedge_increment(routine, mir_block, ctx))
+                return;
+            if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                return;
+            llvm_block_tails[mir_block->id] =
+                LLVMGetInsertBlock(ctx->builder);
+            LLVMBuildBr(ctx->builder, llvm_block_heads[mir_block->succ_true]);
+        } else {
+            if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                return;
+            llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
+            if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                return;
+            if (function_ret_type == ctx->type_void) {
+                /* Exceptional cleanup roots are not normal source exits.
+                 * Their MIR owner has no formal exit-version receipt. */
+                if (!mir_cleanup_block_is_registered_root(routine, mir_block->id)
+                    && !llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
+                        vars, var_count, ctx))
+                    return;
+                llvm_mir_region_scope_destroy(ctx);
+                LLVMBuildRetVoid(ctx->builder);
+            } else {
+                /* Closure #74: a non-void block with no successors and no
+                 * return instruction is either (a) the dead post-merge of
+                 * an exhaustive match where every case returned, or (b) a
+                 * genuinely missing return in user code. Both are unreachable
+                 * for well-typed values, so fail closed -- matching the C
+                 * backends (transpiler_func_class_flow_emit.c and
+                 * transpiler_mir_terminator_emit.c) -- rather than leaving UB
+                 * if an invalid discriminant from the unsafe/FFI boundary ever
+                 * reaches the no-arm-matched end of an exhaustive match. The
+                 * trailing `unreachable` keeps the IR well-formed after the
+                 * noreturn panic call. */
+                LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
+                    "pgy_runtime_panic_internal_invariant_export");
+                if (panic_fn == NULL) {
+                    llvm_set_error_with_hints(ctx,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM MIR non-void fallthrough panic requires registered runtime function '%s'",
+                        "pgy_runtime_panic_internal_invariant_export");
+                    LLVMBuildUnreachable(ctx->builder);
+                    return;
+                }
+                LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(
+                    ctx->builder,
+                    "non-void function reached end without return",
+                    llvm_tmp_name(ctx));
+                LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+                    &reason_arg, 1, "");
+                LLVMBuildUnreachable(ctx->builder);
+            }
+        }
+    }
+}
+
+#endif

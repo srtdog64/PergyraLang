@@ -20,11 +20,11 @@
 #include "semantic/type_system.h"
 #include "semantic/symbol_table.h"
 #include "semantic/type_checker.h"
-#include "semantic/type_checker_internal.h"
+#include "semantic/type_checker/type_checker_internal.h"
 #include "semantic/diag_codes.h"
 #include "semantic/semantic.h"
 #include "semantic/slot_summary.h"
-#include "semantic/function_param_publication_owner.h"
+#include "semantic/function_param_flow/function_param_publication_owner.h"
 
 /* -----------------------------------------------------------------
  * Minimal AST node builder helpers (no full parser needed)

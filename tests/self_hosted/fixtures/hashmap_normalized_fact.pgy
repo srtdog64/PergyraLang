@@ -1,5 +1,5 @@
-import "../../../src/self_hosted/compiler/direct_mir_scalar_program_hashmap_owner.pgy";
-import "../../../src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_hashmap_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
 
 func Main() -> Void {
     var kinds: Array<Int> = [DirectMirScalarProgramExprLocal(), DirectMirScalarProgramExprStringLiteral(),

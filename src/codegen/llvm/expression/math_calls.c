@@ -5,7 +5,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
-#include "codegen/llvm_internal.h"
+#include "codegen/llvm/llvm_internal.h"
 #include "math_calls.h"
 #include "parser/ast_api.h"
 

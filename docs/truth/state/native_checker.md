@@ -7,7 +7,7 @@ blocker is [blocker.md](blocker.md)). Last checked by the Claude lane on
 with main `06a7980be` merged.
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`: 91 downgraded
+`src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`: 91 downgraded
 refusals (51 outside `direct_mir_*`) with every final owner and the String receipts pass run, main merged at `fdc661ff9` ([census record](../evidence/2026-10-24_native_census_lent_argument_copy.md); 116 before a refused loan copied its [lent argument](../decisions/2026-10-24_refused_loan_copies_its_argument_when_result_cannot_be.md), [receipts record](../evidence/2026-10-24_native_census_string_receipts_after_rows_repair.md)),
 of which the receipts pass adds one; the 905 it refused on 2026-10-23 ([measured](../evidence/2026-10-23_native_census_hidden_string_receipts.md)) now prove or land about 1060 String copies.
 A refused loan now copies its whole chain in one analysis ([decision](../decisions/2026-10-24_refused_loan_copies_its_chain_in_one_analysis.md)): a census runs four analyses instead of ten, 1156 s instead of 2734 s, same verdict, net 8 more copies ([record](../evidence/2026-10-24_landing_planner_chain_walk_census.md)). The CI harness manifest compiles natively since `e23761a3a`.

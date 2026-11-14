@@ -150,8 +150,8 @@ if grep -Fq -- 'expected/compatibility_evolution.txt' \
     exit 1
 fi
 for direct_consumer in \
-    "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"; do
+    "$ROOT_DIR/src/self_hosted/compiler/driver/driver_rung2_cli_read_execution_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/driver/driver_rung2_artifact_request_execution_owner.pgy"; do
     if ! grep -Fq -- \
         'CompilerCompatibilityExecutionViewReady(compatibility_view)' \
         "$direct_consumer"; then

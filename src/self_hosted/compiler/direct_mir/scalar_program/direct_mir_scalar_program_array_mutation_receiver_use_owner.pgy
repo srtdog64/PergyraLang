@@ -1,0 +1,55 @@
+// Joins a local mutation receiver's carried ValueId to its exact LocalRef.
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_scoped_match_binding_operand_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_receiver_shape_owner.pgy";
+
+func DirectMirScalarProgramArrayMutationReceiverUseCount(
+    ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref target: DirectMirScalarProgramArrayMutationTarget,
+    global_row: Int, local_instruction: Int
+) -> Int {
+    let local_row: Int = target.local_row;
+    let parameter: Int = target.parameter_ordinal;
+    if !DirectMirScalarProgramArrayMutationReceiverTargetShapeReady(
+            locals, types, wire, target, local_instruction) {
+        return -1;
+    }
+    let receiver_ref: String = wire.primary_refs[local_instruction];
+    let receiver: Option<String> =
+        MirRoutineInstructionUseAtGlobal(uses, global_row, 0);
+    if !IsSome(receiver) {
+        if parameter >= 0 { return 0; }
+        return -1;
+    }
+    let value: Int = DirectMirScalarCfgGraphValueRow(
+        locals.value_names, UnwrapOption(receiver));
+    if value < 0 || value >= ArrayLength(locals.value_local_rows) ||
+        value >= ArrayLength(types.value_types) {
+        if parameter >= 0 { return 0; }
+        return -1;
+    }
+    let receiver_local: Int = locals.value_local_rows[value];
+    if receiver_local < 0 || receiver_local >=
+            ArrayLength(locals.local_ref_value_ids) || receiver_local >=
+            ArrayLength(types.local_types) ||
+        locals.local_ref_value_ids[receiver_local] != receiver_ref {
+        if parameter >= 0 { return 0; }
+        return -1;
+    }
+    if (local_row >= 0 && receiver_local != local_row) ||
+        types.value_types[value] != types.local_types[receiver_local] {
+        return -1;
+    }
+    let operand: DirectMirScalarCfgLeafOperand =
+        DirectMirScalarCfgLeafOperand(true, value, -1, 1);
+    let block: Int =
+        DirectMirScalarCfgInstructionBlockAt(index, local_instruction);
+    if !DirectMirScalarCfgLeafOperandLatestValueReady(
+            index, locals, operand, local_instruction, block) {
+        return -1;
+    }
+    return 1;
+}

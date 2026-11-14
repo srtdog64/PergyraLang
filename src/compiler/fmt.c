@@ -9,8 +9,8 @@
 #include "fmt.h"
 #include "compiler_transient_artifact_workspace.h"
 #include "path_utils.h"
-#include "self_host_fmt_driver.h"
-#include "self_host_driver.h"
+#include "self_host/self_host_fmt_driver.h"
+#include "self_host/self_host_driver.h"
 
 #include <stdbool.h>
 #include <stdio.h>

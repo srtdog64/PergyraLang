@@ -4,8 +4,8 @@
 #include <string.h>
 
 #include "air.h"
-#include "mir_surface_usage.h"
-#include "air_evidence_certificate.h"
+#include "mir/mir_surface_usage.h"
+#include "air/air_evidence_certificate.h"
 #include "machine_layer_manifest.h"
 #include "target_capability_contract.h"
 

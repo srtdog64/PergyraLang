@@ -9,7 +9,7 @@
 
 import "../hir/ast_source_location_fact_owner.pgy";
 import "diagnostic_owner.pgy";
-import "ast_expression_graph_view_owner.pgy";
+import "ast_expression/ast_expression_graph_view_owner.pgy";
 
 // Children precede their parent in the arena, so a descent from a root only
 // visits smaller ids; the walk is bounded by the arena size.

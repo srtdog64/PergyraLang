@@ -50,7 +50,7 @@ facts, the SoT registry, and executable gates remain authoritative.
 ## Production rung
 
 - Production entrypoint:
-  `src/self_hosted/compiler/driver_bootstrap_main.pgy::Main`, reached through a
+  `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy::Main`, reached through a
   fresh current-source `pgy-self-driver --emit-c-artifact-verified` build.
 - Direct bypass to delete:
   `src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy` emits

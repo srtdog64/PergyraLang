@@ -17,7 +17,7 @@ REL="${WORK#"$ROOT_DIR/"}"
 SOURCE=tests/self_hosted/fixtures/call_spine_root_projection.pgy
 echo "[$LABEL] evidence: $REL"
 sha256sum "$PGY" "$DRIVER" "$ROOT_DIR/$SOURCE" "$VERDICT" \
-    "$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" >"$WORK/input.sha256"
+    "$ROOT_DIR/src/self_hosted/semantic/ast_expression/ast_expression_graph_call_view_owner.pgy" >"$WORK/input.sha256"
 printf 'true\ntrue\ntrue\n21\n9\n12\n17\nInt\nString\n9\n12\n18\nfalse\nfalse\nfalse\n' >"$WORK/expected.run"
 for origin in native public; do
     for backend in c llvm; do

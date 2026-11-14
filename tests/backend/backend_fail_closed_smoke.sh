@@ -19,7 +19,7 @@ fail_if_nonempty() {
 c_zero="$WORK_DIR/c-zero.txt"
 grep -R -n --include='*.c' --include='*.h' \
     'return pergyra_strdup("0")' "$ROOT_DIR/src/codegen" \
-    | grep -Fv 'src/codegen/transpiler_let_box_emit.c:' \
+    | grep -Fv 'src/codegen/c/transpiler_let_box_emit.c:' \
     > "$c_zero" || true
 fail_if_nonempty "C backend reintroduced silent numeric fallback" "$c_zero"
 
@@ -39,7 +39,7 @@ llvm_i32_zero="$WORK_DIR/llvm-i32-zero.txt"
 grep -R -n --include='llvm*.c' \
     -E 'return LLVMConstInt\(ctx->type_i32, 0, 0\)|result = LLVMConstInt\(ctx->type_i32, 0, 0\)|\*out = LLVMConstInt\(ctx->type_i32, 0, 0\)|\*out_result = LLVMConstInt\(ctx->type_i32, 0, 0\)' \
     "$ROOT_DIR/src/codegen" \
-    | grep -Fv 'src/codegen/llvm_expr_emit_support.c:' \
+    | grep -Fv 'src/codegen/llvm/llvm_expr_emit_support.c:' \
     > "$llvm_i32_zero" || true
 fail_if_nonempty "LLVM backend bypassed void placeholder owner" "$llvm_i32_zero"
 

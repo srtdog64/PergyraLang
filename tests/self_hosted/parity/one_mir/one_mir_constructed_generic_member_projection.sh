@@ -32,26 +32,26 @@ assert_owner_ratchet() {
         [[ "$lines" -le 220 ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/220"
         total=$((total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_classification_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_constructed_member_shape_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_program_admission_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_declaration_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_signature_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_specialization_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_substitution_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_method_graph_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_main_graph_fact_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_program_identity_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_method_instruction_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_main_instruction_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_option_abi_admission_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_representation_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_plan_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_c_emission_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_llvm_emission_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_three_routine_classification_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_three_routine_classification_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_three_routine_constructed_member_shape_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_three_routine_projection_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_program_admission_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_declaration_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_signature_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_specialization_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_substitution_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_method_graph_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_main_graph_fact_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_program_identity_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_method_instruction_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_main_instruction_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_option_abi_admission_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_representation_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_plan_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_c_emission_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_llvm_emission_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_constructed_generic_member_projection_owner.pgy
 EOF
     [[ "$total" -le 2400 ]] || fail "constructed generic member owner family cap exceeded: $total/2400"
 }

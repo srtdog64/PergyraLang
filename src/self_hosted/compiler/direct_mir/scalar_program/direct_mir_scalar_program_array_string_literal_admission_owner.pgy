@@ -1,0 +1,120 @@
+// Typed normalization of one Array<String> literal into the program arena.
+
+import "../direct_mir_array_string_literal_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy";
+import "direct_mir_scalar_program_array_string_nested_literal_owner.pgy";
+
+func DirectMirScalarProgramAppendArrayStringLiteral(
+    facts: DirectMirScalarProgramExpressionSet,
+    ref sequence: MirExpressionGraphSequence,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, local_instruction: Int, local_offset: Int,
+    inout use_offset: Int, expected_type: String,
+    ref locals_plan: DirectMirScalarCfgLocalRefPlan,
+    ref value_types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref signature: DirectMirRoutineSignatureFact
+) -> DirectMirScalarProgramLiteralExpressionAdmission {
+    let root: Int = sequence.roots[0];
+    let source_kind: Int = sequence.arena.topology.node_kinds[root];
+    let recognized: Bool = expected_type ==
+            CompilerAbiLayoutArrayStringTypeName() &&
+        (source_kind == AstExpressionNodeArrayLiteral() ||
+         source_kind == AstExpressionNodeArrayElement());
+    if !recognized {
+        return DirectMirScalarProgramLiteralExpressionAdmission(false, facts);
+    }
+    let invalid: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetInvalid(facts);
+    let literal: DirectMirArrayStringLiteralFact =
+        DirectMirArrayStringLiteralFactFromGraph(sequence);
+    var single: DirectMirScalarProgramArrayStringLiteralOperandAdmission =
+        DirectMirScalarProgramArrayStringLiteralOperandAdmission(
+            false, 0, -1, -1, 0);
+    if !literal.valid {
+        single = DirectMirScalarProgramArrayStringSingleElementFromOwners(
+            sequence, uses, global_row, use_offset, local_instruction,
+            local_offset, locals_plan, value_types, wire, signature);
+    }
+    if !literal.valid && !single.valid &&
+        DirectMirScalarProgramNestedArrayStringLiteralCandidateReady(
+            sequence, root) {
+        return DirectMirScalarProgramLiteralExpressionAdmission(false, facts);
+    }
+    if (!literal.valid && !single.valid) ||
+        MirRoutineInstructionUseCountAtGlobal(uses, global_row) !=
+            use_offset + single.consumed_uses {
+        return DirectMirScalarProgramLiteralExpressionAdmission(true, invalid);
+    }
+    var graph_rows: Array<Int> = facts.graph_global_rows;
+    var starts: Array<Int> = facts.graph_starts;
+    var counts: Array<Int> = facts.graph_counts;
+    var roots: Array<Int> = facts.graph_roots;
+    var kinds: Array<Int> = facts.node_kinds;
+    var types: Array<String> = facts.node_types;
+    var lefts: Array<Int> = facts.node_lefts;
+    var rights: Array<Int> = facts.node_rights;
+    var locals: Array<Int> = facts.node_local_rows;
+    var params: Array<Int> = facts.node_parameter_ordinals;
+    var members: Array<Int> = facts.node_member_ordinals;
+    var literals: Array<String> = facts.node_literals;
+    var callables: Array<Int> = facts.node_callable_rows;
+    var runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    var nary: DirectMirScalarProgramNaryOperands = facts.nary_operands;
+    let start: Int = ArrayLength(kinds);
+    var operands: Array<Int> = [];
+    var operand_count: Int = ArrayLength(literal.elements);
+    if single.valid { operand_count = operand_count + 1; }
+    // One append site owns the parallel arena update.  Repeating that site is
+    // safe; separate sites would create competing cleanup obligations for the
+    // same storage generation.
+    var append_row: Int = 0;
+    while append_row <= operand_count {
+        var node_kind: Int = DirectMirScalarProgramExprArrayStringLiteral();
+        var node_type: String = CompilerAbiLayoutArrayStringTypeName();
+        var node_left: Int = -1; var node_right: Int = -1;
+        var node_local: Int = -1; var node_parameter: Int = -1;
+        var node_literal: String = "";
+        if append_row < ArrayLength(literal.elements) {
+            node_kind = DirectMirScalarProgramExprStringLiteral();
+            node_type = CompilerAbiLayoutStringTypeName();
+            node_literal = literal.elements[append_row];
+        } else if append_row < operand_count {
+            node_kind = single.kind;
+            node_type = CompilerAbiLayoutStringTypeName();
+            node_local = single.local_row;
+            node_parameter = single.parameter_ordinal;
+        } else {
+            if ArrayLength(operands) == 1 { node_left = operands[0]; }
+            if ArrayLength(operands) == 2 {
+                node_left = operands[0]; node_right = operands[1];
+            }
+        }
+        DirectMirScalarProgramAppendExpressionNode(
+            kinds, types, lefts, rights, locals, params, members,
+            literals, callables, runtime_ids, node_kind, node_type,
+            node_left, node_right, node_local, node_parameter, -1,
+            node_literal, -1, -1);
+        if append_row < operand_count {
+            ArrayPush(operands, ArrayLength(kinds) - 1);
+        }
+        append_row = append_row + 1;
+    }
+    let normalized_root: Int = ArrayLength(kinds) - 1;
+    if ArrayLength(operands) >= 3 {
+        nary = DirectMirScalarProgramNaryOperandsAppend(
+            nary, normalized_root, operands);
+    }
+    ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
+    ArrayPush(counts, ArrayLength(kinds) - start);
+    ArrayPush(roots, normalized_root);
+    use_offset = use_offset + single.consumed_uses;
+    return DirectMirScalarProgramLiteralExpressionAdmission(
+        true, DirectMirScalarProgramExpressionSet(
+            true, 0, graph_rows, starts, counts, roots, kinds, types,
+            lefts, rights, locals, params, members, literals, callables,
+            runtime_ids,
+            nary));
+}

@@ -1,7 +1,7 @@
 // UNEXECUTED real-producer component candidate; not DRV-2 acceptance.
 // Run from the repository root only after main establishes a current-source pair.
 import "../../../../src/self_hosted/parser/program_parse_owner.pgy";
-import "../../../../src/self_hosted/semantic/ast_expression_environment_owner.pgy";
+import "../../../../src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy";
 
 func Main() -> Void with caps io_read
 {

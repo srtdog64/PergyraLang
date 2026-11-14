@@ -1,0 +1,310 @@
+// Collection mutation verdicts over carried call targets and receiver nodes.
+
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
+import "../collection_mutation_policy_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
+import "../ast_signature_fact_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "../ast_local_binding_identity_owner.pgy";
+import "../array_type_shape_owner.pgy";
+import "ast_expression_storage_place_identity_owner.pgy";
+import "../env_value_owner.pgy";
+func SemanticCompilerRetireArrayStorageCallerReady(
+    signatures: SemanticAstFunctionSignatureFacts,
+    function_node_id: Int
+) -> Bool {
+    let index: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, function_node_id
+    );
+    if !IsSome(index) { return false; }
+    let row: Int = UnwrapOption(index);
+    let name: Option<String> = SemanticAstFunctionNameAt(signatures, row);
+    let module_path: Option<String> = SemanticAstFunctionModulePathAt(
+        signatures, row
+    );
+    let returns: Option<String> = SemanticAstFunctionReturnTypeAt(
+        signatures, row
+    );
+    let count: Option<Int> = SemanticAstFunctionParamCountAt(signatures, row);
+    let param_type: Option<String> = SemanticAstFunctionParamTypeAt(
+        signatures, row, 0
+    );
+    let param_mode: Option<Int> = SemanticAstFunctionParamModeAt(
+        signatures, row, 0
+    );
+    if !IsSome(name) || !IsSome(module_path) || !IsSome(returns) ||
+        !IsSome(count) ||
+        !IsSome(param_type) || !IsSome(param_mode) {
+        return false;
+    }
+    return SemanticCompilerRetireArrayStorageCallerContractReady(
+        UnwrapOption(module_path), UnwrapOption(name), UnwrapOption(returns),
+        UnwrapOption(count),
+        UnwrapOption(param_type), UnwrapOption(param_mode) == 2
+    );
+}
+
+struct SemanticExpressionGraphCollectionMutationFact {
+    applies: Bool;
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+}
+func SemanticExpressionGraphCollectionMutationNotApplicable(
+) -> SemanticExpressionGraphCollectionMutationFact {
+    return SemanticExpressionGraphCollectionMutationFact(
+        false, true, "", ""
+    );
+}
+
+func SemanticExpressionGraphCollectionMutationOk(
+) -> SemanticExpressionGraphCollectionMutationFact {
+    return SemanticExpressionGraphCollectionMutationFact(true, true, "", "");
+}
+
+func SemanticExpressionGraphCollectionMutationError(
+    code: String,
+    message: String
+) -> SemanticExpressionGraphCollectionMutationFact {
+    return SemanticExpressionGraphCollectionMutationFact(
+        true, false, code, message
+    );
+}
+
+func SemanticExpressionGraphArrayStorageMutationFact(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_node_id: Int, use_node_id: Int, receiver_id: Int, callee: String
+) -> SemanticExpressionGraphCollectionMutationFact {
+    if callee != "ArrayPush" && callee != "ArrayPop" && callee != "ArrayDrop" {
+        return SemanticExpressionGraphCollectionMutationOk();
+    }
+    var row: Int = 0;
+    while row < ArrayLength(locals.node_ids) {
+        // Admission already owns row shape; unrelated declarations cannot
+        // borrow this receiver, so exclude them before copying type storage.
+        if locals.function_node_ids[row] != function_node_id ||
+            locals.node_ids[row] >= use_node_id {
+            row = row + 1;
+            continue;
+        }
+        var local_type: String = "";
+        if locals.has_declared_types[row] != 0 {
+            local_type = Concat("", locals.declared_type_names[row]);
+        } else {
+            local_type = Concat("", inferred_types[row]);
+        }
+        if IsSome(SemanticSliceElementType(local_type)) &&
+            SemanticAstExpressionScopeVisible(
+                artifact.arena, locals.scope_node_ids[row], use_node_id) {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, locals.node_ids[row], AstExpressionLaneValue());
+            if IsSome(root) {
+                let call: SemanticCallSpineView =
+                    SemanticCallSpineViewFromGraph(
+                        surfaces.expression_graph, UnwrapOption(root));
+                var target: Option<String> = None;
+                if call.ok {
+                    target = SemanticExpressionGraphCallTargetName(
+                        surfaces.expression_graph, call.call_node);
+                }
+                if call.ok && IsSome(target) &&
+                    UnwrapOption(target) == "Array_Slice" {
+                    let member: SemanticMemberAccessView =
+                        SemanticMemberAccessViewFromGraph(
+                            surfaces.expression_graph, call.callee_node);
+                    if member.ok {
+                        if SemanticAstExpressionStoragePlaceEqual(
+                                artifact, locals, inferred_types,
+                                function_node_id, use_node_id, receiver_id,
+                                locals.node_ids[row], member.receiver_node,
+                                surfaces.expression_graph) {
+                            return SemanticExpressionGraphCollectionMutationError(
+                                "slice_storage_invalidation", SemanticError1(
+                                    "slice_storage_invalidation",
+                                    "operation", callee));
+                        }
+                    }
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticExpressionGraphCollectionMutationOk();
+}
+
+// Statement intrinsics and call expressions consume the same receiver path.
+// A member projection cannot turn a ref root into mutable storage. A default
+// aggregate is different: mutating one of its collection fields makes the
+// formal a moving value, and the later formal-flow owner decides whether the
+// caller moves, rebinds, or receives an independent Clone. Keep the direct
+// collection-parameter refusal below; only aggregate member storage reaches
+// that move owner.
+func SemanticExpressionGraphCollectionReceiverMutationFact(
+    callee: String, ref graph: SemanticExpressionGraphFacts,
+    receiver_id: Int, names: Slice<String>, types: Slice<String>,
+    modes: Slice<String>, internal_caller_ready: Bool,
+    ref enum_values: SemanticAstEnumValueScope
+) -> SemanticExpressionGraphCollectionMutationFact {
+    if ArrayLength(names) != ArrayLength(types) ||
+        ArrayLength(names) != ArrayLength(modes) {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid", SemanticError1(
+                "ast_artifact_invalid", "owner", "collection_environment"));
+    }
+    var node: Int = receiver_id;
+    while node >= 0 {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        let text: Option<String> = SemanticExpressionGraphNodeText(graph, node);
+        if !IsSome(kind) || !IsSome(text) { break; }
+        if UnwrapOption(kind) == AstExpressionNodeMemberAccess() {
+            let member: SemanticMemberAccessView =
+                SemanticMemberAccessViewFromGraph(graph, node);
+            if !member.ok || member.receiver_node < 0 ||
+                member.receiver_node >= node { break; }
+            node = member.receiver_node;
+        } else if UnwrapOption(kind) == AstExpressionNodeLeaf() &&
+            IsIdentText(UnwrapOption(text)) {
+            let receiver: String = UnwrapOption(text);
+            let root_mode: String = EnvValueSliceMode(names, modes, enum_values, receiver);
+            if node != receiver_id && root_mode == "ref_param" {
+                let mode_name: String = "ref";
+                return SemanticExpressionGraphCollectionMutationError(
+                    "value_param_collection_mutation", SemanticError3(
+                        "value_param_collection_mutation", "func", callee,
+                        "param", receiver, "mode", mode_name));
+            }
+            if node != receiver_id && root_mode == "default_param" {
+                // The aggregate, not its field descriptor, is the moving
+                // value. Formal-flow facts own the later move/Clone decision.
+                return SemanticExpressionGraphCollectionMutationOk();
+            }
+            let message: String = SemanticCollectionMutationError(
+                callee, receiver, names, types, modes, internal_caller_ready, enum_values);
+            if message != "" {
+                return SemanticExpressionGraphCollectionMutationError(
+                    "value_param_collection_mutation", message);
+            }
+            return SemanticExpressionGraphCollectionMutationOk();
+        } else {
+            return SemanticExpressionGraphCollectionMutationOk();
+        }
+    }
+    return SemanticExpressionGraphCollectionMutationError(
+        "ast_artifact_invalid", SemanticError1(
+            "ast_artifact_invalid", "owner", "collection_receiver"));
+}
+
+func SemanticExpressionGraphCollectionMutationFactFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    names: Slice<String>,
+    types: Slice<String>,
+    modes: Slice<String>,
+    internal_caller_ready: Bool,
+    ref enum_values: SemanticAstEnumValueScope
+) -> SemanticExpressionGraphCollectionMutationFact {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok {
+        return SemanticExpressionGraphCollectionMutationNotApplicable();
+    }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) || !IsSome(callee_text) ||
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
+        !SemanticCollectionMutatorName(UnwrapOption(callee_text)) {
+        return SemanticExpressionGraphCollectionMutationNotApplicable();
+    }
+    let callee: String = UnwrapOption(callee_text);
+    if callee == "CompilerRetireArrayStorage" {
+        let caller_error: String =
+            SemanticCompilerRetireArrayStorageCallerError(
+                internal_caller_ready
+            );
+        if caller_error != "" {
+            return SemanticExpressionGraphCollectionMutationError(
+                "compiler_internal_builtin", caller_error
+            );
+        }
+    }
+    if ArrayLength(names) != ArrayLength(types) ||
+        ArrayLength(names) != ArrayLength(modes) {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "collection_environment"
+            )
+        );
+    }
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, call.call_node
+    );
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call.call_node
+    );
+    if !IsSome(target_kind) || !IsSome(target_name) ||
+        UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
+        UnwrapOption(target_name) != callee {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "collection_call_target"
+            )
+        );
+    }
+    if (callee == "CompilerRetireArrayStorage" || callee == "ArrayDrop") &&
+        ArrayLength(call.argument_nodes) != 1 {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "array_drop_storage_arity", "expected", "1"
+            )
+        );
+    }
+    if ArrayLength(call.argument_nodes) == 0 {
+        return SemanticExpressionGraphCollectionMutationOk();
+    }
+    let receiver_node: Int = call.argument_nodes[0];
+    let receiver_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, receiver_node
+    );
+    let receiver_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, receiver_node
+    );
+    if !IsSome(receiver_kind) || !IsSome(receiver_text) {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "collection_receiver"
+            )
+        );
+    }
+    if (callee == "CompilerRetireArrayStorage" || callee == "ArrayDrop") &&
+        (UnwrapOption(receiver_kind) != AstExpressionNodeLeaf() ||
+         !IsIdentText(UnwrapOption(receiver_text))) {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "array_drop_storage_requires_binding", "receiver",
+                UnwrapOption(receiver_text)
+            )
+        );
+    }
+    return SemanticExpressionGraphCollectionReceiverMutationFact(
+        callee, graph, receiver_node, names, types, modes, internal_caller_ready, enum_values
+    );
+}
+
+func SemanticExpressionGraphCollectionMutationContractReady() -> Bool {
+    return SemanticCollectionMutationPolicyContractReady();
+}

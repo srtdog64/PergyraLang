@@ -1,6 +1,6 @@
 // C materialization keeps the observer result before retiring fresh operands.
 import "owned_expression_temporary_owner.pgy";
-import "direct_mir_scalar_program_c_string_expression_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_c_string_expression_owner.pgy";
 
 func DirectMirOwnedStringObserverCName(kind: Int) -> String {
     return "pgy_retiring_string_observer_" + ToString(kind);

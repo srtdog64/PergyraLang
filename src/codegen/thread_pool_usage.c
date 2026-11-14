@@ -7,7 +7,7 @@
 
 #include "thread_pool_usage.h"
 
-#include "../compiler/mir_surface_usage.h"
+#include "../compiler/mir/mir_surface_usage.h"
 #include "../parser/ast_analysis.h"
 
 #include <stddef.h>

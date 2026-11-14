@@ -3,7 +3,7 @@
  * body and writes the equation rows the solver later seals. */
 #include "callable_capability_equations_internal.h"
 #include "capability_analyze.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "diag_codes.h"
 
 #include <stdlib.h>

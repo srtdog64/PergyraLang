@@ -108,11 +108,11 @@ func ParallelChunkExportsPath() -> String {
 }
 
 func ParallelChunkCEmitterPath() -> String {
-    return "src/codegen/transpiler_parallel_join_emit.c";
+    return "src/codegen/c/transpiler_parallel_join_emit.c";
 }
 
 func ParallelChunkLlvmEmitterPath() -> String {
-    return "src/codegen/llvm_stmt_parallel_join_chunk.c";
+    return "src/codegen/llvm/llvm_stmt_parallel_join_chunk.c";
 }
 
 func ParallelChunkRequiredCount() -> Int {

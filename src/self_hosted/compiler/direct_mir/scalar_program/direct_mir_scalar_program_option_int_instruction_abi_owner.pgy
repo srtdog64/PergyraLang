@@ -1,0 +1,52 @@
+// Option<Int> instruction ABI.
+
+import "../direct_mir_option_match_abi_capture_owner.pgy";
+import "../direct_mir_instruction_abi_absence_owner.pgy";
+import "../direct_mir_routine_param_fact_owner.pgy";
+import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "../../../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../../../mir_lower/routine_instruction_scalar_capture_owner.pgy";
+
+func DirectMirScalarProgramOptionIntAbiFromInstruction(
+    current: DirectMirOptionMatchAbiFact,
+    json: String, json_extent: Int,
+    ref capture: MirRoutineInstructionScalarCapture
+) -> DirectMirOptionMatchAbiFact {
+    if capture.abi_type_name != CompilerAbiLayoutOptionIntTypeName() {
+        return current;
+    }
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, json_extent, capture.abi_type_name, capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end,
+            capture.abi_layout_start, capture.abi_layout_end
+        );
+    if !IsSome(admitted) {
+        if DirectMirOptionMatchAbiFactReady(current) &&
+            DirectMirInstructionHasProjectedNoPhysicalAbi(
+                json, json_extent, capture,
+                CompilerAbiLayoutOptionIntTypeName()) {
+            return current;
+        }
+        Die("direct MIR scalar program Option<Int> ABI receipt is missing");
+    }
+    let admitted_row: MirAbiLayoutRowCapture = UnwrapOption(admitted);
+    let next: DirectMirOptionMatchAbiFact =
+        DirectMirOptionMatchAbiFactFromCapture(admitted_row);
+    if current.valid && (current.layout_id != next.layout_id ||
+        current.digest != next.digest) {
+        Die("direct MIR scalar program Option<Int> ABI owners disagree");
+    }
+    return next;
+}
+
+func DirectMirScalarProgramOptionIntAbiCanonicalEmpty(
+    ref fact: DirectMirOptionMatchAbiFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.layout_id == 0;
+}
+

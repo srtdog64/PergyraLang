@@ -1,0 +1,83 @@
+// Converts an already parsed expression fact into semantic graph storage.
+//
+// The parser-fact importer mutates the six row arrays directly. Passing
+// SemanticExpressionGraphArena as inout would copy a compiler-scale aggregate
+// and has a different LLVM ABI shape from the C backend; a nested append call
+// would also reopen six independent shallow-mutation boundaries per node.
+
+import "ast_expression_graph_fact_owner.pgy";
+import "../../parser/ast_text_artifact_parse_owner.pgy";
+
+func SemanticExpressionGraphInvalidBuild() -> SemanticExpressionGraphBuild {
+    return SemanticExpressionGraphBuild(false, 0);
+}
+
+func SemanticExpressionGraphBuildFromParserFact(
+    inout node_kinds: Array<Int>,
+    inout node_texts: Array<String>,
+    inout left_children: Array<Int>,
+    inout right_children: Array<Int>,
+    inout call_target_kinds: Array<Int>,
+    inout call_target_names: Array<String>,
+    parsed: ParserExpressionFact
+) -> SemanticExpressionGraphBuild {
+    if !parsed.ok || !AstExpressionArenaReady(parsed.arena) ||
+        parsed.root < 0 ||
+        parsed.root >= AstExpressionArenaNodeCount(parsed.arena) {
+        return SemanticExpressionGraphInvalidBuild();
+    }
+    let offset: Int = ArrayLength(node_kinds);
+    var i: Int = 0;
+    while i < AstExpressionArenaNodeCount(parsed.arena) {
+        let kind: Int = parsed.arena.node_kinds[i];
+        let arity: Int = AstExpressionNodeArity(kind);
+        var left: Int = 0;
+        var right: Int = 0;
+        if arity >= 1 { left = offset + parsed.arena.left_children[i]; }
+        if arity == 2 { right = offset + parsed.arena.right_children[i]; }
+        let root_id: Int = ArrayLength(node_kinds);
+        let text: String = parsed.arena.node_texts[i];
+        if ArrayLength(node_texts) != root_id ||
+            ArrayLength(left_children) != root_id ||
+            ArrayLength(right_children) != root_id ||
+            ArrayLength(call_target_kinds) != root_id ||
+            ArrayLength(call_target_names) != root_id || text == "" ||
+            !AstExpressionNodeKindKnown(kind) ||
+            (arity == 0 && (left != 0 || right != 0)) ||
+            (arity >= 1 && (left < 0 || left >= root_id)) ||
+            (arity == 1 && right != 0) ||
+            (arity == 2 && (right < 0 || right >= root_id)) {
+            return SemanticExpressionGraphInvalidBuild();
+        }
+        ArrayPush(node_kinds, kind);
+        // `parsed` is retired when this importer returns, while `node_texts`
+        // becomes part of the returned semantic arena.  The destination must
+        // therefore own an independent String for every imported row.
+        ArrayPushOwnedString(node_texts, Concat("", text));
+        ArrayPush(left_children, left);
+        ArrayPush(right_children, right);
+        ArrayPush(call_target_kinds, SemanticCallTargetNone());
+        ArrayPushOwnedString(call_target_names, Concat("", ""));
+        i = i + 1;
+    }
+    return SemanticExpressionGraphBuild(true, offset + parsed.root);
+}
+
+// Boundary adapter for legacy MIR/probe inputs that still carry expression
+// spelling. Grammar and canonical prefix-try handling remain parser-owned;
+// this owner only imports the resulting typed graph fact.
+func SemanticExpressionGraphImportSerializedParserFact(
+    inout node_kinds: Array<Int>,
+    inout node_texts: Array<String>,
+    inout left_children: Array<Int>,
+    inout right_children: Array<Int>,
+    inout call_target_kinds: Array<Int>,
+    inout call_target_names: Array<String>,
+    expression: String
+) -> SemanticExpressionGraphBuild {
+    return SemanticExpressionGraphBuildFromParserFact(
+        node_kinds, node_texts, left_children, right_children,
+        call_target_kinds, call_target_names,
+        ParserSerializedExpressionFact(expression)
+    );
+}

@@ -3,7 +3,7 @@
 // The renderer consumes the admitted DIR inventory.  It never derives nodes
 // or edges from the aggregate census and never reopens parser provenance.
 
-import "driver_pipeline_owner.pgy";
+import "driver/driver_pipeline_owner.pgy";
 import "dir_intent_text_artifact_owner.pgy";
 import "dir_text_row_format_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";

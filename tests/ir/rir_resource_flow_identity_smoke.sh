@@ -41,17 +41,17 @@ OUTPUT="$($RIR_TEST)"
 [[ "$OUTPUT" == *"RIR validation rejects a ResourceFlow fact with unknown stable identity"* ]]
 [[ "$OUTPUT" == *"RIR validation rejects duplicate ResourceFlow stable identity"* ]]
 
-RIR_FLOW="$(< "$ROOT_DIR/src/compiler/rir_flow.c")"
-RIR_RESOURCE_FLOW="$(< "$ROOT_DIR/src/compiler/rir_resource_flow_symbols.c")"
+RIR_FLOW="$(< "$ROOT_DIR/src/compiler/rir/rir_flow.c")"
+RIR_RESOURCE_FLOW="$(< "$ROOT_DIR/src/compiler/rir/rir_resource_flow_symbols.c")"
 RIR_HEADER="$(< "$ROOT_DIR/src/compiler/rir.h")"
-RIR_VALIDATOR="$(< "$ROOT_DIR/src/compiler/rir_validation.c")"
-RIR_PUBLIC="$(< "$ROOT_DIR/src/compiler/rir_public_surface.c")"
+RIR_VALIDATOR="$(< "$ROOT_DIR/src/compiler/rir/rir_validation.c")"
+RIR_PUBLIC="$(< "$ROOT_DIR/src/compiler/rir/rir_public_surface.c")"
 [[ "$RIR_HEADER" == *"RIRResourceFlowSymbol *resource_flow_symbols"* ]]
 [[ "$RIR_RESOURCE_FLOW" == *"rir_copy_resource_flow_symbols"* ]]
 [[ "$RIR_VALIDATOR" == *"rir_validate_resource_flow_symbols"* ]]
 [[ "$RIR_PUBLIC" == *"resource_flow_symbol_count"* ]]
 
-"$PYTHON_BIN" - "$ROOT_DIR/src/compiler/rir_flow.c" <<'PY'
+"$PYTHON_BIN" - "$ROOT_DIR/src/compiler/rir/rir_flow.c" <<'PY'
 import pathlib
 import sys
 

@@ -1,0 +1,433 @@
+// Exact MIR ABI receipts for the builtin scalar Result family reached by V.001.
+
+import "../abi_layout_row_owner.pgy";
+import "scalar_program/direct_mir_scalar_program_expression_fact_owner.pgy";
+import "../target_projection_fact_owner.pgy";
+import "../../air/mir_cfg_identity_owner.pgy";
+import "../../codegen/runtime_abi/result_runtime_owner.pgy";
+import "../../mir_lower/abi_layout_fact_owner.pgy";
+import "../../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../../mir_lower/routine_instruction_scalar_capture_owner.pgy";
+
+struct DirectMirScalarResultAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let layout_id: Int;
+    let type_name: String;
+    let size: Int;
+    let align: Int;
+    let tag_name: String;
+    let tag_offset: Int;
+    let tag_size: Int;
+    let tag_align: Int;
+    let ok_name: String;
+    let ok_offset: Int;
+    let ok_size: Int;
+    let ok_align: Int;
+    let error_name: String;
+    let error_offset: Int;
+    let error_size: Int;
+    let error_align: Int;
+    let runtime_fn: String;
+    let inner_c_type: String;
+    let representation: Int;
+    let discriminant: String;
+    let ok_tag: String;
+    let error_tag: String;
+    let niche_none_pattern: String;
+}
+
+struct DirectMirScalarResultAbiSet {
+    let result_int: DirectMirScalarResultAbiFact;
+    let result_bool: DirectMirScalarResultAbiFact;
+}
+
+struct DirectMirScalarResultAbiProjection {
+    let valid: Bool;
+    let type_name: String;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let tag_index: Int;
+    let ok_index: Int;
+    let error_index: Int;
+    let aggregate_type: String;
+}
+
+func DirectMirScalarResultAbiFactEmpty() -> DirectMirScalarResultAbiFact {
+    return DirectMirScalarResultAbiFact(
+        false, 0, 0, "", 0, 0,
+        "", 0, 0, 0, "", 0, 0, 0, "", 0, 0, 0,
+        "", "", 0, "", "", "", ""
+    );
+}
+
+func DirectMirScalarResultAbiSetEmpty() -> DirectMirScalarResultAbiSet {
+    return DirectMirScalarResultAbiSet(
+        DirectMirScalarResultAbiFactEmpty(),
+        DirectMirScalarResultAbiFactEmpty());
+}
+
+func DirectMirScalarResultAbiRuntimeForType(
+    type_name: String
+) -> ResultRuntimeFact {
+    let runtime: ResultRuntimeFact = ResultRuntimeFactForType(type_name);
+    if !runtime.ok || !ResultRuntimeFactIsBuiltinScalar(runtime.type_name) ||
+        (runtime.payload_type != CompilerAbiLayoutIntTypeName() &&
+         runtime.payload_type != CompilerAbiLayoutBoolTypeName()) ||
+        runtime.error_type != CompilerAbiLayoutStringTypeName() {
+        return ResultRuntimeFactInvalid(type_name);
+    }
+    return runtime;
+}
+
+func DirectMirScalarResultAbiInnerCType(
+    ref runtime: ResultRuntimeFact
+) -> String {
+    if runtime.payload_type == CompilerAbiLayoutIntTypeName() {
+        return CompilerAbiLayoutIntCValueType();
+    }
+    if runtime.payload_type == CompilerAbiLayoutBoolTypeName() {
+        return CompilerAbiLayoutBoolCValueType();
+    }
+    return "";
+}
+
+func DirectMirScalarResultAbiPayloadSize(
+    ref runtime: ResultRuntimeFact
+) -> Int {
+    if runtime.payload_type == CompilerAbiLayoutIntTypeName() { return 4; }
+    if runtime.payload_type == CompilerAbiLayoutBoolTypeName() { return 1; }
+    return 0;
+}
+
+func DirectMirScalarResultAbiRuntimeFunction(
+    ref runtime: ResultRuntimeFact
+) -> String {
+    if !runtime.ok { return ""; }
+    return Concat("pgy_result_ok_", runtime.payload_type);
+}
+
+func DirectMirScalarResultAbiCanonicalLayoutId(
+    ref fact: DirectMirScalarResultAbiFact
+) -> Int {
+    let names: Array<String> = [
+        fact.tag_name, fact.ok_name, fact.error_name
+    ];
+    let offsets: Array<String> = [
+        ToString(fact.tag_offset), ToString(fact.ok_offset),
+        ToString(fact.error_offset)
+    ];
+    let sizes: Array<String> = [
+        ToString(fact.tag_size), ToString(fact.ok_size),
+        ToString(fact.error_size)
+    ];
+    let aligns: Array<String> = [
+        ToString(fact.tag_align), ToString(fact.ok_align),
+        ToString(fact.error_align)
+    ];
+    let row: MirAbiLayoutRowCapture = MirAbiLayoutRowCapture(
+        fact.valid, fact.type_name, ToString(fact.size),
+        ToString(fact.align), names, offsets, sizes, aligns,
+        fact.runtime_fn, fact.inner_c_type, ToString(fact.representation),
+        fact.discriminant, fact.ok_tag, fact.error_tag,
+        fact.niche_none_pattern
+    );
+    return MirAbiLayoutIdFromCapture(row);
+}
+
+func DirectMirScalarResultAbiFactDigest(
+    ref fact: DirectMirScalarResultAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    var hash: Long = DirectMirCfgHashInt(109L, fact.layout_id);
+    hash = DirectMirCfgHashString(hash, fact.type_name);
+    hash = DirectMirCfgHashInt(hash, fact.size);
+    hash = DirectMirCfgHashInt(hash, fact.align);
+    hash = DirectMirCfgHashString(hash, fact.tag_name);
+    hash = DirectMirCfgHashInt(hash, fact.tag_offset);
+    hash = DirectMirCfgHashInt(hash, fact.tag_size);
+    hash = DirectMirCfgHashInt(hash, fact.tag_align);
+    hash = DirectMirCfgHashString(hash, fact.ok_name);
+    hash = DirectMirCfgHashInt(hash, fact.ok_offset);
+    hash = DirectMirCfgHashInt(hash, fact.ok_size);
+    hash = DirectMirCfgHashInt(hash, fact.ok_align);
+    hash = DirectMirCfgHashString(hash, fact.error_name);
+    hash = DirectMirCfgHashInt(hash, fact.error_offset);
+    hash = DirectMirCfgHashInt(hash, fact.error_size);
+    hash = DirectMirCfgHashInt(hash, fact.error_align);
+    hash = DirectMirCfgHashString(hash, fact.runtime_fn);
+    hash = DirectMirCfgHashString(hash, fact.inner_c_type);
+    hash = DirectMirCfgHashInt(hash, fact.representation);
+    hash = DirectMirCfgHashString(hash, fact.discriminant);
+    hash = DirectMirCfgHashString(hash, fact.ok_tag);
+    hash = DirectMirCfgHashString(hash, fact.error_tag);
+    hash = DirectMirCfgHashString(hash, fact.niche_none_pattern);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarResultAbiFactWithDigest(
+    fact: DirectMirScalarResultAbiFact, digest: Int
+) -> DirectMirScalarResultAbiFact {
+    return DirectMirScalarResultAbiFact(
+        fact.valid, digest, fact.layout_id, fact.type_name,
+        fact.size, fact.align, fact.tag_name, fact.tag_offset,
+        fact.tag_size, fact.tag_align, fact.ok_name, fact.ok_offset,
+        fact.ok_size, fact.ok_align, fact.error_name, fact.error_offset,
+        fact.error_size, fact.error_align, fact.runtime_fn,
+        fact.inner_c_type, fact.representation, fact.discriminant,
+        fact.ok_tag, fact.error_tag, fact.niche_none_pattern
+    );
+}
+
+func DirectMirScalarResultAbiFactReady(
+    ref fact: DirectMirScalarResultAbiFact
+) -> Bool {
+    let runtime: ResultRuntimeFact =
+        DirectMirScalarResultAbiRuntimeForType(fact.type_name);
+    let payload_size: Int = DirectMirScalarResultAbiPayloadSize(runtime);
+    return runtime.ok && fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirScalarResultAbiFactDigest(fact) &&
+        fact.layout_id > 0 &&
+        fact.layout_id == DirectMirScalarResultAbiCanonicalLayoutId(fact) &&
+        fact.type_name == runtime.type_name &&
+        fact.size == 16 && fact.align == 8 &&
+        fact.tag_name == "tag" && fact.tag_offset == 0 &&
+        fact.tag_size == 4 && fact.tag_align == 4 &&
+        fact.ok_name == "ok" && fact.ok_offset == 4 &&
+        fact.ok_size == payload_size && fact.ok_align == payload_size &&
+        fact.error_name == "err" && fact.error_offset == 8 &&
+        fact.error_size == 8 && fact.error_align == 8 &&
+        fact.runtime_fn == DirectMirScalarResultAbiRuntimeFunction(runtime) &&
+        fact.inner_c_type == DirectMirScalarResultAbiInnerCType(runtime) &&
+        fact.representation == 1 && fact.discriminant == "tag" &&
+        fact.ok_tag == "0" && fact.error_tag == "1" &&
+        fact.niche_none_pattern == "";
+}
+
+func DirectMirScalarResultAbiFactCanonicalEmpty(
+    ref fact: DirectMirScalarResultAbiFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.layout_id == 0;
+}
+
+func DirectMirScalarResultAbiFactFromCapture(
+    own row: MirAbiLayoutRowCapture
+) -> DirectMirScalarResultAbiFact {
+    let runtime: ResultRuntimeFact =
+        DirectMirScalarResultAbiRuntimeForType(row.type_name);
+    let payload_size: Int = DirectMirScalarResultAbiPayloadSize(runtime);
+    let layout_id: Int = MirAbiLayoutIdFromCapture(row);
+    if !runtime.ok || !row.valid || layout_id <= 0 ||
+        row.type_name != runtime.type_name ||
+        row.size_text != "16" || row.align_text != "8" ||
+        ArrayLength(row.field_names) != 3 ||
+        ArrayLength(row.field_offsets) != 3 ||
+        ArrayLength(row.field_sizes) != 3 ||
+        ArrayLength(row.field_aligns) != 3 ||
+        row.field_names[0] != "tag" || row.field_offsets[0] != "0" ||
+        row.field_sizes[0] != "4" || row.field_aligns[0] != "4" ||
+        row.field_names[1] != "ok" || row.field_offsets[1] != "4" ||
+        row.field_sizes[1] != ToString(payload_size) ||
+        row.field_aligns[1] != ToString(payload_size) ||
+        row.field_names[2] != "err" || row.field_offsets[2] != "8" ||
+        row.field_sizes[2] != "8" || row.field_aligns[2] != "8" ||
+        row.runtime_fn != DirectMirScalarResultAbiRuntimeFunction(runtime) ||
+        row.inner_c_type != DirectMirScalarResultAbiInnerCType(runtime) ||
+        row.representation_text != "1" || row.discriminant != "tag" ||
+        row.primary_tag_text != "0" || row.secondary_tag_text != "1" ||
+        row.niche_none_pattern != "" {
+        Die("direct MIR scalar Result ABI layout is unsupported or mutated");
+    }
+    let fact: DirectMirScalarResultAbiFact = DirectMirScalarResultAbiFact(
+        true, 0, layout_id, row.type_name, ToInt(row.size_text),
+        ToInt(row.align_text), row.field_names[0],
+        ToInt(row.field_offsets[0]), ToInt(row.field_sizes[0]),
+        ToInt(row.field_aligns[0]), row.field_names[1],
+        ToInt(row.field_offsets[1]), ToInt(row.field_sizes[1]),
+        ToInt(row.field_aligns[1]), row.field_names[2],
+        ToInt(row.field_offsets[2]), ToInt(row.field_sizes[2]),
+        ToInt(row.field_aligns[2]), row.runtime_fn, row.inner_c_type,
+        ToInt(row.representation_text), row.discriminant,
+        row.primary_tag_text, row.secondary_tag_text,
+        row.niche_none_pattern
+    );
+    let verified: DirectMirScalarResultAbiFact =
+        DirectMirScalarResultAbiFactWithDigest(
+            fact, DirectMirScalarResultAbiFactDigest(fact));
+    if !DirectMirScalarResultAbiFactReady(verified) {
+        Die("direct MIR scalar Result ABI receipt identity is invalid");
+    }
+    return verified;
+}
+
+func DirectMirScalarResultAbiFactsAgree(
+    ref current: DirectMirScalarResultAbiSet,
+    ref runtime: ResultRuntimeFact,
+    ref next: DirectMirScalarResultAbiFact
+) -> Bool {
+    if runtime.payload_type == CompilerAbiLayoutIntTypeName() {
+        return !current.result_int.valid ||
+            (current.result_int.type_name == next.type_name &&
+             current.result_int.layout_id == next.layout_id &&
+             current.result_int.digest == next.digest);
+    }
+    if runtime.payload_type == CompilerAbiLayoutBoolTypeName() {
+        return !current.result_bool.valid ||
+            (current.result_bool.type_name == next.type_name &&
+             current.result_bool.layout_id == next.layout_id &&
+             current.result_bool.digest == next.digest);
+    }
+    return false;
+}
+
+func DirectMirScalarResultAbiSetFromInstruction(
+    current: DirectMirScalarResultAbiSet,
+    json: String, json_extent: Int,
+    ref capture: MirRoutineInstructionScalarCapture
+) -> DirectMirScalarResultAbiSet {
+    let runtime: ResultRuntimeFact =
+        DirectMirScalarResultAbiRuntimeForType(capture.abi_type_name);
+    if !runtime.ok { return current; }
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, json_extent, capture.abi_type_name,
+            capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end,
+            capture.abi_layout_start, capture.abi_layout_end
+        );
+    if !IsSome(admitted) {
+        Die("direct MIR scalar Result ABI receipt is missing");
+    }
+    let admitted_row: MirAbiLayoutRowCapture = UnwrapOption(admitted);
+    let next: DirectMirScalarResultAbiFact =
+        DirectMirScalarResultAbiFactFromCapture(admitted_row);
+    if !DirectMirScalarResultAbiFactsAgree(current, runtime, next) {
+        if runtime.payload_type == CompilerAbiLayoutIntTypeName() {
+            Die("direct MIR scalar Result<Int> ABI owners disagree");
+        }
+        Die("direct MIR scalar Result<Bool> ABI owners disagree");
+    }
+    if runtime.payload_type == CompilerAbiLayoutIntTypeName() {
+        return DirectMirScalarResultAbiSet(next, current.result_bool);
+    }
+    return DirectMirScalarResultAbiSet(current.result_int, next);
+}
+
+func DirectMirScalarResultAbiSetReadyForExpressions(
+    ref set: DirectMirScalarResultAbiSet,
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    var require_int: Bool = false;
+    var require_bool: Bool = false;
+    var row: Int = 0;
+    while row < ArrayLength(expressions.node_types) {
+        let type_name: String = expressions.node_types[row];
+        if ResultRuntimeFactIsBuiltinScalar(type_name) {
+            let runtime: ResultRuntimeFact = ResultRuntimeFactForType(type_name);
+            if runtime.payload_type == CompilerAbiLayoutIntTypeName() {
+                require_int = true;
+            } else if runtime.payload_type == CompilerAbiLayoutBoolTypeName() {
+                require_bool = true;
+            } else {
+                return false;
+            }
+        }
+        row = row + 1;
+    }
+    let int_ready: Bool =
+        ((require_int || set.result_int.valid) &&
+         DirectMirScalarResultAbiFactReady(set.result_int)) ||
+        (!require_int &&
+         DirectMirScalarResultAbiFactCanonicalEmpty(set.result_int));
+    let bool_ready: Bool =
+        ((require_bool || set.result_bool.valid) &&
+         DirectMirScalarResultAbiFactReady(set.result_bool)) ||
+        (!require_bool &&
+         DirectMirScalarResultAbiFactCanonicalEmpty(set.result_bool));
+    return int_ready && bool_ready;
+}
+
+func DirectMirScalarResultAbiCTypeName(type_name: String) -> String {
+    let runtime: ResultRuntimeFact =
+        DirectMirScalarResultAbiRuntimeForType(type_name);
+    if runtime.payload_type == CompilerAbiLayoutIntTypeName() {
+        return "pgy_scalar_result_int";
+    }
+    if runtime.payload_type == CompilerAbiLayoutBoolTypeName() {
+        return "pgy_scalar_result_bool";
+    }
+    return "";
+}
+
+func DirectMirScalarResultAbiLlvmTypeName(type_name: String) -> String {
+    let runtime: ResultRuntimeFact =
+        DirectMirScalarResultAbiRuntimeForType(type_name);
+    if runtime.payload_type == CompilerAbiLayoutIntTypeName() {
+        return "%pgy.scalar.result.int";
+    }
+    if runtime.payload_type == CompilerAbiLayoutBoolTypeName() {
+        return "%pgy.scalar.result.bool";
+    }
+    return "";
+}
+
+func DirectMirScalarResultAbiLlvmAggregateType(type_name: String) -> String {
+    let runtime: ResultRuntimeFact =
+        DirectMirScalarResultAbiRuntimeForType(type_name);
+    if runtime.payload_type == CompilerAbiLayoutIntTypeName() {
+        return "{ i32, i32, ptr }";
+    }
+    if runtime.payload_type == CompilerAbiLayoutBoolTypeName() {
+        return "{ i32, i1, ptr }";
+    }
+    return "";
+}
+
+func DirectMirScalarResultAbiProjectionReadyFor(
+    ref projection: DirectMirScalarResultAbiProjection,
+    expected_target: String
+) -> Bool {
+    var aggregate: String =
+        DirectMirScalarResultAbiCTypeName(projection.type_name);
+    if expected_target == CompilerTargetCpuLlvmProjection() {
+        aggregate = DirectMirScalarResultAbiLlvmAggregateType(
+            projection.type_name);
+    }
+    return projection.valid && aggregate != "" &&
+        CompilerTargetProjectionKnown(expected_target) &&
+        projection.target_projection == expected_target &&
+        projection.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        projection.tag_index == 0 && projection.ok_index == 1 &&
+        projection.error_index == 2 &&
+        projection.aggregate_type == aggregate;
+}
+
+func DirectMirScalarResultAbiProjectionFromFact(
+    ref fact: DirectMirScalarResultAbiFact,
+    ref target: CompilerTargetProjectionFact
+) -> DirectMirScalarResultAbiProjection {
+    if !DirectMirScalarResultAbiFactReady(fact) ||
+        (!CompilerTargetProjectionFactReadyFor(
+             target, CompilerTargetCpuCProjection()) &&
+         !CompilerTargetProjectionFactReadyFor(
+             target, CompilerTargetCpuLlvmProjection())) {
+        Die("direct MIR scalar Result ABI has no target projection");
+    }
+    var aggregate: String = DirectMirScalarResultAbiCTypeName(fact.type_name);
+    if target.projection == CompilerTargetCpuLlvmProjection() {
+        aggregate = DirectMirScalarResultAbiLlvmAggregateType(fact.type_name);
+    }
+    let projection: DirectMirScalarResultAbiProjection =
+        DirectMirScalarResultAbiProjection(
+            true, fact.type_name, target.projection,
+            target.target_capability_fingerprint, 0, 1, 2, aggregate);
+    if !DirectMirScalarResultAbiProjectionReadyFor(
+            projection, target.projection) {
+        Die("direct MIR scalar Result target mapping is invalid");
+    }
+    return projection;
+}

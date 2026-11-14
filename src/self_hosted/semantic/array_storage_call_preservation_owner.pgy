@@ -2,8 +2,8 @@
 // program. This is descriptor retention, not String-element ownership or Slot
 // access permission. Consumers never reopen a callee body.
 import "array_storage_element_lifetime_owner.pgy";
-import "ast_collection_formal_execution_context_owner.pgy";
-import "ast_collection_owned_parameter_identity_owner.pgy";
+import "ast_collection/ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection/ast_collection_owned_parameter_identity_owner.pgy";
 import "ast_artifact_verdict_owner.pgy";
 
 func SemanticArrayStorageBorrowedParameterTarget(

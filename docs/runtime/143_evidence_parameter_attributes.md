@@ -27,7 +27,7 @@ borrow; it does not automatically prove LLVM's whole-call memory contract.
 
 ## Current rule
 
-`src/codegen/llvm_decl.c` consumes MIR carriage for ABI shape only. It emits no
+`src/codegen/llvm/llvm_decl.c` consumes MIR carriage for ABI shape only. It emits no
 pointer parameter optimizer attribute from carriage. Unknown proof means no
 attribute.
 

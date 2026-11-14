@@ -1,5 +1,5 @@
 import "../../../src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_expression_graph_build_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_expression/ast_expression_graph_build_owner.pgy";
 import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
 
 func Probe(expression: String, shadow: Bool, truncate_types: Bool, reject: Bool) -> Bool {

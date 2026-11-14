@@ -3,8 +3,8 @@
 import "ast_artifact_verdict_owner.pgy";
 import "ast_body_verdict_owner.pgy";
 import "ast_body_flow_verdict_owner.pgy";
-import "ast_collection_ownership_verdict_owner.pgy";
-import "ast_expression_graph_compiler_clone_owner.pgy";
+import "ast_collection/ast_collection_ownership_verdict_owner.pgy";
+import "ast_expression/ast_expression_graph_compiler_clone_owner.pgy";
 
 func SemanticAstBodyCollectionOwnershipStage(
     artifact: AstTreeArtifact,

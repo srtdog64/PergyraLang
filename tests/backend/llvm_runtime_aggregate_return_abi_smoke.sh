@@ -31,10 +31,10 @@ require_absent() {
     fi
 }
 
-owner="src/codegen/llvm_runtime_aggregate_return.c"
-decl="src/codegen/llvm_runtime_core_builtin_decl.c"
-emit="src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
-generic="src/codegen/llvm_expr_call_args.c"
+owner="src/codegen/llvm/llvm_runtime_aggregate_return.c"
+decl="src/codegen/llvm/llvm_runtime_core_builtin_decl.c"
+emit="src/codegen/llvm/llvm_expr_stdlib_scalar_io_calls.c"
+generic="src/codegen/llvm/llvm_expr_call_args.c"
 
 require_term "$owner" "llvm_runtime_aggregate_return_apply_decl_shape"
 require_term "$owner" "llvm_emit_runtime_aggregate_return_call"

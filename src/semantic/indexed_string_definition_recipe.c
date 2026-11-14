@@ -8,13 +8,13 @@
 #include "indexed_string_definition_recipe.h"
 #include "indexed_string_borrow_owner.h"
 #include "formal_string_store_landing_owner.h"
-#include "function_param_flow_summary_internal.h"
-#include "function_param_flow_loan_order.h"
-#include "function_param_publication_internal.h"
-#include "function_param_publication_owner.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_flow_loan_order.h"
+#include "function_param_flow/function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_owner.h"
 #include "loan_copy_landing_owner.h"
 #include "diag_codes.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "../common/string_compat.h"
 
 static bool definition_id(const ASTNode *node, uint32_t id)

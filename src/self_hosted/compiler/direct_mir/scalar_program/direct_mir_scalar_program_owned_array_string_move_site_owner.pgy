@@ -1,0 +1,78 @@
+// The one rule for an owner-handle Array<String> move: a direct call whose
+// formal at an ordinal is `own Array<String>` takes the local passed there.
+// The program-wide move fact and the per-routine owned-collection flow both
+// read this rule; neither restates it.
+import "../../abi_layout_row_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_callable_inventory_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+
+func DirectMirScalarProgramOwnedArrayStringMoveParameterReady(
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    callable_row: Int, ordinal: Int
+) -> Bool {
+    if callable_row < 0 ||
+        callable_row >= ArrayLength(callables.parameter_starts) ||
+        callable_row >= ArrayLength(callables.parameter_counts) ||
+        ordinal < 0 || ordinal >= callables.parameter_counts[callable_row] {
+        return false;
+    }
+    let parameter: Int = callables.parameter_starts[callable_row] + ordinal;
+    if parameter < 0 || parameter >= ArrayLength(callables.parameter_carriages) ||
+        parameter >= ArrayLength(callables.parameter_types) {
+        return false;
+    }
+    return callables.parameter_carriages[parameter] == "owner-handle" &&
+        callables.parameter_types[parameter] ==
+            CompilerAbiLayoutArrayStringTypeName();
+}
+
+// Whether `operation` hands `local_row` to such a formal. Only the operation's
+// own expression graph is read; a call in a return expression is not an
+// operation and stays unproved here.
+func DirectMirScalarProgramOwnedArrayStringMoveOperationMovesLocal(
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation: Int, local_row: Int
+) -> Bool {
+    if operation < 0 ||
+        operation >= ArrayLength(storage.operations.expression_rows) ||
+        local_row < 0 {
+        return false;
+    }
+    let graph: Int = storage.operations.expression_rows[operation];
+    if graph < 0 || graph >= ArrayLength(expressions.graph_starts) ||
+        graph >= ArrayLength(expressions.graph_counts) {
+        return false;
+    }
+    var node: Int = expressions.graph_starts[graph];
+    let end: Int = node + expressions.graph_counts[graph];
+    while node < end {
+        if expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprDirectCall() &&
+            DirectMirScalarCfgProgramCallableInventoryOrdinalReady(
+                callables, expressions.node_callable_rows[node]) {
+            let callable_row: Int = expressions.node_callable_rows[node] - 1;
+            let arguments: Array<Int> =
+                DirectMirScalarProgramDirectCallArgumentRows(expressions, node);
+            var ordinal: Int = 0;
+            while ordinal < ArrayLength(arguments) {
+                let argument: Int = arguments[ordinal];
+                if DirectMirScalarProgramOwnedArrayStringMoveParameterReady(
+                        callables, callable_row, ordinal) &&
+                    argument >= 0 &&
+                    argument < ArrayLength(expressions.node_kinds) &&
+                    expressions.node_kinds[argument] ==
+                        DirectMirScalarProgramExprLocal() &&
+                    expressions.node_local_rows[argument] == local_row {
+                    return true;
+                }
+                ordinal = ordinal + 1;
+            }
+        }
+        node = node + 1;
+    }
+    return false;
+}

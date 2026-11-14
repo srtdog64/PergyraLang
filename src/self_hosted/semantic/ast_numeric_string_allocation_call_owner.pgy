@@ -2,10 +2,10 @@
 // Heap-or-null is freeable, not non-null, nonempty, current or exclusive.
 // The identity resolver produces these rows in its existing lexical visit;
 // consumers must not recover operand types from a String result or spelling.
-import "ast_collection_ownership_identity_owner.pgy";
-import "ast_expression_call_identity_owner.pgy";
-import "ast_expression_graph_scalar_type_owner.pgy";
-import "ast_expression_function_table_fact_owner.pgy";
+import "ast_collection/ast_collection_ownership_identity_owner.pgy";
+import "ast_expression/ast_expression_call_identity_owner.pgy";
+import "ast_expression/ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression/ast_expression_function_table_fact_owner.pgy";
 
 struct SemanticAstNumericStringAllocationCalls {
     ok: Bool;

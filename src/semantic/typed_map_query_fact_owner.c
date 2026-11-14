@@ -1,8 +1,8 @@
 /* Exact checked Map query facts; call spelling alone grants nothing. */
 #include "typed_map_query_fact_owner.h"
-#include "function_param_publication_owner.h"
-#include "type_checker_internal.h"
-#include "type_checker_collection_policy.h"
+#include "function_param_flow/function_param_publication_owner.h"
+#include "type_checker/type_checker_internal.h"
+#include "type_checker/type_checker_collection_policy.h"
 #include <stdlib.h>
 #include <string.h>
 typedef struct {

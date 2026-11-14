@@ -18,7 +18,7 @@
 #include "../parser/ast_api.h"
 #include "../parser/ast.h"
 #include "type_checker.h"
-#include "type_checker_resolution_internal.h"
+#include "type_checker/type_checker_resolution_internal.h"
 
 #include <string.h>
 

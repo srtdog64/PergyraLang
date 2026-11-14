@@ -3,7 +3,7 @@
  * generation-local view removes repeated whole-program scans. */
 #include "collection_owned_element_requirement_internal.h"
 
-#include "function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
 #include "../parser/ast_api.h"
 
 #include <stdlib.h>

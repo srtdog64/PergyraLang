@@ -1,5 +1,5 @@
 import "mir_compound_assignment_admission_owner.pgy";
-import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
 
 func MirCompoundAssignmentReady(ref plan: DirectMirScalarCfgGraphPlan,
     operation: Int, routine: Int) -> Bool {

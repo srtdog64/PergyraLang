@@ -18,7 +18,7 @@
 #include "../compiler/hir.h"
 #include "../compiler/rir.h"
 #include "../compiler/air.h"
-#include "../compiler/air_erasure_squiggle.h"
+#include "../compiler/air/air_erasure_squiggle.h"
 #include "../compiler/driver_app.h"   /* hir_lower, rir_lower */
 
 static bool

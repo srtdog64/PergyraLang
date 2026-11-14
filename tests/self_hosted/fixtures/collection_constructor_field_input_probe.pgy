@@ -1,7 +1,7 @@
 // Observe the production pending-input collector; never emit/run supplied code.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_aggregate_named_input_reservation_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_aggregate_named_input_reservation_owner.pgy";
 
 func CollectionConstructorFieldInputProbeMain(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) != 2 { Log("expected source and observation mode"); Exit(2); }

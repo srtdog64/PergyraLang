@@ -1,0 +1,19 @@
+/*
+ * Copyright (c) 2026 Pergyra Language Project
+ * C backend zone frontier guard emission declarations.
+ */
+
+#ifndef PERGYRA_TRANSPILER_ZONE_FRONTIER_EMIT_H
+#define PERGYRA_TRANSPILER_ZONE_FRONTIER_EMIT_H
+
+#include <stddef.h>
+
+#include "../transpiler.h"
+#include "transpiler_decl_lookup.h"
+
+void transpiler_emit_zone_frontier_change_checks(TranspilerCtx *ctx,
+                                                 const TranspilerHostedZoneStateView *state_view,
+                                                 const TranspilerHostedZoneLayerSlotView *layer_view);
+void transpiler_emit_zone_frontier_overflow_guard(TranspilerCtx *ctx);
+
+#endif /* PERGYRA_TRANSPILER_ZONE_FRONTIER_EMIT_H */

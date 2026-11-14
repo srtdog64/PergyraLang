@@ -4,9 +4,9 @@
 import "ast_assignment_fact_owner.pgy";
 import "ast_assignment_type_fact_owner.pgy";
 import "ast_local_binding_identity_owner.pgy";
-import "ast_expression_surface_fact_owner.pgy";
-import "ast_expression_owner_field_environment_owner.pgy";
-import "ast_collection_ownership_identity_owner.pgy";
+import "ast_expression/ast_expression_surface_fact_owner.pgy";
+import "ast_expression/ast_expression_owner_field_environment_owner.pgy";
+import "ast_collection/ast_collection_ownership_identity_owner.pgy";
 
 struct SemanticAstOwnedStringLocalReassignmentFacts {
     ok: Bool;

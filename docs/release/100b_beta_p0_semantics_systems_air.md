@@ -205,12 +205,12 @@ Closed now:
   normalized normal-fallthrough exits, so all-path-return consumers can move
   toward a direct CFG fact instead of re-walking AST body shape.
 - HIR CFG ownership is now a named compiler owner seam:
-  `src/compiler/hir_cfg.c` owns CFG finalization, reachability,
+  `src/compiler/hir/hir_cfg.c` owns CFG finalization, reachability,
   dominator/frontier, dominator tree, loop-depth, local-def, phi-candidate,
-  phi-materialization, and CFG summary facts. `src/compiler/hir_lower_cfg.c`
+  phi-materialization, and CFG summary facts. `src/compiler/hir/hir_lower_cfg.c`
   owns AST-body to basic-block CFG construction. `src/compiler/hir.c` is
   reduced to the declaration/routine lowering orchestration owner, while
-  `src/compiler/hir_analysis.c` owns signature/direct-call/control-flow
+  `src/compiler/hir/hir_analysis.c` owns signature/direct-call/control-flow
   detection.
 - HIR CFG lowering now represents loop exits and loop backedges explicitly for
   `break` / `continue`. `while` and `for` bodies carry a loop context, so
@@ -470,7 +470,7 @@ Remaining:
   `BODY_SUMMARY_CAUSES_EFFECT` before any AST method-array compatibility path.
   `semantic-core-shape-test-smoke`
   gates the prove/positive helpers as the canonical body-summary read seam on
-  `src/semantic/type_checker_call_contract_helpers.c` and its declaration
+  `src/semantic/type_checker/type_checker_call_contract_helpers.c` and its declaration
   in `type_checker_internal.h`. Remaining work is migrating additional
   zone/effect/runtime/codegen consumers (e.g. zone authority spawn detection)
   onto the same body-summary readers instead of repeated AST walks.
@@ -934,7 +934,7 @@ Closed now:
 - CFG 사고 (AST 기반 ownership 분산) 와의 동형 비교가 docs 에 고정되어, 같은 함정에 빠지지 않는 이유가 추적 가능하다.
 - `src/compiler/air.h` defines the AIR Phase 1 data model,
   `src/compiler/air.c` owns DIR-based read-only synthesis, and
-  `src/compiler/air_verify.c` owns global AIR validation plus sync/async drift
+  `src/compiler/air/air_verify.c` owns global AIR validation plus sync/async drift
   and strict evidence diagnostics.
 - AIR synthesis가 HIR routine/CFG, RIR boundary/authority/effect, MIR cleanup/pin/terminator, DAG generic/ability, runtime frontier/schema evidence를 read-only로 수집하고 각 `Boundary Node`에 evidence flag를 부착한다. Default strict evidence에서 누락된 required layered evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 된다.
 - 2026-04-29 AIR HIR provenance split: AIR boundary evidence now records
@@ -1023,10 +1023,10 @@ Closed now:
   no location. Parsed IO boundary regression ties the missing-evidence drift to
   the synthesized `ReadFile` boundary node instead of only checking that some
   drift exists.
-- AIR dump ownership is split by consumer: `src/compiler/air_dump.c` owns
-  human-readable debug output, `src/compiler/air_dump_json.c` owns the stable
+- AIR dump ownership is split by consumer: `src/compiler/air/air_dump.c` owns
+  human-readable debug output, `src/compiler/air/air_dump_json.c` owns the stable
   `pgy.air.graph.v1` JSON graph, and AIR validation/drift ownership now lives in
-  `src/compiler/air_verify.c`. This keeps `src/compiler/air.c` below the 600
+  `src/compiler/air/air_verify.c`. This keeps `src/compiler/air.c` below the 600
   LOC split-review threshold while keeping synthesis behavior focused.
 - `where + transfer` no longer collapses to only a zone boundary. AIR emits a
   zone boundary for `where: Type` and a separate world boundary for the transfer

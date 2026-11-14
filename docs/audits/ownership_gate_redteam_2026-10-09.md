@@ -81,7 +81,7 @@ The final owner also runs the SAME complete self-host source-to-MIR input,
 with the SAME candidate compiler SHA-256
 `0daa8b6b9818b9d9d137ca56d53a33127fef811be92b156b0cf673e6c3e60531`:
 
-- argv: `--native-pipeline --mir-json src/self_hosted/compiler/driver_bootstrap_main.pgy`;
+- argv: `--native-pipeline --mir-json src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`;
 - receipt `full-input-v3/full-driver-streaming-redteam-v3.summary.json` under
   the scratch run above: exit **0**, **49248 ms**, peak sampled private
   **1319.6 MiB (1.289 GiB)**, unchanged **3072 MiB** threshold;

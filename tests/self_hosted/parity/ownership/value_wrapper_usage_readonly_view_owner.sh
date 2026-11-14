@@ -30,7 +30,7 @@ SLICE_POSITIVE=(slice_growth_before_borrow slice_member_growth_before_borrow
     slice_storage_completed_scope)
 SLICE_NEGATIVE=(slice_growth_after_borrow_reject
     slice_member_growth_after_borrow_reject slice_pop_after_borrow_reject)
-MUTATION_OWNER=src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy
+MUTATION_OWNER=src/self_hosted/semantic/ast_expression/ast_expression_graph_collection_mutation_owner.pgy
 # Source-only ratchet; the source observer below owns behavioral verdicts.
 awk '/^func SemanticExpressionGraphArrayStorageMutationFact\(/ { active=1 }
      /^func SemanticExpressionGraphCollectionReceiverMutationFact\(/ { active=0 }

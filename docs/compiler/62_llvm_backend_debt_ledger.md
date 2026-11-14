@@ -68,9 +68,9 @@ LLVM backend는 이제 MIR path에서 원본 `HIRProgram`을 직접 필요로 �
 
 근거:
 
-- [llvm_backend.h](/mnt/e/PergyraLang/src/codegen/llvm_backend.h)
-- [llvm_pipeline.c](/mnt/e/PergyraLang/src/codegen/llvm_pipeline.c)
-- [llvm_intent.c](/mnt/e/PergyraLang/src/codegen/llvm_intent.c)
+- [llvm_backend.h](/mnt/e/PergyraLang/src/codegen/llvm/llvm_backend.h)
+- [llvm_pipeline.c](/mnt/e/PergyraLang/src/codegen/llvm/llvm_pipeline.c)
+- [llvm_intent.c](/mnt/e/PergyraLang/src/codegen/llvm/llvm_intent.c)
 
 ### 3.2 expression type exactness debt
 
@@ -81,7 +81,7 @@ LLVM backend는 이제 MIR path에서 원본 `HIRProgram`을 직접 필요로 �
 근거:
 
 - [llvm_expr_call_methods_part_a.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods_part_a.inc)
-- [llvm_member_call_emit.h](/mnt/e/PergyraLang/src/codegen/llvm_member_call_emit.h)
+- [llvm_member_call_emit.h](/mnt/e/PergyraLang/src/codegen/llvm/llvm_member_call_emit.h)
 
 ### 3.3 local placement / escape debt
 
@@ -90,7 +90,7 @@ LLVM backend는 이제 MIR path에서 원본 `HIRProgram`을 직접 필요로 �
 
 근거:
 
-- [llvm_mir_emit.c](/mnt/e/PergyraLang/src/codegen/llvm_mir_emit.c)
+- [llvm_mir_emit.c](/mnt/e/PergyraLang/src/codegen/llvm/llvm_mir_emit.c)
 - [slot_analyzer.c](/mnt/e/PergyraLang/src/semantic/slot_analyzer.c)
 
 ### 3.4 최근 제거된 중복 debt와 남은 비효율
@@ -106,10 +106,10 @@ LLVM backend는 이제 MIR path에서 원본 `HIRProgram`을 직접 필요로 �
 
 근거:
 
-- [llvm_internal.h](/mnt/e/PergyraLang/src/codegen/llvm_internal.h)
+- [llvm_internal.h](/mnt/e/PergyraLang/src/codegen/llvm/llvm_internal.h)
 - [llvm_expr_helpers_part_a.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_helpers_part_a.inc)
 - [llvm_expr_helpers_part_b.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_helpers_part_b.inc)
-- [llvm_expr_identifier_slot_helpers.h](/mnt/e/PergyraLang/src/codegen/llvm_expr_identifier_slot_helpers.h)
+- [llvm_expr_identifier_slot_helpers.h](/mnt/e/PergyraLang/src/codegen/llvm/llvm_expr_identifier_slot_helpers.h)
 - [test_memory_layout.c](/mnt/e/PergyraLang/src/test_memory_layout.c)
 
 ## 4. “11건 누락” 주장과 현재 상태 대조

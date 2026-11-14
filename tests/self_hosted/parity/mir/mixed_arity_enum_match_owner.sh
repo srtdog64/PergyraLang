@@ -17,19 +17,19 @@ pgy_require_runnable_binary_here "$LABEL:public" "$PGY" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 ! grep -Fq 'DirectMirScalarCfgProgramCallableFactReadyWithFacts(' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_fact_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_callable_fact_owner.pgy" ||
     fail "obsolete payload-free callable validator remains"
 grep -Fq 'DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy" ||
     fail "final callable consumer omits the referenced enum fact"
 ! grep -Fq 'MirRoutineFactIndexSourceLocalType(' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_value_type_owner.pgy" ||
     fail "match local types fall back to a routine-wide name lookup"
 ! grep -Fq 'JsonObjectFactTableFromBounds(' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_match_binding_local_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_match_binding_local_owner.pgy" ||
     fail "match local admission re-parses already owned binding facts"
 ! grep -Fq 'let local:' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" ||
     fail "reserved local keyword used as an identity-check variable"
 cd "$ROOT_DIR"
 mkdir -p .tmp/self_hosted/mixed_arity_enum

@@ -56,12 +56,12 @@ call-target facts in
 
 Exact old reads:
 
-- `src/compiler/mir_machine_layer.c#mir_attach_machine_layer_fact_for_ast`
+- `src/compiler/mir/mir_machine_layer.c#mir_attach_machine_layer_fact_for_ast`
   calls `rir_scope_find_op_by_ast`, special-cases `AST_LET_DECL`, and reopens
   `ast_let_initializer` before trying a second pointer lookup.
-- `src/compiler/mir_machine_layer.c#mir_enrich_machine_layer_facts` passes
+- `src/compiler/mir/mir_machine_layer.c#mir_enrich_machine_layer_facts` passes
   `inst->ast` into that lookup for every instruction lacking a machine row.
-- `src/compiler/rir_public_surface.c#rir_scope_find_op_by_ast` joins an RIR op
+- `src/compiler/rir/rir_public_surface.c#rir_scope_find_op_by_ast` joins an RIR op
   by borrowed AST pointer rather than the owned contact identity.
 
 Exact proposed edit boundary, not an applied/compilable patch:

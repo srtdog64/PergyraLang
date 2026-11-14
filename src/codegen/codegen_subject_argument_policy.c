@@ -1,6 +1,6 @@
 #include "codegen_subject_argument_policy.h"
 
-#include "../compiler/mir_decl_headers.h"
+#include "../compiler/mir/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 
 bool

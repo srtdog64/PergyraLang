@@ -20,7 +20,7 @@ COMMON_FLAGS=(
 )
 
 "$CC_BIN" "${COMMON_FLAGS[@]}" -Dcalloc=pgy_test_calloc \
-    -c "$ROOT_DIR/src/compiler/mir_parallel_capture_facts.c" \
+    -c "$ROOT_DIR/src/compiler/mir/mir_parallel_capture_facts.c" \
     -o "$BUILD_DIR/mir_parallel_capture_facts.o"
 "$CC_BIN" "${COMMON_FLAGS[@]}" \
     -c "$ROOT_DIR/tests/parallel/mir_parallel_capture_allocation_unit.c" \

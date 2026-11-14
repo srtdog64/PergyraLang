@@ -1,0 +1,66 @@
+// Scalar-CFG collection, iteration, and local type families.
+
+import "../../abi_layout_row_owner.pgy";
+import "../../runtime_value_representation_owner.pgy";
+import "../../../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+import "../../../mir_lower/routine_fact_index_owner.pgy";
+import "direct_mir_scalar_cfg_scalar_type_family_owner.pgy";
+import "../../../semantic/ast_type_name_canonical_owner.pgy";
+import "../direct_mir_scalar_result_abi_owner.pgy";
+
+func DirectMirScalarCfgCollectionTypeSupported(type_name: String) -> Bool {
+    return type_name == CompilerAbiLayoutArrayIntTypeName() ||
+        type_name == CompilerAbiLayoutArrayStringTypeName() ||
+        type_name == CompilerAbiLayoutSetStringTypeName();
+}
+func DirectMirScalarCfgIterationTypePairSupported(binding_type: String, iterable_type: String
+) -> Bool {
+    return (binding_type == CompilerAbiLayoutIntTypeName() &&
+            iterable_type == CompilerAbiLayoutArrayIntTypeName()) ||
+        (binding_type == CompilerAbiLayoutStringTypeName() &&
+            iterable_type == CompilerAbiLayoutArrayStringTypeName());
+}
+func DirectMirScalarCfgSourceLocalTypeSupported(type_name: String) -> Bool {
+    let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(type_name);
+    return DirectMirScalarCfgScalarTypeSupported(type_name) ||
+        hashmap.ok || type_name == CompilerAbiLayoutArrayLongTypeName() ||
+        DirectMirScalarCfgCollectionTypeSupported(type_name) ||
+        type_name == CompilerAbiLayoutArrayBoolTypeName() ||
+        DirectMirScalarCfgSliceTypeSupported(type_name) ||
+        type_name == CompilerAbiLayoutOptionIntTypeName() ||
+        type_name == CompilerAbiLayoutOptionStringTypeName() ||
+        type_name == CompilerAbiLayoutOptionBoolTypeName() ||
+        DirectMirScalarResultAbiRuntimeForType(type_name).ok;
+}
+
+func DirectMirScalarCfgSourceLocalTypeMatchesResolved(source_type: String, resolved_type: String
+) -> Bool {
+    return source_type == resolved_type ||
+        SemanticCanonicalTypeName(source_type) ==
+            SemanticCanonicalTypeName(resolved_type) ||
+        CollectionHashMapLlvmTypeNamesEqual(source_type, resolved_type) ||
+        (source_type == "Option<Unknown>" &&
+         (resolved_type == CompilerAbiLayoutOptionIntTypeName() ||
+          resolved_type == CompilerAbiLayoutOptionStringTypeName() ||
+          resolved_type == CompilerAbiLayoutOptionBoolTypeName())) ||
+        (source_type == "Result<Unknown, String>" &&
+         DirectMirScalarResultAbiRuntimeForType(resolved_type).ok);
+}
+
+func DirectMirScalarCfgRoutineSourceLocalTypesSupported(
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    if !index.valid || ArrayLength(index.source_local_names) < 1 ||
+        ArrayLength(index.source_local_names) !=
+            ArrayLength(index.source_local_types) { return false; }
+    var row: Int = 0;
+    while row < ArrayLength(index.source_local_types) {
+        if !DirectMirScalarCfgSourceLocalTypeSupported(
+                index.source_local_types[row]) &&
+            !CompilerRuntimeValueTypeReady(
+                index.source_local_types[row]) { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+

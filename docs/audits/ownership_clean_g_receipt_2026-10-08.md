@@ -173,7 +173,7 @@ Material boundaries, not refutations of the existing conditional theorem:
    disjoint abstract ownership, not recursive copying/freeing of real String
    pointers, nested Array/Map/List storage or active enum payloads. LLVM's
    nested array literal still explicitly shares inner data
-   (src/codegen/llvm_expr_aggregate.c:186). Array<String> clone already
+   (src/codegen/llvm/llvm_expr_aggregate.c:186). Array<String> clone already
    duplicates strings (runtime copy macro at 197), so that working special
    case must not be called shallow; it still does not establish general
    aggregate refinement. C2 descriptors and G3 parity/leak/UAF evidence must

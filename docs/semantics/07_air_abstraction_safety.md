@@ -115,10 +115,10 @@ The post-MIR AIR evidence pass is a one-shot import. Once
 stores a deterministic MIR binding fingerprint; a second collection attempt is
 rejected instead of merging a second authority into the same certificate.
 
-- **Evidence**: `src/compiler/air_evidence_mir.c` issues the binding token and
-  seals `mir_evidence_bound`; `src/compiler/air_evidence_certificate.c` carries
+- **Evidence**: `src/compiler/air/air_evidence_mir.c` issues the binding token and
+  seals `mir_evidence_bound`; `src/compiler/air/air_evidence_certificate.c` carries
   the token through certificate fingerprinting and readiness checks;
-  `src/compiler/air_validate.c` rejects incomplete binding state;
+  `src/compiler/air/air_validate.c` rejects incomplete binding state;
   `tests/ir/air_mir_binding_smoke.sh` covers the negative rebind path and JSON
   visibility.
 - **Boundary**: the token is an identity/mutation guard, not a cryptographic
@@ -174,7 +174,7 @@ represented by at least one AIR `Boundary Node`.
   no location, so boundary diagnostics do not lose source provenance. `air_dump`
   prints the same per-boundary evidence provenance names, and the AIR unit suite
   gates that debug surface so it cannot regress to boolean-only evidence output.
-- **Well-formedness gate**: `src/compiler/air_verify.c` rejects empty intent or
+- **Well-formedness gate**: `src/compiler/air/air_verify.c` rejects empty intent or
   boundary names, boundary-owner mismatch, step-index mismatch, and invalid
   boundary sync-shape before drift computation. It also rejects authority
   evidence without boundary evidence, authority evidence on non-authority
@@ -194,7 +194,7 @@ required RIR authority evidence.
 
 - **Reason**: abstraction safety cannot be beta-trusted if an intent boundary can
   pass without lowering-visible boundary or authority proof.
-- **Evidence**: `src/compiler/air_verify.c` checks each boundary's HIR/RIR
+- **Evidence**: `src/compiler/air/air_verify.c` checks each boundary's HIR/RIR
   evidence policy by default, and `src/test_air.c` covers strict-evidence
   missing-boundary, implementation-boundary-without-HIR-CFG-evidence,
   mismatched-authority, world-boundary-without-transfer-op drifts, and
@@ -250,7 +250,7 @@ AIR Phase 1 is beta-complete only when all of these are true:
 
 - `src/compiler/air.h` keeps independent AIR data structures,
   `src/compiler/air.c` keeps read-only synthesis, and
-  `src/compiler/air_verify.c` keeps global validation/drift ownership.
+  `src/compiler/air/air_verify.c` keeps global validation/drift ownership.
 - `CompilerIRBundle` carries only HIR/DIR/RIR/MIR. Compiler orchestration
   receives AIR through the opaque `PgyAirVerification` handle only long enough
   to issue a verified projection-plan row; C and LLVM codegen receive that row,

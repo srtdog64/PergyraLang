@@ -49,7 +49,7 @@ Vale의 [세대 참조 전망](https://vale.dev/vision/safety-generational-refer
 | 성장형 `PgyRegion` | `src/runtime/pgy_runtime_region_inline.h`, `src/compiler/verified_region_plan.c` | WO-REG-1: 인증된 문자열 임시값의 C/LLVM region 실행, heap 경로와 구별 | 모든 배열·spawn·channel 할당이 region-backed임 |
 | 일반 `Slot<T>` 값 ABI | `src/runtime/pgy_abi_spec.h`, plain-slot 런타임; `{value,occupied}` + padding | build mode와 무관한 checked 배치 | 모든 `Slot<T>` 값에 세대 필드가 있음 |
 | 테이블형 `SlotHandle` | `src/runtime/slot_manager.h`, `slot_manager_core_ops.c`; 32-bit slot ID + 32-bit generation + type/token/pin 상태 | 재사용 시 세대 증가, stale/ID 소진 거절 | Vale의 모든 소유·비소유 참조를 대체한 범용 generational reference |
-| MIR ABI 배치·호출 row | `src/compiler/mir_abi_layout.c`, runtime ABI spec/asserts, runtime-call row owner | bounded scalar/Option/Array/nominal·resource 소비자 | 모든 target/nominal/generic/외부 ABI 소비자가 이전됨 |
+| MIR ABI 배치·호출 row | `src/compiler/mir/mir_abi_layout.c`, runtime ABI spec/asserts, runtime-call row owner | bounded scalar/Option/Array/nominal·resource 소비자 | 모든 target/nominal/generic/외부 ABI 소비자가 이전됨 |
 
 ABI의 `Arena` row는 **고정 용량 런타임 형상**을 핀한다. 컴파일러
 `PgyArena` ledger나 성장형 `PgyRegion`을 같은 24-byte 구조로 합친다는

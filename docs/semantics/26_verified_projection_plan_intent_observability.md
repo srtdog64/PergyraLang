@@ -15,12 +15,12 @@ freshness checking remains an explicit artifact-identity closure item.
 
 ## Owners
 
-`src/compiler/mir_surface_usage.c` captures the canonical MIR inventory fact:
+`src/compiler/mir/mir_surface_usage.c` captures the canonical MIR inventory fact:
 
 - `has_inventory_surface_usage_facts`
 - `inventory_uses_intent_observability_surface`
 
-`src/compiler/air_evidence_certificate.c` issues the deterministic
+`src/compiler/air/air_evidence_certificate.c` issues the deterministic
 `pgy.air.certificate.v1` fingerprint after AIR verification. It hashes the
 owner-owned evidence counts, intent/boundary facts, propagation facts, and
 machine-layer contact sites; a missing MIR input, drift, or malformed storage

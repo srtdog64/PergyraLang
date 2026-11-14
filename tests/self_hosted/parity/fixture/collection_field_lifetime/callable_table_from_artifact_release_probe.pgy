@@ -1,7 +1,7 @@
 // Real producer/release component control; not installed DRV-2 acceptance.
 // Input identity is repository-relative: run this probe from the repository root.
 import "../../../../../src/self_hosted/parser/program_parse_owner.pgy";
-import "../../../../../src/self_hosted/semantic/ast_expression_environment_owner.pgy";
+import "../../../../../src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy";
 
 func Main() -> Void with caps io_read
 {

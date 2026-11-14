@@ -11,7 +11,7 @@ doc 27 owns cleanup semantics.
 ## Implemented boundary
 
 The initial production slice changes only
-`src/self_hosted/semantic/ast_collection_formal_use_owner.pgy`. The binding key is issued after the formal's
+`src/self_hosted/semantic/ast_collection/ast_collection_formal_use_owner.pgy`. The binding key is issued after the formal's
 signature/ordinal/exact parameter checks, immediately before its existing
 map lookup. General binding validation still runs for every node. The root
 key is issued only when a formal-root or borrowed-element-root consumer

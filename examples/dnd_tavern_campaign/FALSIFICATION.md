@@ -208,7 +208,7 @@ not abstraction shortness. Detail of investigation:
 
 1. Added `fprintf(stderr, ...)` instrumentation to
    `resolve_zone_subject_slot_for_participant` in
-   `src/semantic/type_checker_decls_domain_helpers.c`.
+   `src/semantic/type_checker/type_checker_decls_domain_helpers.c`.
 2. Rebuilt with `make pgy` — build target wrote the new ELF to
    `bin/pgy` (Linux), but PowerShell-launched workflow was still
    invoking `bin/pgy.exe` (Windows binary, last built 2026-04-24).
@@ -363,7 +363,7 @@ self-instrumented compiler stages, `PGY_DEBUG_LLVM_HOST`,
 `PGY_DEBUG_LLVM_STAGE`, `PGY_DEBUG_INTENT_EMIT` env vars), traced the
 crash to one line:
 
-**Pinpoint**: `src/codegen/llvm_intent.c` post-step-loop success block:
+**Pinpoint**: `src/codegen/llvm/llvm_intent.c` post-step-loop success block:
 
 ```c
 LLVMValueRef success = node->data.intent_decl.success_expr != NULL
@@ -389,7 +389,7 @@ success: mage.effects.bless >= 0;
    emission path that resolves member access at runtime, hence
    `--backend=c --run` succeeded throughout.
 
-**Fix applied** (`src/codegen/llvm_intent.c`):
+**Fix applied** (`src/codegen/llvm/llvm_intent.c`):
 - Added explicit NULL-check on `llvm_emit_expression` return value.
 - Falls back to constant `true` (matches C-backend behavior of letting
   the cleanup tail evaluate the predicate) when the LLVM expression

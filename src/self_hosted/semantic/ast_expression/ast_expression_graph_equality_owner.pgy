@@ -1,0 +1,62 @@
+// Expression-graph structural equality.
+
+import "../expression_normalization_owner.pgy";
+import "../role_operator_vocabulary_owner.pgy";
+import "ast_expression_identity_fact_owner.pgy";
+import "../../hir/ast_expression_graph_owner.pgy";
+import "ast_expression_place_kind_owner.pgy";
+import "ast_expression_graph_consumer_owner.pgy";
+import "ast_expression_graph_core_fact_owner.pgy";
+
+func SemanticExpressionGraphFactsEqual(
+    ref left: SemanticExpressionGraphFacts,
+    ref right: SemanticExpressionGraphFacts
+) -> Bool {
+    if left.ok != right.ok || ArrayLength(left.roots) != ArrayLength(right.roots) ||
+        ArrayLength(left.has_roots) != ArrayLength(right.has_roots) ||
+        SemanticExpressionGraphArenaNodeCount(left.arena) !=
+            SemanticExpressionGraphArenaNodeCount(right.arena) {
+        return false;
+    }
+    var i: Int = 0;
+    while i < ArrayLength(left.roots) {
+        if left.roots[i] != right.roots[i] ||
+            left.has_roots[i] != right.has_roots[i] { return false; }
+        i = i + 1;
+    }
+    i = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(left.arena) {
+        if left.arena.topology.node_kinds[i] !=
+                right.arena.topology.node_kinds[i] ||
+            left.arena.topology.node_texts[i] !=
+                right.arena.topology.node_texts[i] ||
+            left.arena.node_texts[i] != right.arena.node_texts[i] ||
+            left.arena.topology.left_children[i] !=
+                right.arena.topology.left_children[i] ||
+            left.arena.topology.right_children[i] !=
+                right.arena.topology.right_children[i] ||
+            left.arena.call_target_kinds[i] !=
+                right.arena.call_target_kinds[i] ||
+            left.arena.call_target_names[i] !=
+                right.arena.call_target_names[i] ||
+            left.arena.call_return_type_names[i] !=
+                right.arena.call_return_type_names[i] ||
+            left.arena.identities.call_target_syntax_ids[i] !=
+                right.arena.identities.call_target_syntax_ids[i] ||
+            left.arena.identities.runtime_call_abi_ids[i] !=
+                right.arena.identities.runtime_call_abi_ids[i] ||
+            left.arena.identities.binding_syntax_ids[i] !=
+                right.arena.identities.binding_syntax_ids[i] ||
+            left.arena.identities.binding_kinds[i] !=
+                right.arena.identities.binding_kinds[i] ||
+            left.arena.identities.binding_ordinals[i] !=
+                right.arena.identities.binding_ordinals[i] ||
+            left.arena.place_kinds[i] != right.arena.place_kinds[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return SemanticExpressionBuiltinRetentionCallFactsEqual(
+        left.arena.identities, right.arena.identities);
+}
+

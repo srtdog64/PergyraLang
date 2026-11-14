@@ -9,11 +9,11 @@
 #include "default_aggregate_move_rule.h"
 #include "diag_codes.h"
 #include "formal_string_store_landing_owner.h"
-#include "function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
 #include "indexed_string_borrow_owner.h"
 #include "loan_copy_landing_owner.h"
-#include "type_checker_builtins_stdlib_collections_internal.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_builtins_stdlib_collections_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "../common/string_compat.h"
 
 /* UNKNOWN is never a source or a cleanup policy. This receipt only removes

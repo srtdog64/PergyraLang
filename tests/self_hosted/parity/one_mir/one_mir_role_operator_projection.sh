@@ -78,10 +78,10 @@ mkdir -p "$WORK"
 
 VOCAB="src/self_hosted/semantic/role_operator_vocabulary_owner.pgy"
 RESOLUTION="src/self_hosted/semantic/role_operator_resolution_owner.pgy"
-DECL="src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy"
-PLAN="src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy"
-ABI="src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy"
-EMITTER="src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy"
+DECL="src/self_hosted/compiler/direct_mir/direct_mir_role_operator_declaration_fact_owner.pgy"
+PLAN="src/self_hosted/compiler/direct_mir/direct_mir_role_operator_plan_owner.pgy"
+ABI="src/self_hosted/compiler/direct_mir/direct_mir_role_operator_abi_projection_owner.pgy"
+EMITTER="src/self_hosted/compiler/direct_mir/direct_mir_role_operator_emission_owner.pgy"
 for file in "$VOCAB" "$RESOLUTION" "$DECL" "$PLAN" "$ABI" "$EMITTER"; do
     require "$ROOT_DIR/$file"; done
 lines_at_most "$VOCAB" 220; lines_at_most "$RESOLUTION" 340

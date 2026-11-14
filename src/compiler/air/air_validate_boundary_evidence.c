@@ -1,0 +1,416 @@
+/*
+ * Copyright (c) 2026 Pergyra Language Project
+ * AIR boundary evidence shape validation owner.
+ */
+
+#include "air_internal.h"
+#include "../../parser/ast_api.h"
+
+static bool
+air_program_requires_summary_flag_for_evidence(const AIRProgram *air,
+                                               AIREvidenceKind kind)
+{
+    if (air == NULL)
+        return false;
+    switch (kind) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+    case AIR_EVIDENCE_HIR_CFG:
+        return air_has_hir_input(air);
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+        return air_has_rir_input(air);
+    default:
+        return false;
+    }
+}
+
+static bool
+air_validate_boundary_evidence_base(const AIRProgram *air,
+                                    size_t evidence_index,
+                                    const AIREvidenceNode **evidence_out,
+                                    const AIRBoundaryNode **boundary_out,
+                                    char **error_message)
+{
+    const AIREvidenceNode *evidence;
+    AIREvidenceKind kind;
+    size_t boundary_index;
+    size_t fact_count;
+    size_t fallback_count;
+
+    if (air == NULL || evidence_index >= air_evidence_node_count(air))
+        return false;
+
+    evidence = air_evidence_node_at(air, evidence_index);
+    if (evidence == NULL)
+        return false;
+    kind = air_evidence_node_kind(evidence);
+    boundary_index = air_evidence_node_boundary_index_or(evidence, SIZE_MAX);
+    fact_count = air_evidence_node_fact_count(evidence);
+    fallback_count = air_evidence_node_fallback_count(evidence);
+    if (boundary_index >= air_boundary_node_count(air)) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu references missing boundary node %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+
+    *evidence_out = evidence;
+    *boundary_out = air_boundary_node_at(air, boundary_index);
+    if (*boundary_out == NULL)
+        return false;
+    if (air_evidence_node_has_boundary_shape(evidence)) {
+        if (air_evidence_node_boundary_kind_or(evidence,
+                                               AIR_BOUNDARY_UNKNOWN)
+            != (*boundary_out)->kind) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary evidence node %zu has boundary kind drift",
+                                    evidence_index);
+            return false;
+        }
+        if (!air_name_matches(
+                air_evidence_node_boundary_owner_name_or(evidence, NULL),
+                (*boundary_out)->owner_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary evidence node %zu has boundary owner drift",
+                                    evidence_index);
+            return false;
+        }
+        if (!air_name_matches(
+                air_evidence_node_boundary_source_name_or(evidence, NULL),
+                (*boundary_out)->source_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary evidence node %zu has boundary source drift",
+                                    evidence_index);
+            return false;
+        }
+    }
+    if (air_program_requires_summary_flag_for_evidence(air, kind)
+        && !air_boundary_has_summary_flag(*boundary_out, kind)) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu has no matching boundary summary flag",
+                                evidence_index);
+        return false;
+    }
+    if (fact_count == 0) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu has no evidence facts",
+                                evidence_index);
+        return false;
+    }
+    if (fact_count != 1) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu must carry exactly one boundary fact",
+                                evidence_index);
+        return false;
+    }
+    if (fallback_count != 0) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu has fallback evidence facts",
+                                evidence_index);
+        return false;
+    }
+    return true;
+}
+
+static bool
+air_validate_global_evidence_shape(const AIREvidenceNode *evidence,
+                                   size_t evidence_index,
+                                   char **error_message)
+{
+    size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                SIZE_MAX);
+    if (boundary_index != SIZE_MAX) {
+        air_set_invariant_error(error_message,
+                                "AIR global evidence node %zu is attached to boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (air_evidence_node_has_boundary_shape(evidence)) {
+        air_set_invariant_error(error_message,
+                                "AIR global evidence node %zu carries boundary shape",
+                                evidence_index);
+        return false;
+    }
+    return air_validate_global_evidence_node(evidence,
+                                             evidence_index,
+                                             error_message);
+}
+
+static bool
+air_validate_boundary_hir_cfg_evidence(const AIRProgram *air,
+                                       const AIREvidenceNode *evidence,
+                                       const AIRBoundaryNode *boundary,
+                                       size_t evidence_index,
+                                       char **error_message)
+{
+    size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                SIZE_MAX);
+    const char *provider_name =
+        air_evidence_node_provider_name_or(evidence, NULL);
+    const char *subject_name =
+        air_evidence_node_subject_name_or(evidence, NULL);
+
+    if (air_boundary_requires_hir_evidence(boundary) && boundary->ast == NULL) {
+        air_set_invariant_error(error_message,
+                                "AIR HIR CFG evidence node %zu has no source AST provenance for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (!air_name_matches(subject_name, boundary->source_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR HIR CFG evidence node %zu has subject/source mismatch for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (!air_boundary_has_evidence_kind_provider(air,
+                                                 boundary_index,
+                                                 AIR_EVIDENCE_HIR_ROUTINE,
+                                                 provider_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR HIR CFG evidence node %zu has no matching HIR routine evidence for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    return true;
+}
+
+static bool
+air_validate_boundary_rir_authority_evidence(const AIRProgram *air,
+                                             const AIREvidenceNode *evidence,
+                                             const AIRBoundaryNode *boundary,
+                                             size_t evidence_index,
+                                             char **error_message)
+{
+    size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                SIZE_MAX);
+    const char *provider_name =
+        air_evidence_node_provider_name_or(evidence, NULL);
+    const char *subject_name =
+        air_evidence_node_subject_name_or(evidence, NULL);
+
+    if (!boundary->authority_required) {
+        air_set_invariant_error(error_message,
+                                "AIR RIR authority evidence node %zu is attached to non-authority boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (!air_boundary_has_evidence_kind_provider(air,
+                                                 boundary_index,
+                                                 AIR_EVIDENCE_RIR_BOUNDARY,
+                                                 provider_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR RIR authority evidence node %zu has no matching RIR boundary evidence for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (!air_boundary_declares_authority_name(boundary, subject_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR RIR authority evidence node %zu has undeclared authority subject for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    return true;
+}
+
+static bool
+air_validate_boundary_mir_pin_cleanup_evidence(const AIRProgram *air,
+                                               const AIREvidenceNode *evidence,
+                                               const AIRBoundaryNode *boundary,
+                                               size_t evidence_index,
+                                               char **error_message)
+{
+    size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                SIZE_MAX);
+    const char *provider_name =
+        air_evidence_node_provider_name_or(evidence, NULL);
+    const char *subject_name =
+        air_evidence_node_subject_name_or(evidence, NULL);
+
+    if (!air_boundary_requires_mir_pin_cleanup_evidence(boundary)) {
+        air_set_invariant_error(error_message,
+                                "AIR MIR pin cleanup evidence node %zu is attached to non-pin boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (boundary->ast == NULL) {
+        air_set_invariant_error(error_message,
+                                "AIR MIR pin cleanup evidence node %zu has no source AST provenance for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (air_name_matches(subject_name, boundary->source_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR MIR pin cleanup evidence node %zu has no slot anchor subject for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (!air_has_global_evidence_provider(air,
+                                          AIR_EVIDENCE_MIR_CLEANUP,
+                                          provider_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR MIR pin cleanup evidence node %zu has no matching MIR cleanup evidence for provider '%s'",
+                                evidence_index,
+                                provider_name != NULL ? provider_name : "<null>");
+        return false;
+    }
+    return true;
+}
+
+typedef bool (*AIRBoundaryEvidenceValidator)(
+    const AIRProgram *air,
+    const AIREvidenceNode *evidence,
+    const AIRBoundaryNode *boundary,
+    size_t evidence_index,
+    char **error_message);
+
+typedef struct
+{
+    AIREvidenceKind kind;
+    AIRBoundaryEvidenceValidator validate;
+} AIRBoundaryEvidenceValidationPolicy;
+
+static bool
+air_validate_boundary_hir_routine_evidence(const AIRProgram *air,
+                                           const AIREvidenceNode *evidence,
+                                           const AIRBoundaryNode *boundary,
+                                           size_t evidence_index,
+                                           char **error_message)
+{
+    size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                SIZE_MAX);
+    const char *subject_name =
+        air_evidence_node_subject_name_or(evidence, NULL);
+
+    (void)air;
+    if (!air_name_matches(subject_name, boundary->source_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR HIR routine evidence node %zu has subject/source mismatch for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    return true;
+}
+
+static bool
+air_validate_boundary_rir_boundary_evidence(const AIRProgram *air,
+                                            const AIREvidenceNode *evidence,
+                                            const AIRBoundaryNode *boundary,
+                                            size_t evidence_index,
+                                            char **error_message)
+{
+    size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                SIZE_MAX);
+    const char *subject_name =
+        air_evidence_node_subject_name_or(evidence, NULL);
+
+    (void)air;
+    if (!air_boundary_requires_rir_evidence(boundary)) {
+        air_set_invariant_error(error_message,
+                                "AIR RIR boundary evidence node %zu is attached to non-RIR boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (!air_name_matches(subject_name, boundary->source_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR RIR boundary evidence node %zu has subject/source mismatch for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (boundary->kind == AIR_BOUNDARY_IO) {
+        const ASTNode *owner = boundary->io_owner_ast;
+        const char *expected = owner != NULL && owner->type == AST_FUNC_DECL ?
+            ast_declaration_name(owner) : owner != NULL && owner->type == AST_INTENT_DECL ?
+            ast_intent_decl_name(owner) : NULL;
+        const char *provider = air_evidence_node_provider_name_or(evidence, NULL);
+        if (owner == NULL || boundary->io_owner_syntax_id == 0 ||
+            ast_node_stable_id(owner) != boundary->io_owner_syntax_id ||
+            !air_name_matches(provider, expected) ||
+            !air_name_matches(provider, boundary->rir_boundary_evidence_scope) ||
+            (owner->type == AST_FUNC_DECL && boundary->has_hir_routine_evidence &&
+                !air_name_matches(provider, boundary->hir_routine_evidence_name))) {
+            air_set_invariant_error(error_message,
+                "AIR IO evidence node %zu has crosswired original owner/provider for boundary %zu",
+                evidence_index, boundary_index);
+            return false;
+        }
+    }
+    return true;
+}
+
+static const AIRBoundaryEvidenceValidationPolicy
+kBoundaryEvidenceValidationPolicies[] = {
+    { AIR_EVIDENCE_HIR_ROUTINE,
+      air_validate_boundary_hir_routine_evidence },
+    { AIR_EVIDENCE_HIR_CFG,
+      air_validate_boundary_hir_cfg_evidence },
+    { AIR_EVIDENCE_RIR_BOUNDARY,
+      air_validate_boundary_rir_boundary_evidence },
+    { AIR_EVIDENCE_RIR_AUTHORITY,
+      air_validate_boundary_rir_authority_evidence },
+    { AIR_EVIDENCE_MIR_PIN_CLEANUP,
+      air_validate_boundary_mir_pin_cleanup_evidence },
+};
+
+static const AIRBoundaryEvidenceValidationPolicy *
+air_boundary_evidence_validation_policy_for_kind(AIREvidenceKind kind)
+{
+    for (size_t i = 0; i < sizeof(kBoundaryEvidenceValidationPolicies)
+             / sizeof(kBoundaryEvidenceValidationPolicies[0]); i++) {
+        if (kBoundaryEvidenceValidationPolicies[i].kind == kind)
+            return &kBoundaryEvidenceValidationPolicies[i];
+    }
+    return NULL;
+}
+
+bool
+air_evidence_node_matches_boundary_shape(const AIRProgram *air,
+                                         size_t evidence_index,
+                                         char **error_message)
+{
+    const AIREvidenceNode *evidence;
+    const AIRBoundaryNode *boundary;
+    AIREvidenceKind kind;
+    const AIRBoundaryEvidenceValidationPolicy *policy;
+
+    if (air == NULL || evidence_index >= air_evidence_node_count(air))
+        return false;
+
+    evidence = air_evidence_node_at(air, evidence_index);
+    if (evidence == NULL)
+        return false;
+    kind = air_evidence_node_kind(evidence);
+    if (air_evidence_kind_is_global(kind))
+        return air_validate_global_evidence_shape(evidence,
+                                                  evidence_index,
+                                                  error_message);
+
+    if (!air_validate_boundary_evidence_base(air,
+                                             evidence_index,
+                                             &evidence,
+                                             &boundary,
+                                             error_message)) {
+        return false;
+    }
+
+    policy = air_boundary_evidence_validation_policy_for_kind(kind);
+    if (policy == NULL && air_evidence_kind_is_known(kind))
+        return true;
+    if (policy == NULL)
+        return false;
+    return policy->validate(air, evidence, boundary, evidence_index,
+                            error_message);
+}

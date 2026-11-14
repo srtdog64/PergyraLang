@@ -30,16 +30,16 @@ func DriftFinding(c_entries: Int, llvm_entries: Int) -> String {
         JsonEmitFieldString("kind", "count_drift"),
         JsonEmitFieldNumber("c_entries", ToString(c_entries)),
         JsonEmitFieldNumber("llvm_entries", ToString(llvm_entries)),
-        JsonEmitFieldString("location", "src/codegen/transpiler_expr_stdlib_scalar_builtin.c")
+        JsonEmitFieldString("location", "src/codegen/c/transpiler_expr_stdlib_scalar_builtin.c")
     ];
     return JsonEmitObject(fields);
 }
 
 func InputErrorJson(path: String) -> Option<String> {
     let source_fields: Array<String> = [
-        JsonEmitFieldString("c_dispatch_owner", "src/codegen/transpiler_expr_stdlib_scalar_builtin.c"),
-        JsonEmitFieldString("c_unary_dispatch_owner", "src/codegen/transpiler_expr_stdlib_scalar_unary.c"),
-        JsonEmitFieldString("llvm_dispatch_owner", "src/codegen/llvm_expr_stdlib_scalar_io_calls.c")
+        JsonEmitFieldString("c_dispatch_owner", "src/codegen/c/transpiler_expr_stdlib_scalar_builtin.c"),
+        JsonEmitFieldString("c_unary_dispatch_owner", "src/codegen/c/transpiler_expr_stdlib_scalar_unary.c"),
+        JsonEmitFieldString("llvm_dispatch_owner", "src/codegen/llvm/llvm_expr_stdlib_scalar_io_calls.c")
     ];
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("c_entries", "0"),
@@ -65,9 +65,9 @@ func InputErrorJson(path: String) -> Option<String> {
 }
 
 func Main() -> Void {
-    let c_path: String = "src/codegen/transpiler_expr_stdlib_scalar_builtin.c";
-    let c_unary_path: String = "src/codegen/transpiler_expr_stdlib_scalar_unary.c";
-    let llvm_path: String = "src/codegen/llvm_expr_stdlib_scalar_io_calls.c";
+    let c_path: String = "src/codegen/c/transpiler_expr_stdlib_scalar_builtin.c";
+    let c_unary_path: String = "src/codegen/c/transpiler_expr_stdlib_scalar_unary.c";
+    let llvm_path: String = "src/codegen/llvm/llvm_expr_stdlib_scalar_io_calls.c";
 
     if !FileExists(c_path) {
         Log(UnwrapOption(InputErrorJson(c_path)));

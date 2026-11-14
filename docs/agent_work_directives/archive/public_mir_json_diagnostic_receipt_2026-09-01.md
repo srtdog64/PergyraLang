@@ -23,7 +23,7 @@ semantic owner, registry owner, progress claim, or successor queue.
   append-only oracle-code mapping in
   `src/self_hosted/semantic/diagnostic_code_owner.pgy`.
 - Last legitimate consumer: the installed Pergyra driver request reached from
-  `src/compiler/self_host_mir_diagnostic_stdout_owner.c`; the C file may relay
+  `src/compiler/self_host/self_host_mir_diagnostic_stdout_owner.c`; the C file may relay
   the admitted bytes but may not infer semantic identity from message text.
 - Forbidden fallback: `driver_diag_code_from_message`, substring-based stage or
   code recovery, native-pipeline retry, a C copy of the Pergyra diagnostic
@@ -43,8 +43,8 @@ semantic owner, registry owner, progress claim, or successor queue.
   `src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy`, the source-MIR request and
   execution owners, and their exact owner inventory.
 - C transport adapter:
-  `src/compiler/self_host_mir_diagnostic_stdout_owner.c` selects the installed
-  request, while `src/compiler/self_host_public_diagnostic_wire_owner.c`
+  `src/compiler/self_host/self_host_mir_diagnostic_stdout_owner.c` selects the installed
+  request, while `src/compiler/self_host/self_host_public_diagnostic_wire_owner.c`
   validates and relays only the opaque wire envelope. Neither owns a diagnostic
   taxonomy.
 - Gate and coordination evidence: one focused parity script, Make target,

@@ -2,7 +2,7 @@
 // capability facts and renders the stable public JSON without re-reading call
 // spellings or reconstructing native capability policy.
 
-import "driver_pipeline_owner.pgy";
+import "driver/driver_pipeline_owner.pgy";
 import "../semantic/ast_capability_fact_owner.pgy";
 
 struct CompilerCapabilityManifestOutcome {

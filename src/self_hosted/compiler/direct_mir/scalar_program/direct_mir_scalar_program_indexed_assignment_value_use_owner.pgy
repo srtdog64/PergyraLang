@@ -1,0 +1,19 @@
+// Owns the instruction-use start for an indexed assignment RHS.
+import "../scalar_cfg/direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+
+func DirectMirScalarProgramIndexedAssignmentValueUseOffset(
+    ref instruction: JsonObjectFactTable, target_use_count: Int
+) -> Int {
+    if target_use_count < 0 { return -1; }
+    let graph: MirExpressionGraphSequence =
+        DirectMirScalarCfgInstructionGraphAt(instruction, "expr0_graph");
+    if !graph.ok || ArrayLength(graph.roots) != 1 { return -1; }
+    let root: Int = graph.roots[0];
+    if root < 0 || root >= graph.ready_node_count { return -1; }
+    // Instruction uses are unique across the target and value lanes.  The
+    // value lane therefore starts after the target's owned prefix; its leaf
+    // resolver may reuse a unique earlier target operand without consuming a
+    // second row.  Rewinding non-literal values to zero makes an independent
+    // RHS consume the target predecessor as its first operand.
+    return target_use_count;
+}

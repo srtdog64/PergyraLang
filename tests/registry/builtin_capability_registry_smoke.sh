@@ -36,7 +36,7 @@ if grep -R -Fq 'semantic_record_capability(ctx, PGY_CAP' \
     exit 1
 fi
 if ! grep -Fq 'capability_builtin_registry_ready()' \
-    "$ROOT_DIR/src/semantic/type_checker_program.c"; then
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_program.c"; then
     echo "[builtin-capability-registry] semantic admission does not fail closed" >&2
     exit 1
 fi
@@ -51,7 +51,7 @@ if grep -Fq 'if (*p == '\''r'\'')' \
     exit 1
 fi
 if ! grep -Fq 'capability_for_builtin("Print")' \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_body.c"; then
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_stdlib_body.c"; then
     echo "[builtin-capability-registry] Print bypassed semantic capability inference" >&2
     exit 1
 fi

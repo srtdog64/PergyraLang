@@ -3,8 +3,8 @@ import "ast_constructor_target_identity_owner.pgy";
 // Declaration/formal identities and source parameter positions are borrowed,
 // never reconstructed from call spelling or an AST ancestry walk.
 import "ast_artifact_verdict_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
-import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_call_target_fact_owner.pgy";
 import "ast_callable_receiver_source_parameter_owner.pgy";
 import "ast_callable_type_shape_owner.pgy";
 import "builtin_capability_projection_owner.pgy";

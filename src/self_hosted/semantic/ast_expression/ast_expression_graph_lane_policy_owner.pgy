@@ -1,0 +1,49 @@
+// Expression-graph lane lifetime policy.
+
+import "../../hir/ast_text_arena_projection_owner.pgy";
+import "../../hir/ast_expression_lane_policy_owner.pgy";
+
+func SemanticAstExpressionGraphAtomLaneRequired(artifact: AstTreeArtifact, node_id: Int) -> Bool {
+    let kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, node_id);
+    return IsSome(kind) &&
+        AstExpressionGraphAtomLaneRequiredForKind(UnwrapOption(kind));
+}
+
+func SemanticAstExpressionGraphAtomLaneProducerOnly(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Bool {
+    let kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, node_id);
+    return IsSome(kind) &&
+        AstExpressionGraphAtomLaneProducerOnlyForKind(UnwrapOption(kind));
+}
+
+func SemanticAstExpressionGraphLaneCarriesPersistedIdentity(
+    artifact: AstTreeArtifact,
+    node_id: Int,
+    lane: Int
+) -> Bool {
+    return lane != AstExpressionLaneAtom() ||
+        !SemanticAstExpressionGraphAtomLaneProducerOnly(artifact, node_id);
+}
+
+func SemanticAstExpressionGraphValueLaneRequired(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Bool {
+    let kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, node_id);
+    return IsSome(kind) &&
+        AstExpressionGraphValueLaneRequiredForKind(UnwrapOption(kind));
+}
+
+func SemanticAstExpressionGraphAuxiliaryLaneRequired(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Bool {
+    let kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, node_id);
+    return IsSome(kind) &&
+        AstExpressionGraphAuxiliaryLaneRequiredForRow(
+            UnwrapOption(kind),
+            TypedAstArenaAuxValueText(artifact.arena, node_id)
+        );
+}

@@ -1,0 +1,97 @@
+// Parser-owned Array<String> statement transitions.
+
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_call_effect_owner.pgy";
+import "../ast_assignment_fact_owner.pgy";
+import "../ast_owned_string_result_fact_owner.pgy";
+import "../ast_owned_string_call_result_admission_owner.pgy";
+import "ast_collection_statement_transition_result_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+import "ast_collection_formal_statement_transition_owner.pgy";
+import "ast_collection_local_statement_transition_owner.pgy";
+
+func SemanticAstCollectionStatementTransitionForSyntax(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
+    syntax_id: Int, ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts, ref current_definitions: Array<Int>,
+    inout ownership: Array<Int>, ref dispositions: Array<Int>,
+    ref origins: Array<Int>, inout transition_states: Array<Int>,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
+    ref compiler_clone_expression_node_ids: Array<Int>,
+    ref owned_store_expression_node_ids: Array<Int>,
+    ref element_requirements: HashMap<String, Int>,
+    compiler_clone_storage_detached: Bool,
+    inout receipts: SemanticAstCollectionOwnershipReceiptRows
+) -> SemanticAstCollectionStatementTransitionResult {
+    // The scan owns one receipt table; a decision carries no snapshot.
+    let indexed: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
+    var statement_kind: Int = TypedAstKindAssignStmtTag();
+    var function_id: Int = -1;
+    if IsSome(indexed) {
+        let statement_row: Int = UnwrapOption(indexed);
+        statement_kind = statements.kind_tags[statement_row];
+        function_id = statements.function_node_ids[statement_row];
+    } else {
+        // Assignments have their own admitted inventory, not statement rows.
+        let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
+        if !IsSome(assigned) { return SemanticAstCollectionStatementTransitionOk(); }
+        let assignment_row: Int = UnwrapOption(assigned);
+        if assignments.target_is_indexed[assignment_row] == 0 || assignments.target_base_names[assignment_row] != assignments.target_root_names[assignment_row] {
+            return SemanticAstCollectionStatementTransitionOk();
+        }
+        function_id = assignments.function_node_ids[assignment_row];
+    }
+    if statement_kind != TypedAstKindArrayPushStmtTag() &&
+        statement_kind != TypedAstKindArraySetStmtTag() &&
+        statement_kind != TypedAstKindArrayPopStmtTag() &&
+        statement_kind != TypedAstKindAssignStmtTag() {
+        return SemanticAstCollectionStatementTransitionOk();
+    }
+    if statement_kind == TypedAstKindAssignStmtTag() {
+        let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+        if !IsSome(target) { return SemanticAstCollectionStatementTransitionArtifactError("indexed_collection_target", syntax_id); }
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, UnwrapOption(target));
+        if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeIndex() {
+            return SemanticAstCollectionStatementTransitionArtifactError("indexed_collection_target", syntax_id);
+        }
+    }
+    var operation: String = "ArrayPop";
+    let array_push: Bool = statement_kind == TypedAstKindArrayPushStmtTag();
+    let parser_array_set: Bool =
+        statement_kind == TypedAstKindArraySetStmtTag();
+    let array_set: Bool = parser_array_set ||
+        statement_kind == TypedAstKindAssignStmtTag();
+    let array_pop: Bool = statement_kind == TypedAstKindArrayPopStmtTag();
+    if array_push {
+        operation = "ArrayPush";
+    } else if array_set {
+        operation = "ArraySet";
+    }
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstCollectionOwnershipLocalForStatementTarget(
+            artifact, locals, initializer_types.inferred_type_names,
+                surfaces, function_id, syntax_id);
+    if !binding.ok {
+        return SemanticAstCollectionFormalStatementTransition(
+            signatures, surfaces, function_id, syntax_id,
+            array_push, parser_array_set, array_set, array_pop,
+            owned_store_expression_node_ids, element_requirements, receipts);
+    }
+    return SemanticAstCollectionLocalStatementTransition(
+        artifact, signatures, locals, initializer_types, surfaces,
+        syntax_id, function_id, operation, array_push, parser_array_set,
+        array_set, array_pop, binding, call_effects, definitions, storage,
+        current_definitions, ownership, dispositions, origins,
+        transition_states, owned_string_results, numeric_string_allocations,
+        compiler_clone_expression_node_ids, compiler_clone_storage_detached,
+        receipts);
+}

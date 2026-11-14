@@ -12,8 +12,8 @@
 
 #include "slot_analyzer_internal.h"
 #include "typed_map_query_fact_owner.h"
-#include "function_param_publication_owner.h"
-#include "function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_publication_owner.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
 #include "formal_string_store_landing_owner.h"
 #include "../common/match_variant_policy.h"
 

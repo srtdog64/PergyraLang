@@ -1,7 +1,7 @@
 // Retirement recipes belong to the admitted program, not to a nominal type.
-import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
-import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
-import "direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
 
 struct DirectMirOwnedStorageReleasePlan {
     var modes: Array<Int>;

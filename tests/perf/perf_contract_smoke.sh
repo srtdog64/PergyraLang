@@ -43,7 +43,7 @@ grep -F "/src/codegen/" "$SRC_INDEX" > "$CODEGEN_INDEX" || true
 
 c_fail_open_zero="$WORK_DIR/c-fail-open-zero.txt"
 grep -F 'return pergyra_strdup("0")' "$CODEGEN_INDEX" \
-    | grep -Fv 'src/codegen/transpiler_let_box_emit.c:' \
+    | grep -Fv 'src/codegen/c/transpiler_let_box_emit.c:' \
     > "$c_fail_open_zero" || true
 if [ -s "$c_fail_open_zero" ]; then
     echo "[perf-contract] C backend reintroduced silent zero fail-open fallback" >&2
@@ -153,9 +153,9 @@ scope_mixed_files=$(
             continue
         fi
         rel=${file#"$ROOT_DIR"/}
-        if [ "$rel" = "src/codegen/llvm_registry.c" ] \
-            || [ "$rel" = "src/codegen/llvm_internal_api.h" ] \
-            || [ "$rel" = "src/codegen/llvm_stmt_parallel_async.c" ]; then
+        if [ "$rel" = "src/codegen/llvm/llvm_registry.c" ] \
+            || [ "$rel" = "src/codegen/llvm/llvm_internal_api.h" ] \
+            || [ "$rel" = "src/codegen/llvm/llvm_stmt_parallel_async.c" ]; then
             continue
         fi
         printf '%s\n' "$rel"
@@ -169,7 +169,7 @@ fi
 # A borrowed LLVMVarEntry * dies on scope realloc (AGENTS.md); only the
 # registry owner may take one.
 scope_lookup_outside_registry="$(
-    grep -RIl --include='*.c' --include='*.h' 'llvm_scope_lookup(ctx,'         "$ROOT_DIR/src/codegen"         | sed -E 's#^.*src/codegen/#src/codegen/#'         | grep -vx 'src/codegen/llvm_registry.c' || true
+    grep -RIl --include='*.c' --include='*.h' 'llvm_scope_lookup(ctx,'         "$ROOT_DIR/src/codegen"         | sed -E 's#^.*src/codegen/#src/codegen/#'         | grep -vx 'src/codegen/llvm/llvm_registry.c' || true
 )"
 if [ -n "$scope_lookup_outside_registry" ]; then
     echo "[perf-contract] LLVM borrowed scope lookup outside llvm_registry.c:" >&2
@@ -180,7 +180,7 @@ fi
 
 forward_allowed_type_names="$(
     sed -n '/static const char \*allowed_names\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_func_forward_policy.c" \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
 )"
@@ -240,7 +240,7 @@ fi
 
 llvm_registry_type_names="$(
     sed -n '/static const LLVMRegistryTypeSpec specs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_backend_type_registry.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -257,7 +257,7 @@ fi
 
 mir_resource_op_names="$(
     sed -n '/static const TranspilerMIRResourceOpSpec specs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_mir_resource_name.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -291,7 +291,7 @@ if [[ "$common_intent_obs_names_in_order" != "$common_intent_obs_names" ]]; then
 fi
 mir_intent_carrier_names="$(
     sed -n '/k_mir_intent_semantic_carrier_names\[\]/,/^};/p' \
-        "$ROOT_DIR/src/compiler/mir_intent_fact.c" \
+        "$ROOT_DIR/src/compiler/mir/mir_intent_fact.c" \
         | grep -o '"Intent[A-Za-z0-9_]*"' \
         | tr -d '"'
 )"
@@ -412,7 +412,7 @@ if [[ "$codegen_hashmap_key_names" != "$codegen_hashmap_key_names_sorted" ]]; th
 fi
 slot_runtime_fn_names="$(
     sed -n '/TranspilerMIRResourceOpSpec specs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_mir_resource_name.c" \
         | grep -o '{ "[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -473,7 +473,7 @@ fi
 
 resolver_builtin_names="$(
     sed -n '/k_builtin_entries\[\]/,/^};/p' \
-        "$ROOT_DIR/src/semantic/type_checker_builtins_resolve.c" \
+        "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_resolve.c" \
         | grep -o '{"[^"]*"' \
         | sed 's/^{"//'
 )"
@@ -488,17 +488,17 @@ if [[ "$resolver_builtin_names" != "$resolver_builtin_names_sorted" ]]; then
 fi
 
 for semantic_dispatch_file in \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_channel_state.c" \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_state_tools.c" \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_channel_transport.c" \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_collections.c" \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_body.c" \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_map.c" \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_scalar.c" \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_variant.c" \
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_channel_state.c" \
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_state_tools.c" \
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_stdlib_channel_transport.c" \
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_stdlib_collections.c" \
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_stdlib_body.c" \
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_stdlib_map.c" \
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_stdlib_scalar.c" \
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_stdlib_variant.c" \
     "$ROOT_DIR/src/semantic/slot_analyzer_builtin.c" \
-    "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_constructed.c" \
-    "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_diagnostics.c"; do
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_resolution_metadata_constructed.c" \
+    "$ROOT_DIR/src/semantic/type_checker/type_checker_resolution_metadata_diagnostics.c"; do
     semantic_dispatch_names="$(
         sed -n '/static const .*\[\]/,/^};/p' "$semantic_dispatch_file" \
             | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
@@ -519,7 +519,7 @@ done
 
 transpiler_infer_call_names="$(
     sed -n '/kTranspilerInferCallSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_expr_type_infer_call_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -536,7 +536,7 @@ fi
 
 transpiler_box_let_names="$(
     sed -n '/static const TranspilerBoxLetSpec kTranspilerBoxLetSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_let_box_emit.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_let_box_emit.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -551,11 +551,11 @@ if [[ "$transpiler_box_let_names" != "$transpiler_box_let_names_sorted" ]]; then
     exit 1
 fi
 
-channel_builtin_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"
+channel_builtin_owner="$ROOT_DIR/src/codegen/c/transpiler_expr_stdlib_channel_builtin.c"
 
 transpiler_result_option_names="$(
     sed -n '/static const TranspilerResultOptionSpec kTranspilerResultOptionSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_call_result_option_builtin_emit.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -572,7 +572,7 @@ fi
 
 result_option_builtin_names="$(
     sed -n '/static const LLVMResultOptionSpec kLLVMResultOptionSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_result_option_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -589,7 +589,7 @@ fi
 
 llvm_stmt_collection_ctor_names="$(
     sed -n '/kLLVMStmtCollectionCtorSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_stmt_let_collection_policy.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_stmt_let_collection_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -605,7 +605,7 @@ if [[ "$llvm_stmt_collection_ctor_names" != "$llvm_stmt_collection_ctor_names_so
 fi
 llvm_stmt_let_call_names="$(
     sed -n '/static const LLVMStmtLetCallSpec kLLVMStmtLetCallSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_stmt_let_collection_policy.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_stmt_let_collection_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -622,7 +622,7 @@ fi
 
 llvm_collection_base_names="$(
     sed -n '/static const LLVMCollectionBaseSpec kLLVMCollectionBaseSpecs\[\]/,/^};/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_collection_base_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -637,7 +637,7 @@ if [[ "$llvm_collection_base_names" != "$llvm_collection_base_names_sorted" ]]; 
     exit 1
 fi
 
-collection_builtin_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_builtin.c"
+collection_builtin_owner="$ROOT_DIR/src/codegen/c/transpiler_expr_stdlib_collection_builtin.c"
 
 transpiler_collection_names="$(
     sed -n '/static const TranspilerCollectionSpec kTranspilerCollectionSpecs\[\]/,/^};/p' \
@@ -658,7 +658,7 @@ fi
 
 transpiler_array_names="$(
     sed -n '/static const TranspilerArrayStdlibSpec kTranspilerArraySpecs\[\]/,/^};/p' \
-        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_expr_stdlib_builtin_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -675,7 +675,7 @@ fi
 
 transpiler_to_string_names="$(
     sed -n '/static const TranspilerToStringSpec kTranspilerToStringSpecs\[\]/,/^};/p' \
-        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_expr_stdlib_builtin_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -691,7 +691,7 @@ if [[ "$transpiler_to_string_names" != "$transpiler_to_string_names_sorted" ]]; 
 fi
 transpiler_stdlib_names="$(
     sed -n '/static const TranspilerStdlibSpec kTranspilerStdlibSpecs\[\]/,/^};/p' \
-        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_expr_stdlib_builtin_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -706,7 +706,7 @@ if [[ "$transpiler_stdlib_names" != "$transpiler_stdlib_names_sorted" ]]; then
     exit 1
 fi
 
-misc_builtin_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_misc_builtin.c"
+misc_builtin_owner="$ROOT_DIR/src/codegen/c/transpiler_expr_stdlib_misc_builtin.c"
 transpiler_misc_names="$(
     sed -n '/static const TranspilerMiscSpec kTranspilerMiscSpecs\[\]/,/^};/p' \
         "$misc_builtin_owner" \
@@ -726,7 +726,7 @@ fi
 
 llvm_stmt_collection_get_names="$(
     sed -n '/static const LLVMCollectionGetSpec kLLVMCollectionGetSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_stmt_type_infer_helpers.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -743,7 +743,7 @@ fi
 
 transpiler_let_collection_ctor_names="$(
     sed -n '/kTranspilerLetCollectionCtorSpecs\[\]/,/^        };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c" \
+        "$ROOT_DIR/src/codegen/c/transpiler_let_collection_emit.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -760,7 +760,7 @@ fi
 
 domain_query_names="$(
     sed -n '/static const LLVMDomainQuerySpec kLLVMDomainQuerySpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_domain_query_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_domain_query_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -777,7 +777,7 @@ fi
 
 array_builtin_names="$(
     sed -n '/static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs\[\]/,/^};/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c" |
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_array_calls.c" |
         sed -n 's/.*{"\([^"]*\)".*/\1/p'
 )"
 array_builtin_names_sorted="$(printf '%s\n' "$array_builtin_names" | sort)"
@@ -807,7 +807,7 @@ fi
 
 log_builtin_names="$(
     sed -n '/static const LLVMLogSpec kLLVMLogSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_log_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -824,7 +824,7 @@ fi
 
 call_inline_names="$(
     sed -n '/static const LLVMCallInlineSpec kLLVMCallInlineSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_call_inline_policy.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_call_inline_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -841,7 +841,7 @@ fi
 
 rc_builtin_names="$(
     sed -n '/static const LLVMRcSpec kLLVMRcSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_rc_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -858,7 +858,7 @@ fi
 
 task_runtime_names="$(
     sed -n '/static const LLVMTaskRuntimeSpec kTaskRuntimeSpecs\[\]/,/^};/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_task_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_task_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -875,7 +875,7 @@ fi
 
 task_channel_names="$(
     sed -n '/static const LLVMTaskChannelNameSpec specs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_task_channel_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -891,7 +891,7 @@ if [[ "$task_channel_names" != "$task_channel_names_sorted" ]]; then
 fi
 task_channel_op_names="$(
     sed -n '/static const LLVMTaskChannelOpSpec kTaskChannelOpSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_task_channel_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -907,7 +907,7 @@ if [[ "$task_channel_op_names" != "$task_channel_op_names_sorted" ]]; then
 fi
 channel_query_names="$(
     sed -n '/static const LLVMChannelQueryOpSpec specs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_task_channel_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -923,7 +923,7 @@ if [[ "$channel_query_names" != "$channel_query_names_sorted" ]]; then
 fi
 llvm_stdlib_string_file_names="$(
     sed -n '/static const LLVMStdlibRuntimeCallSpec kLLVMStdlibStringFileRuntimeSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_stdlib_scalar_io_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -940,7 +940,7 @@ fi
 
 llvm_stdlib_runtime_io_names="$(
     sed -n '/static const LLVMStdlibRuntimeCallSpec kLLVMStdlibRuntimeIoSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_stdlib_scalar_io_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -956,7 +956,7 @@ if [[ "$llvm_stdlib_runtime_io_names" != "$llvm_stdlib_runtime_io_names_sorted" 
 fi
 llvm_stdlib_string_special_names="$(
     sed -n '/static const LLVMStdlibStringSpecialSpec kLLVMStdlibStringSpecialSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_stdlib_scalar_io_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -972,7 +972,7 @@ if [[ "$llvm_stdlib_string_special_names" != "$llvm_stdlib_string_special_names_
 fi
 llvm_stdlib_io_special_names="$(
     sed -n '/static const LLVMStdlibIoSpecialSpec kLLVMStdlibIoSpecialSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_stdlib_scalar_io_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -989,7 +989,7 @@ fi
 
 slot_builtin_names="$(
     sed -n '/static const LLVMSlotBuiltinSpec kLLVMSlotBuiltinSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/llvm_expr_slot_device_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -1004,9 +1004,9 @@ if [[ "$slot_builtin_names" != "$slot_builtin_names_sorted" ]]; then
     exit 1
 fi
 
-scalar_builtin_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.c"
+scalar_builtin_owner="$ROOT_DIR/src/codegen/c/transpiler_expr_stdlib_scalar_builtin.c"
 
-scalar_unary_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_unary.c"
+scalar_unary_owner="$ROOT_DIR/src/codegen/c/transpiler_expr_stdlib_scalar_unary.c"
 
 transpiler_scalar_unary_names="$(
     sed -n '/static const TranspilerScalarUnarySpec specs\[\]/,/^    };/p' \

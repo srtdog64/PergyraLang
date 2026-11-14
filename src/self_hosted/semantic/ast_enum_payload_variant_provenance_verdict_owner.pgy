@@ -3,9 +3,9 @@
 // This owner consumes parser-owned graph topology and admitted semantic rows.
 // It does not recover provenance from rendered source or downstream MIR SSA.
 
-import "ast_expression_graph_enum_payload_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
-import "ast_expression_graph_view_owner.pgy";
+import "ast_expression/ast_expression_graph_enum_payload_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_graph_view_owner.pgy";
 import "ast_local_binding_identity_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";

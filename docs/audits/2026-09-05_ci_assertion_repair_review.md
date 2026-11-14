@@ -38,8 +38,8 @@ Primary owns implementation and the eventual semantic parity integration gate.
   duplicate of one code, missing code, or swapped cause/fix ownership fails the
   Python predicate.
 - These are independent source owners, not a test-only invented second error:
-  `src/semantic/type_checker_intent_control.c:237` reports the forbidden Intent
-  control construct; `src/semantic/type_checker_future_lifecycle.c:44` rejects
+  `src/semantic/type_checker/type_checker_intent_control.c:237` reports the forbidden Intent
+  control construct; `src/semantic/type_checker/type_checker_future_lifecycle.c:44` rejects
   an unowned spawn completion handle. `src/semantic/diag_codes.h` owns the code,
   cause, and fix spellings. `src/common/diagnostic_layer.c:141` classifies the
   Intent case as domain, while its semantic fallback at line 160 classifies

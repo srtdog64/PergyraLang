@@ -1,6 +1,6 @@
 #include "indexed_string_permanent_internal.h"
 #include "indexed_string_option_payload.h"
-#include "function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
 #include <string.h>
 
 static bool permanent_id(const ASTNode *node, uint32_t id)

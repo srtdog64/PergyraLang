@@ -1,7 +1,7 @@
 // Valid compiler-owner validator. Altered placement facts are refusal-only;
 // only untouched admitted input can reach either target materializer.
 import "../../../../src/self_hosted/mir_lower/intent_routine_plan_owner.pgy";
-import "../../../../src/self_hosted/compiler/direct_mir_intent_cell_transfer_projection_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/direct_mir_intent_cell_transfer_projection_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();

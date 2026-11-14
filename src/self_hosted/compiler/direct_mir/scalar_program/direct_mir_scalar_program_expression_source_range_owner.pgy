@@ -1,0 +1,41 @@
+// Selects the exact persisted graph prefix consumed by one expression admission.
+import "../../../mir_lower/expression_graph_sequence_owner.pgy";
+
+struct DirectMirScalarProgramExpressionSourceRange {
+    valid: Bool,
+    count: Int,
+    root: Int,
+    failure_stage: String
+}
+
+func DirectMirScalarProgramExpressionSourceRangeFromGraph(
+    ref sequence: MirExpressionGraphSequence,
+    try_operand_only: Bool, source_root_override: Int
+) -> DirectMirScalarProgramExpressionSourceRange {
+    let total_count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    var root: Int = sequence.roots[0];
+    var count: Int = total_count;
+    if source_root_override >= 0 {
+        root = source_root_override;
+        count = root + 1;
+    }
+    if total_count < 1 || root < 0 || root >= total_count {
+        return DirectMirScalarProgramExpressionSourceRange(
+            false, count, root, "graph-root");
+    }
+    if !try_operand_only {
+        return DirectMirScalarProgramExpressionSourceRange(
+            true, count, root, "");
+    }
+    if sequence.arena.topology.node_kinds[root] != AstExpressionNodeTry() ||
+        sequence.arena.topology.right_children[root] != 0 {
+        return DirectMirScalarProgramExpressionSourceRange(
+            false, count, root, "try-root");
+    }
+    root = sequence.arena.topology.left_children[root];
+    if root < 0 || root >= sequence.roots[0] {
+        return DirectMirScalarProgramExpressionSourceRange(
+            false, count, root, "try-operand");
+    }
+    return DirectMirScalarProgramExpressionSourceRange(true, root + 1, root, "");
+}

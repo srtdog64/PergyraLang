@@ -138,7 +138,7 @@ for mutation in missing unknown; do
 done
 
 grep -Fq 'mir_instruction_match_binding_type_at' \
-    "$ROOT_DIR/src/compiler/mir_json_dump.c" || {
+    "$ROOT_DIR/src/compiler/mir/mir_json_dump.c" || {
     echo "[match-binding-type-fact] JSON projection bypassed MIR owner" >&2
     exit 1
 }

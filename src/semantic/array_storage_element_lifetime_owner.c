@@ -1,8 +1,8 @@
 /* Canonical native plain-element lifetime predicate for public storage release. */
 #include "array_storage_element_lifetime_owner.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "compiler/decl_field_model.h"
-#include "type_checker_resolution_metadata_internal.h"
+#include "type_checker/type_checker_resolution_metadata_internal.h"
 #include <stdlib.h>
 
 static bool

@@ -1,0 +1,59 @@
+// Definition and dynamic-guard dominance for an admitted String-array plan.
+
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy";
+import "direct_mir_scalar_cfg_array_guard_dominance_owner.pgy";
+import "../../../mir_lower/routine_definition_dominance_fact_owner.pgy";
+
+func DirectMirScalarCfgStringArrayPlanDominanceReady(
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    var length_row: Int = 0;
+    while length_row < DirectMirScalarCfgStringArrayLengthCount(plan) {
+        let fact: DirectMirScalarCfgStringArrayLengthFact =
+            DirectMirScalarCfgStringArrayLengthAt(plan, length_row);
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(
+                index, plan.collections.value_ids[fact.collection_row]
+            );
+        let local_instruction: Int = fact.global_row -
+            index.instruction_facts.global_start -
+            index.block_instruction_starts[fact.block];
+        if !MirRoutineDefinitionDominatesInstruction(
+            index, definition, fact.block, local_instruction
+        ) { return false; }
+        length_row = length_row + 1;
+    }
+    var access_row: Int = 0;
+    while access_row < DirectMirScalarCfgStringArrayAccessCount(plan) {
+        let fact: DirectMirScalarCfgStringArrayAccessFact =
+            DirectMirScalarCfgStringArrayAccessAt(plan, access_row);
+        var access_block: Int = -1;
+        var access_local: Int = -1;
+        var block: Int = 0;
+        while block < ArrayLength(index.block_starts) {
+            let start: Int = index.instruction_facts.global_start +
+                index.block_instruction_starts[block];
+            let end: Int = start + index.block_instruction_counts[block];
+            if fact.global_row >= start && fact.global_row < end {
+                access_block = block;
+                access_local = fact.global_row - start;
+            }
+            block = block + 1;
+        }
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(
+                index, plan.collections.value_ids[fact.collection_row]
+            );
+        if access_block < 0 || !MirRoutineDefinitionDominatesInstruction(
+            index, definition, access_block, access_local
+        ) { return false; }
+        if fact.guard_length_row >= 0 &&
+            !DirectMirScalarCfgArrayGuardEdgeReady(
+                index, plan.lengths.blocks[fact.guard_length_row], access_block
+            ) { return false; }
+        access_row = access_row + 1;
+    }
+    return DirectMirScalarCfgStringArrayPushPrefixDominanceReady(plan, index);
+}

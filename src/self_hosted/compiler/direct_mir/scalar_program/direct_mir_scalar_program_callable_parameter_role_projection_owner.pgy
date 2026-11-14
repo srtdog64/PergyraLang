@@ -1,0 +1,177 @@
+// Callable parameter-role plan projection.
+
+import "../direct_mir_routine_signature_fact_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_role_schema_owner.pgy";
+import "direct_mir_scalar_program_opaque_readonly_zone_fact_owner.pgy";
+
+func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact
+) -> DirectMirScalarProgramCallableParameterRolePlan {
+    if !DirectMirRoutineSignatureFactReady(signature) {
+        return DirectMirScalarProgramCallableParameterRolePlanInvalid();
+    }
+    var direct_value_count: Int = 0;
+    var callable_function_value_count: Int = 0;
+    var logical_record_input_count: Int = 0;
+    var logical_record_value_result_count: Int = 0;
+    var logical_record_array_value_result_count: Int = 0;
+    var logical_record_array_value_count: Int = 0;
+    var hashmap_parameter_count: Int = 0;
+    var abi_value_count: Int = 0;
+    var payload_free_enum_count: Int = 0;
+    var payload_enum_count: Int = 0;
+    var plain_array_value_result_count: Int = 0;
+    var array_string_value_result_count: Int = 0;
+    var set_string_value_result_count: Int = 0;
+    var array_readonly_ref_count: Int = 0;
+    var identity_cell_count: Int = 0;
+    var opaque_readonly_zone_count: Int = 0;
+    var ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        let direct_value: Bool =
+            DirectMirScalarProgramDirectValueParameterReady(
+                signature, ordinal);
+        let callable_function_value: Bool = DirectMirScalarProgramCallableFunctionParameterReady(signature, ordinal);
+        let logical_record_input: Bool = DirectMirScalarProgramLogicalRecordParameterReady(
+                signature, ordinal, logical_record) ||
+            DirectMirScalarProgramLogicalRecordOptionParameterReady(
+                signature, ordinal, logical_record);
+        let logical_record_value_result: Bool =
+            DirectMirScalarProgramLogicalRecordValueResultParameterReady(
+                signature, ordinal, logical_record);
+        let logical_record_array_value_result: Bool =
+            DirectMirScalarProgramLogicalRecordArrayValueResultParameterReady(
+                signature, ordinal, logical_record);
+        let logical_record_array_value: Bool = DirectMirScalarProgramLogicalRecordArrayValueParameterReady(
+            signature, ordinal, logical_record);
+        let hashmap_parameter: Bool = DirectMirScalarProgramHashMapParameterReady(signature, ordinal);
+        let abi_value: Bool =
+            DirectMirScalarProgramAbiValueParameterReady(
+                signature, ordinal);
+        let payload_free_enum_parameter: Bool =
+            DirectMirScalarProgramPayloadFreeEnumParameterReady(
+                signature, ordinal, payload_free_enum);
+        let payload_enum: Bool =
+            DirectMirScalarProgramPayloadEnumParameterReady(
+                signature, ordinal, referenced_enum);
+        let plain_array_value_result: Bool =
+            DirectMirScalarProgramPlainArrayValueResultParameterReady(
+                signature, ordinal);
+        let array_string_value_result: Bool = DirectMirScalarProgramArrayStringValueResultParameterReady(signature, ordinal);
+        let set_string_value_result: Bool =
+            DirectMirScalarProgramSetStringValueResultParameterReady(
+                signature, ordinal);
+        let array_readonly_ref: Bool =
+            DirectMirScalarProgramArrayReadonlyRefParameterReady(
+                signature, ordinal);
+        var claim_count: Int = 0;
+        let identity_cell: Bool = DirectMirScalarProgramIdentityCellParameterRoleReady(
+            signature, ordinal, logical_record.identity_cells);
+        let opaque_readonly_zone: Bool =
+            DirectMirScalarProgramOpaqueReadonlyZoneParameterReady(
+                signature, ordinal, opaque_readonly_zones);
+        if identity_cell { claim_count = claim_count + 1; }
+        if opaque_readonly_zone { claim_count = claim_count + 1; }
+        if direct_value { claim_count = claim_count + 1; }
+        if callable_function_value { claim_count = claim_count + 1; }
+        if logical_record_input { claim_count = claim_count + 1; }
+        if logical_record_value_result { claim_count = claim_count + 1; }
+        if logical_record_array_value_result { claim_count = claim_count + 1; }
+        if logical_record_array_value { claim_count = claim_count + 1; }
+        if hashmap_parameter { claim_count = claim_count + 1; }
+        if abi_value { claim_count = claim_count + 1; }
+        if payload_free_enum_parameter { claim_count = claim_count + 1; }
+        if payload_enum { claim_count = claim_count + 1; }
+        if plain_array_value_result { claim_count = claim_count + 1; }
+        if array_string_value_result { claim_count = claim_count + 1; }
+        if set_string_value_result { claim_count = claim_count + 1; }
+        if array_readonly_ref { claim_count = claim_count + 1; }
+        if claim_count != 1 {
+            return DirectMirScalarProgramCallableParameterRolePlanInvalid();
+        }
+        if direct_value { direct_value_count = direct_value_count + 1; }
+        if identity_cell { identity_cell_count = identity_cell_count + 1; }
+        if opaque_readonly_zone {
+            opaque_readonly_zone_count = opaque_readonly_zone_count + 1;
+        }
+        if callable_function_value { callable_function_value_count = callable_function_value_count + 1; }
+        if logical_record_input {
+            logical_record_input_count = logical_record_input_count + 1;
+        }
+        if logical_record_value_result {
+            logical_record_value_result_count =
+                logical_record_value_result_count + 1;
+        }
+        if logical_record_array_value_result {
+            logical_record_array_value_result_count =
+                logical_record_array_value_result_count + 1;
+        }
+        if logical_record_array_value {
+            logical_record_array_value_count =
+                logical_record_array_value_count + 1;
+        }
+        if hashmap_parameter { hashmap_parameter_count = hashmap_parameter_count + 1; }
+        if abi_value {
+            abi_value_count = abi_value_count + 1;
+        }
+        if payload_free_enum_parameter {
+            payload_free_enum_count =
+                payload_free_enum_count + 1;
+        }
+        if payload_enum {
+            payload_enum_count = payload_enum_count + 1;
+        }
+        if plain_array_value_result {
+            plain_array_value_result_count = plain_array_value_result_count + 1;
+        }
+        if array_string_value_result { array_string_value_result_count = array_string_value_result_count + 1; }
+        if set_string_value_result {
+            set_string_value_result_count =
+                set_string_value_result_count + 1;
+        }
+        if array_readonly_ref {
+            array_readonly_ref_count =
+                array_readonly_ref_count + 1;
+        }
+        ordinal = ordinal + 1;
+    }
+    let plan: DirectMirScalarProgramCallableParameterRolePlan = DirectMirScalarProgramCallableParameterRolePlan(
+            true, direct_value_count, callable_function_value_count, logical_record_input_count,
+            logical_record_value_result_count,
+            logical_record_array_value_result_count,
+            logical_record_array_value_count,
+            hashmap_parameter_count,
+            abi_value_count, payload_free_enum_count,
+            payload_enum_count,
+            plain_array_value_result_count, array_string_value_result_count,
+            set_string_value_result_count, array_readonly_ref_count,
+            identity_cell_count, opaque_readonly_zone_count);
+    if !DirectMirScalarProgramCallableParameterRolePlanReady(
+            plan, signature.param_count) {
+        return DirectMirScalarProgramCallableParameterRolePlanInvalid();
+    }
+    return plan;
+}
+func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> DirectMirScalarProgramCallableParameterRolePlan {
+    let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
+        DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
+    let opaque_readonly_zones:
+        DirectMirScalarProgramOpaqueReadonlyZoneFact =
+            DirectMirScalarProgramOpaqueReadonlyZoneFactEmpty();
+    return DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(
+        signature, logical_record, payload_free_enum, referenced_enum,
+        opaque_readonly_zones);
+}
+

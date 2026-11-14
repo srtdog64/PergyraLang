@@ -33,10 +33,10 @@ require_max_lines "src/self_hosted/compiler/sandbox_capability_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/compatibility_evolution_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/air_evidence_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/artifact_zone_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/test_harness_manifest.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_comparator_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_backend_compare_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness/test_harness_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" 600
@@ -45,12 +45,12 @@ require_max_lines "src/self_hosted/compiler/abi_layout_row_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/authority_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/driver_pipeline_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/driver_bootstrap_main.pgy" 600
-require_max_lines "src/self_hosted/compiler/driver_rung0_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/driver_rung0_main.pgy" 600
-require_max_lines "src/self_hosted/compiler/driver_cli_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/driver_rung1_main.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver/driver_pipeline_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver/driver_bootstrap_main.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver/driver_rung0_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver/driver_rung0_main.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver/driver_cli_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver/driver_rung1_main.pgy" 600
 # Grew past 600 while the bootstrap red hid this gate; the same split debt
 # is pinned in tests/fixtures/self_hosted_responsibility_caps.tsv.
 require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 619

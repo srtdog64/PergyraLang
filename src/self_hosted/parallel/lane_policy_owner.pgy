@@ -257,11 +257,11 @@ func ParallelLanePolicySourcePath() -> String {
 }
 
 func ParallelLaneCEmitterPath() -> String {
-    return "src/codegen/transpiler_spawn_channel_emit.c";
+    return "src/codegen/c/transpiler_spawn_channel_emit.c";
 }
 
 func ParallelLaneLlvmEmitterPath() -> String {
-    return "src/codegen/llvm_expr_spawn_call_helpers.c";
+    return "src/codegen/llvm/llvm_expr_spawn_call_helpers.c";
 }
 
 func ParallelLanePlanSourcePath() -> String {

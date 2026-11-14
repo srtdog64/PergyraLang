@@ -2,8 +2,8 @@
 
 import "ast_body_verdict_owner.pgy";
 import "ast_statement_type_query_owner.pgy";
-import "ast_expression_graph_node_view_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_graph_node_view_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
 import "diagnostic_owner.pgy";
 
 struct SemanticAstBodyTerminationFacts {

@@ -4,8 +4,8 @@ import "../../codegen/emission/assign_emit_owner.pgy";
 import "../../codegen/type_facts/type_env_state_lifetime_owner.pgy";
 import "../../codegen/emission/function_binding_env_owner.pgy";
 import "../../codegen/emission/collection_element_emit_owner.pgy";
-import "../../semantic/ast_expression_call_target_capture_owner.pgy";
-import "../../semantic/ast_expression_place_fact_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_call_target_capture_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_place_fact_owner.pgy";
 
 func ProbeAssignmentFacts(
     target: String,

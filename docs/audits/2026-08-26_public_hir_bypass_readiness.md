@@ -40,10 +40,10 @@ schema or compatibility owners.
    `hir_finish_cfg_routine` then finalizes predecessors, dominance, dominance
    frontier, dominator tree, loops, local definitions, phi candidates, phi
    nodes, and routine CFG summaries in
-   `src/compiler/hir_routine_cfg.c:109-131`.
+   `src/compiler/hir/hir_routine_cfg.c:109-131`.
 5. The pipeline continues through DIR, RIR, AIR, and MIR before the late HIR
    dispatch at `src/compiler/driver_app.c:537-540`. That dispatch calls
-   `hir_dump_mode` in `src/compiler/hir_public.c`; the late position does not
+   `hir_dump_mode` in `src/compiler/hir/hir_public.c`; the late position does not
    transfer ownership of the HIR payload to any later IR.
 
 ### Executable bypass evidence
@@ -130,7 +130,7 @@ This mode includes every `--hir-cfg` field and adds, per block:
 - loop-header flag and loop depth.
 
 These values are computed by the native HIR algorithms in
-`src/compiler/hir_cfg.c`, not copied from MIR or AIR.
+`src/compiler/hir/hir_cfg.c`, not copied from MIR or AIR.
 
 ### `--hir-ssa` — dominators plus HIR SSA-preparation facts
 

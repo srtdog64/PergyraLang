@@ -9,7 +9,7 @@
  */
 #include "propagation_graph.h"
 #include "propagation_graph_build.h"
-#include "mir_decl_headers.h"
+#include "mir/mir_decl_headers.h"
 
 #include "../parser/ast_domain_api.h"
 

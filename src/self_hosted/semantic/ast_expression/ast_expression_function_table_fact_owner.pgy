@@ -1,0 +1,60 @@
+// Shared callable-table fact for one semantic artifact analysis.
+//
+// The table is immutable after production. Consumer owners borrow its rows;
+// they must not rebuild the same callable universe for each body pass.
+
+import "../callable_resolution_owner.pgy";
+
+struct SemanticAstExpressionFunctionTableFacts {
+    ok: Bool;
+    names: Array<String>;
+    returns: Array<String>;
+    params: Array<String>;
+    callables: SemanticCallableNameTable;
+}
+
+func SemanticAstExpressionFunctionTableFactsReady(
+    facts: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    return facts.ok && ArrayLength(facts.names) == ArrayLength(facts.returns) &&
+        ArrayLength(facts.names) == ArrayLength(facts.params);
+}
+
+func SemanticAstExpressionFunctionTableCallableIndex(
+    ref facts: SemanticAstExpressionFunctionTableFacts,
+    source_name: String
+) -> Option<Int> {
+    if !facts.ok ||
+        ArrayLength(facts.names) != ArrayLength(facts.returns) ||
+        ArrayLength(facts.names) != ArrayLength(facts.params) {
+        return None;
+    }
+    return SemanticCallableIndexInTable(facts.callables, source_name);
+}
+
+// Builtins and earlier declarations keep their unqualified callable identity.
+// Every enum variant still owns its qualified row; only a free short name may
+// acquire the additional unqualified projection.
+func SemanticAstUnqualifiedEnumVariantMayOwnCallableRow(
+    existing_index: Int
+) -> Bool {
+    return existing_index < 0;
+}
+
+// Release after the actual initializer, MIR-JSON or source-C intent/codegen
+// consumer has materialized its facts. Body analysis alone is not the last
+// consumer; Ready proves row shape, not authority to release String elements.
+func SemanticAstExpressionFunctionTableFactsRelease(
+    inout facts: SemanticAstExpressionFunctionTableFacts
+) -> Void {
+    let names: Array<String> = facts.names;
+    let returns: Array<String> = facts.returns;
+    let params: Array<String> = facts.params;
+    ArrayDropOwnedStrings(names);
+    ArrayDropOwnedStrings(returns);
+    ArrayDropOwnedStrings(params);
+    facts.names = names;
+    facts.returns = returns;
+    facts.params = params;
+    facts.ok = false;
+}

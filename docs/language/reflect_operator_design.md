@@ -114,7 +114,7 @@ Parser. `parse_unary` in `src/parser/parser_expr.c` matches `TOKEN_REFLECT`
 alongside `!`, `-`, `&` and builds an `AST_UNARY` node via `ast_create_unary`.
 No new AST node type: the operator token lives in `unary.op`.
 
-Semantic. `type_check_unary` in `src/semantic/type_checker_expr_ops.c` handles
+Semantic. `type_check_unary` in `src/semantic/type_checker/type_checker_expr_ops.c` handles
 the unary token switch. This is where the result type (projection) and the
 compile-time fold will live.
 

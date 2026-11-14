@@ -16,9 +16,9 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_array_string_local_literal_element.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy"
-OPERAND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy"
-READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy"
+ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_literal_admission_owner.pgy"
+OPERAND="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy"
+READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir/direct_mir_scalar_array_string_local_literal_mutations.py"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }

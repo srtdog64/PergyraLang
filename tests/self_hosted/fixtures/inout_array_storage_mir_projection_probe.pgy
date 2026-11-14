@@ -1,6 +1,6 @@
 // Exercise the production scalar MIR projection owner, not an installed CLI.
-import "../../../src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy";
-import "../../../src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_projection_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_admission_owner.pgy";
 import "../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
 import "../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
 

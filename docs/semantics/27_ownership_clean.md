@@ -676,8 +676,8 @@ Contract identity: `pgy.mir.ownership.v1`.
   compiler runs the same pass (C5) and must produce the same facts, so
   gen2 == gen3 holds.
 - **Last consumers:** the C emitter (`transpile_from_mir`,
-  `src/codegen/transpiler_entry.c`), the LLVM emitter (`llvm_codegen_from_mir`,
-  `src/codegen/llvm_api.c`), the self-host emitters, and the ownership
+  `src/codegen/c/transpiler_entry.c`), the LLVM emitter (`llvm_codegen_from_mir`,
+  `src/codegen/llvm/llvm_api.c`), the self-host emitters, and the ownership
   observer.
 - **Registration:** the facts are one fact family. At C3, following
   `docs/180`, the implementer either adds a new row to
@@ -698,7 +698,7 @@ Contract identity: `pgy.mir.ownership.v1`.
   - a second cleanup authority. These become old paths, deleted once their
     consumers migrate:
     - the per-instruction `collection_ownership_receipt` state machine
-      (`src/compiler/mir_branch_source_facts.c`; exact span is a P0 inventory,
+      (`src/compiler/mir/mir_branch_source_facts.c`; exact span is a P0 inventory,
       not the older snapshot's line numbers);
     - `semantic_collection_admit_owned_string_drop`
       (`src/semantic/collection_ownership_fact.c`);
@@ -761,7 +761,7 @@ Source modes:
 
 MIR is a CFG in SSA form. Its operands are expression payloads (`expr0`,
 `expr1`) of DEF, ASSIGN, STMT, and RETURN instructions
-(`src/compiler/mir_types.h:81-248`); there is no separate call, copy, or
+(`src/compiler/mir/mir_types.h:81-248`); there is no separate call, copy, or
 move instruction. The contract therefore keys every fact by routine, block,
 instruction index, and the operand's syntax node identity.
 
@@ -849,8 +849,8 @@ and checked (§5.10); no product-result representation is inferred merely from
 this statement. Today a default parameter
 is passed by value, which is a shallow descriptor copy, and `inout` is a
 pointer with copy-in and write-back
-(`src/codegen/transpiler_func_forward_emit.c:185-245`,
-`src/codegen/transpiler_defer_emit.c:142-178`). A sink parameter and a
+(`src/codegen/c/transpiler_func_forward_emit.c:185-245`,
+`src/codegen/c/transpiler_defer_emit.c:142-178`). A sink parameter and a
 borrowed parameter are both passed by value; they differ only in who drops
 the value. For a sink argument, the callee drops it and the caller does not.
 For a borrowed argument, the caller keeps it and the callee never drops it.
@@ -930,7 +930,7 @@ Rules:
     path has not been demonstrated. General glue must still preserve the
     backing allocator, and this gap is not evidence of a current crash.
   - The LLVM nested array literal's inner backing independence remains to
-    be checked against its current emitter (`src/codegen/llvm_expr_aggregate.c`).
+    be checked against its current emitter (`src/codegen/llvm/llvm_expr_aggregate.c`).
     The older nested-array Clone warning is superseded: the current exported
     clone uses `PGY_ARRAY_EXPORT_COPY_VALUE_Array_*` to clone each inner
     backing (`src/runtime/pgy_runtime_lib_array_nested_exports.h`); do not

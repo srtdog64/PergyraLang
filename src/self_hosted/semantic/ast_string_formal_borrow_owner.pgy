@@ -6,8 +6,8 @@
 // retain, return or release the text, so a borrowed element may enter it
 // exactly as it enters a borrowed builtin argument. Any other occurrence
 // retains the text, and retention flows back along forwarding edges.
-import "ast_collection_formal_effect_identity_owner.pgy";
-import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_collection/ast_collection_formal_effect_identity_owner.pgy";
+import "ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
 import "ast_builtin_argument_retention_call_fact_owner.pgy";
 import "builtin_argument_retention_projection_owner.pgy";
 

@@ -1,5 +1,5 @@
 // Exact call-view projection, including interleaved and branching DAG spines.
-import "../../../src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_expression/ast_expression_graph_call_view_owner.pgy";
 
 func ProjectionGraph(copies: Int) -> SemanticExpressionGraphFacts {
     let leaf: Int = AstExpressionNodeLeaf();

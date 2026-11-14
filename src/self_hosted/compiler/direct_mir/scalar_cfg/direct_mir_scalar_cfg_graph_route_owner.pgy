@@ -1,0 +1,74 @@
+// Exact route classifier for the general scalar CFG graph plan.
+import "../direct_mir_scalar_graph_admission_owner.pgy";
+import "direct_mir_scalar_cfg_borrowed_collection_admission_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_route_owner.pgy";
+import "direct_mir_scalar_cfg_array_pop_route_owner.pgy";
+import "direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy";
+import "../../../mir_lower/routine_fact_index_owner.pgy";
+func DirectMirScalarCfgRoutineRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput, routine_row: Int) -> Bool {
+    if !MirProgramRoutineIndexRowReady(admitted.routines, routine_row) ||
+        admitted.routines.kinds[routine_row] != "function" ||
+        admitted.routines.owners[routine_row] != "" ||
+        admitted.routines.routine_block_counts[routine_row] < 1 {
+        return false;
+    }
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[routine_row],
+        admitted.routines.ends[routine_row]
+    );
+    if !DirectMirRoutineHasNoUnsupportedMetadataExceptLoop(routine) {
+        return false;
+    }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, routine_row
+    );
+    if !DirectMirScalarCfgRoutineSourceLocalTypesSupported(index) ||
+        !DirectMirScalarCfgBorrowedCollectionFactsReady(index) {
+        return false;
+    }
+    let reverse_claimed: Bool =
+        DirectMirScalarCfgArrayIntReverseRouteClaimed(admitted, index);
+    let pop_claimed: Bool =
+        DirectMirScalarCfgArrayPopRouteClaimed(admitted, index);
+    var branch_seen: Bool = false;
+    var row: Int = 0;
+    while row < ArrayLength(index.instruction_facts.starts) {
+        let global_row: Int = index.instruction_facts.global_start + row;
+        let kind: String = admitted.routines.instruction_kinds[global_row];
+        let source: String =
+            admitted.routines.instruction_source_types[global_row];
+        if kind == "def" {
+            if source != "AST_LET_DECL" && source != "AST_ASSIGNMENT" {
+                return false;
+            }
+        } else if kind == "phi" {
+            if source != "" { return false; }
+        } else if kind == "stmt" {
+            if source != "AST_CALL" { return false; }
+        } else if kind == "loop-init" {
+            if source != "AST_FOR_LOOP" { return false; }
+        } else if kind == "return" {
+            if source != "AST_RETURN_VOID" && source != "" { return false; }
+        } else if kind == "branch" {
+            if source != "AST_BINARY" && source != "AST_IDENTIFIER" &&
+                source != "AST_BREAK" && source != "AST_CONTINUE" &&
+                source != "AST_FOR_LOOP" {
+                return false;
+            }
+            branch_seen = true;
+        } else {
+            return false;
+        }
+        row = row + 1;
+    }
+    return branch_seen || reverse_claimed || pop_claimed ||
+        DirectMirScalarCfgArrayIndexAssignmentRouteClaimed(admitted, index);
+}
+func DirectMirScalarCfgGraphRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    return DirectMirProgramBaseEnvelopeReady(admitted) &&
+        DirectMirScalarCfgRoutineRouteClaimed(admitted, 0);
+}

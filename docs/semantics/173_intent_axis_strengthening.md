@@ -194,7 +194,7 @@ action 개수가 아니라 **목적에 귀속되어 검사되는 계약**이 판
 - **WO-INT-2** — 보상 커버리지 검사 + `irreversible` 표면 마커.
   **2026-10-06 native 착지 (사용자 지시 "전부 고치고").** 표면은
   `irreversible: "이유";`(빈 이유 거절, 같은 step의 `compensate:`와 공존 불가,
-  효과 없는 step에서 거절)다. 검사는 `src/semantic/type_checker_intent_compensation_coverage.c`가
+  효과 없는 step에서 거절)다. 검사는 `src/semantic/type_checker/type_checker_intent_compensation_coverage.c`가
   소유한다. 의무는 intent가 full rollback을 **주장**할 때만 생긴다. 주장이란
   `rollback: full`을 직접 쓰거나 기본 정책에서 어느 step이든 보상하는 것이다. 그때 뒤에
   실패가 올 수 있는 effectful step은 보상하거나 `irreversible`이어야 한다. 원래 문장

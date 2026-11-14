@@ -14,7 +14,7 @@
 #include "fmt.h"
 #include "llvm_runner.h"
 #include "pkg_manifest.h"
-#include "self_host_mir_artifact_owner.h"
+#include "self_host/self_host_mir_artifact_owner.h"
 
 #include <stdbool.h>
 #include <stdio.h>

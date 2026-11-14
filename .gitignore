@@ -115,8 +115,8 @@ src/self_hosted/lib/*.ll
 # Compiler-world and bootstrap probes may also be emitted in place while
 # validating the production self-host graph. They are disposable projections,
 # never compiler source or semantic authority.
-src/self_hosted/compiler/*.c
-src/self_hosted/compiler/*.ll
+src/self_hosted/compiler/**/*.c
+src/self_hosted/compiler/**/*.ll
 
 # Self-host ABI fixtures may leave backend projections beside their .pgy input.
 tests/self_hosted/fixtures/*.c

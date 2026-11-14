@@ -70,7 +70,7 @@ done < "$WORK_DIR/shadow.names"
 # Every row of the builtin tables is classified.
 {
     sed -nE 's/^[[:space:]]*\{"([A-Za-z0-9]+)", BUILTIN_[A-Z_]+\},$/\1/p' \
-        "$ROOT_DIR/src/semantic/type_checker_builtins_resolve.c"
+        "$ROOT_DIR/src/semantic/type_checker/type_checker_builtins_resolve.c"
     sed -nE 's/^[[:space:]]*\{ "([A-Za-z0-9]+)", "[^"]*", PGY_BUILTIN_FLAG_[A-Z_]+ \},$/\1/p' \
         "$ROOT_DIR/src/common/pgy_builtin_type_table.c"
     sed -n '/^func SemanticBuiltinSignatureRows/,/^}/p' \

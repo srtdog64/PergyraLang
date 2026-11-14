@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "mir_program.h"
+#include "mir/mir_program.h"
 
 typedef struct SemanticResult SemanticResult;
 
@@ -115,8 +115,8 @@ bool        mir_instruction_destructure_binding_index(
                 const MIRInstruction *inst,
                 const char *base_name,
                 size_t *index_out);
-#include "mir_source_emit_predicates.h"
-#include "mir_source_lifecycle_shape.h"
+#include "mir/mir_source_emit_predicates.h"
+#include "mir/mir_source_lifecycle_shape.h"
 bool        mir_source_node_type_stmt_has_side_effect_hint(
                 ASTNodeType type,
                 const char *callee_name);

@@ -3,7 +3,7 @@
 import "../lib/intent_observability_abi_projection_owner.pgy";
 import "wrapper_type_owner.pgy";
 import "array_type_shape_owner.pgy";
-import "ast_expression_graph_collection_call_protocol_owner.pgy";
+import "ast_expression/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "builtin_collection_protocol_signature_owner.pgy";
 import "collection_key_policy_projection_owner.pgy";
 import "diagnostic_owner.pgy";

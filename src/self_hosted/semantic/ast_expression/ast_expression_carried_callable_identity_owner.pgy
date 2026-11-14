@@ -1,0 +1,127 @@
+// Exact carried identity checks for formal and declared callable lanes.
+
+import "../ast_signature_fact_owner.pgy";
+import "../ast_signature_canonical_name_index_owner.pgy";
+import "../ast_intent_signature_fact_owner.pgy";
+import "../ast_callable_type_shape_owner.pgy";
+import "../callable_resolution_owner.pgy";
+
+func SemanticExpressionFormalParameterCarriedIdentityReady(
+    signatures: SemanticAstFunctionSignatureFacts,
+    parameter_node_id: Int, parameter_ordinal: Int,
+    parameter_name: String
+) -> Bool {
+    if parameter_node_id <= 0 || parameter_ordinal < 0 ||
+        parameter_name == "" {
+        return false;
+    }
+    var matches: Int = 0;
+    var signature: Int = 0;
+    while signature < SemanticAstFunctionSignatureCount(signatures) {
+        let count: Option<Int> = SemanticAstFunctionParamCountAt(
+            signatures, signature);
+        if !IsSome(count) { return false; }
+        var ordinal: Int = 0;
+        while ordinal < UnwrapOption(count) {
+            let node: Option<Int> = SemanticAstFunctionParamNodeAt(
+                signatures, signature, ordinal);
+            let name: Option<String> = SemanticAstFunctionParamNameAt(
+                signatures, signature, ordinal);
+            let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
+                signatures, signature, ordinal);
+            if !IsSome(node) || !IsSome(name) || !IsSome(type_name) {
+                return false;
+            }
+            if UnwrapOption(node) == parameter_node_id {
+                matches = matches + 1;
+                if matches > 1 || ordinal != parameter_ordinal ||
+                    UnwrapOption(name) != parameter_name ||
+                    !SemanticAstCallableTypeShapeFromName(
+                        UnwrapOption(type_name)).ok {
+                    return false;
+                }
+            }
+            ordinal = ordinal + 1;
+        }
+        signature = signature + 1;
+    }
+    return matches == 1;
+}
+
+func SemanticExpressionDeclaredFunctionSyntaxId(
+    signatures: SemanticAstFunctionSignatureFacts,
+    target_name: String
+) -> Result<Int> {
+    if target_name == "" {
+        return Err("declared callable identity facts are invalid");
+    }
+    // The canonical name index replaces a scan of every signature row per call.
+    let row_count: Int = SemanticAstSignatureCanonicalNameValue(
+        signatures.canonical_name_row_counts, target_name);
+    if row_count < 0 { return Ok(0); }
+    if row_count > 1 {
+        return Err("declared callable identity facts are invalid");
+    }
+    let node: Option<Int> = SemanticAstFunctionNodeAt(signatures,
+        SemanticAstSignatureCanonicalNameValue(
+            signatures.canonical_name_first_rows, target_name));
+    if !IsSome(node) || UnwrapOption(node) <= 0 {
+        return Err("declared callable identity facts are invalid");
+    }
+    return Ok(UnwrapOption(node));
+}
+
+func SemanticExpressionDeclaredCallableSyntaxId(
+    signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
+    target_name: String
+) -> Result<Int> {
+    if !intents.ok || ArrayLength(intents.names) !=
+            SemanticAstIntentSignatureCount(intents) {
+        return Err("declared callable identity facts are invalid");
+    }
+    let function_id: Result<Int> =
+        SemanticExpressionDeclaredFunctionSyntaxId(signatures, target_name);
+    if IsErr(function_id) { return function_id; }
+    var found: Int = Unwrap(function_id);
+    var matches: Int = 0;
+    if found > 0 { matches = 1; }
+    var intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intents) {
+        if intents.names[intent_index] == "" ||
+            intents.intent_node_ids[intent_index] <= 0 {
+            return Err("declared callable identity facts are invalid");
+        }
+        if intents.names[intent_index] == target_name {
+            matches = matches + 1;
+            found = intents.intent_node_ids[intent_index];
+            if matches > 1 {
+                return Err("declared callable identity facts are invalid");
+            }
+        }
+        intent_index = intent_index + 1;
+    }
+    if matches == 0 { return Ok(0); }
+    return Ok(found);
+}
+
+func SemanticExpressionDeclaredCallableTargetExists(
+    signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
+    target_name: String
+) -> Bool {
+    let syntax_id: Result<Int> = SemanticExpressionDeclaredCallableSyntaxId(
+        signatures, intents, target_name);
+    return IsOk(syntax_id) && Unwrap(syntax_id) > 0;
+}
+
+func SemanticExpressionDeclaredCallableCarriedIdentityReady(
+    signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
+    target_name: String, target_node_id: Int
+) -> Bool {
+    let syntax_id: Result<Int> = SemanticExpressionDeclaredCallableSyntaxId(
+        signatures, intents, target_name);
+    return target_node_id > 0 && IsOk(syntax_id) &&
+        Unwrap(syntax_id) == target_node_id;
+}

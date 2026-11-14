@@ -14,7 +14,7 @@ PGY="$(pgy_select_optional_exe_binary "$PGY")"
 pgy_require_runnable_binary_here "$LABEL" "$PGY" \
     || fail "PGY_BIN is not runnable"
 
-OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
+OWNER="$ROOT_DIR/src/self_hosted/compiler/driver/driver_rung2_owner.pgy"
 PROBE_SRC="$ROOT_DIR/tests/self_hosted/fixtures/driver_rung2_mutable_analysis_reject.pgy"
 BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/driver_rung2_analysis_admission"
 PROBE_BIN="$BUILD_DIR/mutable-analysis-reject.exe"

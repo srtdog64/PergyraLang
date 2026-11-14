@@ -59,7 +59,7 @@ Pergyra는 같은 쪽에 서 있다. 그중 둘은 주류 언어보다 한 걸�
 | 구문 | 의미 | 근거 |
 |---|---|---|
 | `async func` | `is_async_decl` 표시가 붙은 일반 함수. CPS나 상태 기계 변환은 없다. generic/`where`는 미지원 | `src/parser/ast_async_constructors.c:11`, `docs/grammar/01_syntax.md:273` |
-| `await e` | async 문맥에서만 허용. `Future<T>`는 `T`, `RemoteFuture<T>`는 `Result<T>`를 낸다. 핸들을 소비하므로 두 번 await할 수 없다. "완료 합류일 뿐, 수명·취소·실패 분류·병렬 구조를 소유하지 않는다" | `src/semantic/type_checker_expr.c:326`, `docs/113` |
+| `await e` | async 문맥에서만 허용. `Future<T>`는 `T`, `RemoteFuture<T>`는 `Result<T>`를 낸다. 핸들을 소비하므로 두 번 await할 수 없다. "완료 합류일 뿐, 수명·취소·실패 분류·병렬 구조를 소유하지 않는다" | `src/semantic/type_checker/type_checker_expr.c:326`, `docs/113` |
 | `spawn F(args)` | affine `Future<T>`를 낸다. 불변 바인딩의 직접 초기화식이나 `await`의 직접 피연산자로만 허용. 넘길 수 있는 길은 `own Future<T>` 매개변수뿐 | `docs/113`, `type_checker_future_lifecycle.c` |
 | `spawn blocking F()` | AIR `has_declared_blocking_evidence`를 거쳐 BlockingPool lane | `src/parser/parser_async.c:277`, `docs/146` |
 | `spawn async () {…}` | 파싱은 되지만 "beta-out-of-scope"로 거부 | `type_checker_async_channel.c:288` |

@@ -1,0 +1,8 @@
+// Requires the evaluated call spine to complete at the selected call node.
+import "../ast_expression/ast_expression_call_identity_owner.pgy";
+
+func SemanticAstCollectionBuiltinCompletionIdentityReady(
+    ref call: SemanticCallSpineView, node: Int
+) -> Bool {
+    return call.ok && call.call_node == node;
+}

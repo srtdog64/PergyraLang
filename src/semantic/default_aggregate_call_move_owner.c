@@ -12,14 +12,14 @@
 
 #include "builtin_kind.h"
 #include "diag_codes.h"
-#include "function_param_publication_internal.h"
-#include "function_param_publication_owner.h"
-#include "function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_owner.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
 #include "slot_summary.h"
-#include "type_checker_builtins_stdlib_collections_internal.h"
-#include "type_checker_call_constructor_internal.h"
-#include "type_checker_internal.h"
-#include "type_checker_ownership_internal.h"
+#include "type_checker/type_checker_builtins_stdlib_collections_internal.h"
+#include "type_checker/type_checker_call_constructor_internal.h"
+#include "type_checker/type_checker_internal.h"
+#include "type_checker/type_checker_ownership_internal.h"
 
 static bool
 call_copied(const MoveWalk *walk, const ASTNode *call)

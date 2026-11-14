@@ -1,0 +1,27 @@
+// Read lending of a direct Array<String> field of a local struct root.
+// A field read is admitted only while no occurrence of the same root in the
+// body can alias, mutate, consume or release that field's storage. Scalar and
+// non-sequence fields carry no descriptor and are not storage effects.
+import "../ast_local_binding_identity_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_member_read_call_target_owner.pgy";
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+import "ast_collection_member_local_use_owner.pgy";
+
+// The local declaration identity of a direct field read, or 0.
+func SemanticAstCollectionMemberReadLocalRoot(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref graph: SemanticExpressionGraphFacts,
+    function_id: Int, syntax_id: Int, node: Int,
+    identity: SemanticAstCollectionMemberMoveIdentity
+) -> Int {
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node);
+    if !identity.ok || !identity.string_array_field || !member.ok ||
+        SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id) { return 0; }
+    let root_local: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, function_id, syntax_id, graph, member.receiver_node);
+    if !root_local.ok || root_local.declaration_node_id != identity.source_binding_syntax_id { return 0; }
+    return root_local.declaration_node_id;
+}

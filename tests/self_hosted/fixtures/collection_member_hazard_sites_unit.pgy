@@ -1,7 +1,7 @@
 // Direct projection falsifiers; no occurrence permission is minted here.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_member_read_hazard_site_owner.pgy";
-import "../../../src/self_hosted/semantic/ast_collection_member_local_use_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_member_read_hazard_site_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection/ast_collection_member_local_use_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
 
 func CollectionMemberHazardSitesUnitMain(args: Array<String>) -> Void with caps env, io_read {

@@ -57,7 +57,7 @@ These can wait for the post-beta freeze period.
 | P2-1 | Pin block boundary rule (when Option C ships) | `src/parser/parser.c`, `src/semantic/` | (TBD) |
 | P2-2 | WriteView<T> exclusive access (when Option C ships) | `src/semantic/` | (TBD) |
 | P2-3 | Backend-compare parity completeness | `tests/cases/backend_compare/` | (TBD) |
-| P2-4 | CFG body dataflow soundness | `src/compiler/hir_cfg.c` | (TBD) |
+| P2-4 | CFG body dataflow soundness | `src/compiler/hir/hir_cfg.c` | (TBD) |
 | P2-5 | Effect mask propagation soundness | `src/semantic/` | (TBD) |
 
 ## P3 - Post-1.0

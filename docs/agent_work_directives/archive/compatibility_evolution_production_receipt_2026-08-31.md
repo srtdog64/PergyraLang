@@ -18,7 +18,7 @@ Exact base revision: `551fef8836bf187a4931e9c7a8eafbcb0abe7081`
   The receipt is a pure value fact; it is not a new lock-bearing world zone.
 - Last legitimate consumer:
   `DriverRung2ExecuteInstalledRequest` reached from
-  `src/self_hosted/compiler/driver_bootstrap_main.pgy::Main`.
+  `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy::Main`.
 - Forbidden fallback: a bool-only readiness call at the last consumer, a
   consumer-local rebuild or parse of the eleven-field rows, acceptance by
   prefix/count without exact surface-to-diagnostic binding, native retry, a
@@ -37,8 +37,8 @@ The primary task is the sole edit, integration, commit, push, and CI owner for:
 
 - `src/self_hosted/compiler/compatibility_evolution_owner.pgy`
 - `src/self_hosted/compiler/compatibility_evolution_manifest.pgy`
-- `src/self_hosted/compiler/driver_bootstrap_main.pgy`
-- `src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy`
+- `src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`
+- `src/self_hosted/compiler/driver/driver_rung2_installed_cli_owner.pgy`
 - the bounded compatibility receipt fixture/gate under
   `tests/self_hosted/parity/`
 - the matching component/topology ratchets

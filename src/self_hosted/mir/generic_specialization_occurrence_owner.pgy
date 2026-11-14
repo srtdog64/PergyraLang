@@ -1,7 +1,7 @@
 // Seal semantic generic call handles to the actual instruction-local graphs.
 // No source/AST lookup, name matching or preorder re-identification occurs here.
 import "program_fact_owner.pgy";
-import "../semantic/ast_expression_graph_node_view_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
 
 func SelfMirGenericCallOccurrencesFromCfg(
     ref rows: SelfMirGenericSpecializationRows, ref routines: SelfMirRoutineRows,

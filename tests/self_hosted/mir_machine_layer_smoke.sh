@@ -81,7 +81,7 @@ fi
 
 compile_rc=0
 (cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "src/self_hosted/compiler/driver_rung2_main.pgy")" \
+    "$(pgy_path_for_compiler "$PGY" "src/self_hosted/compiler/driver/driver_rung2_main.pgy")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER_BIN")" \
     >"$DRIVER_LOG" 2>&1) || compile_rc=$?
 if ((compile_rc != 0)); then

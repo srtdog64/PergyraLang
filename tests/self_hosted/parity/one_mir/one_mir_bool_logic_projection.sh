@@ -29,7 +29,7 @@ while IFS='|' read -r owner cap; do
     lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$owner")" || fail "source-size measurement failed"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/mir/scalar_program_owner_caps.tsv"
-source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy")" || fail "source-size measurement failed"
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_returned_array_program_route_owner.pgy")" || fail "source-size measurement failed"
 [[ "$source_size_lines" -le 100 ]] ||
     fail "returned-array route owner hard cap exceeded"
 

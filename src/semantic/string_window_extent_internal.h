@@ -2,7 +2,7 @@
 #define STRING_WINDOW_EXTENT_INTERNAL_H
 
 #include "string_window_extent.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 
 typedef struct
 {

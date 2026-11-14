@@ -165,7 +165,7 @@ fi
 
 semantic_owner_violations="$(
     cd "$ROOT_DIR"
-    find src/semantic -maxdepth 1 -type f \
+    find src/semantic -type f \
         \( -name '*.c' -o -name '*.h' \) -print0 \
         | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk '$2 != "total" && $1 > 599 { print }'
@@ -189,19 +189,19 @@ fi
 
 type_system_owners=(
     "src/compiler/mir.h"
-    "src/compiler/mir_program.h"
-    "src/compiler/mir_types.h"
-    "src/compiler/mir_source_shape.c"
-    "src/compiler/mir_source_provenance.c"
-    "src/compiler/mir_source_local_types.c"
-    "src/compiler/mir_source_local_type_shape.c"
-    "src/compiler/mir_source_local_expr_binding_facts.c"
-    "src/compiler/mir_source_local_expr_call_facts.c"
-    "src/compiler/mir_source_local_expr_types.c"
-    "src/compiler/mir_decl_headers.c"
-    "src/compiler/mir_decl_header_generic_metadata.c"
-    "src/compiler/mir_decl_header_validate.c"
-    "src/compiler/mir_decl_header_shape_validate.c"
+    "src/compiler/mir/mir_program.h"
+    "src/compiler/mir/mir_types.h"
+    "src/compiler/mir/mir_source_shape.c"
+    "src/compiler/mir/mir_source_provenance.c"
+    "src/compiler/mir/mir_source_local_types.c"
+    "src/compiler/mir/mir_source_local_type_shape.c"
+    "src/compiler/mir/mir_source_local_expr_binding_facts.c"
+    "src/compiler/mir/mir_source_local_expr_call_facts.c"
+    "src/compiler/mir/mir_source_local_expr_types.c"
+    "src/compiler/mir/mir_decl_headers.c"
+    "src/compiler/mir/mir_decl_header_generic_metadata.c"
+    "src/compiler/mir/mir_decl_header_validate.c"
+    "src/compiler/mir/mir_decl_header_shape_validate.c"
 )
 
 type_system_owner_violations="$(

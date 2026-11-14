@@ -1,0 +1,116 @@
+// Callable parameter-role schema and per-kind readiness.
+
+import "../direct_mir_routine_signature_fact_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+
+struct DirectMirScalarProgramCallableParameterRolePlan {
+    let valid: Bool;
+    let direct_value_count: Int;
+    let callable_function_value_count: Int;
+    let logical_record_input_count: Int;
+    let logical_record_value_result_count: Int;
+    let logical_record_array_value_result_count: Int;
+    let logical_record_array_value_count: Int;
+    let hashmap_parameter_count: Int;
+    let abi_value_count: Int;
+    let payload_free_enum_count: Int;
+    let payload_enum_count: Int;
+    let plain_array_value_result_count: Int;
+    let array_string_value_result_count: Int;
+    let set_string_value_result_count: Int;
+    let array_readonly_ref_count: Int;
+    let identity_cell_count: Int;
+    let opaque_readonly_zone_count: Int;
+}
+func DirectMirScalarProgramCallableParameterRolePlanInvalid() -> DirectMirScalarProgramCallableParameterRolePlan {
+    return DirectMirScalarProgramCallableParameterRolePlan(
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+func DirectMirScalarProgramCallableParameterRolePlanReady(
+    ref plan: DirectMirScalarProgramCallableParameterRolePlan, parameter_count: Int) -> Bool {
+    return plan.valid && parameter_count >= 0 && plan.direct_value_count >= 0 &&
+        plan.callable_function_value_count >= 0 && plan.logical_record_input_count >= 0 &&
+        plan.logical_record_value_result_count >= 0 &&
+        plan.logical_record_array_value_result_count >= 0 &&
+        plan.logical_record_array_value_count >= 0 &&
+        plan.hashmap_parameter_count >= 0 && plan.abi_value_count >= 0 &&
+        plan.payload_free_enum_count >= 0 && plan.payload_enum_count >= 0 &&
+        plan.plain_array_value_result_count >= 0 && plan.array_string_value_result_count >= 0 &&
+        plan.set_string_value_result_count >= 0 &&
+        plan.array_readonly_ref_count >= 0 &&
+        plan.identity_cell_count >= 0 &&
+        plan.opaque_readonly_zone_count >= 0 &&
+        plan.direct_value_count + plan.callable_function_value_count + plan.logical_record_input_count +
+            plan.logical_record_value_result_count +
+            plan.logical_record_array_value_result_count +
+            plan.logical_record_array_value_count +
+            plan.hashmap_parameter_count +
+            plan.abi_value_count +
+            plan.payload_free_enum_count +
+            plan.payload_enum_count +
+            plan.plain_array_value_result_count +
+            plan.array_string_value_result_count +
+            plan.set_string_value_result_count +
+            plan.array_readonly_ref_count + plan.identity_cell_count +
+            plan.opaque_readonly_zone_count == parameter_count;
+}
+func DirectMirScalarProgramDirectValueParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        (DirectMirScalarCfgScalarTypeSupported(
+             signature.parameters.type_names[ordinal]) ||
+         DirectMirScalarCfgSliceTypeSupported(
+             signature.parameters.type_names[ordinal])) &&
+        (signature.parameters.carriages[ordinal] == "value" ||
+         signature.parameters.carriages[ordinal] == "value-result" ||
+         DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal) ||
+         DirectMirScalarProgramReadonlyStringParameterReady(
+            signature, ordinal) ||
+         DirectMirScalarProgramReadonlyValueParameterReady(
+            signature, ordinal)) &&
+        DirectMirScalarProgramCallableParameterSupported(
+            signature, ordinal);
+}
+func DirectMirScalarProgramPlainArrayValueResultParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        (signature.parameters.type_names[ordinal] ==
+            CompilerAbiLayoutArrayIntTypeName() ||
+         signature.parameters.type_names[ordinal] ==
+            CompilerAbiLayoutArrayBoolTypeName()) &&
+        signature.parameters.carriages[ordinal] == "value-result" &&
+        DirectMirScalarProgramCallableParameterSupported(
+            signature, ordinal);
+}
+func DirectMirScalarProgramArrayStringValueResultParameterReady(ref signature: DirectMirRoutineSignatureFact, ordinal: Int) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        signature.parameters.type_names[ordinal] == CompilerAbiLayoutArrayStringTypeName() &&
+        signature.parameters.carriages[ordinal] == "value-result" &&
+        DirectMirScalarProgramCallableParameterSupported(signature, ordinal);
+}
+func DirectMirScalarProgramAbiValueParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        (signature.parameters.type_names[ordinal] ==
+             CompilerAbiLayoutArrayIntTypeName() ||
+         signature.parameters.type_names[ordinal] ==
+             CompilerAbiLayoutArrayStringTypeName() ||
+         signature.parameters.type_names[ordinal] ==
+             CompilerAbiLayoutArrayBoolTypeName() ||
+         signature.parameters.type_names[ordinal] == CompilerAbiLayoutOptionIntTypeName() || signature.parameters.type_names[ordinal] == CompilerAbiLayoutOptionStringTypeName() ||
+         signature.parameters.type_names[ordinal] == CompilerAbiLayoutSetStringTypeName() ||
+         DirectMirScalarProgramCallableRuntimeValueParameterReady(
+             signature, ordinal)) &&
+        (signature.parameters.carriages[ordinal] == "value" ||
+         DirectMirScalarProgramOwnedArrayValueParameterReady(signature, ordinal) ||
+         DirectMirScalarProgramOwnedArrayStringParameterReady(
+            signature, ordinal)) &&
+        DirectMirScalarProgramCallableParameterSupported(
+            signature, ordinal);
+}
+

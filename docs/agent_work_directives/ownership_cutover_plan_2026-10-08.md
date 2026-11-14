@@ -71,7 +71,7 @@ P0에서 exact-input/source manifest로 다시 고정하기 전에는 최신 실
 
 | 항목 | 현재 | 전환에서 바꿀 것 |
 |---|---|---|
-| MIR 명령 | copy·move·drop 명령이 없다(`src/compiler/mir_types.h:83-92`). 정리 명령은 `MIR_INST_CLEANUP_EDGE`뿐 | 패스가 내는 copy·move·drop·focus 사실을 표현할 명령 또는 사실 행을 추가(27 §5.3) |
+| MIR 명령 | copy·move·drop 명령이 없다(`src/compiler/mir/mir_types.h:83-92`). 정리 명령은 `MIR_INST_CLEANUP_EDGE`뿐 | 패스가 내는 copy·move·drop·focus 사실을 표현할 명령 또는 사실 행을 추가(27 §5.3) |
 | 복사 방식 | 두 백엔드 모두 descriptor를 값으로 복사. C 약 31곳, LLVM 약 21곳(대입, phi, 반환, 필드 저장, 생성자, for-in, inout 복사 들어가기·되쓰기). 중첩 배열 리터럴은 내부 `data`를 공유(`llvm_expr_aggregate.c:242-253`) | 사실이 copy라고 하는 곳만 깊은 복사, 나머지는 move. 얕은 경로 제거(27 §5.4) |
 | drop 함수 | Array는 C inline과 LLVM raw export가 있다. String·List·Set·Queue의 일반 타입별 glue는 없다. HashMap은 String 값 전용 inline/export 경로에서 값도 해제한다(`pgy_runtime_map_string_inline.h`, `pgy_runtime_lib_raw_map_exports.h`); 일반 nominal/nested 값과 emitter 도달은 별도 확인 대상 | 타입별 drop glue와 마지막 소비자 이전. 기존 String 값 해제 경로를 보존·합성하고 일반 값으로 확장 |
 | Clone | C는 Array·Slot만, LLVM은 Array만. 중첩·nominal 원소는 얕다. inline clone이 할당자를 버림 | 타입별 깊은 복사 glue, 할당자 보존 |

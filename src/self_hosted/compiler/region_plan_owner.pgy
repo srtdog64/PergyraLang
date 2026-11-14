@@ -364,11 +364,11 @@ func RegionPlanDriverPath() -> String {
 }
 
 func RegionPlanHirEscapeSourcePath() -> String {
-    return "src/compiler/hir_region_escape_facts.c";
+    return "src/compiler/hir/hir_region_escape_facts.c";
 }
 
 func RegionPlanMirEscapeSourcePath() -> String {
-    return "src/compiler/mir_region_escape_facts.c";
+    return "src/compiler/mir/mir_region_escape_facts.c";
 }
 
 func RegionPlanRetentionSummarySourcePath() -> String {
@@ -380,11 +380,11 @@ func RegionPlanRetentionSummaryUserSourcePath() -> String {
 }
 
 func RegionPlanCConsumerPath() -> String {
-    return "src/codegen/transpiler_context.c";
+    return "src/codegen/c/transpiler_context.c";
 }
 
 func RegionPlanLlvmConsumerPath() -> String {
-    return "src/codegen/llvm_expr_scalar_core.c";
+    return "src/codegen/llvm/llvm_expr_scalar_core.c";
 }
 
 func RegionPlanRequiredCount() -> Int {

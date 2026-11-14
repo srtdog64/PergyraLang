@@ -52,7 +52,7 @@ Status: 읽기 전용 탐색 증거다. 컴파일러 의미론의 권위가 아�
   MIR local")와 LLVM("missing source-local type metadata") 모두에서 컴파일 오류다. 캡처가
   있는 경우(`let g = (x: Int) => x + bonus;`)는 C만 통과하고 LLVM은 "missing closure
   callable metadata"로 실패한다. MIR source-local 형 fact가 람다 리터럴에서 callable
-  시그니처를 만들지 않는다(`src/compiler/mir_source_local_types.c`). `let f: func(Int) -> Int = ...`
+  시그니처를 만들지 않는다(`src/compiler/mir/mir_source_local_types.c`). `let f: func(Int) -> Int = ...`
   처럼 형을 쓰면 두 백엔드에서 된다. 이번 테스트를 쓰다가 찾았고 고치지 않았다.
 - self-host semantic에는 보상 커버리지 검사가 없다. 그래서 self-host parser가
   `irreversible:`을 거절한다. 같은 검사가 self-host에 생기면 거절을 풀 수 있다.

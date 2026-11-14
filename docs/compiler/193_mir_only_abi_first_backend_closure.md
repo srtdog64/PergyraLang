@@ -387,7 +387,7 @@ carriage seam; it does not make DRV-2 the released default driver.
 
 The active LLVM Slot/SecureSlot consumers now enter through the single
 `llvm_slot_runtime_row_for_operation` owner in
-`src/codegen/llvm_runtime_row.c`. Runtime declaration inventory remains in
+`src/codegen/llvm/llvm_runtime_row.c`. Runtime declaration inventory remains in
 `llvm_runtime.c`; it is no longer physically mixed with row selection. The
 row owner reads the concrete
 `MIRResourceRuntimeRow`, checks the operation's call shape, and rejects a
@@ -555,7 +555,7 @@ lookup from this helper.
 
 Static `MIRTypeLayout` rows now have a content-derived `LayoutId` materialized
 on every MIR instruction that carries a layout. The owner is
-`mir_abi_layout_id()` in `src/compiler/mir_abi_layout.c`; its hash covers the
+`mir_abi_layout_id()` in `src/compiler/mir/mir_abi_layout.c`; its hash covers the
 canonical type name, size/alignment, ordered field rows, representation/tag
 facts, runtime type, and niche policy. It deliberately excludes table index and
 pointer address, so C and LLVM can consume the same logical identity even when

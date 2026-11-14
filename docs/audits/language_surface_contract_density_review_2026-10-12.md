@@ -76,15 +76,15 @@ production source, tests, active handoff, SoT registry, directive는 수정하�
 | 논점 | 확인한 근거 | 허용되는 결론과 남는 경계 |
 | --- | --- | --- |
 | 필요한 구성체만 선택 | [Intent 설계](../language/01_intent_first_design.md), [메모리 합성 계약](../semantics/28_memory_boundary_composition.md) | 계산은 func/struct, 일반 값마다 Slot 불필요라는 설계가 명시돼 있다. 실제 사용자 부담 감소는 미측정이다. |
-| Intent의 정적 귀속 | [native typed terminal owner](../../src/semantic/type_checker_intent_typed_outcome.c), [self-host transition owner](../../src/self_hosted/semantic/ast_intent_transition_fact_owner.pgy) | 결과 terminal이 원래 payload binding을 운반하도록 검사하는 구체 코드가 있다. 자연어 목적 이해나 모든 의미 축의 종단 간 귀속 증명은 아니다. |
-| 반복 계약의 축약 | [on-receiver inference](../../src/semantic/type_checker_intent_on_inference.c), [계약 출처 진단](../../src/semantic/type_checker_intent_contract_summary.c) | 해당 action에서 requires/causes/authorized-by를 가져오고 출처를 구분하는 경로가 있다. 임의의 다중 후보·동적 dispatch 추론 전체를 증명한 것은 아니다. |
-| who와 approval 구분 | [authority owner](../../src/semantic/type_checker_intent_authority.c), [축약 계약 gate](../../tests/intent_compression_contract_smoke.sh) | who만으로 권한을 만들어내지 않는 정책과 missing approval 진단이 있다. 선언에서 계약을 상속하는 것과 runtime 권한이 실제 유효한 것은 별개다. |
-| effect의 서로 다른 의미 | [effect 설계](../language/effect_system_design.md), [effect mask owner](../../src/semantic/type_checker_helpers_effects.c), [call graph propagation](../../src/semantic/callable_capability_inference.c) | 도메인 effect, callable effect mask, runtime capability는 다르다. 사용 효과의 전파 코드가 존재하지만 Koka의 row-polymorphic effect type system을 구현했다는 근거는 아니다. |
-| Slot view와 중단 경계 | [view boundary owner](../../src/semantic/type_checker_slot_view_boundary.c), [await 소비자](../../src/semantic/type_checker_expr.c), [spawn/channel 소비자](../../src/semantic/type_checker_async_channel.c) | 활성 pinned view가 await/spawn/channel 경계를 넘는 경우를 거부하는 경로가 있다. 저장된 일반 graph link와 모든 callback 경로의 폐쇄는 별도다. |
+| Intent의 정적 귀속 | [native typed terminal owner](../../src/semantic/type_checker/type_checker_intent_typed_outcome.c), [self-host transition owner](../../src/self_hosted/semantic/ast_intent_transition_fact_owner.pgy) | 결과 terminal이 원래 payload binding을 운반하도록 검사하는 구체 코드가 있다. 자연어 목적 이해나 모든 의미 축의 종단 간 귀속 증명은 아니다. |
+| 반복 계약의 축약 | [on-receiver inference](../../src/semantic/type_checker/type_checker_intent_on_inference.c), [계약 출처 진단](../../src/semantic/type_checker/type_checker_intent_contract_summary.c) | 해당 action에서 requires/causes/authorized-by를 가져오고 출처를 구분하는 경로가 있다. 임의의 다중 후보·동적 dispatch 추론 전체를 증명한 것은 아니다. |
+| who와 approval 구분 | [authority owner](../../src/semantic/type_checker/type_checker_intent_authority.c), [축약 계약 gate](../../tests/intent_compression_contract_smoke.sh) | who만으로 권한을 만들어내지 않는 정책과 missing approval 진단이 있다. 선언에서 계약을 상속하는 것과 runtime 권한이 실제 유효한 것은 별개다. |
+| effect의 서로 다른 의미 | [effect 설계](../language/effect_system_design.md), [effect mask owner](../../src/semantic/type_checker/type_checker_helpers_effects.c), [call graph propagation](../../src/semantic/callable_capability_inference.c) | 도메인 effect, callable effect mask, runtime capability는 다르다. 사용 효과의 전파 코드가 존재하지만 Koka의 row-polymorphic effect type system을 구현했다는 근거는 아니다. |
+| Slot view와 중단 경계 | [view boundary owner](../../src/semantic/type_checker/type_checker_slot_view_boundary.c), [await 소비자](../../src/semantic/type_checker/type_checker_expr.c), [spawn/channel 소비자](../../src/semantic/type_checker/type_checker_async_channel.c) | 활성 pinned view가 await/spawn/channel 경계를 넘는 경우를 거부하는 경로가 있다. 저장된 일반 graph link와 모든 callback 경로의 폐쇄는 별도다. |
 | 동적 권한 검사 | [SecureSlot runtime exports](../../src/runtime/pgy_runtime_lib_secure_slot_exports.h), [authority failure contract](../../src/runtime/pgy_runtime_authority_contract.h) | token 일치와 읽기/쓰기 권한 검사 및 구분된 실패 코드가 있다. 전체 OS handle을 포괄하거나 동시 check/use·세대 wrap까지 증명했다는 결론은 안 된다. |
 | 풍부한 의미 축의 합성 | [15쌍 매트릭스](../language/156_axis_composition_safety.md), [실제 gate](../../tests/language/axis_composition_smoke.sh) | 15쌍의 처분 등록과 일부 실행 kernel을 구분해야 한다. 15쌍 모두를 실행으로 검증한 gate가 아니다. AC-2/4/5는 문서상 planned다. |
 | 모델의 합성 정리 | [WholeProgramCore](../semantics/proofs/WholeProgramCore.v) | whole_program_safety의 결론은 WF 보존과 authority circulation 비증가다. native memory의 모든 위험 부재를 결론으로 쓰면 안 된다. |
-| AIR의 의미 보존 역할 | [AIR 계약](../compiler/104_air_compiler_architecture.md), [driver gate](../../src/compiler/driver_app.c), [MIR evidence 수집](../../src/compiler/air_evidence_mir.c) | AIR은 실제 admission에 참여한다. 등록된 의무의 증거 검사와 필요한 의무가 빠짐없이 만들어졌다는 보장은 별개다. |
+| AIR의 의미 보존 역할 | [AIR 계약](../compiler/104_air_compiler_architecture.md), [driver gate](../../src/compiler/driver_app.c), [MIR evidence 수집](../../src/compiler/air/air_evidence_mir.c) | AIR은 실제 admission에 참여한다. 등록된 의무의 증거 검사와 필요한 의무가 빠짐없이 만들어졌다는 보장은 별개다. |
 
 `Effect/Action/Intent`를 “부작용/함수/워크플로”로 평탄화하면 의미를 잃는다.
 도메인 `effect`는 participant에 적용되는 상태 계층이며, callable effects와
@@ -134,7 +134,7 @@ L1→L2→L3→L1로 닫힌다. 이는 pairwise cycle 부재에서 전체 cycle 
 메모리 경계의 다음 시험은 `borrowed view + worker suspension + cancellation
 cleanup`이다. 취소 요청 뒤 worker가 여전히 view를 사용하는 동안 owner를
 정리하는 순서를 시험한다. 두 기능만 켠 fixture는 이 세 사건의 상대 순서를
-빠뜨릴 수 있다. 현재 [Future lifecycle owner](../../src/semantic/type_checker_future_lifecycle.c)는
+빠뜨릴 수 있다. 현재 [Future lifecycle owner](../../src/semantic/type_checker/type_checker_future_lifecycle.c)는
 Cancel 뒤에도 await로 join하라는 규칙을 포함하므로, 이 제안은 이미 확인된
 결함 보고가 아니다. 실제 capture·cleanup·callback 경로에서 그 규칙이
 누락되거나 다른 owner의 판정으로 우회되는지 겨냥하는 합성 시험이다.

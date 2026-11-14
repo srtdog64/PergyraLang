@@ -1,0 +1,64 @@
+// LLVM release calls and declarations from the same fresh-local proof as C.
+import "direct_mir_scalar_program_hashmap_lifetime_owner.pgy";
+import "../../../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+
+func DirectMirScalarProgramLlvmHashMapCleanup(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    if !DirectMirScalarProgramHashMapLifetimeReadyForPlan(plan) {
+        Die("direct MIR LLVM HashMap lifetime is unproved");
+    }
+    var output: String = "";
+    let rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
+    var index: Int = 0;
+    while index < ArrayLength(rows) {
+        let local_row: Int = rows[index];
+        if DirectMirScalarCfgRoutinePartitionLocalOwner(
+                plan.routines, local_row) == routine &&
+            DirectMirScalarProgramHashMapLocalRequiresCleanup(
+                plan, local_row) {
+            let runtime: CollectionHashMapLlvmFact =
+                CollectionHashMapLlvmFactFromTypeName(plan.local_types[local_row]);
+            if !runtime.ok { Die("direct MIR LLVM HashMap cleanup ABI is missing"); }
+            output = output + "  call void @" +
+                CollectionHashMapLlvmDropFunction(runtime) +
+                "(ptr %pgy.local." + ToString(local_row) + ")\n";
+        }
+        index = index + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmHashMapCleanupDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    var output: String = "";
+    var seen: Array<String> = [];
+    let rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
+    var index: Int = 0;
+    while index < ArrayLength(rows) {
+        let local_row: Int = rows[index];
+        if !DirectMirScalarProgramHashMapLocalRequiresCleanup(
+                plan, local_row) {
+            index = index + 1;
+            continue;
+        }
+        let runtime: CollectionHashMapLlvmFact =
+            CollectionHashMapLlvmFactFromTypeName(
+                plan.local_types[local_row]);
+        let declaration: String =
+            CollectionHashMapLlvmDropDeclaration(runtime);
+        var known: Bool = false;
+        var seen_index: Int = 0;
+        while seen_index < ArrayLength(seen) {
+            if seen[seen_index] == declaration { known = true; }
+            seen_index = seen_index + 1;
+        }
+        if !known {
+            ArrayPush(seen, declaration);
+            output = output + declaration;
+        }
+        index = index + 1;
+    }
+    return output;
+}

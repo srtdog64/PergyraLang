@@ -1,0 +1,87 @@
+// Once-only entry-prefix dominance for bounded String-array pushes.
+
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_entry_execution_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
+import "../../../mir_lower/routine_definition_dominance_fact_owner.pgy";
+
+func DirectMirScalarCfgStringArrayPushPrefixDominanceReady(
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    if !DirectMirScalarCfgStringArrayPushEntryExecutesOnceReady(plan, index) {
+        return false; }
+    var collection: Int = 0;
+    while collection < DirectMirScalarCfgStringArrayCollectionCount(plan) {
+        let definition: DirectMirScalarCfgInstructionPositionFact =
+            DirectMirScalarCfgInstructionPositionAt(
+                index, plan.collections.definition_global_rows[collection]
+            );
+        var last_push: DirectMirScalarCfgInstructionPositionFact =
+            DirectMirScalarCfgInstructionPositionFact(false, -1, -1);
+        var prior_global: Int = -1; var push_count: Int = 0;
+        var row: Int = 0;
+        while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
+            let fact: DirectMirScalarCfgStringArrayAccessFact =
+                DirectMirScalarCfgStringArrayAccessAt(plan, row);
+            if fact.collection_row == collection && fact.kind ==
+                    DirectMirScalarCfgStringArrayAccessPushKind() {
+                let position: DirectMirScalarCfgInstructionPositionFact =
+                    DirectMirScalarCfgInstructionPositionAt(
+                        index, fact.global_row
+                    );
+                if !definition.valid || definition.block != 0 ||
+                    !position.valid || position.block != 0 ||
+                    position.local_binding <= definition.local_binding ||
+                    (last_push.valid && position.local_binding <= last_push.local_binding) ||
+                    fact.global_row <= prior_global {
+                    return false;
+                }
+                last_push = position; prior_global = fact.global_row;
+                push_count = push_count + 1;
+            }
+            row = row + 1;
+        }
+        if push_count > 0 {
+            var length_row: Int = 0;
+            while length_row < DirectMirScalarCfgStringArrayLengthCount(plan) {
+                let fact: DirectMirScalarCfgStringArrayLengthFact =
+                    DirectMirScalarCfgStringArrayLengthAt(plan, length_row);
+                if fact.collection_row == collection {
+                    let position: DirectMirScalarCfgInstructionPositionFact =
+                        DirectMirScalarCfgInstructionPositionAt(
+                            index, fact.global_row
+                        );
+                    if !position.valid || (position.block == 0 &&
+                        position.local_binding <= last_push.local_binding) ||
+                        (position.block != 0 &&
+                         !MirRoutineBlockDominates(index, 0, position.block)) {
+                        return false;
+                    }
+                }
+                length_row = length_row + 1;
+            }
+            row = 0;
+            while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
+                let fact: DirectMirScalarCfgStringArrayAccessFact =
+                    DirectMirScalarCfgStringArrayAccessAt(plan, row);
+                if fact.collection_row == collection && fact.kind !=
+                        DirectMirScalarCfgStringArrayAccessPushKind() {
+                    let position: DirectMirScalarCfgInstructionPositionFact =
+                        DirectMirScalarCfgInstructionPositionAt(
+                            index, fact.global_row
+                        );
+                    if !position.valid || (position.block == 0 &&
+                        position.local_binding <= last_push.local_binding) ||
+                        (position.block != 0 &&
+                         !MirRoutineBlockDominates(index, 0, position.block)) {
+                        return false;
+                    }
+                }
+                row = row + 1;
+            }
+        }
+        collection = collection + 1;
+    }
+    return true;
+}

@@ -45,14 +45,14 @@ root_relative() { pgy_selfhost_path_relative_to_root "$1"; }
 hash_file() { sha256sum "$1" | awk '{print $1}'; }
 
 assert_owner_ratchet() {
-    local param="$ROOT_DIR/src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy"
-    local signature="$ROOT_DIR/src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy"
-    local graph="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy"
-    local identity="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy"
-    local plan="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy"
-    local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy"
-    local multi="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
-    local terminal="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy"
+    local param="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_routine_param_fact_owner.pgy"
+    local signature="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_routine_signature_fact_owner.pgy"
+    local graph="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_argument_graph_fact_owner.pgy"
+    local identity="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_argument_program_identity_owner.pgy"
+    local plan="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_argument_plan_owner.pgy"
+    local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_array_argument_emission_owner.pgy"
+    local multi="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy"
+    local terminal="$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_terminal_projection_owner.pgy"
     local owner cap lines
     while IFS='|' read -r owner cap; do
         require_file "$owner"

@@ -9,7 +9,7 @@
 #include "../common/string_compat.h"
 
 #ifdef PGY_LLVM_ENABLED
-#include "../codegen/llvm_backend.h"
+#include "../codegen/llvm/llvm_backend.h"
 
 CompilerResult *
 compiler_emit_llvm_ir(const CompilerIRBundle *bundle,

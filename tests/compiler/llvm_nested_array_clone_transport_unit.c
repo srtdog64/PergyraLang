@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "semantic/type_system.h"
-#include "codegen/llvm_internal.h"
-#include "codegen/llvm_internal_api.h"
-#include "codegen/llvm_expr_array_calls.h"
+#include "codegen/llvm/llvm_internal.h"
+#include "codegen/llvm/llvm_internal_api.h"
+#include "codegen/llvm/llvm_expr_array_calls.h"
 
 static unsigned checks, failures;
 #define CHECK(x) do { checks++; if (!(x)) { failures++; fprintf(stderr, "LLVM receiver fault line %d: %s\n", __LINE__, #x); } } while (0)

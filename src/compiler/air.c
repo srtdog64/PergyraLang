@@ -4,8 +4,8 @@
  */
 
 #include "air.h"
-#include "air_internal.h"
-#include "hir_cfg.h"
+#include "air/air_internal.h"
+#include "hir/hir_cfg.h"
 #include "../common/env_flags.h"
 #include "../parser/ast_api.h"
 

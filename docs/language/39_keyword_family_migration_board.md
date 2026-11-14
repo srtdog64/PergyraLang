@@ -94,9 +94,9 @@
 | --- | --- | --- |
 | Parser statement dispatch | `src/parser/parser.c` | `object / tobject / struct`는 모두 별도 nominal declaration entry를 가진다 |
 | AST nominal split | `src/parser/ast.c` | `subject/class`, `object`, `tobject`, `struct`, `vessel`는 모두 별도 nominal kind로 내려간다 |
-| Semantic projection builtin | `src/semantic/type_checker_builtins.c` | `ToObject`와 `ToTObject`는 이미 별도 nominal contract를 기대한다 |
+| Semantic projection builtin | `src/semantic/type_checker/type_checker_builtins.c` | `ToObject`와 `ToTObject`는 이미 별도 nominal contract를 기대한다 |
 | Semantic mutability | `src/semantic/type_checker.c` | `object`와 `tobject`는 둘 다 immutable 취급이지만 이유가 다르다 |
-| LLVM nominal lowering | `src/codegen/llvm_backend.c` | backend는 `OBJECT/TObject`를 자주 같은 storage bucket으로 본다 |
+| LLVM nominal lowering | `src/codegen/llvm/llvm_backend.c` | backend는 `OBJECT/TObject`를 자주 같은 storage bucket으로 본다 |
 
 ### 5.3 시작 작업
 
@@ -120,9 +120,9 @@
 
 | 위치 | 현재 상태 | 후속 작업 |
 | --- | --- | --- |
-| `src/codegen/llvm_backend.c` `llvm_emit_program_from_mir` | Pass 4 전체가 HIR fallback 블록 | Pass 4를 migration debt 블록으로 표시하고 항목별 제거 |
-| `src/codegen/llvm_backend.c` `llvm_emit_intent_decl` | intent는 HIR lowering 전용 경로 | MIR intent routine schema를 먼저 확정 |
-| `src/codegen/llvm_main_wrapper.c` `llvm_emit_main_wrapper` | wrapper가 active executable/main metadata를 읽는다 | entry metadata를 declaration IR로 더 분리할지 검토 |
+| `src/codegen/llvm/llvm_backend.c` `llvm_emit_program_from_mir` | Pass 4 전체가 HIR fallback 블록 | Pass 4를 migration debt 블록으로 표시하고 항목별 제거 |
+| `src/codegen/llvm/llvm_backend.c` `llvm_emit_intent_decl` | intent는 HIR lowering 전용 경로 | MIR intent routine schema를 먼저 확정 |
+| `src/codegen/llvm/llvm_main_wrapper.c` `llvm_emit_main_wrapper` | wrapper가 active executable/main metadata를 읽는다 | entry metadata를 declaration IR로 더 분리할지 검토 |
 
 ### 6.3 intent MIR-only 조건
 
@@ -160,7 +160,7 @@
 | Parser dispatch | `src/parser/parser.c` | `subject`와 `class`는 lexer token 단계부터 분리돼 진입한다 |
 | AST constructor | `src/parser/ast.c` | `subject`는 `NOMINAL_DECL_SUBJECT`를 가진 별도 declaration |
 | Semantic vessel check | `src/semantic/type_checker.c` | subject field에는 vessel 타입 제약이 붙는다 |
-| Backend naming/runtime | `src/codegen/llvm_backend.c`, `src/codegen/transpiler.c` | storage/emission은 class-like지만 semantic contract는 더 무겁다 |
+| Backend naming/runtime | `src/codegen/llvm/llvm_backend.c`, `src/codegen/transpiler.c` | storage/emission은 class-like지만 semantic contract는 더 무겁다 |
 
 ### 7.3 시작 작업
 

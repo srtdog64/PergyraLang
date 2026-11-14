@@ -1,0 +1,234 @@
+// LLVM projection for the sealed builtin scalar Result ABI family.
+
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "../direct_mir_scalar_result_abi_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
+
+func DirectMirScalarProgramLlvmScalarResultPrefix(
+    type_name: String
+) -> String {
+    let runtime: ResultRuntimeFact =
+        DirectMirScalarResultAbiRuntimeForType(type_name);
+    if runtime.payload_type == CompilerAbiLayoutIntTypeName() {
+        return "@pgy.scalar.result.int";
+    }
+    if runtime.payload_type == CompilerAbiLayoutBoolTypeName() {
+        return "@pgy.scalar.result.bool";
+    }
+    return "";
+}
+
+func DirectMirScalarProgramLlvmScalarResultValueType(
+    type_name: String
+) -> String {
+    let runtime: ResultRuntimeFact =
+        DirectMirScalarResultAbiRuntimeForType(type_name);
+    if runtime.payload_type == CompilerAbiLayoutIntTypeName() { return "i64"; }
+    if runtime.payload_type == CompilerAbiLayoutBoolTypeName() { return "i1"; }
+    return "";
+}
+
+func DirectMirScalarProgramLlvmScalarResultExpressionAt(
+    kind: Int, result: String, result_type: String,
+    left: String, left_type: String, right: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind < DirectMirScalarProgramExprOkInt() ||
+        kind > DirectMirScalarProgramExprUnwrapOrInt() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    var type_name: String = left_type;
+    if kind == DirectMirScalarProgramExprOkInt() ||
+        kind == DirectMirScalarProgramExprErrInt() {
+        type_name = result_type;
+    }
+    let aggregate_type: String =
+        DirectMirScalarResultAbiLlvmTypeName(type_name);
+    let payload_type: String =
+        DirectMirScalarProgramLlvmScalarResultValueType(type_name);
+    let prefix: String =
+        DirectMirScalarProgramLlvmScalarResultPrefix(type_name);
+    if aggregate_type == "" || payload_type == "" || prefix == "" {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    var function_name: String = "";
+    var call_result_type: String = "";
+    var first_type: String = "";
+    var second_type: String = "";
+    if kind == DirectMirScalarProgramExprOkInt() {
+        function_name = Concat(prefix, ".ok");
+        call_result_type = aggregate_type;
+        first_type = payload_type;
+    } else if kind == DirectMirScalarProgramExprErrInt() {
+        function_name = Concat(prefix, ".err");
+        call_result_type = aggregate_type;
+        first_type = "ptr";
+    } else if kind == DirectMirScalarProgramExprIsOkInt() {
+        function_name = Concat(prefix, ".is_ok");
+        call_result_type = "i1";
+        first_type = aggregate_type;
+    } else if kind == DirectMirScalarProgramExprIsErrInt() {
+        function_name = Concat(prefix, ".is_err");
+        call_result_type = "i1";
+        first_type = aggregate_type;
+    } else if kind == DirectMirScalarProgramExprUnwrapResultInt() {
+        function_name = Concat(prefix, ".unwrap");
+        call_result_type = payload_type;
+        first_type = aggregate_type;
+    } else if kind == DirectMirScalarProgramExprUnwrapErrInt() {
+        function_name = Concat(prefix, ".unwrap_err");
+        call_result_type = "ptr";
+        first_type = aggregate_type;
+    } else {
+        function_name = Concat(prefix, ".unwrap_or");
+        call_result_type = payload_type;
+        first_type = aggregate_type;
+        second_type = payload_type;
+    }
+    var output: String = Concat("  ", Concat(result, Concat(
+        " = call ", Concat(call_result_type,
+        Concat(" ", function_name)))));
+    output = Concat(output, Concat("(", Concat(first_type,
+        Concat(" ", left))));
+    if second_type != "" {
+        output = Concat(output, Concat(", ", Concat(second_type,
+            Concat(" ", right))));
+    }
+    output = Concat(output, ")\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}
+
+func DirectMirScalarProgramLlvmScalarResultPreambleForFact(
+    ref fact: DirectMirScalarResultAbiFact,
+    ref target: CompilerTargetProjectionFact,
+    unwrap_called: Bool, unwrap_err_called: Bool
+) -> String {
+    if DirectMirScalarResultAbiFactCanonicalEmpty(fact) { return ""; }
+    let projection: DirectMirScalarResultAbiProjection =
+        DirectMirScalarResultAbiProjectionFromFact(fact, target);
+    if !DirectMirScalarResultAbiProjectionReadyFor(
+            projection, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR scalar LLVM Result ABI is invalid");
+    }
+    let t: String = DirectMirScalarResultAbiLlvmTypeName(fact.type_name);
+    let prefix: String =
+        DirectMirScalarProgramLlvmScalarResultPrefix(fact.type_name);
+    let payload_type: String =
+        DirectMirScalarProgramLlvmScalarResultValueType(fact.type_name);
+    let int_payload: Bool =
+        fact.inner_c_type == CompilerAbiLayoutIntCValueType();
+    let stored_payload_type: String =
+        DirectMirScalarResultAbiLlvmAggregateType(fact.type_name);
+    if t == "" || prefix == "" || payload_type == "" ||
+        stored_payload_type == "" {
+        Die("direct MIR scalar LLVM Result type is unsupported");
+    }
+    var output: String = Concat(t, Concat(" = type ",
+        Concat(projection.aggregate_type, "\n\n")));
+    output = Concat(output, Concat("define internal ", Concat(t,
+        Concat(" ", Concat(prefix, Concat(".ok(",
+        Concat(payload_type, " %value) {\nentry:\n")))))));
+    var payload_value: String = "%value";
+    var field_payload_type: String = "i1";
+    if int_payload {
+        output = Concat(output, "  %narrow = trunc i64 %value to i32\n");
+        payload_value = "%narrow";
+        field_payload_type = "i32";
+    }
+    output = Concat(output, Concat("  %tagged = insertvalue ", Concat(t,
+        Concat(" poison, i32 ", Concat(fact.ok_tag, ", 0\n")))));
+    output = Concat(output, Concat("  %valued = insertvalue ", Concat(t,
+        Concat(" %tagged, ", Concat(field_payload_type,
+        Concat(" ", Concat(payload_value, ", 1\n")))))));
+    output = Concat(output, Concat("  %complete = insertvalue ", Concat(t,
+        " %valued, ptr null, 2\n  ret ")));
+    output = Concat(output, Concat(t, " %complete\n}\n\n"));
+    output = Concat(output, Concat("define internal ", Concat(t,
+        Concat(" ", Concat(prefix,
+        ".err(ptr %error) {\nentry:\n")))));
+    output = Concat(output, Concat("  %tagged = insertvalue ", Concat(t,
+        Concat(" poison, i32 ", Concat(fact.error_tag, ", 0\n")))));
+    var zero_payload: String = "i1 false";
+    if int_payload { zero_payload = "i32 0"; }
+    output = Concat(output, Concat("  %zeroed = insertvalue ", Concat(t,
+        Concat(" %tagged, ", Concat(zero_payload, ", 1\n")))));
+    output = Concat(output, Concat("  %complete = insertvalue ", Concat(t,
+        " %zeroed, ptr %error, 2\n  ret ")));
+    output = Concat(output, Concat(t, " %complete\n}\n\n"));
+    output = Concat(output, Concat("define internal i1 ", Concat(prefix,
+        Concat(".is_ok(", Concat(t,
+        Concat(" %value) {\nentry:\n  %tag = extractvalue ", t))))));
+    output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+        Concat(fact.ok_tag, "\n  ret i1 %match\n}\n\n")));
+    output = Concat(output, Concat("define internal i1 ", Concat(prefix,
+        Concat(".is_err(", Concat(t,
+        Concat(" %value) {\nentry:\n  %tag = extractvalue ", t))))));
+    output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+        Concat(fact.error_tag, "\n  ret i1 %match\n}\n\n")));
+    if unwrap_called {
+        output = Concat(output, Concat("define internal ",
+            Concat(payload_type, Concat(" ", Concat(prefix,
+            Concat(".unwrap(", Concat(t,
+            Concat(" %value) {\nentry:\n  %tag = extractvalue ", t))))))));
+        output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+            Concat(fact.ok_tag,
+            "\n  br i1 %match, label %ok, label %error\nerror:\n" +
+            DirectMirScalarProgramLlvmUnwrapErrPanic() + "ok:\n")));
+        output = Concat(output, Concat("  %payload = extractvalue ",
+            Concat(t, Concat(" %value, 1\n", ""))));
+        if int_payload {
+            output = Concat(output,
+                "  %extended = sext i32 %payload to i64\n  ret i64 %extended\n}\n\n");
+        } else {
+            output = Concat(output, "  ret i1 %payload\n}\n\n");
+        }
+    }
+    if unwrap_err_called {
+        output = Concat(output, Concat("define internal ptr ", Concat(prefix,
+            Concat(".unwrap_err(", Concat(t,
+            Concat(" %value) {\nentry:\n  %tag = extractvalue ", t))))));
+        output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+            Concat(fact.error_tag,
+            "\n  br i1 %match, label %error, label %ok\nok:\n" +
+            DirectMirScalarProgramLlvmUnwrapOkPanic() + "error:\n")));
+        output = Concat(output, Concat("  %message = extractvalue ", Concat(t,
+            " %value, 2\n  ret ptr %message\n}\n\n")));
+    }
+    output = Concat(output, "define internal ");
+    output = Concat(output, payload_type);
+    output = Concat(output, " ");
+    output = Concat(output, prefix);
+    output = Concat(output, ".unwrap_or(");
+    output = Concat(output, t);
+    output = Concat(output, " %value, ");
+    output = Concat(output, payload_type);
+    output = Concat(output, " %fallback) {\nentry:\n  %tag = extractvalue ");
+    output = Concat(output, t);
+    output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+        Concat(fact.ok_tag, "\n")));
+    output = Concat(output, Concat("  %payload = extractvalue ", Concat(t,
+        " %value, 1\n")));
+    if int_payload {
+        output = Concat(output,
+            "  %extended = sext i32 %payload to i64\n  %selected = select i1 %match, i64 %extended, i64 %fallback\n  ret i64 %selected\n}\n");
+    } else {
+        output = Concat(output,
+            "  %selected = select i1 %match, i1 %payload, i1 %fallback\n  ret i1 %selected\n}\n");
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmScalarResultPreamble(
+    ref set: DirectMirScalarResultAbiSet,
+    ref target: CompilerTargetProjectionFact,
+    unwrap_called: Bool, unwrap_err_called: Bool
+) -> String {
+    var output: String =
+        DirectMirScalarProgramLlvmScalarResultPreambleForFact(
+            set.result_int, target, unwrap_called, unwrap_err_called);
+    output = Concat(output,
+        DirectMirScalarProgramLlvmScalarResultPreambleForFact(
+            set.result_bool, target, unwrap_called, unwrap_err_called));
+    return output;
+}

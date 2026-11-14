@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
 #include "formal_string_store_landing_owner.h"
 #include "loan_copy_landing_owner.h"
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "diag_codes.h"
 
 /* A recipe carries the original owners' receipts, not a new String source.

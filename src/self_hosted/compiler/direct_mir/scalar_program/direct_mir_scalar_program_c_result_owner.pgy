@@ -1,0 +1,157 @@
+// C projection for the sealed builtin scalar Result ABI family.
+
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "../direct_mir_scalar_result_abi_owner.pgy";
+
+func DirectMirScalarProgramCScalarResultExpression(
+    kind: Int, result_type: String, left_type: String,
+    left: String, right: String
+) -> Option<String> {
+    if kind < DirectMirScalarProgramExprOkInt() ||
+        kind > DirectMirScalarProgramExprUnwrapOrInt() {
+        return None;
+    }
+    var type_name: String = left_type;
+    if kind == DirectMirScalarProgramExprOkInt() ||
+        kind == DirectMirScalarProgramExprErrInt() {
+        type_name = result_type;
+    }
+    let runtime: ResultRuntimeFact =
+        DirectMirScalarResultAbiRuntimeForType(type_name);
+    if !runtime.ok { return None; }
+    var prefix: String = "pgy_scalar_result_int";
+    if runtime.payload_type == CompilerAbiLayoutBoolTypeName() {
+        prefix = "pgy_scalar_result_bool";
+    }
+    if kind == DirectMirScalarProgramExprOkInt() {
+        return Some(Concat(prefix, Concat("_ok(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprErrInt() {
+        return Some(Concat(prefix, Concat("_err(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprIsOkInt() {
+        return Some(Concat(prefix, Concat("_is_ok(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprIsErrInt() {
+        return Some(Concat(prefix, Concat("_is_err(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprUnwrapResultInt() {
+        return Some(Concat(prefix, Concat("_unwrap(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprUnwrapErrInt() {
+        return Some(Concat(prefix, Concat("_unwrap_err(", Concat(left, ")"))));
+    }
+    return Some(Concat(prefix, Concat("_unwrap_or(",
+        Concat(left, Concat(", ", Concat(right, ")"))))));
+}
+
+func DirectMirScalarProgramCScalarResultPreambleForFact(
+    ref fact: DirectMirScalarResultAbiFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarResultAbiFactCanonicalEmpty(fact) { return ""; }
+    let projection: DirectMirScalarResultAbiProjection =
+        DirectMirScalarResultAbiProjectionFromFact(fact, target);
+    if !DirectMirScalarResultAbiProjectionReadyFor(
+            projection, CompilerTargetCpuCProjection()) {
+        Die("direct MIR scalar C Result ABI is invalid");
+    }
+    let t: String = DirectMirScalarResultAbiCTypeName(fact.type_name);
+    var prefix: String = "pgy_scalar_result_int";
+    if fact.inner_c_type == CompilerAbiLayoutBoolCValueType() {
+        prefix = "pgy_scalar_result_bool";
+    }
+    var output: String = Concat("typedef struct { int32_t ", fact.tag_name);
+    output = Concat(output, "; ");
+    output = Concat(output, fact.inner_c_type);
+    output = Concat(output, " ");
+    output = Concat(output, fact.ok_name);
+    output = Concat(output, "; char *");
+    output = Concat(output, fact.error_name);
+    output = Concat(output, "; } ");
+    output = Concat(output, t);
+    output = Concat(output, ";\nstatic ");
+    output = Concat(output, t);
+    output = Concat(output, " ");
+    output = Concat(output, prefix);
+    output = Concat(output, "_ok(");
+    output = Concat(output, fact.inner_c_type);
+    output = Concat(output, " value) {\n    ");
+    output = Concat(output, t);
+    output = Concat(output, " result = {");
+    output = Concat(output, fact.ok_tag);
+    output = Concat(output, ", value, NULL};\n    return result;\n}\nstatic ");
+    output = Concat(output, t);
+    output = Concat(output, " ");
+    output = Concat(output, prefix);
+    output = Concat(output, "_err(char *error) {\n    ");
+    output = Concat(output, t);
+    output = Concat(output, " result = {");
+    output = Concat(output, fact.error_tag);
+    output = Concat(output, ", 0, error};\n    return result;\n}\nstatic bool ");
+    output = Concat(output, prefix);
+    output = Concat(output, "_is_ok(");
+    output = Concat(output, t);
+    output = Concat(output, " value) { return value.");
+    output = Concat(output, fact.tag_name);
+    output = Concat(output, " == ");
+    output = Concat(output, fact.ok_tag);
+    output = Concat(output, "; }\nstatic bool ");
+    output = Concat(output, prefix);
+    output = Concat(output, "_is_err(");
+    output = Concat(output, t);
+    output = Concat(output, " value) { return value.");
+    output = Concat(output, fact.tag_name);
+    output = Concat(output, " == ");
+    output = Concat(output, fact.error_tag);
+    output = Concat(output, "; }\nstatic ");
+    output = Concat(output, fact.inner_c_type);
+    output = Concat(output, " ");
+    output = Concat(output, prefix);
+    output = Concat(output, "_unwrap(");
+    output = Concat(output, t);
+    output = Concat(output, " value) { if (value.");
+    output = Concat(output, fact.tag_name);
+    output = Concat(output, " != ");
+    output = Concat(output, fact.ok_tag);
+    output = Concat(output, ") { abort(); } return value.");
+    output = Concat(output, fact.ok_name);
+    output = Concat(output, "; }\nstatic char *");
+    output = Concat(output, prefix);
+    output = Concat(output, "_unwrap_err(");
+    output = Concat(output, t);
+    output = Concat(output, " value) { if (value.");
+    output = Concat(output, fact.tag_name);
+    output = Concat(output, " != ");
+    output = Concat(output, fact.error_tag);
+    output = Concat(output, ") { abort(); } return value.");
+    output = Concat(output, fact.error_name);
+    output = Concat(output, "; }\nstatic ");
+    output = Concat(output, fact.inner_c_type);
+    output = Concat(output, " ");
+    output = Concat(output, prefix);
+    output = Concat(output, "_unwrap_or(");
+    output = Concat(output, t);
+    output = Concat(output, " value, ");
+    output = Concat(output, fact.inner_c_type);
+    output = Concat(output, " fallback) { return value.");
+    output = Concat(output, fact.tag_name);
+    output = Concat(output, " == ");
+    output = Concat(output, fact.ok_tag);
+    output = Concat(output, " ? value.");
+    output = Concat(output, fact.ok_name);
+    output = Concat(output, " : fallback; }\n");
+    return output;
+}
+
+func DirectMirScalarProgramCScalarResultPreamble(
+    ref set: DirectMirScalarResultAbiSet,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    var output: String = DirectMirScalarProgramCScalarResultPreambleForFact(
+        set.result_int, target);
+    output = Concat(output,
+        DirectMirScalarProgramCScalarResultPreambleForFact(
+            set.result_bool, target));
+    return output;
+}

@@ -2,7 +2,7 @@
 // receipt. Canonicalization may rebind identity, but it must not rerun semantic
 // body materialization over already published call-return rows.
 
-import "driver_rung2_owner.pgy";
+import "driver/driver_rung2_owner.pgy";
 
 func CanonicalizeMirArtifactWithAdmittedTopology(
     own artifact: AstTreeArtifact,

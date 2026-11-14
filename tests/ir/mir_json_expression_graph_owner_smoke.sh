@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ORCHESTRATOR="$ROOT_DIR/src/compiler/mir_json_expression_graph.c"
-MATERIALIZER="$ROOT_DIR/src/compiler/mir_json_expression_graph_materialize.c"
+ORCHESTRATOR="$ROOT_DIR/src/compiler/mir/mir_json_expression_graph.c"
+MATERIALIZER="$ROOT_DIR/src/compiler/mir/mir_json_expression_graph_materialize.c"
 
 fail() {
     echo "[mir-json-expression-graph-owner] $*" >&2

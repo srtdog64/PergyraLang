@@ -1,0 +1,102 @@
+// Payload-free enum match patterns normalized into one Bool equality graph.
+// An or-pattern compares the one subject node with each alternative and
+// joins the equalities with `||`, left to right.
+
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_expression_owner.pgy";
+import "../../../mir_lower/match_json_fact_owner.pgy";
+
+func DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
+    facts: DirectMirScalarProgramExpressionSet,
+    ref instruction: JsonObjectFactTable, expression_row: Int,
+    ref enum_fact: DirectMirScalarProgramPayloadFreeEnumFact
+) -> DirectMirScalarProgramExpressionSet {
+    if !JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_MATCH_CASE") {
+        return facts;
+    }
+    let invalid: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetInvalid(facts);
+    let match_fact: MirMatchInstructionCapture =
+        MirMatchInstructionCaptureFromTable(instruction);
+    if !facts.valid || expression_row < 0 ||
+        expression_row + 1 != ArrayLength(facts.graph_starts) ||
+        !match_fact.valid || match_fact.pattern_count < 1 ||
+        match_fact.pattern_count != ArrayLength(match_fact.patterns) ||
+        match_fact.pattern == "" || match_fact.variant != "" ||
+        match_fact.binding_count != 0 ||
+        match_fact.binding_type_count != 0 {
+        return invalid;
+    }
+    let start: Int = facts.graph_starts[expression_row];
+    let count: Int = facts.graph_counts[expression_row];
+    let value_node: Int = facts.graph_roots[expression_row];
+    if count < 1 || value_node < start || value_node >= start + count ||
+        value_node >= ArrayLength(facts.node_types) {
+        return invalid;
+    }
+    // The result outlives the source element while this routine grows the
+    // same owned String table. Keep the local and every stored row independent.
+    let type_name: String = Clone(facts.node_types[value_node]);
+    var ordinals: Array<Int> = [];
+    var alternative: Int = 0;
+    while alternative < match_fact.pattern_count {
+        let ordinal: Int = DirectMirScalarProgramPayloadFreeEnumVariantOrdinal(
+            enum_fact, type_name, match_fact.patterns[alternative]);
+        if ordinal < 0 { return invalid; }
+        ArrayPush(ordinals, ordinal);
+        alternative = alternative + 1;
+    }
+
+    var graph_counts: Array<Int> = facts.graph_counts;
+    var graph_roots: Array<Int> = facts.graph_roots;
+    var kinds: Array<Int> = facts.node_kinds;
+    var types: Array<String> = facts.node_types;
+    var lefts: Array<Int> = facts.node_lefts;
+    var rights: Array<Int> = facts.node_rights;
+    var locals: Array<Int> = facts.node_local_rows;
+    var params: Array<Int> = facts.node_parameter_ordinals;
+    var members: Array<Int> = facts.node_member_ordinals;
+    var literals: Array<String> = facts.node_literals;
+    var callables: Array<Int> = facts.node_callable_rows;
+    var runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    let first_added: Int = ArrayLength(kinds);
+    var condition_node: Int = -1;
+    alternative = 0;
+    while alternative < ArrayLength(ordinals) {
+        let variant_node: Int = ArrayLength(kinds);
+        DirectMirScalarProgramAppendExpressionNode(
+            kinds, types, lefts, rights, locals, params, members,
+            literals, callables, runtime_ids,
+            DirectMirScalarProgramExprPayloadFreeEnumVariant(),
+            Clone(type_name),
+            -1, -1, -1, -1, ordinals[alternative], "", -1, -1);
+        let equality_node: Int = ArrayLength(kinds);
+        DirectMirScalarProgramAppendExpressionNode(
+            kinds, types, lefts, rights, locals, params, members,
+            literals, callables, runtime_ids,
+            DirectMirScalarProgramExprEqualPayloadFreeEnum(),
+            CompilerAbiLayoutBoolTypeName(), value_node, variant_node,
+            -1, -1, -1, "", -1, -1);
+        if condition_node < 0 {
+            condition_node = equality_node;
+        } else {
+            let joined: Int = ArrayLength(kinds);
+            DirectMirScalarProgramAppendExpressionNode(
+                kinds, types, lefts, rights, locals, params, members,
+                literals, callables, runtime_ids,
+                DirectMirScalarProgramExprLogicalOr(),
+                CompilerAbiLayoutBoolTypeName(), condition_node, equality_node,
+                -1, -1, -1, "", -1, -1);
+            condition_node = joined;
+        }
+        alternative = alternative + 1;
+    }
+    ArraySet(graph_counts, expression_row, count + ArrayLength(kinds) - first_added);
+    ArraySet(graph_roots, expression_row, condition_node);
+    return DirectMirScalarProgramExpressionSet(
+        true, 0, facts.graph_global_rows, facts.graph_starts,
+        graph_counts, graph_roots, kinds, types, lefts, rights,
+        locals, params, members, literals, callables, runtime_ids,
+        facts.nary_operands);
+}

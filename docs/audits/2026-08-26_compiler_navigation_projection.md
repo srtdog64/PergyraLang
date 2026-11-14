@@ -188,9 +188,9 @@ Potential navigation path considered only to measure it:
 
 Exact current files:
 
-- `src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy`
-- `src/self_hosted/compiler/driver_source_mir_execution_owner.pgy`
-- `src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy`
+- `src/self_hosted/compiler/driver/driver_source_mir_protocol_owner.pgy`
+- `src/self_hosted/compiler/driver/driver_source_mir_execution_owner.pgy`
+- `src/self_hosted/compiler/driver/driver_source_mir_stdout_execution_owner.pgy`
 
 The stdout owner is the uncommitted Lease F addition, so this cluster is not a
 base-revision move candidate.

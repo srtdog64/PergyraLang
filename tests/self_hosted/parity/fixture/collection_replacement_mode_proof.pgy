@@ -1,4 +1,4 @@
-import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
 
 func Check(state: Int, mode: Int, present: Bool) -> Bool {
     let routines: Array<Int> = [0];

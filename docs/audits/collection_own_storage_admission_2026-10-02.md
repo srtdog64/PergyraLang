@@ -103,7 +103,7 @@ additional closure gates.
   remains masked; do not claim it was reached.
 - Actual empty/owned/borrowed callable-table sources all first refuse names
   drop, syntax 30, in SemanticAstExpressionFunctionTableFactsRelease,
-  `src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy`.
+  `src/self_hosted/semantic/ast_expression/ast_expression_function_table_fact_owner.pgy`.
   Preserve FromArtifact, real Release and all three consumers.
 
 Two additional sources are accepted incorrectly by both baseline and candidate

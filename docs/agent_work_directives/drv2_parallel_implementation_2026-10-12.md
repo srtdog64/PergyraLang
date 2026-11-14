@@ -18,7 +18,7 @@ without disguising stale descriptors or borrowed payloads as owned values.
 Priority: semantic identity / one SoT, exact owner-produced lifetime facts,
 consumer migration, fallback deletion and negative ratchet, then cost/size.
 Production entry: `--emit-mir-json-verified
-src/self_hosted/compiler/driver_bootstrap_main.pgy`.
+src/self_hosted/compiler/driver/driver_bootstrap_main.pgy`.
 
 The admitted AST and expression identities reach the formal-effect fixed point,
 exclusive-value family/copy/flow facts and ordered ownership-event stream. Those
@@ -896,8 +896,8 @@ hir_attach_collection_ownership_facts and mir_validate_collection_ownership_fact
 before codegen. Priority is semantic owner/source identity, element ownership,
 source retirement, final disposition, typed MIR DEF/use and negative ratchet.
 Only the binding-origin destination-LIVE-only checks in
-src/compiler/hir_semantic_fact_projection.c and
-src/compiler/mir_branch_source_facts.c change. Common LIVE/RETIRED validation,
+src/compiler/hir/hir_semantic_fact_projection.c and
+src/compiler/mir/mir_branch_source_facts.c change. Common LIVE/RETIRED validation,
 exact prior/distinct source identity, source RETIRED, equal element ownership,
 typed actual move proof and retired unknown/borrowed unique-onward-destination
 guards remain. Forced LIVE, skipped validation, name lists and missing-source
@@ -1933,7 +1933,7 @@ Main checked the existing lifecycle and approved a responsibility split, not
 a cap increase or a one-use wrapper move. B moves the existing parameter
 identifier matcher, program-point index find/reserve/append/build and all
 index/vector destruction into
-`src/semantic/function_param_flow_program_point_index_owner.c`. This remains
+`src/semantic/function_param_flow/function_param_flow_program_point_index_owner.c`. This remains
 a generation-scoped subordinate artifact of the existing parameter-flow
 store: original function identity, borrowed AST roots, owned vectors, partial
 allocation rollback, visit counters, fixed-point budget and reuse semantics

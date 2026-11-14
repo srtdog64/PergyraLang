@@ -1,0 +1,111 @@
+// LLVM runtime definitions for the sealed String/Array<String> receipts.
+import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_process_args_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_dir_walk_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_file_exists_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_read_file_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_write_file_materialization_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_string_storage_materialization_owner.pgy";
+
+func DirectMirScalarProgramLlvmStringCollectionMaterialization(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>
+) -> String {
+    let array_required: Bool =
+        plan.program.runtime_abi.string_split_id != 0 ||
+        plan.program.runtime_abi.string_join_id != 0 ||
+        plan.program.runtime_abi.array_string_length_id != 0 ||
+        plan.program.runtime_abi.array_string_get_id != 0 ||
+        plan.program.runtime_abi.process_args_id != 0 ||
+        plan.program.runtime_abi.dir_walk_id != 0 ||
+        DirectMirScalarProgramArrayStringAbiFactReady(
+            plan.program.array_string_abi);
+    var any: Bool = plan.program.runtime_abi.string_contains_id != 0 ||
+        plan.program.runtime_abi.string_to_int_id != 0 ||
+        plan.program.runtime_abi.file_exists_id != 0 || array_required;
+    if plan.program.runtime_abi.read_file_id != 0 { any = true; }
+    if plan.program.runtime_abi.write_file_id != 0 { any = true; }
+    if !any { return ""; }
+    if !DirectMirScalarProgramRuntimeAbiProjectionReady(
+            runtime, plan.program.runtime_abi) ||
+        !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
+            plan.program.array_string_abi, plan.program.expressions) {
+        Die("direct MIR scalar program LLVM String collection ABI is invalid");
+    }
+    if array_required && !IsSome(projection_opt) {
+        Die("direct MIR scalar program LLVM Array<String> projection is missing");
+    }
+    var output: String = "";
+    if array_required {
+        let abi: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
+        if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+                plan.program.array_string_abi, abi,
+                CompilerTargetCpuLlvmProjection()) {
+            Die("direct MIR scalar program LLVM Array<String> projection drifted");
+        }
+        output = Concat(abi.llvm_value_type, Concat(" = type ",
+            Concat(abi.llvm_aggregate_type, "\n")));
+    }
+    if plan.program.runtime_abi.string_contains_id != 0 {
+        output = Concat(output, Concat("define internal i1 @",
+            Concat(runtime.string_contains.symbol,
+            "(ptr %haystack, ptr %needle) {\nentry:\n  %match = call ptr @strstr(ptr %haystack, ptr %needle)\n  %found = icmp ne ptr %match, null\n  ret i1 %found\n}\n\n")));
+    }
+    // atoll overflow is undefined. Read a Long with strtoll and narrow it to
+    // Int by truncation, the value every other leg's ToInt computes.
+    if plan.program.runtime_abi.string_to_int_id != 0 {
+        output = Concat(output, Concat("define internal i64 @",
+            Concat(runtime.string_to_int.symbol,
+            "(ptr %source) {\nentry:\n  %value = call i64 @strtoll(ptr %source, ptr null, i32 10)\n  %narrow = trunc i64 %value to i32\n  %int = sext i32 %narrow to i64\n  ret i64 %int\n}\n\n")));
+    }
+    if array_required {
+        let abi: DirectMirArrayStringAbiProjection =
+            UnwrapOption(projection_opt);
+        output = Concat(output,
+            DirectMirScalarProgramLlvmStringArrayPushBlock(
+                "pgy_as_push", abi));
+        output = Concat(output,
+            DirectMirScalarProgramLlvmStringArrayPopBlock(abi));
+        if DirectMirScalarProgramExpressionContainsKind(
+                plan.program.expressions,
+                DirectMirScalarProgramExprArrayStringPushOwned()) {
+            output = Concat(output,
+                DirectMirScalarProgramLlvmOwnedStringArrayPushBlock());
+        }
+        output = Concat(output,
+            DirectMirScalarProgramLlvmStringArrayAccessBlocks(runtime, abi));
+        output = Concat(output,
+            DirectMirScalarProgramLlvmStringArrayDropBlock(abi));
+    }
+    if plan.program.runtime_abi.process_args_id != 0 {
+        let abi: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
+        output = Concat(output,
+            DirectMirScalarProgramLlvmProcessArgsBlock(plan, runtime, abi));
+    }
+    output = Concat(output,
+            DirectMirScalarProgramLlvmDirWalkBlock(plan, runtime, projection_opt));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmFileExistsBlock(plan, runtime));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmReadFileBlock(plan, runtime));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmWriteFileBlock(plan, runtime));
+    if plan.program.runtime_abi.string_split_id != 0 {
+        let abi: DirectMirArrayStringAbiProjection =
+            UnwrapOption(projection_opt);
+        output = Concat(output,
+            DirectMirScalarProgramLlvmStringSplitBlock(runtime, abi));
+    }
+    if plan.program.runtime_abi.string_join_id != 0 {
+        let abi: DirectMirArrayStringAbiProjection =
+            UnwrapOption(projection_opt);
+        output = Concat(output,
+            DirectMirScalarProgramLlvmStringJoinBlock(runtime, abi));
+    }
+    return output;
+}

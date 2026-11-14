@@ -1,15 +1,15 @@
 // One target-neutral retirement decision from the admitted typed GraphPlan.
 // Missing provenance grants no new retirement permission. Parameters, aliases,
 // mutation and retained operands stay with their existing lifetime owner.
-import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
-import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
-import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 import "owned_storage_result_recipe_owner.pgy";
-import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
-import "direct_mir_scalar_program_hashmap_owner.pgy";
-import "direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
-import "direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
 import "owned_payload_enum_parameter_lifetime_owner.pgy";
 
 struct DirectMirOwnedLocalLifetimeFact {

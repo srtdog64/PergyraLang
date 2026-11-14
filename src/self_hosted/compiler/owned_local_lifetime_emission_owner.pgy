@@ -1,9 +1,9 @@
 // Target projection of retirement rights issued for this exact GraphPlan.
 import "owned_local_lifetime_owner.pgy";
-import "direct_mir_array_storage_layout_contract_owner.pgy";
-import "direct_mir_scalar_program_c_logical_record_owner.pgy";
-import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
-import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+import "direct_mir/direct_mir_array_storage_layout_contract_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
 import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 

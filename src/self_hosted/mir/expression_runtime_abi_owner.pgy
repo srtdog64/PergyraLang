@@ -1,12 +1,12 @@
 // Projects Slot runtime-call ABI requirements from a carried expression graph.
 // Call identity comes from graph facts and concrete types from local bindings.
 
-import "../semantic/ast_expression_graph_fact_owner.pgy";
-import "../semantic/ast_expression_graph_call_view_owner.pgy";
-import "../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "../semantic/ast_expression/ast_expression_call_target_fact_owner.pgy";
 import "../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "../compiler/runtime_value_call_abi_owner.pgy";
-import "../semantic/ast_expression_graph_node_view_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
 
 struct SelfMirExpressionRuntimeAbiProjection {
     ok: Bool;

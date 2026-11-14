@@ -1,4 +1,4 @@
-#include "type_checker_internal.h"
+#include "type_checker/type_checker_internal.h"
 #include "domain_projection_path_fact_internal.h"
 #include "diag_codes.h"
 #include "parser/ast_api.h"

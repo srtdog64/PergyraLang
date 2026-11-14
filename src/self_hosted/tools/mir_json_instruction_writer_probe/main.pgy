@@ -2,7 +2,7 @@
 // The String and file projections consume the exact same verified facts so
 // producer nondeterminism cannot hide a wire-order or escaping difference.
 
-import "../../compiler/driver_rung2_owner.pgy";
+import "../../compiler/driver/driver_rung2_owner.pgy";
 
 func MirJsonInstructionWriterInvalidFacts(
     facts: SelfMirProgramFacts

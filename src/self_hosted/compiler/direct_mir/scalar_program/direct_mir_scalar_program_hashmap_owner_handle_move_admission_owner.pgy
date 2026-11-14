@@ -1,0 +1,83 @@
+// A HashMap owner-handle crosses a direct call only as one terminal move.
+
+import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
+
+func DirectMirScalarProgramHashMapOwnerHandleTailMoveReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, routine: Int, graph_start: Int, argument_node: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+        node < 0 || argument_node < graph_start || argument_node >= node {
+        return false;
+    }
+    var graph: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(facts.graph_starts) {
+        if facts.graph_starts[row] == graph_start &&
+            node < graph_start + facts.graph_counts[row] {
+            if graph >= 0 { return false; }
+            graph = row;
+        }
+        row = row + 1;
+    }
+    if graph < 0 || facts.graph_roots[graph] != node { return false; }
+    var block: Int = -1;
+    row = plan.routines.block_starts[routine];
+    let block_end: Int = row + plan.routines.block_counts[routine];
+    while row < block_end {
+        if plan.program.block_return_expression_rows[row] == graph {
+            if block >= 0 { return false; }
+            block = row;
+        }
+        row = row + 1;
+    }
+    if block < 0 || plan.program.block_condition_expression_rows[block] ==
+            graph || plan.block_succ_true[block] != -1 ||
+        plan.block_succ_false[block] != -1 { return false; }
+    let source_kind: Int = facts.node_kinds[argument_node];
+    if source_kind != DirectMirScalarProgramExprLocal() &&
+        source_kind != DirectMirScalarProgramExprParameter() { return false; }
+    var binding_count: Int = 0;
+    var parent_count: Int = 0;
+    row = graph_start;
+    let graph_end: Int = graph_start + facts.graph_counts[graph];
+    while row < graph_end {
+        if facts.node_kinds[row] == source_kind &&
+            ((source_kind == DirectMirScalarProgramExprLocal() &&
+              facts.node_local_rows[row] ==
+                facts.node_local_rows[argument_node]) ||
+             (source_kind == DirectMirScalarProgramExprParameter() &&
+              facts.node_parameter_ordinals[row] ==
+                facts.node_parameter_ordinals[argument_node])) {
+            binding_count = binding_count + 1;
+        }
+        let operands: DirectMirScalarProgramArgumentView =
+            DirectMirScalarProgramArgumentViewFromNode(facts, row);
+        var operand: Int = 0;
+        while operands.valid && operand < operands.count {
+            if DirectMirScalarProgramArgumentViewAt(
+                    facts, operands, operand) == argument_node {
+                parent_count = parent_count + 1;
+            }
+            operand = operand + 1;
+        }
+        row = row + 1;
+    }
+    if binding_count != 1 || parent_count != 1 { return false; }
+    if source_kind == DirectMirScalarProgramExprParameter() {
+        let source_ordinal: Int =
+            facts.node_parameter_ordinals[argument_node];
+        if source_ordinal < 0 || source_ordinal >=
+                plan.routines.parameter_counts[routine] { return false; }
+        let source_row: Int = plan.routines.parameter_starts[routine] +
+            source_ordinal;
+        return plan.routines.parameter_carriages[source_row] ==
+                "owner-handle" &&
+            DirectMirScalarProgramHashMapTypeReady(
+                plan.routines.parameter_types[source_row]);
+    }
+    return true;
+}

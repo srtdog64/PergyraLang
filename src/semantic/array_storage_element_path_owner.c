@@ -1,14 +1,14 @@
 /* Array payload calls, CFG path state, and element-premise revocation. */
 #include "array_storage_element_lifetime_owner.h"
 #include "array_storage_deferred_preservation_owner.h"
-#include "type_checker_internal.h"
-#include "type_checker_resolution_internal.h"
+#include "type_checker/type_checker_internal.h"
+#include "type_checker/type_checker_resolution_internal.h"
 #include "compiler/decl_field_model.h"
-#include "function_param_publication_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
 #include "collection_ownership_fact.h"
 #include "indexed_string_borrow_owner.h"
 #include "diag_codes.h"
-#include "type_checker_resolution_metadata_internal.h"
+#include "type_checker/type_checker_resolution_metadata_internal.h"
 #include "slot_summary.h"
 #include "builtin_kind.h"
 #include <stdlib.h>

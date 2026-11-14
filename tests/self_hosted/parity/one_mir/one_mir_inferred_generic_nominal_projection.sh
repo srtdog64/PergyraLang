@@ -31,25 +31,25 @@ assert_owner_ratchet() {
             fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
         total=$((total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_generic_routine_program_envelope_owner.pgy|60
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_generic_nominal_graph_shape_owner.pgy|90
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_int_nominal_abi_shape_owner.pgy|40
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_instruction_abi_absence_owner.pgy|50
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_specialization_fact_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_program_admission_owner.pgy|90
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_graph_fact_owner.pgy|170
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_program_identity_owner.pgy|220
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_instruction_admission_owner.pgy|190
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_abi_fact_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_plan_owner.pgy|130
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_c_emission_owner.pgy|120
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_llvm_emission_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_projection_owner.pgy|40
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_two_routine_classification_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_generic_routine_program_envelope_owner.pgy|60
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_generic_nominal_graph_shape_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_two_int_nominal_abi_shape_owner.pgy|40
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_instruction_abi_absence_owner.pgy|50
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_specialization_fact_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_nominal_program_admission_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_nominal_graph_fact_owner.pgy|170
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_nominal_program_identity_owner.pgy|220
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_nominal_instruction_admission_owner.pgy|190
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_nominal_abi_fact_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_nominal_plan_owner.pgy|130
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_nominal_c_emission_owner.pgy|120
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_nominal_llvm_emission_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_inferred_generic_nominal_projection_owner.pgy|40
 EOF
     [[ "$total" -le 1800 ]] ||
         fail "inferred generic nominal owner family cap exceeded: $total/1800"
-    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")" || fail "source-size measurement failed"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy")" || fail "source-size measurement failed"
     [[ "$lines" -le 110 ]] || fail "multi-routine root cap exceeded: $lines/110"
 }
 

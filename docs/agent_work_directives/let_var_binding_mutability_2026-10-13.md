@@ -82,8 +82,8 @@ first enforcement slice measures them exactly.
   `src/self_hosted/parser/stmt_owner.pgy` (around line 282) and the field mode in
   `src/self_hosted/parser/decl_nominal_owner.pgy` (around line 154).
 - Consumers: native assignment and mutation checks in
-  `src/semantic/type_checker_assignment.c` and
-  `src/semantic/type_checker_collection_mutation_contract.c`; the self-host member
+  `src/semantic/type_checker/type_checker_assignment.c` and
+  `src/semantic/type_checker/type_checker_collection_mutation_contract.c`; the self-host member
   write verdict in `src/self_hosted/semantic/ast_member_write_verdict_owner.pgy`;
   the inout argument boundary on both front ends.
 - Last legitimate consumer: the semantic verdict that admits a write. Codegen never

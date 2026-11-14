@@ -32,7 +32,7 @@ Columns: `boundary  stage-artifact  enforcement-gate  status`.
 parser_to_ast       src/parser/ast.c             documented                                     documented
 ast_to_mir          src/compiler/mir.c           tests/ast_to_mir_loss_contract_smoke.sh        enforced
 mir_to_air          src/compiler/air.c           tests/air_drift_smoke.sh                       enforced
-mir_to_backends     src/codegen/llvm_backend.c   tests/backend_compare_llvm_coverage_smoke.sh   enforced
+mir_to_backends     src/codegen/llvm/llvm_backend.c   tests/backend_compare_llvm_coverage_smoke.sh   enforced
 selfhost_to_oracle  src/self_hosted              tests/self_hosted/gates/self_hosted_component_contract_smoke.sh  enforced
 ```
 <!-- END loss-contract-manifest -->

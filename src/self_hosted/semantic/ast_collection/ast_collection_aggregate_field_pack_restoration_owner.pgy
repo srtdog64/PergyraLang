@@ -1,0 +1,403 @@
+// Field-pack self-rebinding and exact carrier restoration facts.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_collection_ownership_member_root_identity_owner.pgy";
+import "../ast_assignment_fact_owner.pgy";
+import "../ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "../ast_statement_fact_owner.pgy";
+import "../ast_expression/ast_expression_graph_receiver_type_owner.pgy";
+import "ast_collection_member_path_type_owner.pgy";
+import "ast_collection_argument_permission_effect_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
+import "../ast_local_binding_identity_owner.pgy";
+import "ast_collection_constructor_storage_escape_owner.pgy";
+import "ast_collection_exclusive_value_consumption_owner.pgy";
+import "ast_collection_exclusive_value_owner.pgy";
+import "../ast_expression/ast_expression_storage_place_identity_owner.pgy";
+import "../ast_body_flow_verdict_owner.pgy";
+import "ast_collection_aggregate_carrier_identity_owner.pgy";
+
+// A direct whole-formal row and a field-by-field reconstruction are the two
+// existing exclusive-value summaries that can carry one argument into a
+// result field. Keep this projection local to field-pack restoration; callers
+// that ask about a particular source subpath retain the narrower query.
+func SemanticAstCollectionAggregateFieldPackCarriedResultPath(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref facts: SemanticAstCollectionExclusiveValueFacts,
+    edge: SemanticCallArgumentEdgeView
+) -> Option<String> {
+    let direct: Option<String> =
+        SemanticAstCollectionAggregateCarriedResultPathForArgument(
+            signatures, surfaces, facts, edge, "");
+    if IsSome(direct) { return direct; }
+    let formal: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph,
+            edge.call_node, edge.ordinal);
+    if !formal.ok { return None; }
+    let whole: SemanticAstCollectionExclusiveWholeCarriedField =
+        SemanticAstCollectionExclusiveWholeCarriedFieldForFormal(
+            signatures, constructors, facts.carrying,
+            facts.paths, formal);
+    if !whole.ok || whole.field == "" { return None; }
+    return Some(Concat("", whole.field));
+}
+
+// `state = F(state.a, state.b, ...)` is one whole-root move only when every
+// direct field that may own storage enters one default formal exactly once and
+// that formal's existing carrying summary returns it to the same result field.
+// Another argument may not supply that result field, and every moved field is
+// consumed by this assignment. Missing, crossed, nested and foreign-field
+// packs therefore fail closed instead of becoming an aggregate exemption.
+func SemanticAstCollectionAggregateFieldPackSelfRebind(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref body_termination: SemanticAstBodyTerminationFacts,
+    ref facts: SemanticAstCollectionExclusiveValueFacts,
+    function_id: Int, syntax_id: Int,
+    target_node: Int, value_node: Int
+) -> Bool {
+    if !facts.ok || target_node < 0 || value_node < 0 {
+        return false;
+    }
+    let target: SemanticAstCollectionMemberRootIdentity =
+        SemanticAstCollectionMemberRootIdentityForNode(
+            artifact, signatures, locals, inferred_types,
+            resolved_leaf_types, function_id, syntax_id,
+            surfaces.expression_graph, target_node);
+    if !target.ok || target.source_binding_syntax_id <= 0 {
+        return false;
+    }
+    let target_type: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(target.type_name);
+    let constructor: Option<Int> =
+        SemanticAstNominalConstructorIndexForName(
+            constructors, target_type.nominal_base_name);
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, value_node);
+    if !IsSome(constructor) || !call.ok || call.call_node < 0 ||
+        ArrayLength(call.argument_nodes) == 0 {
+        return false;
+    }
+    let constructor_row: Int = UnwrapOption(constructor);
+    if constructor_row < 0 ||
+        constructor_row >= ArrayLength(constructors.nominal_kinds) ||
+        constructors.nominal_kinds[constructor_row] != "struct" {
+        return false;
+    }
+
+    // Every explicit argument must resolve to one formal of this one user
+    // call. This also excludes builtin, constructor and partially resolved
+    // call spines from the transfer proof.
+    var signature_row: Int = -1;
+    var argument: Int = 0;
+    while argument < ArrayLength(call.argument_nodes) {
+        let formal: SemanticAstCollectionArgumentFormalTarget =
+            SemanticAstCollectionArgumentFormalTargetForArgument(
+                signatures, surfaces.expression_graph,
+                call.call_node, argument);
+        if !formal.ok || formal.signature_row < 0 ||
+            (signature_row >= 0 && signature_row != formal.signature_row) {
+            return false;
+        }
+        if signature_row < 0 { signature_row = formal.signature_row; }
+
+        let member: SemanticAstCollectionMemberMoveIdentity =
+            SemanticAstCollectionMemberMoveIdentityForNode(
+                artifact, signatures, constructors, locals,
+                inferred_types, resolved_leaf_types, function_id,
+                syntax_id, surfaces.expression_graph,
+                call.argument_nodes[argument]);
+        if member.ok &&
+            member.source_binding_syntax_id ==
+                target.source_binding_syntax_id &&
+            ArrayLength(member.field_path_ids) != 1 {
+            return false;
+        }
+        if !member.ok && SemanticAstExpressionStoragePlaceEqual(
+                artifact, locals, inferred_types, function_id,
+                syntax_id, target_node, syntax_id,
+                call.argument_nodes[argument],
+                surfaces.expression_graph) {
+            return false;
+        }
+        argument = argument + 1;
+    }
+    if signature_row < 0 ||
+        signature_row >= ArrayLength(signatures.return_types) {
+        return false;
+    }
+    let returned_type: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(
+            signatures.return_types[signature_row]);
+    if returned_type.canonical_name != target_type.canonical_name {
+        return false;
+    }
+
+    var required_fields: Int = 0;
+    var required_formals: Array<Int> = [];
+    var required_result_paths: Array<String> = [];
+    var field: Int = 0;
+    while field < constructors.param_counts[constructor_row] {
+        let flat: Int = constructors.param_starts[constructor_row] + field;
+        if flat < 0 || flat >= ArrayLength(constructors.field_names) ||
+            flat >= ArrayLength(constructors.param_type_names) ||
+            flat >= ArrayLength(constructors.field_source_syntax_ids) ||
+            constructors.field_names[flat] == "" ||
+            constructors.field_source_syntax_ids[flat] <= 0 {
+            return false;
+        }
+        let field_name: String =
+            Concat("", constructors.field_names[flat]);
+        let field_type: String =
+            Concat("", constructors.param_type_names[flat]);
+        if !SemanticAstCollectionAggregateStorageFreeScalarField(
+                field_type) {
+            required_fields = required_fields + 1;
+            var matching_sources: Int = 0;
+            var result_suppliers: Int = 0;
+            var matching_formal: Int = 0;
+            argument = 0;
+            while argument < ArrayLength(call.argument_nodes) {
+                let edge: SemanticCallArgumentEdgeView =
+                    SemanticCallArgumentEdgeView(
+                        true, call.call_node,
+                        call.argument_nodes[argument], argument);
+                let carried: Option<String> =
+                    SemanticAstCollectionAggregateFieldPackCarriedResultPath(
+                        signatures, constructors, surfaces, facts, edge);
+                if IsSome(carried) &&
+                    UnwrapOption(carried) == field_name {
+                    result_suppliers = result_suppliers + 1;
+                }
+                let member: SemanticAstCollectionMemberMoveIdentity =
+                    SemanticAstCollectionMemberMoveIdentityForNode(
+                        artifact, signatures, constructors, locals,
+                        inferred_types, resolved_leaf_types, function_id,
+                        syntax_id, surfaces.expression_graph,
+                        call.argument_nodes[argument]);
+                if member.ok &&
+                    member.source_binding_syntax_id ==
+                        target.source_binding_syntax_id &&
+                    ArrayLength(member.field_path_ids) == 1 &&
+                    member.field_path_ids[0] ==
+                        constructors.field_source_syntax_ids[flat] {
+                    let formal:
+                        SemanticAstCollectionArgumentFormalTarget =
+                        SemanticAstCollectionArgumentFormalTargetForArgument(
+                            signatures, surfaces.expression_graph,
+                            call.call_node, argument);
+                    var mode: Option<Int> = None;
+                    if formal.ok {
+                        mode = SemanticAstFunctionParamModeAt(
+                            signatures, formal.signature_row,
+                            formal.ordinal);
+                    }
+                    if !formal.ok || !IsSome(mode) ||
+                        UnwrapOption(mode) != 0 || !IsSome(carried) ||
+                        UnwrapOption(carried) != field_name {
+                        return false;
+                    }
+                    matching_formal = formal.syntax_id;
+                    let no_fields: Array<String> = [];
+                    let no_sources: Array<Int> = [];
+                    let no_field_ids: Array<Int> = [];
+                    var recovery_only: Bool = false;
+                    let allow_storage_free_reads: Bool = true;
+                    if !SemanticAstCollectionExclusivePlaceConsumed(
+                            artifact, signatures, constructors, locals,
+                            inferred_types, surfaces, assignments,
+                            facts.surface_starts, facts.surface_ends,
+                            facts.field_reads, facts.copies,
+                            function_id, syntax_id,
+                            call.argument_nodes[argument], no_fields,
+                            no_sources, no_field_ids,
+                            allow_storage_free_reads, recovery_only) {
+                        return false;
+                    }
+                    matching_sources = matching_sources + 1;
+                }
+                argument = argument + 1;
+            }
+            if matching_sources != 1 || result_suppliers != 1 {
+                return false;
+            }
+            ArrayPush(required_formals, matching_formal);
+            ArrayPushOwnedString(required_result_paths, field_name);
+        }
+        field = field + 1;
+    }
+    if required_fields <= 0 ||
+        signature_row >= ArrayLength(signatures.function_node_ids) {
+        return false;
+    }
+    return SemanticAstCollectionAggregateFieldPackTerminalReturnsReady(
+        artifact, signatures, constructors, locals, inferred_types,
+        resolved_leaf_types, surfaces, assignments, statements,
+        body_termination, facts,
+        signatures.function_node_ids[signature_row], required_formals,
+        required_result_paths);
+}
+
+// A member carrier outside the release demand is still safe when the
+// independent member-move owner saw exactly one restoration after its
+// declaration. The caller must separately prove the carrier's exact source
+// binding and field identity; a matching type or field name is insufficient.
+func SemanticAstCollectionAggregateMemberCarrierRestoredExactlyOnce(
+    ref moved_use: SemanticAstCollectionMemberMoveUse,
+    binding_id: Int, declaration_syntax_id: Int
+) -> Bool {
+    var matched: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(moved_use.restored_binding_syntax_ids) {
+        if moved_use.restored_binding_syntax_ids[row] == binding_id &&
+            moved_use.restoration_syntax_ids[row] > declaration_syntax_id {
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    return matched == 1;
+}
+
+// The exclusive-value owner is the authority for a call result path that
+// holds a formal's storage.  Accept that path as a restoration only when one
+// exact local/formal dependency maps the selected result path to the selected
+// destination path. Shared or ambiguous results fail closed.
+func SemanticAstCollectionAggregateResultPathRestoration(
+    ref facts: SemanticAstCollectionExclusiveValueFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    source_binding_id: Int, target_binding_id: Int,
+    source_node: Int, target_node: Int
+) -> Bool {
+    if source_binding_id <= 0 || target_binding_id <= 0 ||
+        ArrayLength(facts.dep_locals) != ArrayLength(facts.dep_formals) ||
+        ArrayLength(facts.dep_locals) != ArrayLength(facts.dep_paths) ||
+        ArrayLength(facts.paths) % 2 != 0 ||
+        MapHas(facts.shared_locals, ToString(source_binding_id)) {
+        return false;
+    }
+    let source_spine: SemanticExpressionGraphValueReceiverSpine =
+        SemanticExpressionGraphValueReceiverSpineFromGraph(
+            surfaces.expression_graph, source_node);
+    let target_spine: SemanticExpressionGraphValueReceiverSpine =
+        SemanticExpressionGraphValueReceiverSpineFromGraph(
+            surfaces.expression_graph, target_node);
+    if !source_spine.ok || source_spine.leaf_node < 0 ||
+        !target_spine.ok || target_spine.leaf_node < 0 {
+        return false;
+    }
+    let source_path: String = SemanticAstCollectionExclusiveMemberPathAbove(
+        surfaces, source_spine.leaf_node, source_node);
+    let target_path: String = SemanticAstCollectionExclusiveMemberPathAbove(
+        surfaces, target_spine.leaf_node, target_node);
+    var whole_matches: Int = 0;
+    var projected_matches: Int = 0;
+    var whole_source_projected: Int = 0;
+    var foreign_projected: Int = 0;
+    var duplicate_projected: Bool = false;
+    var row: Int = 0;
+    while row < ArrayLength(facts.dep_locals) {
+        if facts.dep_locals[row] == source_binding_id {
+            let path_row: Int = facts.dep_paths[row];
+            var destination_path: String = "";
+            var origin_path: String = "";
+            if path_row < 0 {
+                if source_path == "" && target_path == "" &&
+                    facts.dep_formals[row] == target_binding_id {
+                    whole_matches = whole_matches + 1;
+                }
+            } else if path_row < ArrayLength(facts.paths) / 2 {
+                destination_path = facts.paths[2 * path_row];
+                origin_path = facts.paths[2 * path_row + 1];
+                if destination_path == source_path {
+                    if facts.dep_formals[row] == target_binding_id {
+                        var prior: Int = 0;
+                        while prior < row {
+                            let prior_path: Int = facts.dep_paths[prior];
+                            if facts.dep_locals[prior] == source_binding_id &&
+                                facts.dep_formals[prior] == target_binding_id &&
+                                prior_path >= 0 &&
+                                prior_path < ArrayLength(facts.paths) / 2 &&
+                                facts.paths[2 * prior_path] == source_path &&
+                                facts.paths[2 * prior_path + 1] ==
+                                    origin_path {
+                                duplicate_projected = true;
+                            }
+                            prior = prior + 1;
+                        }
+                        projected_matches = projected_matches + 1;
+                        if origin_path == "" {
+                            whole_source_projected =
+                                whole_source_projected + 1;
+                        }
+                    } else {
+                        foreign_projected = foreign_projected + 1;
+                    }
+                }
+            }
+        }
+        row = row + 1;
+    }
+    if whole_matches == 1 && projected_matches == 0 &&
+        foreign_projected == 0 { return true; }
+    return target_path == "" && whole_matches == 0 &&
+        projected_matches == 1 && whole_source_projected == 1 &&
+        foreign_projected == 0 &&
+        !duplicate_projected;
+}
+
+// One local Array<String> restores one exact field of a formal only when its
+// fixed-point dependency has no second source or destination. This consumes
+// the exclusive-value owner; matching names or types alone grant nothing.
+func SemanticAstCollectionAggregateLocalRestoresExactField(
+    ref facts: SemanticAstCollectionExclusiveValueFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    local_binding_id: Int, formal_binding_id: Int,
+    source_node: Int, expected_source_field: String
+) -> Bool {
+    if local_binding_id <= 0 || formal_binding_id <= 0 ||
+        local_binding_id == formal_binding_id ||
+        expected_source_field == "" ||
+        ArrayLength(facts.dep_locals) != ArrayLength(facts.dep_formals) ||
+        ArrayLength(facts.dep_locals) != ArrayLength(facts.dep_paths) ||
+        ArrayLength(facts.paths) % 2 != 0 ||
+        MapHas(facts.shared_locals, ToString(local_binding_id)) {
+        return false;
+    }
+    let spine: SemanticExpressionGraphValueReceiverSpine =
+        SemanticExpressionGraphValueReceiverSpineFromGraph(
+            surfaces.expression_graph, source_node);
+    if !spine.ok || spine.leaf_node < 0 { return false; }
+    let local_path: String = SemanticAstCollectionExclusiveMemberPathAbove(
+        surfaces, spine.leaf_node, source_node);
+    var dependency_rows: Int = 0;
+    var exact_rows: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(facts.dep_locals) {
+        if facts.dep_locals[row] == local_binding_id {
+            dependency_rows = dependency_rows + 1;
+            let path_row: Int = facts.dep_paths[row];
+            if facts.dep_formals[row] == formal_binding_id &&
+                path_row >= 0 &&
+                path_row < ArrayLength(facts.paths) / 2 &&
+                facts.paths[2 * path_row] == local_path &&
+                facts.paths[2 * path_row + 1] ==
+                    expected_source_field {
+                exact_rows = exact_rows + 1;
+            }
+        }
+        row = row + 1;
+    }
+    return dependency_rows == 1 && exact_rows == 1;
+}
+

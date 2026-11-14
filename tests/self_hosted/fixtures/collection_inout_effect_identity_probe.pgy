@@ -165,7 +165,7 @@ func CollectionInoutEffectIdentityProbeMain(args: Array<String>) -> Void with ca
         var actual_row: Int = 0;
         while actual_row < ArrayLength(analysis.signatures.names) {
             let name: String = analysis.signatures.names[actual_row];
-            var suffix: String = "src/self_hosted/semantic/ast_expression_environment_owner.pgy";
+            var suffix: String = "src/self_hosted/semantic/ast_expression/ast_expression_environment_owner.pgy";
             var label: String = "";
             var first: Int = 0;
             var count: Int = 1;

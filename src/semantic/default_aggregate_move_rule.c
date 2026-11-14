@@ -8,10 +8,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_flow_summary_internal.h"
 #include "slot_summary.h"
-#include "type_checker_internal.h"
-#include "type_checker_ownership_internal.h"
+#include "type_checker/type_checker_internal.h"
+#include "type_checker/type_checker_ownership_internal.h"
 
 /* An enum value is copied with its payloads, so one whose payloads hold
  * storage shares it as a struct does. */

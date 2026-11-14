@@ -1,0 +1,34 @@
+// Checked read-only last consumer for installed MIR-to-C stdout requests.
+
+import "../compiler_world_direct_mir_owner.pgy";
+
+func DriverRung2CliLogMirCPayloadOrDie(
+    inout compiler_world: PgyCompilerWorld,
+    mir_json_path: String,
+    observation_request: DriverRung2MirCRequest,
+    machine_request: DriverRung2MirCMachineRequest
+) -> Void with caps io_read {
+    let expected_identity: DriverRung2MirCPayloadRequestIdentity =
+        DriverRung2MirCPayloadRequestIdentitySnapshot(
+            observation_request, machine_request
+        );
+    let admission: DriverRung2MirCPayloadAdmission =
+        ProduceMirCThroughPgyCompilerWorld(
+            compiler_world, mir_json_path, observation_request,
+            machine_request
+        );
+    if !DriverRung2MirCPayloadAdmissionReadyFor(
+        admission, mir_json_path, expected_identity
+    ) {
+        Log(DriverRung2MirCPayloadAdmissionDiagnostic(
+            admission, mir_json_path, expected_identity
+        ));
+        Exit(1);
+    }
+    match admission {
+        case DriverRung2MirCPayloadAdmitted(receipt):
+            Log(receipt.artifact.payload);
+        case DriverRung2MirCPayloadDenied(rejection):
+            Die("MIR C stdout request returned an unchecked rejection");
+    }
+}

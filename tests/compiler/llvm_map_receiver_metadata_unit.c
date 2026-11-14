@@ -11,13 +11,13 @@
 #include "compiler/dir.h"
 #include "compiler/rir.h"
 #include "compiler/mir.h"
-#include "compiler/mir_decl_headers.h"
-#include "compiler/mir_source_local_expr_types.h"
-#include "codegen/llvm_internal.h"
-#include "codegen/llvm_internal_api.h"
-#include "codegen/llvm_internal_emit_api.h"
-#include "codegen/llvm_inventory_decl_lookup.h"
-#include "codegen/llvm_expr_call_collections_extended.h"
+#include "compiler/mir/mir_decl_headers.h"
+#include "compiler/mir/mir_source_local_expr_types.h"
+#include "codegen/llvm/llvm_internal.h"
+#include "codegen/llvm/llvm_internal_api.h"
+#include "codegen/llvm/llvm_internal_emit_api.h"
+#include "codegen/llvm/llvm_inventory_decl_lookup.h"
+#include "codegen/llvm/llvm_expr_call_collections_extended.h"
 
 static unsigned checks, failures;
 #define CHECK(x) do { checks++; if (!(x)) { failures++; fprintf(stderr, "LLVM receiver fault line %d: %s\n", __LINE__, #x); } } while (0)
