@@ -1,12 +1,12 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-14 on `ci/all-green` at `08d7301f9`
-on the WSL tree; CI run 43541429551 is the last full run (at `ac0205b71`).
+Owner: Claude root lane. Checked 2026-11-14 on `ci/all-green` at `cdb65d798`;
+CI run 43554588799 at that SHA is green with every required job executed.
 
 ## Objective card
 
-- Objective: required CI green on one published commit, with the bootstrap
-  and installed-driver jobs executed.
+- Objective: keep required CI green on one published commit, with the
+  bootstrap and installed-driver jobs executed (met at `cdb65d798`).
 - Priority: memory safety of what either front end admits; one fact owner;
   fail-closed admission; C/LLVM parity; fixed point; exact-SHA CI.
 - Forbidden: a larger job or gate timeout, a reduced canonical input, a
@@ -14,10 +14,9 @@ on the WSL tree; CI run 43541429551 is the last full run (at `ac0205b71`).
 
 ## Open, in dependency order
 
-1. Not yet seen on CI: the contracts job with the native landing change
-   (`87d3223b6`) and the identity probe in the shared probe build
-   (`08d7301f9`). Locally the shard passes in 1014 s; at `ac0205b71` CI
-   cancelled it at its 30 minute limit.
+1. User request (2026-11-13): reorganize the folder tree right after CI is
+   green (tests, docs, parity, src; merge `editor/` and `editors/`), with
+   every reference updated in the same change and the full gate set run.
 2. Native admits 28 negative fixtures that fail under ASan
    ([record](../evidence/2026-11-12_native_admits_unsafe_negative_fixtures.md)).
 3. Locally, core step 5 fails only on WSL (`wslpath -w` gives a UNC repo
@@ -38,8 +37,8 @@ on the WSL tree; CI run 43541429551 is the last full run (at `ac0205b71`).
   store growth; the semantic owner probe takes 12 analyses instead of 51
   ([record](../evidence/2026-11-14_landing_copy_plan_retention.md)).
 - `08d7301f9`: the identity probe is one program of the shared build.
-- Locally at `08d7301f9`: native semantic tests 3394/3394, core shard 55/55,
-  CLI smoke, contracts shard 11/11.
+- CI at `cdb65d798` (run 43554588799): every required job green; the
+  contracts shard took 15.4 min.
 
 ## Falsifiers kept
 

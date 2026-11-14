@@ -6,11 +6,11 @@ Checked 2026-11-14.
 
 | Item | Observed value |
 |---|---|
-| Published main | fast-forwarded to the `ci/all-green` commit that carries this file; previous published head `ac0205b71` |
+| Published main | fast-forwarded to the `ci/all-green` commit that carries this file; previous published head `cdb65d798` |
 | Work branch | `ci/all-green`, worktree `C:\Users\user\pgy-wt\ci-win` |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |
 | Linux validation | WSL `Ubuntu-C-WSL`: `/root/cc-phi` synced to the branch plus working changes; a pass-through `wslpath` shim at `/root/shim` |
-| Last CI with Linux jobs executed | `ac0205b71` (run 43541429551): every job green except build-linux-self-host-contracts (see [gates](gates.md)) |
+| Last CI with Linux jobs executed | `cdb65d798` (run 43554588799): every required job green (see [gates](gates.md)) |
 
 The gate results are in [gates](gates.md) and the open items in
 [blocker](blocker.md).

@@ -6,15 +6,14 @@ native trials); a local PASS is not CI evidence.
 
 | Gate | Last observed result |
 |---|---|
-| Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `ac0205b71` (run 43541429551), with the bootstrap policy corpus in the join job |
-| Codegen bootstrap | PASS on CI at `ac0205b71` |
-| Bootstrap installed-driver jobs, CLI mode | PASS on CI at `ac0205b71` |
-| build-linux core shard | PASS on CI at `59e40856b` and `ac0205b71` |
-| Backend compare (20 shards), sanitizers, native oracle | PASS on CI at `ac0205b71` |
-| macOS, Windows, formal proofs, tsan | PASS on CI at `ac0205b71` |
-| Contracts step 3 (identity probe) | CI at `ac0205b71`: the probe build on the public route timed out at 120 s |
-| Contracts step 4 | PASS locally at `ac0205b71`; on CI the job hit its 30 minute limit during step 11, after step 4 passed |
-| Contracts job time | CI at `ac0205b71`: step 4 took 19.6 min, 572 s of it the shared semantic owner probe build (native, C and LLVM in parallel; 463 s at `d78654846`) |
-| Required CI at the published SHA | RED: only build-linux-self-host-contracts |
+| Required CI at the published SHA | GREEN at `cdb65d798` (run 43554588799): every job succeeded, none skipped, no step skipped in the bootstrap, oracle, join or contracts jobs |
+| Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `cdb65d798`, with the bootstrap policy corpus in the join job |
+| Codegen bootstrap | PASS on CI at `cdb65d798` |
+| Bootstrap installed-driver jobs, CLI mode | PASS on CI at `cdb65d798` |
+| build-linux core shard | PASS on CI at `cdb65d798` |
+| Contracts shard (identity probe in the shared probe build) | PASS on CI at `cdb65d798`; the shard step took 15.4 min of the 30 min job limit (at `ac0205b71` the job was cancelled at 30 min) |
+| Backend compare (20 shards), sanitizers, native oracle | PASS on CI at `cdb65d798` |
+| macOS, Windows, formal proofs, tsan | PASS on CI at `cdb65d798` |
 
-The finish line is every required job green on one published SHA.
+Job times at `cdb65d798`: seed part 30.0 min (limit 60), native oracle
+17.6 min, build-linux 21.0 min, join 8.1 min, codegen bootstrap 18.3 min.
