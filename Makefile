@@ -2901,7 +2901,7 @@ readonly-map-query-test-smoke: $(PGY) $(BIN_DIR)/readonly_map_query_fact_phase_u
 	PGY_BIN="$(abspath $(PGY))" READONLY_MAP_FACT_UNIT="$(abspath $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT))" "$(BASH)" tests/ownership/readonly_map_query_smoke.sh
 
 hir-function-param-flow-summary-test-smoke: $(HIR_TEST)
-	"$(BASH)" tests/ir/hir_function_param_flow_summary_smoke.sh
+	HIR_TEST_BIN="$(abspath $(HIR_TEST))" "$(BASH)" tests/ir/hir_function_param_flow_summary_smoke.sh
 
 rir-function-param-flow-summary-test-smoke: $(RIR_TEST)
 	"$(BASH)" tests/ir/rir_function_param_flow_summary_smoke.sh
@@ -2913,13 +2913,13 @@ mir-function-param-flow-summary-test-smoke: $(MIR_TEST)
 	"$(BASH)" tests/ir/mir_function_param_flow_summary_smoke.sh
 
 air-function-param-flow-summary-test-smoke: $(AIR_TEST)
-	"$(BASH)" tests/ir/air_function_param_flow_summary_smoke.sh
+	AIR_TEST_BIN="$(abspath $(AIR_TEST))" "$(BASH)" tests/ir/air_function_param_flow_summary_smoke.sh
 
 air-mir-binding-test-smoke: $(AIR_TEST) $(PGY)
 	AIR_TEST_BIN="$(abspath $(AIR_TEST))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/air_mir_binding_smoke.sh
 
 self-host-mir-function-param-flow-summary-test-smoke:
-	"$(BASH)" tests/self_hosted/mir_function_param_flow_summary_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_function_param_flow_summary_smoke.sh
 
 self-host-mir-resource-flow-identity-test-smoke:
 	"$(BASH)" tests/self_hosted/mir_resource_flow_identity_smoke.sh

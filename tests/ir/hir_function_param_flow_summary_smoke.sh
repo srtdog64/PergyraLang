@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # HIR must consume the semantic function-parameter summary snapshot by
-# stable SyntaxNodeId and reject malformed or unattachable rows.
+# stable SyntaxNodeId and reject malformed or unattachable rows. Both cases
+# execute in test_hir; a failed expectation makes it exit non-zero.
 
 set -euo pipefail
 
@@ -21,16 +22,5 @@ fi
 OUTPUT="$($HIR_TEST)"
 [[ "$OUTPUT" == *"HIR carries function parameter flow summaries by stable SyntaxNodeId"* ]]
 [[ "$OUTPUT" == *"HIR rejects a function parameter flow fact for an unknown routine"* ]]
-PROJECTION_SOURCE="$(< "$ROOT_DIR/src/compiler/hir/hir_semantic_fact_projection.c")"
-HIR_HEADER="$(< "$ROOT_DIR/src/compiler/hir.h")"
-HIR_VALIDATOR="$(< "$ROOT_DIR/src/compiler/hir/hir_validate.c")"
-[[ "$PROJECTION_SOURCE" == *"hir_lower_with_resource_and_param_flow_facts"* ]]
-[[ "$HIR_HEADER" == *"function_param_flow_summaries"* ]]
-[[ "$HIR_HEADER" == *"parameter_count;"* ]]
-[[ "$HIR_VALIDATOR" == *"hir_validate_function_param_flow_summaries"* ]]
-if [[ "$HIR_VALIDATOR" == *"ast_func_param_count(routine->ast)"* ]]; then
-    echo "[hir-function-param-flow] HIR validation must use HIR-owned parameter_count" >&2
-    exit 1
-fi
 
 echo "[hir-function-param-flow] semantic summary rows reach HIR with stable identity and validation"

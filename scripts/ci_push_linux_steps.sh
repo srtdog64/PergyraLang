@@ -84,6 +84,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make builtin-effect-registry-test-smoke'
     run 'make language-keyword-registry-test-smoke'
     run 'make native-unsafe-negative-refusal-test-smoke'
+    run 'make readonly-map-query-test-smoke'
     run 'make long-literal-exactness-test-smoke'
     run 'make string-window-extent-test-smoke'
     run 'make call-argument-evaluation-order-test-smoke'
@@ -102,6 +103,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make CC="$CI_LINUX_CC" structured-spawn-lifecycle-test-smoke'
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" clean'
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" test-all'
+    run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" hir-function-param-flow-summary-test-smoke air-function-param-flow-summary-test-smoke'
 fi
 
 if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
@@ -115,4 +117,5 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
     run 'make self-host-future-aggregate-storage-admission-test-smoke'
     run 'make effect-admission-test-smoke'
     run 'make self-host-preparation-contract-test-smoke'
+    run 'make self-host-mir-function-param-flow-summary-test-smoke'
 fi
