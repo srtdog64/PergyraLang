@@ -304,11 +304,23 @@ semantic_owned_string_record_assignment(Symbol *target, ASTNode *value,
 
 void
 semantic_owned_string_record_member_assignment(ASTNode *target, ASTNode *value,
-    SemanticContext *ctx)
+    const Type *value_type, SemanticContext *ctx)
 {
     Symbol *root = ctx != NULL ? value_root_symbol(target, ctx) : NULL;
     if (root == NULL || !binding_tracked(root) || root->is_parameter)
         return;
+    /* The stored part is now one of the root's parts: an own hand-off of the
+     * root's String storage gives what that part holds too. A literal or
+     * borrowed part makes the root borrowed; a part with another storage
+     * identity makes it unknown. */
+    if (value_type != NULL && (type_equals((Type *)value_type, TYPE_STRING)
+            || value_type->kind == TYPE_KIND_CLASS || type_is_string_array(value_type))) {
+        bool first = false;
+        OwnedStringValue joined = value_join(binding_value(root), value_of(value, ctx, 0), &first);
+        root->owned_string_state = joined.state;
+        root->owned_string_source_syntax_id = joined.source;
+        root->owned_string_producer = joined.producer;
+    }
     Symbol *source = (value != NULL && (value->type == AST_IDENTIFIER
         || value->type == AST_MEMBER_ACCESS)) ? value_root_symbol(value, ctx) : NULL;
     if (source == root || (source != NULL && source->storage_fields_aliased))

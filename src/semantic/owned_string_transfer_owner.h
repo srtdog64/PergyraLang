@@ -55,10 +55,12 @@ bool semantic_owned_string_transfer(ASTNode *value, const char *consumer,
  * each element; any other receiver is left to the collection fact. */
 bool semantic_owned_string_drop_literal_elements(ASTNode *receiver,
     SemanticContext *ctx);
-/* `target` (a field or element place) takes `value`: its root's parts may now
- * share storage or hold borrowed String elements. */
+/* `target` (a field or element place) takes `value` of `value_type`: its
+ * root's parts may now share storage or hold borrowed String elements, and
+ * a String-holding part joins the root's owned String state. */
+typedef struct Type Type;
 void semantic_owned_string_record_member_assignment(ASTNode *target,
-    ASTNode *value, SemanticContext *ctx);
+    ASTNode *value, const Type *value_type, SemanticContext *ctx);
 /* A plain push of `value` into the Array `receiver` names. */
 void semantic_owned_string_record_push(ASTNode *receiver, ASTNode *value,
     SemanticContext *ctx);

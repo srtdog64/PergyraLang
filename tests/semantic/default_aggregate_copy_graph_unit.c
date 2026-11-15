@@ -24,7 +24,7 @@ static void edge(MoveWalk *walk, MoveState *state,
     uint32_t source, const char *from, uint32_t holder, const char *to)
 {
     CHECK(move_walk_state_add(walk, state, source, from,
-        NULL, NULL, NULL, &copied_at, holder, to, NULL, false));
+        NULL, NULL, NULL, &copied_at, holder, to, NULL, false, false));
 }
 
 /* Independent adjacency-matrix closure, not another worklist algorithm. */

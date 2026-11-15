@@ -222,6 +222,13 @@ struct SemanticContext
     size_t       call_argument_sibling_count, call_argument_sibling_capacity;
     struct FormalReleaseRow *formal_release_rows;
     size_t       formal_release_count, formal_release_capacity;
+    /* Locals holding a String read through an aggregate member, and the
+     * bindings each routine passes inout, judged after Pass 2
+     * (member_element_borrow_carrier_owner). */
+    struct MemberBorrowCarrierRow *member_borrow_carriers;
+    size_t       member_borrow_carrier_count, member_borrow_carrier_capacity;
+    struct MemberBorrowInoutRoot *member_borrow_inout_roots;
+    size_t       member_borrow_inout_root_count, member_borrow_inout_root_capacity;
     /* Map storage sources whose String values changed, in check order
      * (map_string_payload_view_owner). */
     uint32_t    *map_payload_view_changes;

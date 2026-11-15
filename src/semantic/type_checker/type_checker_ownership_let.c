@@ -19,6 +19,7 @@
 #include "../indexed_string_borrow_owner.h"
 #include "../map_string_payload_view_owner.h"
 #include "../owned_string_transfer_owner.h"
+#include "../member_element_borrow_carrier_owner.h"
 #include "type_checker_ownership_support_internal.h"
 #include "type_checker_flow_universe.h"
 #include "../function_param_flow/function_param_publication_owner.h"
@@ -566,6 +567,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         semantic_error(ctx, node, "Checked indexed String initializer publication failed");
     semantic_map_payload_view_initialize_binding(sym, init, ctx);
     semantic_owned_string_initialize_binding(sym, init, ctx);
+    semantic_member_borrow_carrier_record_binding(sym, node, init, ctx);
     callable_capability_record_binding(ctx, sym, init);
 
     if (type_is_constructed_named(decl_type, "DeviceSlot"))

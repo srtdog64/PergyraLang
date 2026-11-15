@@ -1,0 +1,12 @@
+// A permutation of a shared sort result needs only live storage, so the
+// reverse of sorted is not refused for sharing xs. Dropping xs first would
+// leave sorted reversing freed storage; the drop is refused (9:15).
+func Main() -> Int {
+    var xs: Array<Int> = [];
+    ArrayPush(xs, 2);
+    ArrayPush(xs, 1);
+    var sorted: Array<Int> = ArraySort(xs);
+    ArrayDrop(xs);
+    let reversed: Array<Int> = ArrayReverse(sorted);
+    return ArrayLength(reversed);
+}

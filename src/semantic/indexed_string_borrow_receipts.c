@@ -19,6 +19,7 @@
 #include "indexed_string_field_lineage_internal.h"
 #include "indexed_string_nonowner_risk_internal.h"
 #include "indexed_string_definition_recipe.h"
+#include "member_element_borrow_carrier_owner.h"
 #include "indexed_string_permanent_element.h"
 #include "loan_copy_landing_owner.h"
 
@@ -107,6 +108,16 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
         "[semantic timing] indexed_receipts=permanent copies=%zu stores=%zu\n",
         ctx->loan_copy_landing_selected_count,
         ctx->string_store_landing_selected_count);
+    /* A String read through an aggregate member, held by any local past a
+     * call that may release or replace that field, is refused here. */
+    before = ctx->loan_copy_landing_selected_count;
+    stores_before = ctx->string_store_landing_selected_count;
+    diagnostic_before = ctx->diagnostic_emission_revision;
+    if (!semantic_member_borrow_carrier_finalize(ctx)) {
+        if (!indexed_string_receipt_deferred(ctx, before,
+                stores_before, diagnostic_before)) return false;
+        deferred = true;
+    }
     before = ctx->loan_copy_landing_selected_count;
     stores_before = ctx->string_store_landing_selected_count;
     diagnostic_before = ctx->diagnostic_emission_revision;

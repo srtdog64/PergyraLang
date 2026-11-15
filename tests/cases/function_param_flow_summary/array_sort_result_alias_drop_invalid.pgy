@@ -1,0 +1,11 @@
+// ArraySort sorts xs in place and returns xs's storage: sorted shares it.
+// Dropping xs would free what sorted still reads; the drop is refused
+// (9:15).
+func Main() -> Int {
+    var xs: Array<Int> = [];
+    ArrayPush(xs, 2);
+    ArrayPush(xs, 1);
+    let sorted: Array<Int> = ArraySort(xs);
+    ArrayDrop(xs);
+    return sorted[0] + sorted[1];
+}

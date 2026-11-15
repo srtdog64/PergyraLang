@@ -64,8 +64,12 @@ semantic_array_storage_record_defer_release(ASTNode *receiver,
     for (size_t i = 0; i < owner->deferred_array_release_count; i++) {
         DeferredArrayRelease *row = &owner->deferred_array_releases[i];
         if (row->receiver != receiver) continue;
-        /* A block walked again declares the binding again. */
+        /* A block walked again declares the binding again. The receiver was
+         * typed as an expression first, which recorded it as a read; the
+         * release is the stronger condition and replaces that row. */
         row->settled = false;
+        row->read_only = false;
+        row->owned_strings = row->owned_strings || owned_strings;
         return true;
     }
     if (owner->deferred_array_release_count == owner->deferred_array_release_capacity) {
@@ -116,6 +120,7 @@ semantic_array_storage_record_defer_read(Symbol *binding, ASTNode *use,
     for (size_t i = 0; i < owner->deferred_array_release_count; i++) {
         DeferredArrayRelease *row = &owner->deferred_array_releases[i];
         if (row->receiver != use) continue;
+        /* A walk again keeps the row's kind: a release stays a release. */
         row->settled = false;
         return true;
     }

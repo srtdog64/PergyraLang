@@ -37,10 +37,31 @@ array_storage_invalidate_exclusivity(ASTNode *source, const Type *type,
     }
 }
 
+/* A checked stdlib ArraySort or ArrayReverse call (no declared function of
+ * that name selected): its result is its receiver's storage. */
+static bool
+array_storage_permutation_call(const ASTNode *call)
+{
+    const ASTNode *callee = call != NULL && call->type == AST_CALL
+        ? ast_call_callee(call) : NULL;
+    const char *name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    return name != NULL && ast_call_arg_count(call) == 1
+        && ast_call_semantic_callee_is_stdlib(call)
+        && ast_call_semantic_callee_decl_id(call) == 0
+        && ast_call_semantic_callee_value_binding_id(call) == 0
+        && (strcmp(name, "ArraySort") == 0 || strcmp(name, "ArrayReverse") == 0);
+}
+
 void
 semantic_array_storage_escape(ASTNode *source, const Type *type,
                               SemanticContext *ctx)
 {
+    /* ArraySort and ArrayReverse return their receiver's storage: whatever
+     * takes the result shares the receiver's Array, as a copy of the
+     * receiver would, and the receiver alone no longer owns it. */
+    while (array_storage_permutation_call(source))
+        source = ast_call_argument(source, 0);
     array_storage_invalidate_exclusivity(source, type, true, ctx);
 }
 

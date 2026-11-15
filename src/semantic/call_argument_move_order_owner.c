@@ -106,9 +106,11 @@ call_argument_pending_add(CallArgumentSiblingPending row, SemanticContext *ctx)
 }
 
 static bool
-sibling_add(CallArgumentMoveFrame *frame, uint32_t binding, ASTNode *argument,
-    size_t ordinal, bool reads, SemanticContext *ctx)
+sibling_add(CallArgumentMoveFrame *frame, CallArgumentSiblingRow row,
+    SemanticContext *ctx)
 {
+    uint32_t binding = row.binding;
+    ASTNode *argument = row.argument;
     if (binding == 0)
         return true;
     if (frame->sibling_count == frame->sibling_capacity) {
@@ -121,8 +123,7 @@ sibling_add(CallArgumentMoveFrame *frame, uint32_t binding, ASTNode *argument,
         frame->siblings = rows;
         frame->sibling_capacity = capacity;
     }
-    frame->siblings[frame->sibling_count++] =
-        (CallArgumentSiblingRow){binding, argument, ordinal, reads};
+    frame->siblings[frame->sibling_count++] = row;
     return true;
 }
 
@@ -151,25 +152,29 @@ semantic_call_argument_sibling_record(CallArgumentMoveFrame *frame,
     /* A binding whose parts share storage or hold borrowed String elements,
      * handed to an inout or own formal: judged against that formal's release
      * summary after Pass 2. */
+    bool string_value = type_equals((Type *)type, TYPE_STRING);
     if ((param_mode == PARAM_MODE_MUT_REF || param_mode == PARAM_MODE_OWN)
         && frame->call != NULL
         && semantic_owned_string_storage_unexclusive(argument, ctx)
         && !call_argument_pending_add((CallArgumentSiblingPending){frame->call,
-            ast_node_stable_id(frame->call), argument, argument, ordinal, true}, ctx))
+            ast_node_stable_id(frame->call), argument, argument, ordinal, true,
+            frame->callee, param_mode, string_value}, ctx))
         return false;
     if ((param_mode == PARAM_MODE_MUT_REF || param_mode == PARAM_MODE_OWN)
         && argument->type == AST_IDENTIFIER) {
         Symbol *binding = argument_root_binding(argument, ctx);
-        return binding == NULL
-            || sibling_add(frame, binding->decl_syntax_id, argument, ordinal, false, ctx);
+        return binding == NULL || sibling_add(frame, (CallArgumentSiblingRow){
+            binding->decl_syntax_id, argument, ordinal, false, param_mode, string_value}, ctx);
     }
-    if (type_equals((Type *)type, TYPE_STRING))
-        return sibling_add(frame, string_read_root(argument, ctx), argument, ordinal, true, ctx);
+    if (string_value)
+        return sibling_add(frame, (CallArgumentSiblingRow){
+            string_read_root(argument, ctx), argument, ordinal, true, param_mode, true}, ctx);
     if (argument->type != AST_ARRAY_LITERAL)
         return true;
     for (size_t i = 0; i < ast_array_literal_count(argument); i++)
-        if (!sibling_add(frame, string_read_root(ast_array_literal_element(argument, i), ctx),
-                argument, ordinal, true, ctx))
+        if (!sibling_add(frame, (CallArgumentSiblingRow){
+                string_read_root(ast_array_literal_element(argument, i), ctx),
+                argument, ordinal, true, param_mode, true}, ctx))
             return false;
     return true;
 }
@@ -201,7 +206,8 @@ semantic_call_argument_sibling_check(CallArgumentMoveFrame *frame,
             }
             ctx->call_argument_sibling_pending[ctx->call_argument_sibling_count++] =
                 (CallArgumentSiblingPending){call, ast_node_stable_id(call), reader->argument,
-                    mover->argument, mover->ordinal, false};
+                    mover->argument, mover->ordinal, false, frame->callee, mover->mode,
+                    mover->string_value};
         }
     }
     return true;
@@ -303,16 +309,38 @@ semantic_call_argument_sibling_finalize(SemanticContext *ctx)
         formal_release_close(ctx);
     for (size_t i = 0; ctx != NULL && i < ctx->call_argument_sibling_count; i++) {
         const CallArgumentSiblingPending *row = &ctx->call_argument_sibling_pending[i];
-        ASTNode *callee = row->call != NULL && row->call_id == ast_node_stable_id(row->call)
+        bool current = row->call != NULL && row->call_id == ast_node_stable_id(row->call);
+        ASTNode *callee = current
             ? semantic_param_publication_callee(ctx, row->call, row->mover_ordinal) : NULL;
         size_t formal = 0;
-        if (callee == NULL || callee->type != AST_FUNC_DECL
-            || !semantic_param_publication_formal_for_actual(ctx, row->call, row->mover_ordinal, &formal)) {
+        bool published = callee != NULL && callee->type == AST_FUNC_DECL
+            && semantic_param_publication_formal_for_actual(ctx, row->call, row->mover_ordinal, &formal);
+        ASTNode *declared = row->declared_callee;
+        bool bodyless = !published && current && declared != NULL
+            && declared->type == AST_FUNC_DECL && ast_func_body(declared) == NULL;
+        if (!published && !bodyless) {
             semantic_error(ctx, row->reader, "Call argument sibling check lost its callee identity");
             ok = false;
             continue;
         }
-        if ((function_param_flow_summary_for_param(ctx, callee, formal) & SLOT_PARAM_SUMMARY_RELEASE) == 0
+        if (bodyless && row->mover_mode == PARAM_MODE_MUT_REF && row->mover_string)
+            continue;
+        if (bodyless && row->mover_mode != PARAM_MODE_OWN) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, row->reader,
+                "'%s' is passed to an inout parameter of '%s', which has no body: nothing proves it leaves the storage the argument's parts share or borrow.\n"
+                "Reason:\n"
+                "- a routine may release the parts of an inout aggregate\n"
+                "- a part shared with another part, or a borrowed String element, would be freed wrongly\n"
+                "Fix:\n"
+                "- give each part independent owned storage (Clone, ArrayPushOwnedString) before the call",
+                ast_identifier_name(row->mover) != NULL ? ast_identifier_name(row->mover) : "<value>",
+                ast_declaration_name(declared) != NULL ? ast_declaration_name(declared) : "<callee>");
+            ok = false;
+            continue;
+        }
+        if (!bodyless
+            && (function_param_flow_summary_for_param(ctx, callee, formal) & SLOT_PARAM_SUMMARY_RELEASE) == 0
             && !semantic_collection_owned_parameter_release_required(ctx, callee, formal)
             && !formal_releases(ctx, callee, formal))
             continue;

@@ -6,6 +6,7 @@
  */
 
 #include "../owned_string_transfer_owner.h"
+#include "../member_element_borrow_carrier_owner.h"
 #include "../formal_string_store_landing_owner.h"
 #include "type_checker_internal.h"
 #include "../collection_owned_element_requirement_owner.h"
@@ -329,6 +330,8 @@ type_check_stdlib_array_call(ASTNode *expr,
         arg1 = ast_call_argument(expr, 1);
         val = stdlib_array_normalize_type(
             type_check_expression(arg1, ctx));
+        if (kind == STDLIB_COLLECTION_ARRAY_PUSH)
+            semantic_member_borrow_carrier_record_store(arg0, expr, arg1, ctx);
         bool value_copy_landed = false;
         bool copy_landing = false;
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH && type_equals(val, TYPE_STRING)) {
@@ -707,6 +710,8 @@ type_check_stdlib_array_call(ASTNode *expr,
         arg2 = ast_call_argument(expr, 2);
         val = stdlib_array_normalize_type(
             type_check_expression(arg2, ctx));
+        if (!owned_set)
+            semantic_member_borrow_carrier_record_store(arg0, expr, arg2, ctx);
         bool copy_wanted = false;
         if (!owned_set && type_equals(val, TYPE_STRING))
             semantic_indexed_string_borrow_set_argument(arg2, expr, ctx, &copy_wanted);
@@ -831,7 +836,7 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (reject_invalid_array_mutator_receiver(
                 arg0, arr, name, ctx))
             return TYPE_UNKNOWN;
-        if (!semantic_array_storage_admit_mutation(arg0, ctx))
+        if (!semantic_array_storage_admit_permutation(arg0, ctx))
             return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,

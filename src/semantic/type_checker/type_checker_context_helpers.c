@@ -210,6 +210,8 @@ semantic_context_destroy(SemanticContext *ctx)
     free(ctx->owned_string_pending);
     free(ctx->call_argument_sibling_pending);
     free(ctx->formal_release_rows);
+    free(ctx->member_borrow_carriers);
+    free(ctx->member_borrow_inout_roots);
     free(ctx->string_store_landing_selected);
     free(ctx->string_store_landing_selected_kinds);
     free(ctx->string_store_landing_selected_nodes);

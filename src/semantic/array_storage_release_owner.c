@@ -59,6 +59,30 @@ semantic_array_storage_admit_drop(ASTNode *receiver, Type *array_type,
     return consume_array_storage_binding(receiver, ctx);
 }
 
+/* ArraySort and ArrayReverse reorder the elements in place: they neither grow
+ * nor free the buffer, so a binding that shares the storage (the result of
+ * an earlier permutation of the same Array) keeps a valid descriptor and
+ * valid elements. Such a shared binding needs live storage, not the exclusive
+ * returned-storage ownership a growing or releasing mutation needs; which
+ * holder may observe the new order stays with the copy and loan owners. An
+ * exclusive pending result is still recorded and judged after Pass 2. */
+bool
+semantic_array_storage_admit_permutation(ASTNode *receiver, SemanticContext *ctx)
+{
+    Symbol *binding = receiver != NULL && receiver->type == AST_IDENTIFIER
+        ? lookup_identifier_symbol(receiver, ctx) : NULL;
+    if (binding == NULL || !binding->has_pending_array_result
+        || binding->has_exclusive_array_storage)
+        return semantic_array_storage_admit_mutation(receiver, ctx);
+    if (!binding->is_consumed)
+        return true;
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+        receiver, "Array permutation requires live storage; '%s' was moved or released",
+        binding->name != NULL ? binding->name : "<array>");
+    return false;
+}
+
 bool
 semantic_array_storage_admit_mutation(ASTNode *receiver, SemanticContext *ctx)
 {

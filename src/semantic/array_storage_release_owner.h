@@ -29,6 +29,10 @@ bool semantic_array_storage_return_source_current(SemanticContext *ctx,
     ASTNode **callee_out, const Type **callee_result_out);
 bool semantic_array_storage_admit_mutation(ASTNode *receiver,
                                           SemanticContext *ctx);
+/* An in-place permutation (ArraySort, ArrayReverse): a shared pending
+ * result needs only live storage; everything else is a mutation. */
+bool semantic_array_storage_admit_permutation(ASTNode *receiver,
+                                             SemanticContext *ctx);
 void semantic_array_storage_initialize(Symbol *binding, const ASTNode *initializer,
                                        SemanticContext *ctx);
 void semantic_array_storage_escape(ASTNode *source, const Type *type,

@@ -32,6 +32,9 @@ typedef struct {
     ASTNode  *argument;
     size_t    ordinal;
     bool      reads;
+    /* A mover's parameter mode and whether it hands over a String. */
+    int       mode;
+    bool      string_value;
 } CallArgumentSiblingRow;
 
 typedef struct {
@@ -43,6 +46,8 @@ typedef struct {
     size_t    sibling_count;
     size_t    sibling_capacity;
     ASTNode  *call;
+    /* The declaration Pass 2 selected for the call, or NULL. */
+    ASTNode  *callee;
 } CallArgumentMoveFrame;
 
 void semantic_call_argument_move_begin(CallArgumentMoveFrame *frame);
@@ -90,6 +95,14 @@ typedef struct CallArgumentSiblingPending {
     size_t mover_ordinal;
     /* reader names the argument itself: its storage is not exclusive. */
     bool storage_release;
+    /* A callee with no body (an extern "C" declaration) has no published
+     * routine and no summary; its declared formal is the whole contract.
+     * An own formal takes the storage; an inout String is lent, and a
+     * callee cannot release a lent String; an inout aggregate has no fact
+     * that the callee leaves its parts, which is refused. */
+    ASTNode *declared_callee;
+    int mover_mode;
+    bool mover_string;
 } CallArgumentSiblingPending;
 void semantic_call_argument_move_finish(CallArgumentMoveFrame *frame);
 

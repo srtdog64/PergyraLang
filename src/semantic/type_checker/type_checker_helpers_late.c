@@ -19,6 +19,7 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "../diag_codes.h"
 #include "../call_argument_move_order_owner.h"
+#include "../member_element_borrow_carrier_owner.h"
 #include "../map_string_payload_view_owner.h"
 #include "../owned_string_transfer_owner.h"
 #include "../default_aggregate_move_rule.h"
@@ -260,6 +261,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     CallArgumentMoveFrame move_frame;
     semantic_call_argument_move_begin(&move_frame);
     move_frame.call = expr;
+    move_frame.callee = callable_decl;
     for (size_t i = 0; i < provided; i++) {
         ASTNode *arg_expr = ast_call_argument(expr, i);
         if (i > 0)
@@ -409,6 +411,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             (int)type_function_param_mode(sym->type, i), ctx);
         (void)semantic_formal_release_record_argument(arg_expr, callable_decl, i,
             (int)type_function_param_mode(sym->type, i), ctx);
+        if (type_function_param_mode(sym->type, i) == PARAM_MODE_MUT_REF)
+            semantic_member_borrow_carrier_record_inout_root(arg_expr, ctx);
         if (callable_decl != NULL && callable_decl->type == AST_FUNC_DECL
             && type_function_param_mode(sym->type, i) == PARAM_MODE_OWN
             && type_equals(arg_type, TYPE_STRING)

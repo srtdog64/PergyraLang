@@ -9,6 +9,7 @@
 #include "../indexed_string_borrow_owner.h"
 #include "../map_string_payload_view_owner.h"
 #include "../owned_string_transfer_owner.h"
+#include "../member_element_borrow_carrier_owner.h"
 #include "../function_param_flow/function_param_publication_owner.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
@@ -521,7 +522,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     if (callable_carrier_store) callable_capability_record_retained_value(ctx, expr, value, value_type);
     if (ctx->diagnostic_count == diagnostic_base && target != NULL
         && (target->type == AST_MEMBER_ACCESS || target->type == AST_ARRAY_ACCESS))
-        semantic_owned_string_record_member_assignment(target, value, ctx);
+        semantic_owned_string_record_member_assignment(target, value, target_type, ctx);
     if (ctx->diagnostic_count == diagnostic_base
         && target != NULL && target->type == AST_IDENTIFIER) {
         Symbol *target_sym = lookup_identifier_symbol(target, ctx);
@@ -539,6 +540,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
             target_sym, value, expr, ctx);
         semantic_map_payload_view_record_assignment(target_sym, value, expr, ctx);
         semantic_owned_string_record_assignment(target_sym, value, ctx);
+        semantic_member_borrow_carrier_record_binding(target_sym, expr, value, ctx);
         if (target_sym != NULL && type_is_constructed_named(target_sym->type, "Slice")) {
             ownership_slice_record_source(target_sym, value, ctx);
             target_sym->slice_split_info.has_fact = false;

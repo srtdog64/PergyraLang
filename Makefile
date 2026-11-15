@@ -570,6 +570,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_owner.c \
                    $(SEMANTIC_DIR)/map_string_payload_view_owner.c \
                    $(SEMANTIC_DIR)/call_argument_move_order_owner.c                    $(SEMANTIC_DIR)/owned_string_transfer_owner.c \
+                   $(SEMANTIC_DIR)/member_element_borrow_carrier_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_field_lineage.c \
                    $(SEMANTIC_DIR)/indexed_string_field_flow.c \
                    $(SEMANTIC_DIR)/indexed_string_result_inputs.c \

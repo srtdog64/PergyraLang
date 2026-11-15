@@ -1,0 +1,10 @@
+// Touch has no body, so no summary says it leaves the parts of its inout
+// formal. names holds a literal String element: if Touch releases the
+// parts it frees storage nothing allocated. The call is refused (8:11).
+struct Names { rows: Array<String>; }
+extern "C" { func Touch(inout names: Names) -> Void; }
+func Main() -> Void {
+    var names: Names = Names(["literal"]);
+    Touch(names);
+    Log(names.rows[0]);
+}

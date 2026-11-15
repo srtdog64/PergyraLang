@@ -450,7 +450,9 @@ landed_at_exit = {
 }
 # The analyses a compile runs after the first to land what it selected: an
 # `inout` output lands in the first, a String store or getter loan selection
-# in one more, and a store or loan no copy can land selects none.
+# in one more, and a store or loan no copy can land selects none. A round
+# whose store plan grows keeps the copies it selected (87d3223b6), so it no
+# longer forces one more round to select them again.
 landing_rounds = {
     "aggregate_local_direct_member_owned_push_valid": 1,
     # The exact inout member receipt and its Clone are both selected in the
@@ -460,9 +462,9 @@ landing_rounds = {
     "ref_default_constructor_result_loan_copied_valid": 1,
     "ref_returned_nested_projection_copy_landed_valid": 2,
     "ref_field_array_set_batch_landed_valid": 1,
-    "array_push_loan_past_owner_landed_valid": 2,
+    "array_push_loan_past_owner_landed_valid": 1,
     "local_aggregate_copy_moved_to_own_landed_valid": 1,
-    "local_ref_aggregate_carrier_moved_to_own_landed_valid": 3,
+    "local_ref_aggregate_carrier_moved_to_own_landed_valid": 2,
     "ref_constructor_copyable_field_moved_to_own_landed_valid": 1,
     "constructor_owned_string_array_reuse_batch_landed_valid": 1,
     "own_rebind_ref_input_return_landed_valid": 1,
@@ -489,18 +491,18 @@ landing_rounds = {
     "nonowner_risk_read_before_terminal_constructor_transfer_landed_valid": 0,
     "nonowner_risk_declared_result_transfer_landed_valid": 1,
     "nonowner_risk_local_nominal_carrier_return_landed_valid": 2,
-    "inout_defers_alias_written_by_inout_callee_landed_valid": 3,
+    "inout_defers_alias_written_by_inout_callee_landed_valid": 2,
     "inout_defers_kept_by_callee_before_nested_call_landed_valid": 1,
     "inout_string_chain_kept_before_pop_landed_valid": 1,
     "string_push_after_loop_walk_landed_valid": 1,
     "by_value_getter_lend_kept_twice_landed_valid": 1,
-    "by_value_getter_lend_kept_then_owned_landed_valid": 2,
+    "by_value_getter_lend_kept_then_owned_landed_valid": 1,
     "receiver_result_string_field_escape_landed_valid": 1,
     "by_value_lend_result_written_argument_copied_landed_valid": 1,
     "default_aggregate_move_reuse_landed_valid": 1,
     "default_aggregate_move_cloned_growth_landed_valid": 1,
     "by_value_getter_lend_growing_landed_valid": 1,
-    "by_value_getter_lend_held_then_owned_landed_valid": 2,
+    "by_value_getter_lend_held_then_owned_landed_valid": 1,
     "by_value_lend_two_owners_second_changed_landed_valid": 1,
     "by_value_getter_lend_growing_invalid": 0,
     "default_aggregate_move_branch_use_invalid": 0,
@@ -514,7 +516,7 @@ landing_rounds = {
     # The value-only set plan must first materialize before the sealed
     # publication can refine the same call and its earlier push as one owned
     # receiver lifecycle. The constructor copy lands after store kinds seal.
-    "formal_string_store_released_local_member_path_set_landed_valid": 3,
+    "formal_string_store_released_local_member_path_set_landed_valid": 2,
     "owned_string_push_multi_receiver_batch_valid": 1,
     "formal_string_store_cross_routine_batch_valid": 1,
     "formal_string_store_batch_boundary_valid": 2,
@@ -548,7 +550,7 @@ landing_rounds = {
     "borrowed_inout_array_kept_in_result_landed_valid": 1,
     "moved_argument_two_branches_landed_valid": 1,
     "moved_argument_chain_batch_landed_valid": 1,
-    "by_value_getter_lend_into_own_formal_landed_valid": 2,
+    "by_value_getter_lend_into_own_formal_landed_valid": 1,
     "returned_alias_lends_formal_valid": 0,
     "loan_carrier_unchanged_by_call_before_loan_valid": 0,
     "loan_owner_read_by_constructor_valid": 0,
@@ -574,7 +576,7 @@ landing_rounds = {
     "by_value_array_to_two_reading_formals_valid": 0,
     "array_handed_to_two_keeping_formals_landed_valid": 1,
     "array_handed_to_three_keeping_formals_landed_valid": 1,
-    "array_kept_by_earlier_call_and_two_formals_landed_valid": 2,
+    "array_kept_by_earlier_call_and_two_formals_landed_valid": 1,
     "array_field_detach_two_own_valid": 0,
     "array_field_detach_caller_alias_landed_valid": 1,
     "array_field_detach_later_declared_own_valid": 0,
@@ -665,7 +667,7 @@ landing_rounds = {
     "path_alias_returned_in_constructor_grown_landed_valid": 1,
     "unit_enum_constant_constructor_moves_landed_valid": 1,
     "array_result_owned_element_inout_escape_landed_valid": 1,
-    "string_element_tostring_opaque_call_landed_valid": 2,
+    "string_element_tostring_opaque_call_landed_valid": 1,
     "string_argument_kept_copy_landed_valid": 1,
     "formal_string_store_landing_ref_push_valid": 0,
     "formal_string_store_landing_local_receiver_valid": 1,
@@ -681,7 +683,7 @@ landing_rounds = {
     "formal_array_store_local_receiver_invalid": 0,
     "formal_array_store_field_take_landed_valid": 1,
     "formal_string_store_local_alias_set_landed_valid": 1,
-    "formal_string_store_local_member_path_set_landed_valid": 2,
+    "formal_string_store_local_member_path_set_landed_valid": 1,
     "formal_string_store_ref_array_element_local_alias_set_landed_valid": 1,
     "by_value_getter_lend_owner_written_landed_valid": 1,
     "by_value_getter_lend_shared_result_owner_changed_invalid": 0,
@@ -697,8 +699,8 @@ landing_rounds = {
     "formal_store_landing_struct_output_valid": 1,
     "formal_store_landing_alias_output_valid": 1,
     "formal_store_landing_struct_output_shallow_invalid": 0,
-    "array_push_loan_inout_landed_valid": 2,
-    "array_push_loan_inout_nested_clone_landed_valid": 2,
+    "array_push_loan_inout_landed_valid": 1,
+    "array_push_loan_inout_nested_clone_landed_valid": 1,
     "aggregate_move_void_call_landed_valid": 1,
     "aggregate_move_void_call_nested_clone_landed_valid": 1,
     "by_value_getter_lend_result_grown_landed_valid": 1,
@@ -2435,7 +2437,10 @@ for name, valid in paired:
             # read again.  The final shallow carrier still lacks a release
             # boundary and must remain refused at the second own handoff.
             "array_field_detach_duplicate_alias_own_invalid": {(13, 35)},
-            "array_result_borrowed_element_move_deepdrop_invalid": {(9, 32), (10, 27)},
+            # A move of elements nothing proves owned needs only the
+            # descriptor (c7c9c9153); the deep drop of the literal they
+            # hold stays refused.
+            "array_result_borrowed_element_move_deepdrop_invalid": {(10, 27)},
         }
         if name in array_release_multi_sites and (
                 checked.stdout or len(errors) != len(array_release_multi_sites[name]) or
@@ -3153,8 +3158,17 @@ for name, expected in (
         observed = subprocess.run([str(executable)], stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE, timeout=10.0, check=False,
                                   cwd=case_cwd)
-        if observed.returncode != 0 or observed.stderr or observed.stdout.decode().replace("\r\n", "\n") != expected:
-            raise SystemExit(f"stdlib input reader {name} runtime mismatch for {backend}: {observed.stdout!r}")
+        # Main's Int result is the exit status (2026-11-15 decision); these
+        # cases return the grown length or a count.
+        expected_status = {
+            "default_aggregate_move_field_store_landed_valid": 2,
+            "default_aggregate_move_field_set_landed_valid": 1,
+            "default_aggregate_move_field_element_write_landed_valid": 1,
+            "default_aggregate_move_field_alias_store_landed_valid": 2,
+        }.get(name, 0)
+        if observed.returncode != expected_status or observed.stderr or observed.stdout.decode().replace("\r\n", "\n") != expected:
+            raise SystemExit(f"stdlib input reader {name} runtime mismatch for {backend}: "
+                             f"exit {observed.returncode} stdout {observed.stdout!r}")
 print("[function-param-flow-summary] stdlib input retention C/LLVM and identity/arity controls: PASS")
 try:
     run = subprocess.run(
