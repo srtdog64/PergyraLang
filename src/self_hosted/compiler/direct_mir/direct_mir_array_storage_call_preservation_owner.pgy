@@ -1,18 +1,31 @@
 // MIR independently proves descriptor preservation. Source admission is not a
 // certificate for an untrusted MIR input, and unknown uses remove permission.
+// With string_elements an Array<String> parameter is proved as well: only its
+// descriptor is in question, so an element read or a join observes it.
 import "direct_mir_array_storage_element_lifetime_owner.pgy";
 import "scalar_program/direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 import "scalar_program/direct_mir_scalar_program_hashmap_expression_location_owner.pgy";
+import "scalar_program/direct_mir_scalar_program_array_string_expression_kind_owner.pgy";
+import "scalar_program/direct_mir_scalar_program_string_core_expression_kind_owner.pgy";
+import "scalar_program/direct_mir_scalar_program_array_clone_expression_kind_owner.pgy";
+import "scalar_program/direct_mir_scalar_program_slice_expression_kind_owner.pgy";
+import "scalar_program/direct_mir_scalar_program_array_mutation_kind_owner.pgy";
+import "scalar_program/direct_mir_scalar_program_value_result_union_owner.pgy";
 
-func DirectMirArrayStorageReceiverObserves(kind: Int) -> Bool {
+func DirectMirArrayStorageReceiverObserves(kind: Int, string_elements: Bool) -> Bool {
     return kind == DirectMirScalarProgramExprArrayStringLength() ||
         kind == DirectMirScalarProgramExprArrayIntIndex() ||
         kind == DirectMirScalarProgramExprArrayBoolIndex() ||
         kind == DirectMirScalarProgramExprArrayLongIndex() ||
-        kind == DirectMirScalarProgramExprLogicalRecordArrayIndex();
+        kind == DirectMirScalarProgramExprLogicalRecordArrayIndex() ||
+        (string_elements && (kind == DirectMirScalarProgramExprArrayStringIndex() ||
+            kind == DirectMirScalarProgramExprStringJoin() ||
+            kind == DirectMirScalarProgramExprArrayClone() ||
+            kind == DirectMirScalarProgramExprSliceCopy()));
 }
 
-func DirectMirArrayStoragePreservingParameters(ref plan: DirectMirScalarCfgGraphPlan) -> HashMap<String, Int> {
+func DirectMirArrayStoragePreservingParameters(ref plan: DirectMirScalarCfgGraphPlan,
+    string_elements: Bool) -> HashMap<String, Int> {
     var proved: HashMap<String, Int> = MapNew();
     var owners: Array<Int> = [];
     var owner_graph: Int = 0;
@@ -57,7 +70,8 @@ func DirectMirArrayStoragePreservingParameters(ref plan: DirectMirScalarCfgGraph
     while flat < ArrayLength(plan.routines.parameter_types) {
         let element: Option<String> = SemanticArrayElementType(plan.routines.parameter_types[flat]);
         ArrayPush(blocked, !IsSome(element) ||
-            !DirectMirArrayStoragePlainType(plan, UnwrapOption(element), 0) ||
+            !(DirectMirArrayStoragePlainType(plan, UnwrapOption(element), 0) ||
+              (string_elements && UnwrapOption(element) == "String")) ||
             plan.routines.parameter_carriages[flat] == "owner-handle");
         flat = flat + 1;
     }
@@ -103,7 +117,7 @@ func DirectMirArrayStoragePreservingParameters(ref plan: DirectMirScalarCfgGraph
                 if child >= 0 {
                     if child >= node { ok = false; break; }
                     let source: Int = node_parameters[child];
-                    if source >= 0 && !(edge == 0 && DirectMirArrayStorageReceiverObserves(kind)) &&
+                    if source >= 0 && !(edge == 0 && DirectMirArrayStorageReceiverObserves(kind, string_elements)) &&
                         !(kind == DirectMirScalarProgramExprDirectCall() && !arguments.nary && arguments.count > 0) {
                         blocked[source] = true;
                     }
@@ -132,6 +146,15 @@ func DirectMirArrayStoragePreservingParameters(ref plan: DirectMirScalarCfgGraph
             let result: Int = plan.operation_result_values[operation];
             if result >= 0 && plan.value_local_rows[result] < 0 && IsSome(SemanticArrayElementType(plan.value_types[result])) {
                 unknown_definition = true;
+            }
+            // A push, set or pop on a by-value parameter changes the caller's
+            // descriptor in place; a value-result parameter copies it back.
+            let target_parameter: Int = plan.operation_right_locals[operation];
+            if DirectMirScalarProgramArrayMutationKind(plan.operation_kinds[operation]) &&
+                plan.operation_left_locals[operation] == -1 && target_parameter >= 0 &&
+                target_parameter < plan.routines.parameter_counts[routine] &&
+                !DirectMirScalarProgramParameterValueResultAt(plan, routine, target_parameter) {
+                blocked[plan.routines.parameter_starts[routine] + target_parameter] = true;
             }
             operation = operation + 1;
         }

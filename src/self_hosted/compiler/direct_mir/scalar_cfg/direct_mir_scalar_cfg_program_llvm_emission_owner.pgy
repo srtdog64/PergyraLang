@@ -50,6 +50,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     array_int_projection: Option<DirectMirArrayIntAbiProjection>, target: CompilerTargetProjectionFact
 ) -> String {
+    DirectMirScalarProgramArrayStringFormalMemberAliasRefusal(plan, routine);
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, DirectMirScalarCfgProgramLlvmRoutineSignature(plan, routine));

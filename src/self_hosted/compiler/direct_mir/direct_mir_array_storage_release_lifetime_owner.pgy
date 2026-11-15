@@ -227,7 +227,7 @@ func DirectMirArrayStorageReleaseLifetimeReady(ref plan: DirectMirScalarCfgGraph
         node = node + 1;
     }
     if !found { return true; }
-    let preserving_parameters: HashMap<String, Int> = DirectMirArrayStoragePreservingParameters(plan);
+    let preserving_parameters: HashMap<String, Int> = DirectMirArrayStoragePreservingParameters(plan, false);
     let required: HashMap<String, Int> = DirectMirArrayStorageReleaseRequirements(plan);
     node = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {

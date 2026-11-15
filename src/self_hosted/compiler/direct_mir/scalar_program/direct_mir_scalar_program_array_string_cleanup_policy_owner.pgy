@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "../scalar_cfg/direct_mir_scalar_cfg_op_code_owner.pgy";
 import "../../../codegen/runtime_abi/collection_runtime_owner.pgy";
+import "direct_mir_scalar_program_array_string_storage_sharing_owner.pgy";
 
 // With no transition row, the definitions of a local that is never pushed,
 // set or popped decide what it owns. A literal of borrowed elements owns only
@@ -90,7 +91,39 @@ func DirectMirScalarProgramUnrowedArrayStringLocalDrop(
     return "";
 }
 
+// A release of storage that a call, constructor or binding still holds frees
+// what that holder reads next; the MIR facts do not say who owns it.
 func DirectMirScalarProgramArrayStringCleanupDropSymbol(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
+) -> String {
+    let symbol: String = DirectMirScalarProgramArrayStringCleanupDropSymbolFromFacts(
+        plan, routine, local_row);
+    if symbol != "" && DirectMirScalarProgramArrayStringLocalShared(plan, routine, local_row) {
+        Die(Concat("direct MIR Array<String> cleanup refuses storage another holder still has: routine=",
+            Concat(ToString(routine), Concat(" local=", ToString(local_row)))));
+    }
+    return symbol;
+}
+
+// An alias of an inout or ref parameter's member that grows in place leaves
+// that member on the storage the growth released. Checked once per routine:
+// a void callable's exits release no Array<String> local.
+func DirectMirScalarProgramArrayStringFormalMemberAliasRefusal(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> Void {
+    var local_row: Int = plan.routines.local_starts[routine];
+    let end: Int = local_row + plan.routines.local_counts[routine];
+    while local_row < end {
+        if plan.local_types[local_row] == CompilerAbiLayoutArrayStringTypeName() &&
+            DirectMirScalarProgramArrayStringFormalMemberAliasGrown(plan, routine, local_row) {
+            Die(Concat("direct MIR Array<String> alias of a parameter member grows storage the member still names: routine=",
+                Concat(ToString(routine), Concat(" local=", ToString(local_row)))));
+        }
+        local_row = local_row + 1;
+    }
+}
+
+func DirectMirScalarProgramArrayStringCleanupDropSymbolFromFacts(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
 ) -> String {
     let transition_row: Int =
@@ -172,6 +205,13 @@ func DirectMirScalarProgramArrayStringReplacementDropSymbol(
         return "";
     }
     let mode: Int = plan.program.collection_ownership.replacement_modes[transition];
+    // A definition that runs again releases the storage of the previous run;
+    // one that runs once releases the zero descriptor.
+    if (mode == 1 || mode == 2) &&
+        DirectMirScalarProgramOperationInCycle(plan, operation) &&
+        DirectMirScalarProgramArrayStringLocalShared(plan, routine, local_row) {
+        Die("direct MIR Array<String> replacement refuses storage another holder still has");
+    }
     if mode == 1 {
         return CollectionRuntimeCDropStorageFn(2);
     }
