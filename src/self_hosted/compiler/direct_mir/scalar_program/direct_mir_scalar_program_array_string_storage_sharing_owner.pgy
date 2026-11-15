@@ -17,11 +17,11 @@ import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir_scalar_program_value_result_union_owner.pgy";
 
 func DirectMirScalarProgramArrayStringLocalNode(
-    ref expressions: DirectMirScalarProgramExpressionSet, node: Int, local: Int
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int, target_local: Int
 ) -> Bool {
     return node >= 0 && node < ArrayLength(expressions.node_kinds) &&
         expressions.node_kinds[node] == DirectMirScalarProgramExprLocal() &&
-        expressions.node_local_rows[node] == local;
+        expressions.node_local_rows[node] == target_local;
 }
 
 // A member value of this type carries no storage a reader could keep.
@@ -137,13 +137,13 @@ func DirectMirScalarProgramRecordLocalObservedOnly(
 // `constructed_record` is the record local this graph's root constructor
 // defines, or -1.
 func DirectMirScalarProgramArrayStringGraphShares(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, graph: Int, local: Int,
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, graph: Int, target_local: Int,
     root_shares: Bool, constructed_record: Int,
     ref preserving: HashMap<String, Int>, proved: Bool
 ) -> Int {
     if graph < 0 || graph >= ArrayLength(plan.program.expressions.graph_roots) { return 0; }
     if root_shares && DirectMirScalarProgramArrayStringLocalNode(
-            plan.program.expressions, plan.program.expressions.graph_roots[graph], local) {
+            plan.program.expressions, plan.program.expressions.graph_roots[graph], target_local) {
         return 1;
     }
     var code: Int = 0;
@@ -154,38 +154,38 @@ func DirectMirScalarProgramArrayStringGraphShares(
         let arguments: DirectMirScalarProgramArgumentView =
             DirectMirScalarProgramArgumentViewFromNode(plan.program.expressions, node);
         if !arguments.valid { return 1; }
+        // The root constructor of an only-read record takes the local in
+        // either operand encoding (n-ary, or left/right for two fields).
+        let observed_record: Bool = kind == DirectMirScalarProgramExprLogicalRecordConstructor() &&
+            node == plan.program.expressions.graph_roots[graph] && constructed_record >= 0 &&
+            DirectMirScalarProgramRecordLocalObservedOnly(plan, routine, constructed_record);
         var ordinal: Int = 0;
-        while (kind == DirectMirScalarProgramExprDirectCall() || arguments.nary) &&
+        while !observed_record && (kind == DirectMirScalarProgramExprDirectCall() || arguments.nary) &&
                 ordinal < arguments.count {
             if DirectMirScalarProgramArrayStringLocalNode(plan.program.expressions,
-                    DirectMirScalarProgramArgumentViewAt(plan.program.expressions, arguments, ordinal), local) {
+                    DirectMirScalarProgramArgumentViewAt(plan.program.expressions, arguments, ordinal), target_local) {
                 let target: Int = plan.program.expressions.node_callable_rows[node];
-                let observed_record: Bool = kind == DirectMirScalarProgramExprLogicalRecordConstructor() &&
-                    node == plan.program.expressions.graph_roots[graph] && constructed_record >= 0 &&
-                    DirectMirScalarProgramRecordLocalObservedOnly(plan, routine, constructed_record);
-                if !observed_record {
-                    if kind != DirectMirScalarProgramExprDirectCall() || target < 0 ||
-                        target >= ArrayLength(plan.routines.parameter_counts) ||
-                        ordinal >= plan.routines.parameter_counts[target] { return 1; }
-                    // An inout parameter copies the descriptor back and a ref
-                    // parameter cannot change it: the caller keeps the storage.
-                    let by_address: Bool = DirectMirScalarProgramParameterValueResultAt(plan, target, ordinal) ||
-                        plan.routines.parameter_carriages[plan.routines.parameter_starts[target] + ordinal] ==
-                            "readonly-ref";
-                    if !by_address && !proved { code = 2; }
-                    else if !by_address &&
-                        !MapHas(preserving, ToString(plan.routines.parameter_starts[target] + ordinal)) {
-                        return 1;
-                    }
+                if kind != DirectMirScalarProgramExprDirectCall() || target < 0 ||
+                    target >= ArrayLength(plan.routines.parameter_counts) ||
+                    ordinal >= plan.routines.parameter_counts[target] { return 1; }
+                // An inout parameter copies the descriptor back and a ref
+                // parameter cannot change it: the caller keeps the storage.
+                let by_address: Bool = DirectMirScalarProgramParameterValueResultAt(plan, target, ordinal) ||
+                    plan.routines.parameter_carriages[plan.routines.parameter_starts[target] + ordinal] ==
+                        "readonly-ref";
+                if !by_address && !proved { code = 2; }
+                else if !by_address &&
+                    !MapHas(preserving, ToString(plan.routines.parameter_starts[target] + ordinal)) {
+                    return 1;
                 }
             }
             ordinal = ordinal + 1;
         }
-        if kind != DirectMirScalarProgramExprDirectCall() {
+        if !observed_record && kind != DirectMirScalarProgramExprDirectCall() {
             if DirectMirScalarProgramArrayStringLocalNode(plan.program.expressions,
-                    plan.program.expressions.node_rights[node], local) { return 1; }
+                    plan.program.expressions.node_rights[node], target_local) { return 1; }
             if DirectMirScalarProgramArrayStringLocalNode(plan.program.expressions,
-                    plan.program.expressions.node_lefts[node], local) &&
+                    plan.program.expressions.node_lefts[node], target_local) &&
                 !DirectMirArrayStorageReceiverObserves(kind, true) &&
                 kind != DirectMirScalarProgramExprArrayStringPushOwned() &&
                 kind != DirectMirScalarProgramExprArrayStringDropOwned() { return 1; }
@@ -199,7 +199,7 @@ func DirectMirScalarProgramArrayStringGraphShares(
 // local, a member store or an identity store takes the whole local at its root;
 // a return root is the lifetime owner's transfer.
 func DirectMirScalarProgramArrayStringRoutineShares(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local: Int,
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, target_local: Int,
     ref preserving: HashMap<String, Int>, proved: Bool
 ) -> Int {
     var code: Int = 0;
@@ -215,7 +215,7 @@ func DirectMirScalarProgramArrayStringRoutineShares(
         }
         let root_shares: Bool = kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() ||
             kind == DirectMirScalarCfgOpIdentityCellStore() ||
-            (kind == DirectMirScalarCfgOpExpressionDefinition() && defined != local);
+            (kind == DirectMirScalarCfgOpExpressionDefinition() && defined != target_local);
         var lane: Int = 0;
         while lane < 2 {
             var graph: Int = plan.program.operation_expression_rows[operation];
@@ -225,7 +225,7 @@ func DirectMirScalarProgramArrayStringRoutineShares(
                 constructed_record = -1;
             }
             let found: Int = DirectMirScalarProgramArrayStringGraphShares(
-                plan, routine, graph, local, root_shares && lane == 0, constructed_record,
+                plan, routine, graph, target_local, root_shares && lane == 0, constructed_record,
                 preserving, proved);
             if found == 1 { return 1; }
             if found == 2 { code = 2; }
@@ -241,7 +241,7 @@ func DirectMirScalarProgramArrayStringRoutineShares(
             var graph: Int = plan.program.block_condition_expression_rows[block];
             if lane == 1 { graph = plan.program.block_return_expression_rows[block]; }
             let found: Int = DirectMirScalarProgramArrayStringGraphShares(
-                plan, routine, graph, local, false, -1, preserving, proved);
+                plan, routine, graph, target_local, false, -1, preserving, proved);
             if found == 1 { return 1; }
             if found == 2 { code = 2; }
             lane = lane + 1;
@@ -252,18 +252,18 @@ func DirectMirScalarProgramArrayStringRoutineShares(
 }
 
 func DirectMirScalarProgramArrayStringLocalShared(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local: Int
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, target_local: Int
 ) -> Bool {
     if routine < 0 || routine >= ArrayLength(plan.routines.operation_starts) ||
         routine >= ArrayLength(plan.routines.block_starts) { return true; }
     var preserving: HashMap<String, Int> = MapNew();
     let unproved: Int = DirectMirScalarProgramArrayStringRoutineShares(
-        plan, routine, local, preserving, false);
+        plan, routine, target_local, preserving, false);
     if unproved != 2 { return unproved == 1; }
     // Only a call argument needs the whole-program proof; build it once here.
     preserving = DirectMirArrayStoragePreservingParameters(plan, true);
     return DirectMirScalarProgramArrayStringRoutineShares(
-        plan, routine, local, preserving, true) == 1;
+        plan, routine, target_local, preserving, true) == 1;
 }
 
 // Whether the block holding this operation can run again: a successor path
@@ -304,7 +304,7 @@ func DirectMirScalarProgramOperationInCycle(
 // A member of an inout or ref parameter aliased into this local, grown in
 // place and not stored back into that member.
 func DirectMirScalarProgramArrayStringFormalMemberAliasGrown(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local: Int
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, target_local: Int
 ) -> Bool {
     var member: Int = -1;
     var grown: Bool = false;
@@ -317,7 +317,7 @@ func DirectMirScalarProgramArrayStringFormalMemberAliasGrown(
         let graph: Int = plan.program.operation_expression_rows[operation];
         if kind == DirectMirScalarCfgOpExpressionDefinition() && graph >= 0 &&
             value >= 0 && value < ArrayLength(plan.value_local_rows) &&
-            plan.value_local_rows[value] == local {
+            plan.value_local_rows[value] == target_local {
             // The parameter itself (member -2, never stored back here) or the
             // member path nearest to it.
             var node: Int = plan.program.expressions.graph_roots[graph];
@@ -339,7 +339,7 @@ func DirectMirScalarProgramArrayStringFormalMemberAliasGrown(
             }
         }
         // A missing target path (-1) is a change of the local itself as well.
-        if DirectMirScalarProgramArrayMutationKind(kind) && plan.operation_left_locals[operation] == local &&
+        if DirectMirScalarProgramArrayMutationKind(kind) && plan.operation_left_locals[operation] == target_local &&
             DirectMirScalarProgramArrayMutationTargetMemberCount(
                 plan.program.operation_target_paths, operation) < 1 { grown = true; }
         if graph >= 0 {
@@ -348,9 +348,9 @@ func DirectMirScalarProgramArrayStringFormalMemberAliasGrown(
             if (root_kind == DirectMirScalarProgramExprArrayStringPushOwned() ||
                     root_kind == DirectMirScalarProgramExprArrayStringDropOwned()) &&
                 DirectMirScalarProgramArrayStringLocalNode(plan.program.expressions,
-                    plan.program.expressions.node_lefts[root], local) { grown = true; }
+                    plan.program.expressions.node_lefts[root], target_local) { grown = true; }
             if kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() &&
-                DirectMirScalarProgramArrayStringLocalNode(plan.program.expressions, root, local) &&
+                DirectMirScalarProgramArrayStringLocalNode(plan.program.expressions, root, target_local) &&
                 plan.operation_right_locals[operation] == member { restored = true; }
         }
         operation = operation + 1;
