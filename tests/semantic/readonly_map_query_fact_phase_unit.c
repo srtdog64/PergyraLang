@@ -480,6 +480,22 @@ static bool context_has_diagnostic(const SemanticContext *ctx, const char *code,
     }
     return false;
 }
+/* Under the 2026-11-08 let/var decision a `using` alias is an immutable
+ * name and a `ref` formal cannot be replaced, so those writes are refused at
+ * the write. Inputs that wrote that way to reach a flow fact check the
+ * refusal instead. */
+static void checked_immutable_write_refused(const char *source, const char *code, const char *cause)
+{
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(program != NULL && !type_check_program(program, ctx));
+    CHECK(context_has_diagnostic(ctx, code, cause));
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
 static void checked_result_source(const char *source, size_t statement, bool returned,
     const char *expected, bool seed, bool key_error)
 {
@@ -1723,11 +1739,15 @@ static void retained_inout_source(const char *setter, const char *body, bool com
     CHECK(program != NULL && !parser_has_error(parser));
     SemanticContext *ctx = semantic_context_create();
     CHECK(!type_check_program(program, ctx));
-    CHECK(context_has_diagnostic(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE));
     bool admitted_call = strstr(body, "var staged:String=\"literal\"") == NULL;
+    if (admitted_call)
+        CHECK(context_has_diagnostic(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE));
     if (!admitted_call) {
         /* Invalid-program publication robustness, not legal shadowing or an
-         * independent ownership falsifier: bind-once remains authoritative. */
+         * independent ownership falsifier: bind-once remains authoritative.
+         * The redeclaration leaves the publication generation unsealed (see
+         * the binding check below), so no borrow verdict is published; the
+         * renamed program beside this case carries the borrow refusal. */
         CHECK(context_has_diagnostic(ctx, PGY_CODE_SEM_REDECLARATION,
             PGY_CAUSE_SCOPE_DUPLICATE_SYMBOL));
     }
@@ -2881,7 +2901,7 @@ static void checked_owned_string_result_receipt_currency(void)
         "func Produce()->String{let allocator=AllocatorResult();let builder=TextBuilderNew(32);"
         "TextBuilderAppend(builder,\"heap text\");let output=TextBuilderFinish(builder,allocator);AllocatorDestroy(allocator);return output;}"
         "func Forward()->String{return Produce();}"
-        "func Consumer(ref text:String)->Option<Int>{let rows:Array<String> = [];ArrayPush(rows,%s());"
+        "func Consumer(ref text:String)->Option<Int>{var rows:Array<String> = [];ArrayPush(rows,%s());"
         "return Some(ArrayLength(rows)+StringLength(text));}",
         route == 0 ? "Produce" : "Forward");
     Lexer *lexer = lexer_create(source);
@@ -2967,9 +2987,9 @@ static void checked_owned_string_result_receipt_currency(void)
 static void checked_owned_string_straight_line_replacement_result(void)
 {
     const char *positive =
-        "func Produce()->String{let output:String=\"\";"
+        "func Produce()->String{var output:String=\"\";"
         "output=Concat(output,\"owned\");output=Concat(output,\" result\");return output;}"
-        "func Consumer()->Void{let rows:Array<String> = [];ArrayPushOwnedString(rows,Produce());"
+        "func Consumer()->Void{var rows:Array<String> = [];ArrayPushOwnedString(rows,Produce());"
         "ArrayDropOwnedStrings(rows);}";
     Lexer *lexer = lexer_create(positive);
     Parser *parser = parser_create(lexer);
@@ -2991,9 +3011,9 @@ static void checked_owned_string_straight_line_replacement_result(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 
     const char *negative =
-        "func Produce(ref borrowed:String)->String{let output:String=\"\";"
+        "func Produce(ref borrowed:String)->String{var output:String=\"\";"
         "output=Concat(output,\"owned\");output=borrowed;return output;}"
-        "func Consumer(ref borrowed:String)->Void{let rows:Array<String> = [];"
+        "func Consumer(ref borrowed:String)->Void{var rows:Array<String> = [];"
         "ArrayPush(rows,Produce(borrowed));ArrayDropOwnedStrings(rows);}";
     lexer = lexer_create(negative);
     parser = parser_create(lexer);
@@ -3867,7 +3887,7 @@ static void checked_all_def0_string_currency(void)
         "func TrimReuse(value:String,trimmed:Bool)->String{"
         "if trimmed{return Substring(value,0,StringLength(value));}return value;}"
         "func Main()->Void{let variant:String=MakeVariant();"
-        "let variant_name:String=variant;let names:Array<String> = [];"
+        "var variant_name:String=variant;var names:Array<String> = [];"
         "ArrayPush(names,variant_name);"
         "if StringLength(variant)>0{variant_name=TrimReuse(variant,true);}"
         "ArrayPush(names,variant_name);Log(names[0]);Log(names[1]);}";
@@ -3970,8 +3990,8 @@ cleanup:
 static void checked_all_def0_known_zero_fallback(void)
 {
     Lexer *lexer = lexer_create(
-        "func Main()->Void{let names:Array<String> = [];"
-        "let text:String=\"seed\";ArrayPush(names,text);"
+        "func Main()->Void{var names:Array<String> = [];"
+        "var text:String=\"seed\";ArrayPush(names,text);"
         "text=Substring(\"next\",0,4);ArrayPush(names,text);"
         "Log(names[0]);Log(names[1]);}"
     );
@@ -4034,7 +4054,7 @@ static void checked_named_string_shallow_retention_currency(void)
 {
     Lexer *lexer = lexer_create(
         "func Identity(value:String)->String{return value;}"
-        "func Main()->Void{let rows:Array<String> = [];"
+        "func Main()->Void{var rows:Array<String> = [];"
         "let source=Substring(\"owned\",0,5);let named=Identity(source);"
         "ArrayPush(rows,named);}");
     Parser *parser = parser_create(lexer);
@@ -5042,19 +5062,19 @@ static void checked_private_inout_no_store_context(void)
         "ArraySet(bounds, 0, 1); return StringLength(text) > 0; }"
         "func Forward(ref text: String, inout bounds: Array<Int>) -> Bool {"
         "return Fill(text,bounds);}"
-        "func Project(ref text: String) -> String { let bounds: Array<Int> = [0];"
+        "func Project(ref text: String) -> String { var bounds: Array<Int> = [0];"
         "if !Forward(text, bounds) { return \"\"; } return text; }",
         "func Fill(ref text: String, inout bounds: Array<Int>) -> Bool {"
         "ArraySet(bounds, 0, 1); return StringLength(text) > 0; }"
         "func Forward(ref text: String, inout bounds: Array<Int>) -> Bool {"
         "return Fill(text,bounds);}"
         "func Project(ref text: String, rows: Array<Int>) -> String {"
-        "let alias: Array<Int> = rows; if !Forward(text, alias) { return \"\"; }"
+        "var alias: Array<Int> = rows; if !Forward(text, alias) { return \"\"; }"
         "return text; }",
         "func Fill(ref text: String, inout bounds: Array<Int>) -> Bool {"
         "ArraySet(bounds, 0, 1); let local_slot: Slot<Int> = ClaimSlot();"
         "local_slot = 1; Release(local_slot); return StringLength(text) > 0; }"
-        "func Project(ref text: String) -> String { let bounds: Array<Int> = [0];"
+        "func Project(ref text: String) -> String { var bounds: Array<Int> = [0];"
         "if !Fill(text, bounds) { return \"\"; } return text; }"
     };
     for (size_t kind = 0; kind < sizeof(sources) / sizeof(sources[0]); kind++) {
@@ -5365,8 +5385,8 @@ static void checked_cast_after_prior_ownership_error(void)
         char source[512];
         if (route == 0)
             snprintf(source, sizeof(source), "%sfunc CastRead(hash:Long,value:String)->Long{"
-                "let modulus:Long=268435456L;let out:Long=(hash*131L+(StringLength(value) as Long))%%modulus;"
-                "let i:Int=0;while i<StringLength(value){out=(out*131L+"
+                "let modulus:Long=268435456L;var out:Long=(hash*131L+(StringLength(value) as Long))%%modulus;"
+                "var i:Int=0;while i<StringLength(value){out=(out*131L+"
                 "(CharCode(value,StringLength(value),i) as Long))%%modulus;i=i+1;}return out;}", prior);
         else
             snprintf(source, sizeof(source), "%sfunc CastRead(value:Int)->Long{return %s as Long;}",
@@ -6724,7 +6744,7 @@ static void checked_literal_array_option_payload_currency(void)
         "var i:Int=0;while i<ArrayLength(codes){if StringContains(message,codes[i]){"
         "return Some(codes[i]);}i=i+1;}return None;}"
         "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
-        "let found:Option<String> = FindCode(\"alpha\");let rows:Array<String> = [];"
+        "let found:Option<String> = FindCode(\"alpha\");var rows:Array<String> = [];"
         "if IsSome(found){let text:String=UnwrapOption(found);ArrayPush(rows,text);"
         "Log(rows[0]);}Log(risk[0]);}"
     );
@@ -6912,7 +6932,7 @@ static void checked_option_payload_source_currency(void)
         "if kind==0{return None;}"
         "if kind==1{return Some(Substring(value,0,StringLength(value)));}"
         "return Some(\"literal\");}"
-        "func Main()->Void{let rows:Array<String> = [];"
+        "func Main()->Void{var rows:Array<String> = [];"
         "let candidate:Option<String> = Choose(\"ready\",1);"
         "if IsSome(candidate){let text:String=UnwrapOption(candidate);"
         "let second:String=UnwrapOption(candidate);"
@@ -7120,7 +7140,7 @@ static void checked_option_payload_local_alias_currency(void)
         "if !found{return None;}"
         "let payload:String=Substring(value,0,StringLength(value));"
         "return Some(payload);}"
-        "func Main()->Void{let rows:Array<String> = [];"
+        "func Main()->Void{var rows:Array<String> = [];"
         "let candidate:Option<String> = AliasOptional(\"ready\",true);"
         "if IsSome(candidate){let text:String=UnwrapOption(candidate);"
         "let liveRisk:Array<String> = [Concat(\"he\",\"ap\")];"
@@ -8156,7 +8176,7 @@ cleanup:
         "struct Held{text:String} func Probe(text:String)->Held{return Held(\"literal\");}",
         "func Probe(inout output:String,text:String)->Int{output=text;return 1;}",
         "func Probe(own text:String)->Int{return StringLength(text);}",
-        "func Probe(text:String)->Int{let rows:Array<String> = [];ArrayPush(rows,text);return ArrayLength(rows);}",
+        "func Probe(text:String)->Int{var rows:Array<String> = [];ArrayPush(rows,text);return ArrayLength(rows);}",
         "extern \"C\"{func Opaque()->Int;}func Probe(text:String)->Int{return StringLength(text)+Opaque();}"
     };
     for (size_t i = 0; i < sizeof(controls) / sizeof(controls[0]); i++) {
@@ -8907,12 +8927,18 @@ static void checked_default_formal_replacement(void)
         "func Probe(text:String,inout output:String,flag:Bool)->Void{if flag{text=\"literal\";}output=text;}func Forward(text:String,inout output:String,flag:Bool)->Void{Probe(text,output,flag);}",
         "func Probe(value:Int)->Option<Int>{value=value+1;return Some(value);}",
         "func Probe(rows:Array<Int>)->Option<Int>{rows=[];return Some(ArrayLength(rows));}",
-        "func Probe(ref value:Int)->Void{value=1;}",
         "func Probe(inout value:Int)->Void{value=1;}",
         "struct Counter{count:Int;}func Probe(cell:Counter)->Void{cell.count=1;}",
-        "func Probe(inout output:Int)->Void{using output as alias_value;alias_value=1;}",
         "func Probe()->Void{let slot:Slot<Int> = ClaimSlot();slot=1;Release(slot);}"
     };
+    /* Two former non-replacement inputs are refused at the write now: a `ref`
+     * formal cannot be replaced, and a `using` alias of an inout formal is an
+     * immutable name. */
+    checked_immutable_write_refused("func Probe(ref value:Int)->Void{value=1;}",
+        PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE, PGY_CAUSE_IMMUTABLE_FIELD_WRITE);
+    checked_immutable_write_refused(
+        "func Probe(inout output:Int)->Void{using output as alias_value;alias_value=1;}",
+        PGY_CODE_SEM_IMMUTABLE_BINDING_WRITE, PGY_CAUSE_IMMUTABLE_BINDING_WRITE);
     for (size_t kind = 0; kind < sizeof(sources) / sizeof(sources[0]); kind++) {
         Lexer *lexer = lexer_create(sources[kind]);
         Parser *parser = parser_create(lexer);
@@ -8923,8 +8949,8 @@ static void checked_default_formal_replacement(void)
         bool typed = parsed && type_check_program(program, ctx);
         CHECK(typed);
         if (!typed) goto cleanup;
-        ASTNode *decl = ast_program_statement(program, kind == 5 ? 1 : 0);
-        ASTNode *assignment = ast_block_statement(ast_func_body(decl), kind == 6 || kind == 7 ? 1 : 0);
+        ASTNode *decl = ast_program_statement(program, kind == 4 ? 1 : 0);
+        ASTNode *assignment = ast_block_statement(ast_func_body(decl), kind == 5 ? 1 : 0);
         if (kind == 0) assignment = ast_block_statement(ast_if_then_branch(assignment), 0);
         if (ast_func_param_count(decl) != 0) (void)function_param_flow_summary_for_param(ctx, decl, 0);
         FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&(SlotFunctionLookup){ctx, program});
@@ -9393,10 +9419,13 @@ static void checked_backing_binding_growth(void)
     /* A later assignment grows a binding already read earlier in the loop. */
     checked_backing_binding_growth_case(
         "func Probe(inout output:String,text:String,flag:Bool)->Bool{var first:String=\"\";var second:String=\"\";while flag{first=second;second=text;}output=first;return true;}", true);
-    checked_backing_binding_growth_case(
-        "func Probe(inout output:String,text:String,flag:Bool)->Bool{using output as first;while flag{using first as second;second=text;}return true;}", true);
+    /* `using` names are immutable now, so the loop that grew output through
+     * two aliases is refused at the alias write. */
+    checked_immutable_write_refused(
+        "func Probe(inout output:String,text:String,flag:Bool)->Bool{using output as first;while flag{using first as second;second=text;}return true;}",
+        PGY_CODE_SEM_IMMUTABLE_BINDING_WRITE, PGY_CAUSE_IMMUTABLE_BINDING_WRITE);
     /* Ordinary assignments copy current values, not future variable aliases:
-     * rebinding first cannot write output. The using aliases above do write it. */
+     * rebinding first cannot write output. */
     checked_backing_binding_growth_case(
         "func Probe(inout output:String,text:String)->Bool{var first:String=\"\";var second:String=\"\";first=second;second=output;first=text;return true;}", false);
     /* A memoized read in the first branch precedes growth in the second. */
@@ -10332,7 +10361,7 @@ static void checked_private_local_array_push(void)
 {
     Lexer *lexer = lexer_create(
         "func Build(input:Array<String>)->Array<String>{"
-        "let owned_rows:Array<String> = [\"known\",Concat(\"local\",\" value\")];"
+        "var owned_rows:Array<String> = [\"known\",Concat(\"local\",\" value\")];"
         "ArrayPush(owned_rows,input[0]);return owned_rows;}");
     Parser *parser = parser_create(lexer);
     ASTNode *program = parser_parse_program(parser);
@@ -10445,12 +10474,12 @@ static void checked_private_physical_array_nested_result_currency(void)
         "struct Rows{ids:Array<Int>;}"
         "struct Arena{rows:Rows;}"
         "struct Sequence{ok:Bool;roots:Array<Int>;arena:Arena;ordinals:Array<Int>;}"
-        "func Nested(count:Int)->Rows{let ids:Array<Int> = [];let row:Int=0;"
+        "func Nested(count:Int)->Rows{var ids:Array<Int> = [];var row:Int=0;"
         "while row<count{ArrayPush(ids,row);row=row+1;}return Rows(ids);}"
         "func OuterEmpty()->Sequence{let roots:Array<Int> = [];"
         "let ordinals:Array<Int> = [];"
         "return Sequence(true,roots,Arena(Nested(0)),ordinals);}"
-        "func Error(input:Sequence)->Sequence{let failed:Sequence=OuterEmpty();"
+        "func Error(input:Sequence)->Sequence{var failed:Sequence=OuterEmpty();"
         "failed.ok=false;return failed;}"
         "func Probe(ref label:String)->Option<Int>{let input:Sequence=OuterEmpty();"
         "let failed:Sequence=Error(input);"
@@ -10733,7 +10762,7 @@ static void checked_array_result_borrowed_formals(void)
         "if flag{return rows;}return rows;}"
         "func Main()->Void{let rows:Array<Int> = [7];let moved=Relay(rows,true);ArrayDrop(moved);}", true);
     reached_producer_source(
-        "func Build(count:Int)->Array<Int>{let rows:Array<Int> = [];"
+        "func Build(count:Int)->Array<Int>{var rows:Array<Int> = [];"
         "for i in 0..count{ArrayPush(rows,i);}return rows;}"
         "func Main()->Void{let rows=Build(2);ArrayDrop(rows);}", true);
     reached_producer_source(
@@ -10752,7 +10781,7 @@ static void checked_default_array_formal_result_transfer(void)
 {
     Lexer *lexer = lexer_create(
         "func Relay(rows: Array<String>) -> Array<String> { return rows; }"
-        "func Main() -> Int { let rows: Array<String> = [];"
+        "func Main() -> Int { var rows: Array<String> = [];"
         "ArrayPushOwnedString(rows, Concat(\"owned\", \" value\"));"
         "let moved: Array<String> = Relay(rows); Print(moved[0]);"
         "ArrayDropOwnedStrings(moved); return 0; }");
@@ -11020,7 +11049,7 @@ cleanup:
 static void checked_owned_array_string_result_currency(void)
 {
     Lexer *lexer = lexer_create(
-        "func OwnedRows()->Array<String>{let rows:Array<String> = [];"
+        "func OwnedRows()->Array<String>{var rows:Array<String> = [];"
         "ArrayPushOwnedString(rows,Concat(\"owned\",\" value\"));return rows;}"
         "func Main()->Void{let rows=OwnedRows();ArrayDropOwnedStrings(rows);}");
     Parser *parser = parser_create(lexer);
@@ -11076,7 +11105,7 @@ static void checked_owned_array_builtin_element_currency(void)
     const char *sources[] = {
         "func Main()->Void{let source:Array<String> = [\"original\"];"
         "let rows=Clone(source);ArrayDropOwnedStrings(rows);}",
-        "func Main()->Void{let map:HashMap<String,Int> = MapNew<String,Int>();"
+        "func Main()->Void{var map:HashMap<String,Int> = MapNew<String,Int>();"
         "MapSet(map,\"key\",1);let rows=MapKeys(map);ArrayDropOwnedStrings(rows);}",
     };
     for (unsigned route = 0; route < 2; route++) {
@@ -11155,7 +11184,7 @@ cleanup:
 static void checked_owned_array_nested_return_currency(void)
 {
     Lexer *lexer = lexer_create(
-        "func OwnedRows()->Array<String>{let rows:Array<String> = [];"
+        "func OwnedRows()->Array<String>{var rows:Array<String> = [];"
         "ArrayPushOwnedString(rows,Concat(\"owned\",\" value\"));return rows;}"
         "func Forward()->Array<String>{return OwnedRows();}"
         "func Main()->Void{let rows=Forward();ArrayDropOwnedStrings(rows);}");
@@ -11258,7 +11287,7 @@ static void checked_clone_receipt_survives_prior_diagnostic(void)
     Lexer *lexer = lexer_create(
         "func Broken()->Int{return \"bad\";}"
         "func Later()->Void{let source:Array<Int> = [1];"
-        "let rows:Array<Int> = Clone(source);ArrayPush(rows,2);}");
+        "var rows:Array<Int> = Clone(source);ArrayPush(rows,2);}");
     Parser *parser = parser_create(lexer);
     ASTNode *program = parser_parse_program(parser);
     SemanticContext *ctx = semantic_context_create();
@@ -11361,7 +11390,7 @@ static void checked_call_receipt_survives_prior_diagnostic(void)
 {
     Lexer *lexer = lexer_create(
         "func Make()->String{return \"ok\";}"
-        "func Later()->Void{let rows:Array<String> = [];ArrayPush(rows,Make());}");
+        "func Later()->Void{var rows:Array<String> = [];ArrayPush(rows,Make());}");
     Parser *parser = parser_create(lexer);
     ASTNode *program = parser_parse_program(parser);
     SemanticContext *ctx = semantic_context_create();
@@ -11439,16 +11468,16 @@ static void checked_array_birth_preserved_sources(void)
         "func InspectLength(ref rows:Array<Int>)->Int{return ArrayLength(rows);}"
         "func Mutate(inout rows:Array<Int>)->Void{ArrayPush(rows,2);}"
         "func Main()->Void{var rows:Array<Int> = [1];Log(InspectLength(rows));Mutate(rows);ArrayDrop(rows);}",
-        "func Main()->Void{let rows:Array<String> = [];ArrayPushOwnedString(rows,Concat(\"a\",\"b\"));"
+        "func Main()->Void{var rows:Array<String> = [];ArrayPushOwnedString(rows,Concat(\"a\",\"b\"));"
         "ArrayDropOwnedStrings(rows);}",
-        "func Main()->Void{let map:HashMap<String,Int> = MapNew();MapSet(map,\"a\",1);"
+        "func Main()->Void{var map:HashMap<String,Int> = MapNew();MapSet(map,\"a\",1);"
         "let rows=MapKeys(map);let moved=rows;ArrayDropOwnedStrings(moved);}",
         "func Main()->Void{let borrowed:Array<String> = [\"a\"];let rows=Clone(borrowed);"
         "ArrayDropOwnedStrings(rows);}",
         /* Clone's checked builtin/type identity is available before the full
          * publication row is sealed. Its provisional birth must therefore
          * admit mutation, while finalization still replays the complete row. */
-        "func Main()->Void{let borrowed:Array<String> = [\"a\"];let rows=Clone(borrowed);"
+        "func Main()->Void{let borrowed:Array<String> = [\"a\"];var rows=Clone(borrowed);"
         "ArrayPushOwnedString(rows,Concat(\"b\",\"c\"));ArrayDropOwnedStrings(rows);}",
         /* Existing UNKNOWN call-return admission, not physical-result ownership proof. */
         "func Factory()->Array<Int>{return [7];}"
@@ -11644,7 +11673,7 @@ cleanup:
 static void checked_collection_loop_replay(void)
 {
     checked_collection_exact_replay(
-        "func Use()->Void{let rows:Array<String> = [];"
+        "func Use()->Void{var rows:Array<String> = [];"
         "ArrayPushOwnedString(rows,Concat(\"a\",\"b\"));}", true, false);
     checked_collection_exact_replay(
         "func Use()->Void{let rows:Array<String> = [];ArrayDropOwnedStrings(rows);}", true, false);
@@ -11766,7 +11795,7 @@ static void checked_array_storage_pending_release(void)
      * evidence that OwnedPush registered and consumed its pending prefix. */
     checked_array_storage_pending_currency(
         "func Inspect(ref rows:Array<String>)->Int{return ArrayLength(rows);}"
-        "func Use(ref values:HashMap<String,Int>)->Void{let rows=MapKeys(values);"
+        "func Use(ref values:HashMap<String,Int>)->Void{var rows=MapKeys(values);"
         "Inspect(rows);ArrayPushOwnedString(rows,Concat(\"owned\",\" value\"));}", false);
 }
 
@@ -12077,27 +12106,27 @@ static void checked_array_storage_live_paths(void)
 {
     checked_array_storage_live_arm(
         "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
-        "let rows:Array<Int> = [];if flag{let held=Rows(rows);}"
+        "var rows:Array<Int> = [];if flag{let held=Rows(rows);}"
         "ArrayPush(rows,1);return Rows(rows);}", 2);
     checked_array_storage_live_arm(
         "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
-        "let rows:Array<Int> = [];if flag{return Rows(rows);}else{let held=Rows(rows);}"
+        "var rows:Array<Int> = [];if flag{return Rows(rows);}else{let held=Rows(rows);}"
         "ArrayPush(rows,1);return Rows(rows);}", 2);
     checked_array_storage_live_arm(
         "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
-        "let rows:Array<Int> = [];while flag{let held=Rows(rows);break;}"
+        "var rows:Array<Int> = [];while flag{let held=Rows(rows);break;}"
         "ArrayPush(rows,1);return Rows(rows);}", 2);
     checked_array_storage_live_arm(
         "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
-        "let rows:Array<Int> = [];var go=flag;while go{let held=Rows(rows);go=false;continue;}"
+        "var rows:Array<Int> = [];var go=flag;while go{let held=Rows(rows);go=false;continue;}"
         "ArrayPush(rows,1);return Rows(rows);}", 3);
     checked_array_storage_live_arm(
         "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
-        "let rows:Array<Int> = [];for i in 0..2{let held=Rows(rows);continue;}"
+        "var rows:Array<Int> = [];for i in 0..2{let held=Rows(rows);continue;}"
         "ArrayPush(rows,1);return Rows(rows);}", 2);
     checked_array_storage_live_arm(
         "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
-        "let rows:Array<Int> = [];if ArrayLength(Rows(rows).items)>0{}"
+        "var rows:Array<Int> = [];if ArrayLength(Rows(rows).items)>0{}"
         "ArrayPush(rows,1);return Rows(rows);}", 2);
 }
 
@@ -12105,7 +12134,7 @@ static void checked_private_array_push_terminating_arm(void)
 {
     Lexer *lexer = lexer_create(
         "struct Rows{items:Array<Int>}"
-        "func Build(flag:Bool)->Rows{let rows:Array<Int> = [];"
+        "func Build(flag:Bool)->Rows{var rows:Array<Int> = [];"
         "if flag{return Rows(rows);}ArrayPush(rows,1);return Rows(rows);}");
     Parser *parser = parser_create(lexer);
     ASTNode *program = parser_parse_program(parser);
@@ -12155,9 +12184,9 @@ static void checked_private_array_push_closed_boundary(const char *source,
 static void checked_private_array_push_opaque_boundaries(void)
 {
     checked_private_array_push_closed_boundary(
-        "extern \"C\"{func Hold(rows:Array<String>)->Void;}func Build(input:Array<String>)->Int{let owned_rows:Array<String> = [];Hold(owned_rows);ArrayPush(owned_rows,input[0]);return ArrayLength(owned_rows);}", 1, 2, false);
+        "extern \"C\"{func Hold(rows:Array<String>)->Void;}func Build(input:Array<String>)->Int{var owned_rows:Array<String> = [];Hold(owned_rows);ArrayPush(owned_rows,input[0]);return ArrayLength(owned_rows);}", 1, 2, false);
     checked_private_array_push_closed_boundary(
-        "extern \"C\"{func Hold(rows:Array<String>)->Void;}func Build(input:Array<String>)->Int{let owned_rows:Array<String> = [];ArrayPush(owned_rows,input[0]);Hold(owned_rows);return ArrayLength(owned_rows);}", 1, 1, true);
+        "extern \"C\"{func Hold(rows:Array<String>)->Void;}func Build(input:Array<String>)->Int{var owned_rows:Array<String> = [];ArrayPush(owned_rows,input[0]);Hold(owned_rows);return ArrayLength(owned_rows);}", 1, 1, true);
 }
 
 static void checked_empty_array_no_output(void)
@@ -12829,7 +12858,7 @@ static void checked_nonlocal_projection_currency(void)
     Lexer *lexer = lexer_create(
         "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
         "func Project(nodes:Array<TextNode>)->Arena{"
-        "let atom_table:Array<String> = [\"\"];let i:Int=0;"
+        "var atom_table:Array<String> = [\"\"];var i:Int=0;"
         "while i<ArrayLength(nodes){if nodes[i].type_name!=\"\"{"
         "ArrayPush(atom_table,nodes[i].type_name);}i=i+1;}"
         "return Arena(atom_table);}"
@@ -13061,7 +13090,7 @@ static void checked_compound_projection_currency(void)
     Lexer *lexer = lexer_create(
         "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
         "func Project(nodes:Array<TextNode>)->Arena{"
-        "let atom_table:Array<String> = [\"\"];let i:Int=0;"
+        "var atom_table:Array<String> = [\"\"];var i:Int=0;"
         "while i<ArrayLength(nodes){if nodes[i+0].type_name!=\"\"{"
         "ArrayPush(atom_table,nodes[i+0].type_name);}i=i+1;}"
         "return Arena(atom_table);}"
@@ -13138,7 +13167,7 @@ static void checked_private_physical_array_mutation_currency(void)
 {
     Lexer *lexer = lexer_create(
         "struct Rows{ids:Array<Int>;}"
-        "func ParentRows()->Rows{let ids:Array<Int> = [1,2];"
+        "func ParentRows()->Rows{var ids:Array<Int> = [1,2];"
         "ArraySet(ids,0,3);ArrayPop(ids);return Rows(ids);}"
         "func Main()->Void{let rows=ParentRows();Log(rows.ids[0]);"
         "Log(ArrayLength(rows.ids));}");
@@ -13236,7 +13265,7 @@ static void checked_string_field_return_nonlocal_currency(void)
         "func AtomFor(ref node:TextNode)->String{"
         "if node.name!=\"\"{return node.name;}return node.payload;}"
         "func Project(nodes:Array<TextNode>)->Int{"
-        "let atom_table:Array<String> = [\"\"];let i:Int=0;"
+        "var atom_table:Array<String> = [\"\"];var i:Int=0;"
         "while i<ArrayLength(nodes){let atom_text:String=AtomFor(nodes[i]);"
         "if atom_text!=\"\"{ArrayPush(atom_table,atom_text);}i=i+1;}"
         "return ArrayLength(atom_table);}"
@@ -13376,7 +13405,7 @@ static void checked_scalar_noframe_nonlocal_currency(void)
 {
     Lexer *lexer = lexer_create(
         "func Direct(value:Int)->Int{return value+1;}"
-        "func StringPush(value:Int)->Int{let texts:Array<String> = [];"
+        "func StringPush(value:Int)->Int{var texts:Array<String> = [];"
         "ArrayPush(texts,ToString(value));return value;}"
         "func Main()->Void{Log(Direct(3));Log(StringPush(3));}");
     Parser *parser = parser_create(lexer);
@@ -13649,7 +13678,7 @@ static void checked_private_string_push_currency(void)
         "if node.name!=\"\"{return node.name;}return node.payload;}"
         "func Project(nodes:Array<TextNode>)->Arena{"
         "let provenance_texts:Array<String> = [];"
-        "let atom_table:Array<String> = [\"\"];"
+        "var atom_table:Array<String> = [\"\"];"
         "ArrayPush(atom_table,nodes[0].name);"
         "let atom_text:String=AtomFor(nodes[0]);"
         "ArrayPush(atom_table,atom_text);"
@@ -14085,7 +14114,7 @@ static void checked_private_string_empty_receiver_currency(bool named)
         ? "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
           "func AtomFor(node:TextNode)->String{return node.type_name;}"
           "func Project(nodes:Array<TextNode>)->Arena{"
-          "let atom_table:Array<String> = [];"
+          "var atom_table:Array<String> = [];"
           "let atom_text:String=AtomFor(nodes[0]);ArrayPush(atom_table,atom_text);"
           "return Arena(atom_table);}"
           "func Main()->Void{let name=Concat(\"Type\",\"Name\");"
@@ -14093,7 +14122,7 @@ static void checked_private_string_empty_receiver_currency(bool named)
           "let arena=Project(nodes);Log(arena.atom_table[0]);}"
         : "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
           "func Project(nodes:Array<TextNode>)->Arena{"
-          "let atom_table:Array<String> = [];"
+          "var atom_table:Array<String> = [];"
           "ArrayPush(atom_table,nodes[0].type_name);return Arena(atom_table);}"
           "func Main()->Void{let name=Concat(\"Type\",\"Name\");"
           "let nodes:Array<TextNode> = [TextNode(name)];"
@@ -14223,7 +14252,7 @@ cleanup:
 static void checked_private_string_borrowed_without_receipt(void)
 {
     Lexer *lexer = lexer_create(
-        "func Main()->Void{let rows:Array<String> = [\"\"];"
+        "func Main()->Void{var rows:Array<String> = [\"\"];"
         "ArrayPush(rows,\"next\");Log(rows[1]);}"
     );
     Parser *parser = parser_create(lexer);
@@ -14253,14 +14282,14 @@ static void checked_private_string_independent_result_currency(bool borrowed_rec
           "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
           "func Project(nodes:Array<TextNode>)->Arena{"
           "let seeds:Array<String> = [\"seed\"];"
-          "let atom_table:Array<String> = [seeds[0]];"
+          "var atom_table:Array<String> = [seeds[0]];"
           "ArrayPush(atom_table,Fresh(nodes[0]));"
           "return Arena(atom_table,[]);}"
           "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"unused\")];"
           "let arena=Project(nodes);Log(arena.atom_table[1]);}"
         : "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
           "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
-          "func Project(nodes:Array<TextNode>)->Arena{let atom_table:Array<String> = [];"
+          "func Project(nodes:Array<TextNode>)->Arena{var atom_table:Array<String> = [];"
           "ArrayPush(atom_table,Fresh(nodes[0]));return Arena(atom_table);}"
           "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"unused\")];"
           "let arena=Project(nodes);Log(arena.atom_table[0]);}"
@@ -14401,7 +14430,7 @@ static void checked_landed_builtin_owned_string_push_currency(void)
 {
     const char *source =
         "func Project(ref source: Option<String>) -> Array<String> {"
-        "let values: Array<String> = [];"
+        "var values: Array<String> = [];"
         "ArrayPush(values, UnwrapOption(source)); return values; }"
         "func Main() -> Void { let source: Option<String> = Some(\"owned\");"
         "let values: Array<String> = Project(source); Log(values[0]); }";
@@ -14495,12 +14524,12 @@ static void checked_private_string_multi_argument_independent_result_currency(
         ? "struct Arena{rows:Array<String>;}"
           "func Broken(view:ReadView<String>)->String{let text=Read(view);return text;}"
           "func Fresh(left:String,right:String)->String{return Concat(left,right);}"
-          "func Project(left:String,right:String)->Arena{let rows:Array<String> = [];"
+          "func Project(left:String,right:String)->Arena{var rows:Array<String> = [];"
           "ArrayPush(rows,Fresh(left,right));return Arena(rows);}"
           "func Main()->Void{let arena=Project(\"fresh\",\" value\");Log(arena.rows[0]);}"
         : "struct Arena{rows:Array<String>;}"
           "func Fresh(left:String,right:String)->String{return Concat(left,right);}"
-          "func Project(left:String,right:String)->Arena{let rows:Array<String> = [];"
+          "func Project(left:String,right:String)->Arena{var rows:Array<String> = [];"
           "ArrayPush(rows,Fresh(left,right));return Arena(rows);}"
           "func Main()->Void{let arena=Project(\"fresh\",\" value\");Log(arena.rows[0]);}";
     Lexer *lexer = lexer_create(source);
@@ -14930,7 +14959,8 @@ int main(void)
     checked_local_assignment_replacement("struct State{count:Int} func Rebind(text:String)->Bool{var held=State(0);held=State(StringLength(text));return held.count>0;}", 1);
     checked_slot_assignment_operation(false);
     checked_slot_assignment_operation(true);
-    checked_nonlocal_scalar_store("struct Cell{text:String} func Store(ref output:Cell,text:String)->Void{using output.text as target_alias;target_alias=text;}", 1);
+    checked_immutable_write_refused("struct Cell{text:String} func Store(ref output:Cell,text:String)->Void{using output.text as target_alias;target_alias=text;}",
+        PGY_CODE_SEM_IMMUTABLE_BINDING_WRITE, PGY_CAUSE_IMMUTABLE_BINDING_WRITE);
     checked_nonlocal_scalar_store("func Store(text:String)->Void{let local_slot:Slot<String> =ClaimSlot();local_slot=text;Release(local_slot);}", 0);
     checked_shared_backing_validation();
     checked_zero_argument_output_graph();
@@ -14969,6 +14999,8 @@ int main(void)
     retained_inout_source(string_setter, "let observed=Observe(record.text);var staged:String=\"\";SetText(staged,observed);SetText(staged,observed);Write(retained,staged);", true);
     retained_inout_source(string_setter, "let observed=Observe(record.text);var staged:String=\"\";if StringLength(record.text)>0{SetText(staged,observed);}Write(retained,staged);", true);
     retained_inout_source(string_setter, "let observed=Observe(record.text);var staged:String=\"\";if StringLength(record.text)>0{var staged:String=\"literal\";Log(staged);}SetText(staged,observed);Write(retained,staged);", false);
+    /* The same inner literal under its own name: it does not clear the outer loan. */
+    retained_inout_source(string_setter, "let observed=Observe(record.text);var staged:String=\"\";if StringLength(record.text)>0{var inner_text:String=\"literal\";Log(inner_text);}SetText(staged,observed);Write(retained,staged);", true);
     /* The completed recursive row now proves destination=text; the caller still cannot retain its borrowed source. */
     retained_inout_source("func SetText(inout destination:String,ref text:String)->Void{if StringLength(text)>0{SetText(destination,text);}destination=text;}", alias_store, true);
     retained_inout_source("func SetText(inout destination:String,ref text:String)->Void{destination=text;} func ForwardText(inout destination:String,ref text:String)->Void{SetText(destination,text);}", "let observed=Observe(record.text);var staged:String=\"\";ForwardText(staged,observed);Write(retained,staged);", true);
@@ -14981,7 +15013,9 @@ int main(void)
     retained_backing_source("let observed=Observe(record.text);Retain(observed);", true, false);
     retained_backing_source("Write(output,Observe(record.text));", false, true);
     retained_backing_source("let observed=Observe(record.text);Write(output,observed);", true, true);
-    retained_backing_source("let observed=Observe(record.text);if StringLength(record.text)>0{let observed=\"literal\";Log(observed);}Keep(observed);", true, false);
+    /* A local name binds once in a function (2026-09-28), so the inner literal
+     * that shadowed observed takes its own name; it still must not clear the loan. */
+    retained_backing_source("let observed=Observe(record.text);if StringLength(record.text)>0{let inner_text=\"literal\";Log(inner_text);}Keep(observed);", true, false);
     retained_backing_source("var observed=Observe(record.text);observed=Observe(record.text);Keep(observed);", true, false);
     retained_backing_source("var observed=Observe(record.text);if StringLength(record.text)>0{observed=\"literal\";}Keep(observed);", true, false);
     reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} extern \"c\"{func Keep(text:String)->Void;} func Retain(text:String)->Void{if StringLength(text)>0{Retain(text);}Keep(text);} func ReadRecord(ref record:TextRecord)->Bool{let observed=Observe(record.text);Retain(observed);return true;}", false);
@@ -15007,11 +15041,11 @@ int main(void)
      * admitted, and a caller that changes the owner while it holds the loan
      * is refused. */
     reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->String{return Observe(r.text);}", true);
-    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->String{return Observe(r.text);} func Main()->Void{let r:TextRecord=TextRecord(\"a\");let s:String = LeakRecord(r);r.text=\"b\";Print(s);}", false);
+    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->String{return Observe(r.text);} func Main()->Void{var r:TextRecord=TextRecord(\"a\");let s:String = LeakRecord(r);r.text=\"b\";Print(s);}", false);
     reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->Option<String>{return Some(Observe(r.text));}", true);
-    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->Option<String>{return Some(Observe(r.text));} func Main()->Void{let r:TextRecord=TextRecord(\"a\");let s:Option<String> = LeakRecord(r);r.text=\"b\";match s{case Some(t): Print(t); case None: Print(\"none\");}}", false);
+    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->Option<String>{return Some(Observe(r.text));} func Main()->Void{var r:TextRecord=TextRecord(\"a\");let s:Option<String> = LeakRecord(r);r.text=\"b\";match s{case Some(t): Print(t); case None: Print(\"none\");}}", false);
     reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->TextRecord{return TextRecord(Observe(r.text));}", true);
-    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->TextRecord{return TextRecord(Observe(r.text));} func Main()->Void{let r:TextRecord=TextRecord(\"a\");let s:TextRecord = LeakRecord(r);r.text=\"b\";Print(s.text);}", false);
+    reached_producer_source("struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} func LeakRecord(ref r:TextRecord)->TextRecord{return TextRecord(Observe(r.text));} func Main()->Void{var r:TextRecord=TextRecord(\"a\");let s:TextRecord = LeakRecord(r);r.text=\"b\";Print(s.text);}", false);
     checked_allocating_reader("func Main()->Void { let text = CharAtN(\"abc\",3,1); Log(text); }");
     checked_allocating_reader("func Main()->Void { let text = SubstringWithLen(\"abc\",3,0,2); Log(text); }");
     checked_allocating_reader("func Main()->Void { let text = StringTrim(\" heap text \"); Log(text); }");
@@ -15031,7 +15065,7 @@ int main(void)
     checked_loop_execution_source("func Main()->Void { for i in 0..1 { Log(i); } }", true);
     checked_publication_faults();
     storage_root_faults();
-    source_diagnostic("borrowed String MapGet return held past a change", "func ReadMapValue(ref values: HashMap<String, String>) -> String { return MapGet(values, \"key\"); } func Main() -> Void { let m: HashMap<String, String> = MapNew(); MapSet(m, \"key\", \"a\"); let v: String = ReadMapValue(m); MapSet(m, \"key\", \"b\"); Print(v); }",
+    source_diagnostic("borrowed String MapGet return held past a change", "func ReadMapValue(ref values: HashMap<String, String>) -> String { return MapGet(values, \"key\"); } func Main() -> Void { var m: HashMap<String, String> = MapNew(); MapSet(m, \"key\", \"a\"); let v: String = ReadMapValue(m); MapSet(m, \"key\", \"b\"); Print(v); }",
         PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE);
     source_diagnostic("unresolved HashMap<String, Unknown> MapGet receiver", "func Query(ref values: HashMap<String, Unknown>) -> Int { return MapGet(values, \"key\"); } func Main() -> Void {}",
         PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH);
