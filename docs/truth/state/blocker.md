@@ -1,6 +1,6 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-15 on main `e3a0b7ad8`.
+Owner: Claude root lane. Checked 2026-11-15 on main `0d8b9f2bc`.
 
 ## Objective card
 
@@ -14,20 +14,19 @@ Owner: Claude root lane. Checked 2026-11-15 on main `e3a0b7ad8`.
 
 ## Open, in dependency order
 
-1. Required CI on the commit carrying this file (green at `e3a0b7ad8`).
-2. Self-host memory errors from the four-leg sweep
-   ([evidence](../evidence/2026-11-15_four_leg_wide_memory_sweep.md)):
-   40 on the self-host C leg and 10 on the self-host LLVM leg, plus three
-   `readonly_map_query_string_*_landed_valid` cases. Most are
-   `*_landed_valid` cases, where native lands a `Clone` and the self-host
-   does not. Native C/LLVM admit none except endless recursion.
+1. Required CI on the commit carrying this file (green at `0d8b9f2bc`).
+2. Self-host memory errors ([evidence](../evidence/2026-11-15_four_leg_wide_memory_sweep.md)):
+   3 of 50 crashes left after `667e45554` (endless recursion; growth only
+   through a call result; two records releasing one member, sl). The C leg
+   lost two `*_duplicate*_landed_valid` positives.
 3. The semantic `disposition` stays `live` after a constructor or a callee
    takes a local's storage. Direct MIR refuses that release instead, which
    costs 38 LLVM lifetime fixtures and the public LLVM lane of
    `ast_graph_atom_prebind_valid`. Restoring them needs a retirement or
-   escape fact. Changing the semantic owner, the MIR state table, the
-   direct MIR transition policy and the native parity gate
-   (`collection_ownership_fact_carrier_owner.sh`) together is required.
+   escape fact; after a callee hand-off nobody releases, as in native
+   ([decision](../decisions/2026-11-15_handed_off_array_storage_is_not_released.md)).
+   Semantic owner, MIR state table, direct MIR transition policy and
+   `collection_ownership_fact_carrier_owner.sh` change together.
 4. Weekly pipeline ([evidence](../evidence/2026-11-15_weekly_driver_shard_causes.md)):
    - Native refuses `driver_rung2_main.pgy`, the Linux llvm lane's input:
      the flow summary fails at `CompileSourceToC` (`world.pgy:333`) and the
@@ -42,14 +41,12 @@ Owner: Claude root lane. Checked 2026-11-15 on main `e3a0b7ad8`.
 
 - LLVM `ToString(Bool)` returns the runtime's owned copy (`dab1fc0f7`).
 - Direct MIR refuses releases another holder shares (`f6ab5f0ce`, `afbd9ab7f`).
-- Native refusals restored or added (`226613c3c`): defer releases, extern
-  callees, member-held String borrows, reassigned member, shared sort
-  result.
+- Native refusals restored or added (`226613c3c`).
 - SoT: `selfhost.statement_result_type`, `selfhost.expression_place_kind`
   (`f5e171720`) and `semantic.function_param_flow_summary` (`16ac154e1`)
   closed; census CLOSED=70 BRIDGE=23 ACTIVE=2.
-- Weekly pipeline fixes: macOS guard, InstCombine, three stale gates, and
-  the installed driver for both driver shards.
+- Weekly pipeline fixes, with the installed driver for both driver shards.
+- Self-host lands native's copies and refuses the rest (`667e45554`).
 
 ## Falsifiers kept
 
@@ -58,3 +55,4 @@ Owner: Claude root lane. Checked 2026-11-15 on main `e3a0b7ad8`.
 - `native_unsafe_negative_refusal_smoke.sh`: 39 refusals, 17 admissions,
   8 copy landings.
 - `statement_type_place_contract_parity.sh`: the four contracts refuse.
+- `shared_storage_copy_landing_owner.sh`: 2 landings, 12 refusals.
