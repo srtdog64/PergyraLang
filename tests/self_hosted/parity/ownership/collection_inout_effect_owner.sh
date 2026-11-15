@@ -626,6 +626,13 @@ for backend in c llvm; do
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
+            copy_field_all_shared_negative.pgy|copy_field_loop_holder_negative.pgy|copy_field_overlapping_holder_negative.pgy|copy_field_overlapping_sibling_negative.pgy|copy_field_same_source_two_landings_negative.pgy|copy_field_self_root_negative.pgy|copy_field_unshared_source_later_read_negative.pgy|copy_field_whole_holder_negative.pgy|exclusive_alias_after_use_loop_negative.pgy|exclusive_alias_element_write_negative.pgy|exclusive_array_copy_negative.pgy|exclusive_borrowed_wrap_negative.pgy|exclusive_branch_rebind_continue_negative.pgy|exclusive_branch_rebind_missing_else_negative.pgy|exclusive_branch_rebind_positive.pgy|exclusive_branch_rebind_reads_old_negative.pgy|exclusive_caller_reuse_negative.pgy|exclusive_copy_alias_negative.pgy|exclusive_copy_rebind_root_negative.pgy|exclusive_dead_alias_partial_negative.pgy|exclusive_formal_reassign_share_negative.pgy|exclusive_grown_field_holder_negative.pgy|exclusive_grown_field_shared_negative.pgy|exclusive_holder_rebind_branch_negative.pgy|exclusive_holder_sibling_argument_negative.pgy|exclusive_inout_argument_exit_stale_negative.pgy|exclusive_later_holder_negative.pgy|exclusive_loop_old_alias_reread_negative.pgy|exclusive_loop_rebind_branch_negative.pgy|exclusive_other_branch_loop_negative.pgy|exclusive_plain_alias_grown_alias_negative.pgy|exclusive_plain_alias_grown_source_negative.pgy|exclusive_rebind_after_later_break_negative.pgy|exclusive_rebind_branch_stale_negative.pgy)
+                # A moved aggregate argument or field that is used again, or a
+                # copy that grows while its source is read, is copied where it is
+                # taken (decisions 2026-10-22 and 2026-11-12). Native admits each of
+                # these with that copy; the self-host lands the same copy (the
+                # shared storage copy landing gate runs that shape on both legs).
+                printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             exclusive_inout_exit_before_writeback_negative.pgy|exclusive_map_loop_missing_restore_negative.pgy|exclusive_map_loop_break_restore_negative.pgy|exclusive_map_loop_continue_restore_negative.pgy|field_ctor_local_set_negative.pgy)
                 # A field copy an exit leaves unassigned, and a local handed to
                 # a constructor and changed after, are copies: both front ends
@@ -748,36 +755,20 @@ owned_element_literal_escape_negative.pgy|owned_element_escape|b|Main
 owned_element_push_escape_negative.pgy|owned_element_escape|b|Main
 owned_element_retaining_text_negative.pgy|indexed_string_use_after_deep_drop|StringLength(named.name)|Main
 exclusive_sibling_array_argument_negative.pgy|unproved_exclusive_sink_entry|facts|Main
-exclusive_caller_reuse_negative.pgy|unproved_exclusive_sink_entry|grown|Main
-exclusive_borrowed_wrap_negative.pgy|unproved_exclusive_sink_entry|facts|Main
-exclusive_copy_alias_negative.pgy|unproved_exclusive_sink_entry|facts|Main
 exclusive_stale_failure_value_negative.pgy|unproved_exclusive_member_mutation|types|Grow
 exclusive_stale_failure_consumed_negative.pgy|unproved_exclusive_member_mutation|types|Grow
 exclusive_destination_field_stale_negative.pgy|unproved_exclusive_member_mutation|left|HolderExtendStale
 exclusive_focus_reads_grown_field_negative.pgy|unproved_exclusive_sink_entry|facts|NodeSetUpdate
-exclusive_formal_reassign_share_negative.pgy|unproved_exclusive_sink_entry|picked|Main
-exclusive_loop_rebind_branch_negative.pgy|unproved_exclusive_sink_entry|appended|RowsAppendAll
 exclusive_return_after_growth_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrow
 exclusive_return_loop_after_growth_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrowUntil
-exclusive_array_copy_negative.pgy|unproved_exclusive_sink_entry|grown|Main
 exclusive_branch_loop_return_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetPickUntil
-exclusive_holder_sibling_argument_negative.pgy|unproved_exclusive_sink_entry|facts|Main
-exclusive_inout_argument_exit_stale_negative.pgy|unproved_exclusive_sink_entry|grown|TypeListAddChecked
-exclusive_inout_repeat_shared_alias_negative.pgy|unproved_inout_copy_entry|TypesAdd(types, "a")|NodeSetAddTwiceKept
+exclusive_inout_repeat_shared_alias_negative.pgy|unproved_exclusive_sink_entry|TypesAdd(types, "a")|NodeSetAddTwiceKept
 exclusive_mutating_sibling_call_negative.pgy|unproved_exclusive_sink_entry|facts|Main
 exclusive_nested_path_reads_grown_negative.pgy|unproved_exclusive_member_mutation|kinds|SeqAppend
-exclusive_holder_rebind_branch_negative.pgy|unproved_exclusive_sink_entry|grown|Run
-exclusive_rebind_branch_stale_negative.pgy|unproved_exclusive_sink_entry|record_index|AppendPopulated
-exclusive_alias_read_shared_root_negative.pgy|aggregate_release_source_not_live|facts|Main
+exclusive_alias_read_shared_root_negative.pgy|unproved_exclusive_sink_entry|AppendNode(types, Concat(left, "t"))|Append
 owned_element_text_escapes_result_negative.pgy|unproved_formal_element_use_entry|expr|Main
 owned_element_text_escapes_string_local_negative.pgy|unproved_formal_element_use_entry|first|Main
 owned_element_text_escapes_array_alias_negative.pgy|unproved_formal_element_use_entry|gathered|Main
-exclusive_grown_field_shared_negative.pgy|unproved_exclusive_sink_entry|facts|Build
-exclusive_grown_field_holder_negative.pgy|unproved_exclusive_sink_entry|facts|Build
-exclusive_other_branch_loop_negative.pgy|unproved_exclusive_sink_entry|grown|Pick
-exclusive_later_holder_negative.pgy|unproved_exclusive_sink_entry|grown|Build
-exclusive_alias_element_write_negative.pgy|unproved_exclusive_sink_entry|grown|Build
-exclusive_dead_alias_partial_negative.pgy|unproved_exclusive_sink_entry|grown|Build
 exclusive_map_copy_growth_negative.pgy|unproved_exclusive_sink_entry|MapSet(copy, "next", 2)|Main
 exclusive_map_remove_shared_negative.pgy|unproved_exclusive_sink_entry|MapRemove(copy, "seed")|Main
 exclusive_map_field_growth_negative.pgy|unproved_exclusive_sink_entry|state|Main
@@ -787,12 +778,6 @@ exclusive_set_shared_mutation_negative.pgy|unproved_exclusive_sink_entry|SetAdd(
 exclusive_map_old_query_negative.pgy|unproved_exclusive_sink_entry|MapSet(copy, "seed", 1)|Main
 exclusive_list_shared_mutation_negative.pgy|unproved_exclusive_sink_entry|ListPush(copy, 1)|Main
 exclusive_queue_shared_mutation_negative.pgy|unproved_exclusive_sink_entry|QueuePush(copy, 1)|Main
-exclusive_rebind_after_later_break_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
-exclusive_branch_rebind_missing_else_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
-exclusive_branch_rebind_continue_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
-exclusive_branch_rebind_reads_old_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
-exclusive_loop_old_alias_reread_negative.pgy|unproved_exclusive_sink_entry|callee|RowsChain
-exclusive_alias_after_use_loop_negative.pgy|unproved_exclusive_sink_entry|call|RowsPipe
 BUILTIN_RETENTION_DIAGNOSTICS
     # This resource formal fails before the String retention consumer. Keep
     # that refusal, and use the separate String-only shadow retainer above.
@@ -847,7 +832,7 @@ field_ctor_own_formal_nested_mutation_negative.pgy|owned_argument_storage_unprov
 field_ctor_own_formal_nested_retire_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, Consume(values))|Store
 field_ctor_own_formal_nested_retire_statement_negative.pgy|owned_argument_storage_unproved|values|Store|Consume(values)
 field_ctor_own_formal_nested_retire_index_negative.pgy|owned_argument_storage_unproved|values[0]|Store|Consume(values)
-field_ctor_own_formal_deferred_opaque_mutation_negative.pgy|unproved_own_formal_copy_entry|Opaque(values)|Store
+field_ctor_own_formal_deferred_opaque_mutation_negative.pgy|unproved_exclusive_sink_entry|Opaque(values)|Store
 CONSTRUCTOR_DIAGNOSTICS
     timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/member_double_move_negative.pgy" diagnostic \
         >"$WORK/$backend-diagnostic.raw" 2>"$WORK/$backend-diagnostic.err"
@@ -998,16 +983,16 @@ borrow_formal_ref_own_negative.pgy|owned_argument_storage_not_live|Metadata(alia
 borrow_formal_inout_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
 borrow_formal_default_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
 borrow_formal_chain_own_negative.pgy|owned_argument_storage_not_live|Metadata(third)|Observe
-borrow_formal_fresh_deferred_negative.pgy|unproved_inout_copy_entry|Opaque(alias)|Observe
+borrow_formal_fresh_deferred_negative.pgy|unproved_exclusive_sink_entry|Opaque(alias)|Observe
 borrow_formal_assign_old_empty_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
-borrow_formal_alias_unknown_read_negative.pgy|unproved_inout_copy_entry|Opaque(second)|Observe
-borrow_formal_alias_deferred_read_negative.pgy|unproved_inout_copy_entry|Opaque(second)|Observe
-borrow_formal_alias_sibling_read_negative.pgy|unproved_inout_copy_entry|Opaque(left)|Observe
-borrow_formal_seed_sibling_read_negative.pgy|unproved_inout_copy_entry|Opaque(second)|Observe
-borrow_formal_assign_shared_read_negative.pgy|unproved_inout_copy_entry|Opaque(dst)|Observe
-borrow_formal_assign_alias_shared_read_negative.pgy|unproved_inout_copy_entry|Opaque(third)|Observe
-borrow_formal_assign_child_scope_negative.pgy|unproved_inout_copy_entry|Opaque(alias)|Observe
-generic_default_borrowed_return_negative.pgy|unproved_inout_copy_entry|Opaque(second)|Observe
+borrow_formal_alias_unknown_read_negative.pgy|unproved_exclusive_sink_entry|Opaque(second)|Observe
+borrow_formal_alias_deferred_read_negative.pgy|unproved_exclusive_sink_entry|Opaque(second)|Observe
+borrow_formal_alias_sibling_read_negative.pgy|unproved_exclusive_sink_entry|Opaque(left)|Observe
+borrow_formal_seed_sibling_read_negative.pgy|unproved_exclusive_sink_entry|Opaque(second)|Observe
+borrow_formal_assign_shared_read_negative.pgy|unproved_exclusive_sink_entry|Opaque(dst)|Observe
+borrow_formal_assign_alias_shared_read_negative.pgy|unproved_exclusive_sink_entry|Opaque(third)|Observe
+borrow_formal_assign_child_scope_negative.pgy|unproved_exclusive_sink_entry|Opaque(alias)|Observe
+generic_default_borrowed_return_negative.pgy|unproved_exclusive_sink_entry|Opaque(second)|Observe
 formal_read_cycle_escape_negative.pgy|unproved_formal_element_use_entry|EscapeCycleA(values)|Main
 formal_read_cycle_partial_sink_negative.pgy|ArrayDropOwnedStrings|ArrayDropOwnedStrings(values)|Main
 BORROW_FORMAL_DIAGNOSTICS

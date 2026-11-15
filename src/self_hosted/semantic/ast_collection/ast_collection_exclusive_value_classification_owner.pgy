@@ -202,7 +202,10 @@ func SemanticAstCollectionExclusiveClassify(
         SemanticAstCollectionExclusiveHolderFollowed(artifact, signatures, locals, inferred_types, surfaces,
             surface_starts, surface_ends, copied, function_id, holder);
     var copy_shared: Array<String> = [];
-    if consume && !SemanticAstCollectionExclusiveConsumedAt(artifact, signatures, constructors, locals,
+    // A value a return builds ends the routine: no later statement of it
+    // reads the place beside that copy, even inside a loop.
+    let returned: Bool = TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindValueReturnStmtTag());
+    if consume && !returned && !SemanticAstCollectionExclusiveConsumedAt(artifact, signatures, constructors, locals,
             inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copied, consumed,
             function_id, syntax_id, node) {
         // A place whose only later readers are copies it shares moves, and

@@ -1,0 +1,204 @@
+// Exclusive-value growth records: which root, formal or first field a
+// routine grows, where each growth of a root runs, the place a statement-form
+// growth targets, and the write-back copies that come back to their path.
+import "ast_collection_exclusive_value_owner.pgy";
+import "ast_collection_storage_mutation_owner.pgy";
+
+// Records that the binding `id` grows storage at its first field `field`
+// ("*": any field). Returns whether it is new.
+func SemanticAstCollectionExclusiveMarkGrown(inout mutating: HashMap<String, Int>, id: Int, field: String) -> Bool {
+    let key: String = Concat("g:", Concat(ToString(id), Concat(":", field)));
+    if MapHas(mutating, key) { return false; }
+    MapSet(mutating, key, 1);
+    return true;
+}
+
+// Marks the formals a mutated root stands for: a default or inout formal
+// itself, and every formal a local or reassigned formal root depends on. The
+// root grows at `field`; a dependency grows where its path lands.
+func SemanticAstCollectionExclusiveMarkRoot(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref dep_locals: Array<Int>, ref dep_formals: Array<Int>, ref dep_paths: Array<Int>, ref paths: Array<String>,
+    function_id: Int, root_id: Int, field: String, inout mutating: HashMap<String, Int>
+) -> Bool {
+    var changed: Bool = SemanticAstCollectionExclusiveMarkGrown(mutating, root_id, field);
+    let root_key: String = Concat("root:", ToString(root_id));
+    if !MapHas(mutating, root_key) { MapSet(mutating, root_key, 1); changed = true; }
+    var row: Int = 0;
+    while row < ArrayLength(dep_locals) {
+        if dep_locals[row] == root_id {
+            // The root's field `field` holds the formal's source field when
+            // the dependency lands there or at the whole root.
+            var grown: String = "*";
+            var reaches: Bool = true;
+            if field != "*" {
+                var dest: String = "";
+                var source: String = "";
+                if dep_paths[row] >= 0 {
+                    dest = paths[2 * dep_paths[row]];
+                    source = paths[2 * dep_paths[row] + 1];
+                }
+                if dest == "" {
+                    grown = source;
+                    if source == "" { grown = field; }
+                } else if dest == field {
+                    if source != "" { grown = source; }
+                } else { reaches = false; }
+            } else if dep_paths[row] >= 0 && paths[2 * dep_paths[row] + 1] != "" {
+                // The root holds the formal only inside the field it copied:
+                // any growth of the root grows that field.
+                grown = paths[2 * dep_paths[row] + 1];
+            }
+            if reaches && !MapHas(mutating, ToString(dep_formals[row])) {
+                MapSet(mutating, ToString(dep_formals[row]), 1);
+                changed = true;
+            }
+            if reaches && SemanticAstCollectionExclusiveMarkGrown(mutating, dep_formals[row], grown) { changed = true; }
+        }
+        row = row + 1;
+    }
+    if IsSome(SemanticAstLocalBindingIndexForNode(locals, root_id)) { return changed; }
+    let mode: Int = SemanticAstCollectionExclusiveRootMode(signatures, function_id, root_id);
+    if (mode == 0 || mode == 1) && !MapHas(mutating, ToString(root_id)) {
+        MapSet(mutating, ToString(root_id), 1);
+        return true;
+    }
+    return changed;
+}
+
+// A place passed to the mutating formal `formal` grows where that formal
+// grows: its own first field for a member path, the formal's grown fields for
+// a whole value.
+func SemanticAstCollectionExclusiveMarkPassedRoot(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref dep_locals: Array<Int>, ref dep_formals: Array<Int>, ref dep_paths: Array<Int>, ref paths: Array<String>,
+    function_id: Int, root_id: Int,
+    ref place: SemanticAstCollectionAggregateSinkPlace, formal: SemanticAstCollectionArgumentFormalTarget,
+    inout mutating: HashMap<String, Int>
+) -> Bool {
+    if ArrayLength(place.chain) > 0 {
+        let first: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+        var field: String = "*";
+        if IsSome(first) { field = UnwrapOption(first); }
+        return SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals, dep_formals, dep_paths, paths,
+            function_id,
+            root_id, field, mutating);
+    }
+    let fields: Array<String> = SemanticAstCollectionExclusiveTypeFields(constructors,
+        signatures.param_types[signatures.param_starts[formal.signature_row] + formal.ordinal]);
+    let formal_key: String = Concat("g:", Concat(ToString(formal.syntax_id), ":"));
+    if ArrayLength(fields) == 0 || MapHas(mutating, Concat(formal_key, "*")) {
+        return SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals, dep_formals, dep_paths, paths,
+            function_id,
+            root_id, "*", mutating);
+    }
+    var changed: Bool = false;
+    var index: Int = 0;
+    while index < ArrayLength(fields) {
+        if MapHas(mutating, Concat(formal_key, fields[index])) &&
+            SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals, dep_formals, dep_paths, paths,
+            function_id,
+                root_id, fields[index], mutating) {
+            changed = true;
+        }
+        index = index + 1;
+    }
+    return changed;
+}
+
+// Records the statement `site` where the binding `root_id` grows
+// ("gn:<root>" counts "gs:<root>:<k>") in its own map: the mutating-formal
+// summary keeps only selection keys. Sites never decide convergence.
+func SemanticAstCollectionExclusiveRecordGrowthSite(inout growth_sites: HashMap<String, Int>, root_id: Int, site: Int) -> Void {
+    let seen: String = Concat("gk:", Concat(ToString(root_id), Concat(":", ToString(site))));
+    if root_id <= 0 || MapHas(growth_sites, seen) { return; }
+    MapSet(growth_sites, seen, 1);
+    let count_key: String = Concat("gn:", ToString(root_id));
+    var count: Int = 0;
+    if MapHas(growth_sites, count_key) { count = MapGet(growth_sites, count_key); }
+    MapSet(growth_sites, Concat("gs:", Concat(ToString(root_id), Concat(":", ToString(count)))), site);
+    MapSet(growth_sites, count_key, count + 1);
+}
+
+// The binding `root_id` may grow after the statement `syntax_id`: a recorded
+// growth site at or after it, or one a loop around both runs again. A root
+// with no recorded site stays growing.
+func SemanticAstCollectionExclusiveRootGrowsAfter(
+    ref artifact: AstTreeArtifact, ref growth_sites: HashMap<String, Int>, root_id: Int, syntax_id: Int
+) -> Bool {
+    let count_key: String = Concat("gn:", ToString(root_id));
+    if !MapHas(growth_sites, count_key) { return true; }
+    var index: Int = 0;
+    while index < MapGet(growth_sites, count_key) {
+        let site: Int = MapGet(growth_sites, Concat("gs:", Concat(ToString(root_id), Concat(":", ToString(index)))));
+        if site >= syntax_id || SemanticAstCollectionExclusiveLoopCarries(artifact, root_id, syntax_id, site) {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+// The receiver a statement-form ArrayPush, ArrayPop or ArraySet changes, as a
+// place: its binding root (a local or a formal) and the member path below it.
+// An indexed receiver names its base. Not ok when the receiver is no place.
+func SemanticAstCollectionExclusiveStatementTargetPlace(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, syntax_id: Int
+) -> SemanticAstCollectionAggregateSinkPlace {
+    let no_chain: Array<Int> = [];
+    let target_root: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+    if !IsSome(target_root) { return SemanticAstCollectionAggregateSinkPlace(false, false, 0, -1, -1, no_chain); }
+    var node: Int = UnwrapOption(target_root);
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+    if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeIndex() {
+        let base: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, node);
+        if !IsSome(base) { return SemanticAstCollectionAggregateSinkPlace(false, false, 0, -1, -1, no_chain); }
+        node = UnwrapOption(base);
+    }
+    return SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
+}
+
+// The local `local_id` is a write-back copy: defined from a member path of
+// another binding of its routine and assigned back to that same path. Growth
+// of such a copy through a member path or an inout callee was never checked by
+// this front end; the statement and argument growth rules leave it as before
+// (an open gap: a read of the source path before the write-back is not
+// checked).
+func SemanticAstCollectionExclusiveWriteBackCopy(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, local_id: Int
+) -> Bool {
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, local_id, AstExpressionLaneValue());
+    if !IsSome(value) { return false; }
+    let source: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, local_id, UnwrapOption(value));
+    if !source.ok || source.temporary ||
+        ArrayLength(source.chain) == 0 { return false; }
+    var row: Int = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        if assignments.function_node_ids[row] == function_id && assignments.target_is_indexed[row] == 0 {
+            let target: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, assignments.node_ids[row], AstExpressionLaneAtom());
+            let written: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, assignments.node_ids[row], AstExpressionLaneValue());
+            if IsSome(target) && IsSome(written) {
+                let target_place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                    artifact, signatures, locals, inferred_types, surfaces, function_id, assignments.node_ids[row],
+                    UnwrapOption(target));
+                let back: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                    artifact, locals, inferred_types, function_id, assignments.node_ids[row],
+                    surfaces.expression_graph, UnwrapOption(written));
+                if back.ok && back.declaration_node_id == local_id &&
+                    SemanticAstCollectionAggregateSinkSamePlace(surfaces, target_place, source) { return true; }
+            }
+        }
+        row = row + 1;
+    }
+    return false;
+}

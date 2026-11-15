@@ -1,0 +1,361 @@
+// Allocator lane loans (the native owner is src/semantic/allocator_lane_loan_owner.c;
+// docs/truth/decisions/2026-10-19_finished_text_borrows_its_allocator.md).
+// A String finished with an allocator that is not a result lane lives in that
+// allocator's storage until AllocatorDestroy frees it. Such a
+// TextBuilderFinish, and a user call handed such an allocator whose result
+// may carry its text, is a loan of the allocator local. A result lane is a
+// local whose one definition is AllocatorResult() and that no assignment
+// writes. A loan of a formal allocator is its caller's loan.
+// - A loan stays in its routine: its value, or the local it initializes, is
+//   read only by a condition, an operator, a builtin argument the retention
+//   registry reads without keeping, or a borrow-only String formal. Any
+//   other use (a return, an assignment, a store, another user call argument)
+//   is refused at the loan.
+// - Each AllocatorDestroy of a loaned allocator is a top-level statement of
+//   the routine body after the allocator's top-level declaration, and no
+//   later statement reads the allocator or a non-scalar local that a
+//   statement between the two names.
+import "ast_artifact_verdict_owner.pgy";
+import "ast_body_verdict_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_body_flow_calculus_owner.pgy";
+import "ast_string_formal_borrow_owner.pgy";
+import "builtin_argument_retention_projection_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_expression/ast_expression_graph_view_owner.pgy";
+import "ast_expression/ast_expression_call_target_fact_owner.pgy";
+import "ast_expression/ast_expression_graph_node_view_owner.pgy";
+import "ast_local_binding_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+
+// A call of the compiler builtin `name` (no source declaration owns it).
+func SemanticAstAllocatorLaneBuiltinCall(ref graph: SemanticExpressionGraphFacts, call_node: Int, name: String) -> Bool {
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, call_node);
+    let target: Option<String> = SemanticExpressionGraphCallTargetName(graph, call_node);
+    let syntax_id: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call_node);
+    return IsSome(kind) && UnwrapOption(kind) == SemanticCallTargetDirect() && IsSome(target) &&
+        UnwrapOption(target) == name && IsSome(syntax_id) && UnwrapOption(syntax_id) == 0;
+}
+
+func SemanticAstAllocatorLaneLocalType(
+    ref analysis: SemanticAstArtifactAnalysis, ref initializers: SemanticAstInitializerTypeFacts, row: Int
+) -> String {
+    if analysis.local_bindings.has_declared_types[row] != 0 { return analysis.local_bindings.declared_type_names[row]; }
+    if row < ArrayLength(initializers.verified) && initializers.verified[row] == 1 {
+        return initializers.inferred_type_names[row];
+    }
+    return "";
+}
+
+func SemanticAstAllocatorLanePhysicalScalar(type_name: String) -> Bool {
+    return type_name == "Int" || type_name == "Long" || type_name == "Bool" || type_name == "Float" ||
+        type_name == "Double" || type_name == "Char";
+}
+
+// The allocator local's one definition is AllocatorResult() and no
+// assignment writes it.
+func SemanticAstAllocatorLaneResultLocal(
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts, ref graph: SemanticExpressionGraphFacts, row: Int
+) -> Bool {
+    let node_id: Int = analysis.local_bindings.node_ids[row];
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        analysis.expression_surfaces, node_id, AstExpressionLaneValue());
+    if !IsSome(value) { return false; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, UnwrapOption(value));
+    if !call.ok || ArrayLength(call.argument_nodes) != 0 ||
+        !SemanticAstAllocatorLaneBuiltinCall(graph, call.call_node, "AllocatorResult") { return false; }
+    var index: Int = 0;
+    while index < ArrayLength(analysis.assignments.node_ids) {
+        let target: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            analysis.expression_surfaces, analysis.assignments.node_ids[index], AstExpressionLaneAtom());
+        if IsSome(target) {
+            let written: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                artifact, analysis.local_bindings, initializers.inferred_type_names,
+                analysis.assignments.function_node_ids[index], analysis.assignments.node_ids[index],
+                graph, UnwrapOption(target));
+            if written.ok && written.declaration_node_id == node_id { return false; }
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+// The local row an argument leaf names when it is an Allocator local, or -1.
+func SemanticAstAllocatorLaneArgumentLocal(
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts, ref graph: SemanticExpressionGraphFacts,
+    function_id: Int, syntax_id: Int, argument: Int
+) -> Int {
+    let named: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, analysis.local_bindings, initializers.inferred_type_names, function_id, syntax_id, graph, argument);
+    if !named.ok || SemanticAstAllocatorLaneLocalType(analysis, initializers, named.row) != "Allocator" { return -1; }
+    return named.row;
+}
+
+// The value a call's spine yields: its last argument edge, or the call.
+func SemanticAstAllocatorLaneCallValue(ref graph: SemanticExpressionGraphFacts, call_node: Int, root: Int) -> Int {
+    var walked: Int = call_node;
+    var consumer: Int = SemanticAstBorrowedTextConsumer(graph, walked, root);
+    while consumer >= 0 && graph.arena.topology.node_kinds[consumer] == AstExpressionNodeCallArgument() &&
+        graph.arena.topology.left_children[consumer] == walked {
+        walked = consumer;
+        consumer = SemanticAstBorrowedTextConsumer(graph, walked, root);
+    }
+    return walked;
+}
+
+// The node `consumer` only reads `value`: an operator, an argument the
+// builtin argument retention registry reads without keeping, or an argument
+// of a borrow-only String formal (which cannot keep, return or release it).
+func SemanticAstAllocatorLaneObservedBy(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref graph: SemanticExpressionGraphFacts,
+    borrow_only: HashMap<String, Int>, consumer: Int, value: Int
+) -> Bool {
+    let kind: Int = graph.arena.topology.node_kinds[consumer];
+    if kind >= AstExpressionNodeLogicalOr() && kind <= AstExpressionNodeNegate() { return true; }
+    if kind != AstExpressionNodeCallArgument() { return false; }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+    if !edge.ok || edge.argument_node != value { return false; }
+    let target: Option<String> = SemanticExpressionGraphCallTargetName(graph, edge.call_node);
+    if IsSome(target) && SemanticAstAllocatorLaneBuiltinCall(graph, edge.call_node, UnwrapOption(target)) {
+        return SemanticBuiltinArgumentBorrowedForCall(UnwrapOption(target), edge.ordinal);
+    }
+    return SemanticAstStringFormalBorrowedArgument(signatures, graph, borrow_only, edge.call_node, edge.ordinal);
+}
+
+// A statement that only reads the value at the root of one of its lanes.
+func SemanticAstAllocatorLaneStatementReadsRoot(artifact: AstTreeArtifact, statement: Int, discarded_call: Bool) -> Bool {
+    return TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindLogStmtTag()) ||
+        TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindIfStmtTag()) ||
+        TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindWhileStmtTag()) ||
+        (discarded_call && TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindBareCallStmtTag()));
+}
+
+// Every use of the local `row`, which holds a loan, only reads it.
+func SemanticAstAllocatorLaneCarrierStays(
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts, ref graph: SemanticExpressionGraphFacts,
+    borrow_only: HashMap<String, Int>, function_id: Int, row: Int
+) -> Bool {
+    let declaration: Int = analysis.local_bindings.node_ids[row];
+    var lane_row: Int = 0;
+    while lane_row < ArrayLength(graph.roots) {
+        let surface: Int = lane_row / 3;
+        if graph.has_roots[lane_row] && analysis.expression_surfaces.function_node_ids[surface] == function_id &&
+            analysis.expression_surfaces.node_ids[surface] != declaration {
+            let statement: Int = analysis.expression_surfaces.node_ids[surface];
+            let root: Int = graph.roots[lane_row];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(graph, root);
+            var node: Int = root + 1;
+            if IsSome(start) { node = UnwrapOption(start); }
+            while node <= root {
+                if graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
+                    let consumer: Int = SemanticAstBorrowedTextConsumer(graph, node, root);
+                    let member_name: Bool = consumer >= 0 &&
+                        graph.arena.topology.node_kinds[consumer] == AstExpressionNodeMemberAccess() &&
+                        graph.arena.topology.right_children[consumer] == node;
+                    let named: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                        artifact, analysis.local_bindings, initializers.inferred_type_names, function_id, statement,
+                        graph, node);
+                    if !member_name && named.ok && named.row == row {
+                        if consumer < 0 && !SemanticAstAllocatorLaneStatementReadsRoot(artifact, statement, false) {
+                            return false;
+                        }
+                        if consumer >= 0 && !SemanticAstAllocatorLaneObservedBy(
+                                analysis.signatures, graph, borrow_only, consumer, node) { return false; }
+                    }
+                }
+                node = node + 1;
+            }
+        }
+        lane_row = lane_row + 1;
+    }
+    return true;
+}
+
+// The loan made at `value` (statement `statement`, lane `lane`) stays in its
+// routine.
+func SemanticAstAllocatorLaneLoanStays(
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts, ref graph: SemanticExpressionGraphFacts,
+    borrow_only: HashMap<String, Int>, function_id: Int, statement: Int, lane: Int, root: Int, value: Int
+) -> Bool {
+    let consumer: Int = SemanticAstBorrowedTextConsumer(graph, value, root);
+    if consumer >= 0 { return SemanticAstAllocatorLaneObservedBy(analysis.signatures, graph, borrow_only, consumer, value); }
+    if lane == AstExpressionLaneValue() && TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindLetStmtTag()) {
+        let carrier: Option<Int> = SemanticAstLocalBindingIndexForNode(analysis.local_bindings, statement);
+        return IsSome(carrier) && SemanticAstAllocatorLaneCarrierStays(
+            artifact, analysis, initializers, graph, borrow_only, function_id, UnwrapOption(carrier));
+    }
+    return SemanticAstAllocatorLaneStatementReadsRoot(artifact, statement, true);
+}
+
+// The destroy at `destroy` of the loaned allocator local `row` is a
+// top-level statement after the allocator's declaration, and no later
+// statement reads the allocator or a non-scalar local named in between.
+func SemanticAstAllocatorLaneDestroyReady(
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts, ref graph: SemanticExpressionGraphFacts,
+    function_id: Int, destroy: Int, row: Int
+) -> Bool {
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, function_id);
+    if !IsSome(signature) ||
+        UnwrapOption(signature) >= ArrayLength(analysis.signatures.action_contracts.body_node_ids) ||
+        analysis.signatures.action_contracts.body_node_ids[UnwrapOption(signature)] < 0 { return false; }
+    let body: Option<Int> = SemanticAstBodyFlowBlockChild(
+        artifact, analysis.signatures.action_contracts.body_node_ids[UnwrapOption(signature)]);
+    let birth: Int = analysis.local_bindings.node_ids[row];
+    let destroy_block: Option<Int> = TypedAstArenaParentId(artifact.arena, destroy);
+    let birth_block: Option<Int> = TypedAstArenaParentId(artifact.arena, birth);
+    if !IsSome(body) || !IsSome(destroy_block) || !IsSome(birth_block) ||
+        UnwrapOption(destroy_block) != UnwrapOption(body) || UnwrapOption(birth_block) != UnwrapOption(body) ||
+        birth >= destroy { return false; }
+    var touched: HashMap<String, Int> = MapNew();
+    var local_row: Int = 0;
+    while local_row < ArrayLength(analysis.local_bindings.node_ids) {
+        let declared: Int = analysis.local_bindings.node_ids[local_row];
+        if analysis.local_bindings.function_node_ids[local_row] == function_id && declared > birth && declared < destroy {
+            MapSet(touched, ToString(local_row), 1);
+        }
+        local_row = local_row + 1;
+    }
+    var pass: Int = 0;
+    while pass < 2 {
+        var lane_row: Int = 0;
+        while lane_row < ArrayLength(graph.roots) {
+            let surface: Int = lane_row / 3;
+            let statement: Int = analysis.expression_surfaces.node_ids[surface];
+            let in_range: Bool = (pass == 0 && statement > birth && statement < destroy) ||
+                (pass == 1 && statement > destroy);
+            if graph.has_roots[lane_row] && in_range && analysis.expression_surfaces.function_node_ids[surface] == function_id {
+                let root: Int = graph.roots[lane_row];
+                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(graph, root);
+                var node: Int = root + 1;
+                if IsSome(start) { node = UnwrapOption(start); }
+                while node <= root {
+                    if graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
+                        let named: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                            artifact, analysis.local_bindings, initializers.inferred_type_names, function_id,
+                            statement, graph, node);
+                        if named.ok && pass == 0 { MapSet(touched, ToString(named.row), 1); }
+                        if named.ok && pass == 1 && (named.row == row ||
+                                (MapHas(touched, ToString(named.row)) && !SemanticAstAllocatorLanePhysicalScalar(
+                                    SemanticAstAllocatorLaneLocalType(analysis, initializers, named.row)))) {
+                            return false;
+                        }
+                    }
+                    node = node + 1;
+                }
+            }
+            lane_row = lane_row + 1;
+        }
+        pass = pass + 1;
+    }
+    return true;
+}
+
+func SemanticAstAllocatorLaneLoanVerdict(
+    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts
+) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    if ArrayLength(initializers.verified) != ArrayLength(analysis.local_bindings.node_ids) {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "AllocatorLaneLoanInitializerTypes"), -1);
+    }
+    // Only a leaf spelled like an Allocator local can name one.
+    var allocator_names: HashMap<String, Int> = MapNew();
+    var local_row: Int = 0;
+    while local_row < ArrayLength(analysis.local_bindings.node_ids) {
+        if SemanticAstAllocatorLaneLocalType(analysis, initializers, local_row) == "Allocator" {
+            MapSet(allocator_names, analysis.local_bindings.names[local_row], 1);
+        }
+        local_row = local_row + 1;
+    }
+    if MapSize(allocator_names) == 0 { return SemanticAstBodyVerdictOk(); }
+    let borrow_only: HashMap<String, Int> = SemanticAstStringFormalBorrowOnlyFacts(
+        artifact, analysis.signatures, analysis.expression_surfaces);
+    // 1 for a result lane, 2 for any other allocator local.
+    var lanes: HashMap<String, Int> = MapNew();
+    var loaned: HashMap<String, Int> = MapNew();
+    var destroy_rows: Array<Int> = [];
+    var destroy_statements: Array<Int> = [];
+    var destroy_functions: Array<Int> = [];
+    var lane_row: Int = 0;
+    while lane_row < ArrayLength(graph.roots) {
+        let surface: Int = lane_row / 3;
+        if graph.has_roots[lane_row] {
+            let function_id: Int = analysis.expression_surfaces.function_node_ids[surface];
+            let statement: Int = analysis.expression_surfaces.node_ids[surface];
+            let root: Int = graph.roots[lane_row];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(graph, root);
+            var node: Int = root + 1;
+            if IsSome(start) { node = UnwrapOption(start); }
+            while node <= root {
+                let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, node);
+                var row: Int = -1;
+                if edge.ok && graph.arena.topology.node_kinds[edge.argument_node] == AstExpressionNodeLeaf() &&
+                    MapHas(allocator_names, graph.arena.node_texts[edge.argument_node]) {
+                    row = SemanticAstAllocatorLaneArgumentLocal(artifact, analysis, initializers, graph, function_id,
+                        statement, edge.argument_node);
+                }
+                if row >= 0 && !MapHas(lanes, ToString(row)) {
+                    var found_kind: Int = 2;
+                    if SemanticAstAllocatorLaneResultLocal(artifact, analysis, initializers, graph, row) { found_kind = 1; }
+                    MapSet(lanes, ToString(row), found_kind);
+                }
+                if row >= 0 && edge.ordinal == 0 && SemanticAstAllocatorLaneBuiltinCall(graph, edge.call_node, "AllocatorDestroy") {
+                    ArrayPush(destroy_rows, row);
+                    ArrayPush(destroy_statements, statement);
+                    ArrayPush(destroy_functions, function_id);
+                }
+                var lane_kind: Int = 0;
+                if row >= 0 { lane_kind = MapGet(lanes, ToString(row)); }
+                var loan: Bool = false;
+                if lane_kind == 2 {
+                    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, edge.call_node);
+                    if edge.ordinal == 1 && SemanticAstAllocatorLaneBuiltinCall(graph, edge.call_node, "TextBuilderFinish") {
+                        loan = true;
+                    } else if IsSome(target) && UnwrapOption(target) > 0 {
+                        // A user call's result may carry text of the allocator
+                        // it is handed unless the result holds no storage.
+                        // An unknown callee may return anything.
+                        var result_type: String = "";
+                        let callee: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                            analysis.signatures, UnwrapOption(target));
+                        if IsSome(callee) && UnwrapOption(callee) < ArrayLength(analysis.signatures.return_types) {
+                            result_type = analysis.signatures.return_types[UnwrapOption(callee)];
+                        }
+                        loan = result_type != "Void" && !SemanticAstAllocatorLanePhysicalScalar(result_type);
+                    }
+                }
+                if loan {
+                    MapSet(loaned, ToString(row), 1);
+                    let value: Int = SemanticAstAllocatorLaneCallValue(graph, edge.call_node, root);
+                    if !SemanticAstAllocatorLaneLoanStays(artifact, analysis, initializers, graph, borrow_only,
+                            function_id, statement, lane_row % 3, root, value) {
+                        return SemanticAstBodyVerdictError("borrow_boundary_escape", SemanticError2(
+                            "borrow_boundary_escape", "boundary", "allocator_lane_loan_leaves_routine",
+                            "allocator", analysis.local_bindings.names[row]), statement);
+                    }
+                }
+                node = node + 1;
+            }
+        }
+        lane_row = lane_row + 1;
+    }
+    var index: Int = 0;
+    while index < ArrayLength(destroy_rows) {
+        if MapHas(loaned, ToString(destroy_rows[index])) &&
+            !SemanticAstAllocatorLaneDestroyReady(artifact, analysis, initializers, graph,
+                destroy_functions[index], destroy_statements[index], destroy_rows[index]) {
+            return SemanticAstBodyVerdictError("borrow_boundary_escape", SemanticError2(
+                "borrow_boundary_escape", "boundary", "allocator_lane_loan_read_after_destroy",
+                "allocator", analysis.local_bindings.names[destroy_rows[index]]), destroy_statements[index]);
+        }
+        index = index + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

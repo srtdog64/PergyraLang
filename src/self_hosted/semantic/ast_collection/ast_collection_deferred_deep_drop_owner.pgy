@@ -1,0 +1,46 @@
+// Deferred deep drops of a routine's locals: a defer runs after every return.
+import "ast_collection_ownership_identity_owner.pgy";
+
+// A deferred statement of `function_id` deep-drops the local `row`. A defer
+// runs after every return of its routine, so a value a return builds from that
+// local still holds what the drop frees: such a return escapes the storage.
+func SemanticAstCollectionDeferredDeepDropOf(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, row: Int
+) -> Bool {
+    var surface: Int = 0;
+    while surface < ArrayLength(surfaces.node_ids) {
+        let statement: Int = surfaces.node_ids[surface];
+        var deferred: Bool = false;
+        var ancestor: Int = statement;
+        var remaining: Int = artifact.count;
+        while surfaces.function_node_ids[surface] == function_id && !deferred &&
+            ancestor >= 0 && ancestor < artifact.count && remaining > 0 {
+            if artifact.arena.kinds[ancestor] == TypedAstKindDeferStmtTag() { deferred = true; }
+            let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+            ancestor = -1;
+            if IsSome(parent) { ancestor = UnwrapOption(parent); }
+            remaining = remaining - 1;
+        }
+        var lane: Int = 0;
+        while deferred && lane < 3 {
+            let lane_index: Int = surface * 3 + lane;
+            if lane_index < ArrayLength(surfaces.expression_graph.has_roots) &&
+                surfaces.expression_graph.has_roots[lane_index] {
+                let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                    surfaces.expression_graph, surfaces.expression_graph.roots[lane_index]);
+                if call.ok && ArrayLength(call.argument_nodes) == 1 &&
+                    SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node,
+                        "ArrayDropOwnedStrings") {
+                    let dropped: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                        artifact, locals, inferred_types, function_id, statement, surfaces.expression_graph,
+                        call.argument_nodes[0]);
+                    if dropped.ok && dropped.row == row { return true; }
+                }
+            }
+            lane = lane + 1;
+        }
+        surface = surface + 1;
+    }
+    return false;
+}

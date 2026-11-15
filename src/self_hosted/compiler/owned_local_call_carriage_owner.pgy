@@ -1,0 +1,94 @@
+// How an owned local enters a direct call (its parameter carriage), and
+// whether a released local lent to a `ref` formal leaves through the result.
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
+import "owned_storage_release_plan_owner.pgy";
+
+func DirectMirOwnedLocalDirectCallCarriage(
+    ref plan: DirectMirScalarCfgGraphPlan, node: Int, child: Int,
+    routine: Int, graph_start: Int
+) -> String {
+    if plan.program.expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprDirectCall() { return ""; }
+    let target: Int = plan.program.expressions.node_callable_rows[node];
+    if target < 0 || target >= ArrayLength(plan.routines.roles) {
+        return "";
+    }
+    let arguments: DirectMirScalarProgramArgumentView =
+        DirectMirScalarProgramArgumentViewFromNode(
+            plan.program.expressions, node);
+    var argument_ordinal: Int = -1;
+    var ordinal: Int = 0;
+    while arguments.valid && ordinal < arguments.count {
+        if DirectMirScalarProgramArgumentViewAt(
+                plan.program.expressions, arguments, ordinal) == child {
+            if argument_ordinal >= 0 { return ""; }
+            argument_ordinal = ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    if argument_ordinal < 0 || argument_ordinal >=
+            plan.routines.parameter_counts[target] { return ""; }
+    let parameter_row: Int = plan.routines.parameter_starts[target] +
+        argument_ordinal;
+    let carriage: String =
+        plan.routines.parameter_carriages[parameter_row];
+    if plan.program.expressions.node_types[child] !=
+            plan.routines.parameter_types[parameter_row] ||
+        !DirectMirScalarCfgProgramDirectCallCarriageReady(
+            plan, plan.program.expressions, node, routine, graph_start,
+            target, child, argument_ordinal) {
+        return "";
+    }
+    if carriage == "readonly-ref" || carriage == "value-result" ||
+        carriage == "owner-handle" { return carriage; }
+    if carriage == "value" &&
+        DirectMirScalarProgramHashMapParameterCarriageReady(
+            plan.routines.parameter_types[parameter_row], carriage) {
+        return carriage;
+    }
+    return "";
+}
+
+// A released local lent to a `ref` formal may come back inside the call's
+// result. When that result leaves the routine (a returned call, or one
+// bound to a local the routine returns) and the callee's result is not
+// proved fresh, the release would free storage the caller still holds, so
+// the caller refuses the program instead of emitting that release.
+func DirectMirOwnedLocalLentReleaseLeaves(
+    ref plan: DirectMirScalarCfgGraphPlan, ref graph_definitions: Array<Int>, ref graph_returns: Array<Bool>,
+    ref transferred: Array<Bool>, ref fresh_returns: Array<Bool>, ref modes: Array<Int>
+) -> Bool {
+    var graph: Int = 0;
+    while graph < ArrayLength(plan.program.expressions.graph_roots) {
+        let target: Int = graph_definitions[graph];
+        let root: Int = plan.program.expressions.graph_roots[graph];
+        let escapes: Bool = graph_returns[graph] ||
+            (target >= 0 && target < ArrayLength(transferred) && transferred[target]);
+        let callee: Int = plan.program.expressions.node_callable_rows[root];
+        if escapes && plan.program.expressions.node_kinds[root] == DirectMirScalarProgramExprDirectCall() &&
+            callee >= 0 && callee < ArrayLength(fresh_returns) && !fresh_returns[callee] &&
+            DirectMirOwnedLocalStorageMode(plan, plan.routines.return_types[callee], 0) > 0 {
+            let lent: DirectMirScalarProgramArgumentView =
+                DirectMirScalarProgramArgumentViewFromNode(plan.program.expressions, root);
+            var ordinal: Int = 0;
+            while lent.valid && ordinal < lent.count {
+                let child: Int = DirectMirScalarProgramArgumentViewAt(plan.program.expressions, lent, ordinal);
+                if child >= 0 && plan.program.expressions.node_kinds[child] == DirectMirScalarProgramExprLocal() {
+                    let lent_local: Int = plan.program.expressions.node_local_rows[child];
+                    if lent_local >= 0 && lent_local < ArrayLength(modes) && modes[lent_local] > 0 &&
+                        DirectMirOwnedLocalDirectCallCarriage(plan, root, child,
+                            DirectMirScalarCfgRoutinePartitionLocalOwner(plan.routines, lent_local),
+                            plan.program.expressions.graph_starts[graph]) == "readonly-ref" {
+                        return true;
+                    }
+                }
+                ordinal = ordinal + 1;
+            }
+        }
+        graph = graph + 1;
+    }
+    return false;
+}

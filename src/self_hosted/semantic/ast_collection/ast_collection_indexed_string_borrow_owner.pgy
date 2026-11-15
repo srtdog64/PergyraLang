@@ -7,8 +7,11 @@ import "ast_collection_indexed_string_borrow_source_policy_owner.pgy";
 import "ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_map_payload_event_owner.pgy";
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "../ast_signature_fact_owner.pgy";
 
 import "ast_collection_indexed_string_borrow_state_owner.pgy";
+import "ast_collection_indexed_string_borrow_retirement_owner.pgy";
 
 func SemanticAstIndexedStringBorrowUseAtEvent(
     artifact: AstTreeArtifact,
@@ -176,8 +179,12 @@ func SemanticAstIndexedStringBorrowCompleteValue(
     return true;
 }
 
+// A deep drop retires the storage source of its Array<String> argument. So
+// does a user call that takes the Array by `own` when the callee deep-drops
+// that formal: a String element loan of it cannot outlive the call.
 func SemanticAstIndexedStringBorrowRecordDeepDrop(
     artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
@@ -187,14 +194,34 @@ func SemanticAstIndexedStringBorrowRecordDeepDrop(
     inout state: SemanticAstIndexedStringBorrowState,
     surface_row: Int, call_node: Int, terminal_root: Int
 ) -> Bool {
-    if !SemanticAstCollectionOwnershipBuiltinCall(
-            surfaces.expression_graph, call_node,
-            "ArrayDropOwnedStrings") {
-        return true;
-    }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         surfaces.expression_graph, terminal_root
     );
+    if !SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call_node,
+            "ArrayDropOwnedStrings") {
+        if !call.ok || call.call_node != call_node { return true; }
+        var ordinal: Int = 0;
+        while ordinal < ArrayLength(call.argument_nodes) {
+            let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+                signatures, surfaces.expression_graph, call_node, ordinal);
+            var mode: Int = -1;
+            if formal.ok {
+                let found: Option<Int> = SemanticAstFunctionParamModeAt(signatures, formal.signature_row, formal.ordinal);
+                if IsSome(found) { mode = UnwrapOption(found); }
+            }
+            let handed: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                artifact, locals, inferred_types, surfaces, surface_row, call.argument_nodes[ordinal]);
+            if mode == 2 && handed.ok && handed.row < ArrayLength(current_definitions) &&
+                handed.row < ArrayLength(inferred_types) && inferred_types[handed.row] == "Array<String>" &&
+                SemanticAstIndexedStringBorrowCalleeDropsFormal(signatures, surfaces, formal) {
+                SemanticAstIndexedStringBorrowRetireSource(definitions, storage, current_definitions, state, handed.row,
+                    true);
+            }
+            ordinal = ordinal + 1;
+        }
+        return true;
+    }
     if !call.ok || call.call_node != call_node ||
         ArrayLength(call.argument_nodes) != 1 {
         return false;
@@ -207,20 +234,6 @@ func SemanticAstIndexedStringBorrowRecordDeepDrop(
     if !binding.ok || binding.row >= ArrayLength(current_definitions) {
         return true;
     }
-    var source_id: Int = SemanticAstCollectionDefinitionStorageSource(
-        storage, definitions, binding.row,
-        current_definitions[binding.row]
-    );
-    if source_id <= 0 {
-        source_id = SemanticAstIndexedStringBorrowUnknownSource();
-    }
-    var row: Int = 0;
-    while row < ArrayLength(state.source_storage_ids) {
-        if SemanticAstIndexedStringBorrowInvalidatedByDrop(
-                state.source_storage_ids[row], source_id) {
-            state.invalidated[row] = true;
-        }
-        row = row + 1;
-    }
+    SemanticAstIndexedStringBorrowRetireSource(definitions, storage, current_definitions, state, binding.row, false);
     return true;
 }

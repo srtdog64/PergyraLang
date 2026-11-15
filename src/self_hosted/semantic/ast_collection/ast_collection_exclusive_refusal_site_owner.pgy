@@ -1,0 +1,34 @@
+// Exclusive-value refusals that name their site: the receiver text of a
+// statement-form member growth, or the argument text of a call boundary.
+import "ast_collection_ownership_verdict_error_owner.pgy";
+
+// A statement-form growth whose root may not grow in place, named by its
+// receiver (`pair.first`).
+func SemanticAstCollectionExclusiveMemberMutationRefusal(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, syntax_id: Int
+) -> SemanticAstCollectionOwnershipVerdict {
+    var receiver: String = "";
+    let receiver_root: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+    if IsSome(receiver_root) {
+        let receiver_text: Option<String> = SemanticExpressionGraphNodeText(
+            surfaces.expression_graph, UnwrapOption(receiver_root));
+        if IsSome(receiver_text) { receiver = UnwrapOption(receiver_text); }
+    }
+    return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+        SemanticError3("borrow_boundary_escape", "boundary", "unproved_exclusive_member_mutation",
+            "type", "Array<String>", "receiver", receiver),
+        syntax_id, -1);
+}
+
+// An aggregate argument refused at its call boundary, named by its text.
+func SemanticAstCollectionExclusiveArgumentRefusal(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, boundary: String, syntax_id: Int,
+    edge: SemanticCallArgumentEdgeView
+) -> SemanticAstCollectionOwnershipVerdict {
+    var site: String = "";
+    let site_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, edge.argument_node);
+    if IsSome(site_text) { site = UnwrapOption(site_text); }
+    return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+        SemanticError3("borrow_boundary_escape", "boundary", boundary, "type", "nominal aggregate", "argument", site),
+        syntax_id, edge.call_node);
+}

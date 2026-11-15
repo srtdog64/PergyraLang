@@ -8,11 +8,14 @@ enum DriverSourceMirRequest {
     SourceMirJsonDiagnostic,
 }
 
+// compiler_clone_landings counts the copies the source ownership analysis
+// selected; the MIR payload carries none of them.
 tobject DriverSourceMirPayloadReceipt {
     schema: String;
     request_mode: String;
     source_path: String;
     payload: String;
+    compiler_clone_landings: Int;
 }
 
 tobject DriverSourceMirExecutionReceipt {

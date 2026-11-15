@@ -155,9 +155,10 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
         artifact, signatures, locals, inferred_types, surfaces, assignments, statements);
     let field_reads: HashMap<String, Int> = SemanticAstCollectionExclusiveFieldReads(artifact, signatures, surfaces);
     let no_copies: HashMap<String, Int> = MapNew();
+    let no_growth_sites: HashMap<String, Int> = MapNew();
     var facts: SemanticAstCollectionExclusiveValueFacts = SemanticAstCollectionExclusiveValueFacts(
         false, shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths, starts, ends, consumed_uses,
-        empty_locals, field_reads, no_copies);
+        empty_locals, field_reads, no_copies, no_growth_sites);
     if !locals.ok || !assignments.ok || !statements.ok ||
         ArrayLength(inferred_types) != ArrayLength(locals.node_ids) ||
         MapHas(field_reads, "unconverged") { return facts; }

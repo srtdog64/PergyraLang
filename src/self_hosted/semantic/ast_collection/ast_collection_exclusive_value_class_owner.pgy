@@ -43,6 +43,9 @@ struct SemanticAstCollectionExclusiveValueFacts {
     field_reads: HashMap<String, Int>;
     // Copy edges between holders and sources (copy owner keys).
     copies: HashMap<String, Int>;
+    // Statements where a binding grows (growth owner keys), filled beside the
+    // mutating-formal summary.
+    growth_sites: HashMap<String, Int>;
 }
 
 func SemanticAstCollectionExclusiveShared() -> SemanticAstCollectionExclusiveClass {

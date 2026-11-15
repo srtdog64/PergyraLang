@@ -11,6 +11,7 @@ import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_owner.pgy";
 import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
 import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
 import "owned_payload_enum_parameter_lifetime_owner.pgy";
+import "owned_local_call_carriage_owner.pgy";
 
 struct DirectMirOwnedLocalLifetimeFact {
     let valid: Bool;
@@ -36,52 +37,6 @@ func DirectMirOwnedLocalBorrowingNode(kind: Int) -> Bool {
         kind == DirectMirScalarProgramExprArrayIntIndex() ||
         kind == DirectMirScalarProgramExprArrayBoolIndex() ||
         DirectMirScalarProgramHashMapOperation(kind) != "";
-}
-
-func DirectMirOwnedLocalDirectCallCarriage(
-    ref plan: DirectMirScalarCfgGraphPlan, node: Int, child: Int,
-    routine: Int, graph_start: Int
-) -> String {
-    if plan.program.expressions.node_kinds[node] !=
-            DirectMirScalarProgramExprDirectCall() { return ""; }
-    let target: Int = plan.program.expressions.node_callable_rows[node];
-    if target < 0 || target >= ArrayLength(plan.routines.roles) {
-        return "";
-    }
-    let arguments: DirectMirScalarProgramArgumentView =
-        DirectMirScalarProgramArgumentViewFromNode(
-            plan.program.expressions, node);
-    var argument_ordinal: Int = -1;
-    var ordinal: Int = 0;
-    while arguments.valid && ordinal < arguments.count {
-        if DirectMirScalarProgramArgumentViewAt(
-                plan.program.expressions, arguments, ordinal) == child {
-            if argument_ordinal >= 0 { return ""; }
-            argument_ordinal = ordinal;
-        }
-        ordinal = ordinal + 1;
-    }
-    if argument_ordinal < 0 || argument_ordinal >=
-            plan.routines.parameter_counts[target] { return ""; }
-    let parameter_row: Int = plan.routines.parameter_starts[target] +
-        argument_ordinal;
-    let carriage: String =
-        plan.routines.parameter_carriages[parameter_row];
-    if plan.program.expressions.node_types[child] !=
-            plan.routines.parameter_types[parameter_row] ||
-        !DirectMirScalarCfgProgramDirectCallCarriageReady(
-            plan, plan.program.expressions, node, routine, graph_start,
-            target, child, argument_ordinal) {
-        return "";
-    }
-    if carriage == "readonly-ref" || carriage == "value-result" ||
-        carriage == "owner-handle" { return carriage; }
-    if carriage == "value" &&
-        DirectMirScalarProgramHashMapParameterCarriageReady(
-            plan.routines.parameter_types[parameter_row], carriage) {
-        return carriage;
-    }
-    return "";
 }
 
 func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
@@ -422,6 +377,9 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
             }
         }
         local_row = local_row + 1;
+    }
+    if DirectMirOwnedLocalLentReleaseLeaves(plan, graph_definitions, graph_returns, transferred, fresh_returns, modes) {
+        Die("owned local lent to a ref formal is released while the call result that may hold its storage leaves the routine");
     }
     var valid: Bool = true;
     routine = 0;

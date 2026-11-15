@@ -1,0 +1,77 @@
+// Compiler Clone landings and the routes that can carry them.
+//
+// The semantic ownership analysis selects exact expression nodes that must be
+// copied (a compiler Clone, docs/truth/decisions/2026-10-22 and 2026-11-12).
+// A copy of a builtin store's value travels in MIR as its owned-store
+// receipt, and a constructor's shared argument is judged by the direct MIR
+// storage-sharing owner. A copy of an argument of a declared routine has no
+// MIR carrier: self-host MIR JSON has no Clone call for it. The MIR to AST
+// round trip derives the same landings again from the same program, so its C
+// keeps every copy. A direct MIR emitter reads only the MIR and would emit
+// the program without that copy, so a direct route refuses a program with
+// one instead of admitting it.
+import "../../mir/program_fact_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_consumer_owner.pgy";
+import "../codegen_route_refusal_owner.pgy";
+
+// The node that consumes `node`: the sealed consumer row, or the first later
+// row whose operands name it; -1 when none does.
+func DriverCompilerCloneLandingConsumer(ref graph: SemanticExpressionGraphFacts, node: Int) -> Int {
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if graph.arena.shape_ready && ArrayLength(graph.arena.consumer_rows) == count {
+        return graph.arena.consumer_rows[node];
+    }
+    var row: Int = node + 1;
+    while row < count {
+        if SemanticExpressionGraphRowConsumes(graph.arena.topology, row, node) { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+// The landings at an argument of a declared routine's call. A landing that
+// is a lane root (a statement store's value, a binding's initializer) or an
+// argument of a builtin or constructor belongs to the owners named above.
+func DriverCompilerCloneLandingCount(ref facts: SelfMirProgramFacts) -> Int {
+    let node_count: Int = ArrayLength(facts.expression_graph.arena.compiler_clone_kinds);
+    var routines: HashMap<String, Int> = MapNew();
+    var row: Int = 0;
+    while row < ArrayLength(facts.routines.node_ids) {
+        MapSet(routines, ToString(facts.routines.node_ids[row]), 1);
+        row = row + 1;
+    }
+    var count: Int = 0;
+    var node: Int = 0;
+    while node < node_count {
+        if facts.expression_graph.arena.compiler_clone_kinds[node] == 1 {
+            var uncarried: Bool = false;
+            var consumer: Int = -1;
+            if facts.expression_graph.ok && node_count == SemanticExpressionGraphArenaNodeCount(facts.expression_graph.arena) {
+                consumer = DriverCompilerCloneLandingConsumer(facts.expression_graph, node);
+            }
+            if consumer >= 0 {
+                let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+                    facts.expression_graph, consumer);
+                var target: Int = 0;
+                if edge.ok && edge.argument_node == node {
+                    let found: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+                        facts.expression_graph, edge.call_node);
+                    if IsSome(found) { target = UnwrapOption(found); }
+                }
+                uncarried = edge.ok && edge.argument_node == node && MapHas(routines, ToString(target));
+            }
+            if uncarried { count = count + 1; }
+        }
+        node = node + 1;
+    }
+    return count;
+}
+
+func DriverCompilerCloneDirectRouteRefusal(landings: Int, route: String) -> CodegenRouteRefusal {
+    return CodegenRouteRefusal(
+        "driver-compiler-clone-route", route,
+        Concat("direct MIR emission cannot carry the ", Concat(ToString(landings),
+            " compiler Clone landing(s) the source ownership analysis selected; the program is refused instead of emitted without its copies")));
+}

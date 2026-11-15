@@ -26,6 +26,7 @@ import "driver_rung2_intent_consumer_owner.pgy";
 import "driver_rung2_nested_intent_c_substitution_owner.pgy";
 import "driver_rung2_scalar_c_substitution_owner.pgy";
 import "driver_rung2_enum_payload_variant_admission_owner.pgy";
+import "driver_compiler_clone_route_owner.pgy";
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
     body_types: SemanticAstBodyTypeBundle;
@@ -251,17 +252,25 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool,
-    variant_proof: DriverRung2EnumPayloadVariantProofAdmission
+    variant_proof: DriverRung2EnumPayloadVariantProofAdmission,
+    compiler_clone_landings: Int
 ) -> CompilerEmissionArtifact {
     if !DriverRung2EnumPayloadVariantProofAdmissionReady(variant_proof) {
         Die("MIR payload-enum variant proof admission is missing");
     }
+    // A direct route emits from MIR alone, which carries no landing.
     let scalar_c: Option<CompilerEmissionArtifact> = DriverRung2ScalarCSubstitutionIfClaimed(
         admitted, target_projection);
+    if IsSome(scalar_c) && compiler_clone_landings > 0 {
+        Die(CodegenRouteRefusalText(DriverCompilerCloneDirectRouteRefusal(compiler_clone_landings, "direct-mir-c")));
+    }
     if IsSome(scalar_c) { return UnwrapOption(scalar_c); }
     let nested_c: Option<CompilerEmissionArtifact> =
         DriverRung2NestedIntentCSubstitutionIfClaimed(
             admitted, target_projection);
+    if IsSome(nested_c) && compiler_clone_landings > 0 {
+        Die(CodegenRouteRefusalText(DriverCompilerCloneDirectRouteRefusal(compiler_clone_landings, "direct-mir-c")));
+    }
     if IsSome(nested_c) { return UnwrapOption(nested_c); }
     let json: String = admitted.routines.source_json;
     let topology_receipt: MirDomainTopologyGraphPlanConsumptionReceipt =
@@ -399,7 +408,8 @@ func CompileMirJsonTextToCForTargetVerifiedObserved(
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool,
-    variant_proof: DriverRung2EnumPayloadVariantProofAdmission
+    variant_proof: DriverRung2EnumPayloadVariantProofAdmission,
+    compiler_clone_landings: Int
 ) -> CompilerEmissionArtifact {
     DriverRung2PressureStage(
         observe_pressure, "consumer:machine-layer-admission:start"
@@ -415,7 +425,7 @@ func CompileMirJsonTextToCForTargetVerifiedObserved(
     let admitted: MirMachineLayerAdmittedJsonInput =
         UnwrapOption(admitted_opt);
     return CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
-        admitted, target_projection, observe_pressure, variant_proof
+        admitted, target_projection, observe_pressure, variant_proof, compiler_clone_landings
     );
 }
 
@@ -424,9 +434,10 @@ func CompileMirJsonTextToCForTargetVerified(
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact
 ) -> CompilerEmissionArtifact {
+    // External MIR carries its copies as Clone calls.
     return CompileMirJsonTextToCForTargetVerifiedObserved(
         json, machine_declaration, target_projection, false,
-        DriverRung2EnumPayloadVariantProofAdmissionForExternalMir()
+        DriverRung2EnumPayloadVariantProofAdmissionForExternalMir(), 0
     );
 }
 
@@ -441,7 +452,7 @@ func CompileMachineAdmittedMirJsonToCVerifiedObserved(
             CompilerTargetCpuCProjection()
         ),
         observe_pressure,
-        variant_proof
+        variant_proof, 0
     );
 }
 
@@ -461,14 +472,21 @@ func CompileSourceToCVerified(
     source_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration, emit_json_diagnostic: Bool
 ) -> CompilerEmissionArtifact with caps io_read {
-    let json: String = CompileSourceToMirJsonVerified(
-        source_path, machine_declaration, emit_json_diagnostic
-    );
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifactForPublicDiagnosticRequest(
+        source_path, emit_json_diagnostic);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let projection: DriverRung2MirProjection =
+        DriverRung2MirProjectionFromAdmittedAnalysisObserved(
+            artifact, analysis, machine_declaration, false, emit_json_diagnostic
+        );
+    let landings: Int = DriverCompilerCloneLandingCount(projection.facts);
+    let json: String = DriverRung2MirProjectionJson(projection, false);
     return CompileMirJsonTextToCForTargetVerifiedObserved(
         json, machine_declaration,
         CompilerTargetProjectionFactFromOwner(CompilerTargetCpuCProjection()),
         false,
-        DriverRung2EnumPayloadVariantProofAdmissionFromVerifiedSource()
+        DriverRung2EnumPayloadVariantProofAdmissionFromVerifiedSource(), landings
     );
 }
 

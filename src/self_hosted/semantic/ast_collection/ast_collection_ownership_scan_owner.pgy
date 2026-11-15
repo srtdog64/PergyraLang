@@ -11,6 +11,8 @@ import "ast_collection_read_literal_argument_owner.pgy";
 import "ast_collection_call_argument_verdict_owner.pgy";
 import "ast_collection_element_escape_entry_owner.pgy";
 import "ast_collection_exclusive_value_mutation_owner.pgy";
+import "ast_collection_exclusive_argument_boundary_owner.pgy";
+import "ast_collection_exclusive_refusal_site_owner.pgy";
 import "ast_collection_exclusive_statement_mutation_owner.pgy";
 import "ast_collection_builtin_transition_owner.pgy";
 import "ast_collection_definition_transition_owner.pgy";
@@ -97,16 +99,13 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
         // Each syntax event precedes its own call lanes, not every call in the
         // program. Keeping statements first also closes same-syntax RHS effects.
         if root_slot % 3 == 0 {
-            let mutation_proof: SemanticAstCollectionExclusiveStatementMutationProof = SemanticAstCollectionExclusiveStatementRootReady(artifact, signatures, locals,
+            let mutation_proof: SemanticAstCollectionExclusiveStatementMutationProof = SemanticAstCollectionExclusiveStatementRootReady(artifact, signatures, constructors, locals,
                     initializer_types.inferred_type_names, surfaces, statements, assignments,
                     exclusive_values.shared_locals, mutating_formals, origins, source_binding_syntax_ids,
                     surfaces.function_node_ids[root_slot / 3], surfaces.node_ids[root_slot / 3], focus_recovery,
                     exclusive_values.copies, compiler_clone_expression_node_ids, call_effects, current_definitions, exclusive_values.surface_starts, exclusive_values.surface_ends);
             if !mutation_proof.ok {
-                verdict = SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-                    SemanticError2("borrow_boundary_escape", "boundary", "unproved_exclusive_member_mutation",
-                        "type", "Array<String>"),
-                    surfaces.node_ids[root_slot / 3], -1); return;
+                verdict = SemanticAstCollectionExclusiveMemberMutationRefusal(surfaces, surfaces.node_ids[root_slot / 3]); return;
             }
             let statement_transitions: SemanticAstCollectionStatementTransitionResult = SemanticAstCollectionStatementTransitionForSyntax(artifact, signatures, locals, initializer_types,
                     surfaces, statements, assignments, surfaces.node_ids[root_slot / 3], call_effects, definitions,
@@ -237,13 +236,11 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                         artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
                         assignments, exclusive_values, mutating_formals, sink_consumed,
                         surfaces.function_node_ids[root_slot / 3], surfaces.node_ids[root_slot / 3], edge, focus_recovery,
-                        formal_effects, surfaces.expression_graph.roots[root_slot]);
+                        formal_effects, surfaces.expression_graph.roots[root_slot], compiler_clone_expression_node_ids);
                     if exclusive_boundary != "" {
                         ArrayDrop(pending); ArrayDrop(prefixes);
-                        verdict = SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-                            SemanticError2("borrow_boundary_escape", "boundary", exclusive_boundary,
-                                "type", "nominal aggregate"),
-                            surfaces.node_ids[root_slot / 3], edge.call_node); return;
+                        verdict = SemanticAstCollectionExclusiveArgumentRefusal(
+                            surfaces, exclusive_boundary, surfaces.node_ids[root_slot / 3], edge); return;
                     }
                     let member_root_ready: Bool = SemanticAstCollectionExclusiveAliasRootReadyAt(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces,
@@ -333,7 +330,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                         verdict = builtin_transition; return;
                     }
                     if !SemanticAstIndexedStringBorrowRecordDeepDrop(
-                            artifact, locals,
+                            artifact, signatures, locals,
                             initializer_types.inferred_type_names, surfaces,
                             definitions, storage, current_definitions,
                             indexed_string_borrows, root_slot / 3,

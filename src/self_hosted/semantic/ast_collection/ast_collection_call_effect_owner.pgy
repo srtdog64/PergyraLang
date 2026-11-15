@@ -10,6 +10,7 @@ import "ast_collection_argument_permission_effect_owner.pgy";
 import "ast_collection_definition_effect_closure_owner.pgy";
 import "ast_collection_owned_parameter_identity_owner.pgy";
 import "ast_collection_owned_generation_order_owner.pgy";
+import "ast_collection_deferred_deep_drop_owner.pgy";
 
 func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -109,6 +110,8 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                         var site: Int = SemanticAstCollectionCallRetirementSite(artifact, surfaces.node_ids[slot / 3]);
                         var terminal: Bool = SemanticAstCollectionEffectSiteTerminatesFlow(
                             artifact, surfaces.node_ids[slot / 3]);
+                        if terminal && local_array && effect.storage_escape && SemanticAstCollectionDeferredDeepDropOf(
+                                artifact, locals, inferred_types, surfaces, surfaces.function_node_ids[slot / 3], binding.row) { terminal = false; }
                         let target_formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(
                             signatures, surfaces.expression_graph, call.call_node, call.ordinal);
                         var definition: Int = -1;

@@ -63,6 +63,49 @@ func SemanticAstMapPayloadLoanLeavesOnlyThroughResult(
     return true;
 }
 
+// The backing of the String-valued map a user call with a String result is
+// handed through a non-inout formal: 0 when there is none or its backing is
+// unknown, 1 when two different known maps are handed (backings are never 1:
+// a MapNew backing is its call node + 1, a formal one is negative).
+func SemanticAstMapPayloadLentBacking(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, syntax_id: Int, ref call: SemanticCallSpineView
+) -> Int {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
+    if !IsSome(target) || UnwrapOption(target) <= 0 { return 0; }
+    let none: Array<Int> = [];
+    var lent: Int = 0;
+    var ordinal: Int = 0;
+    while ordinal < ArrayLength(call.argument_nodes) {
+        let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph, call.call_node, ordinal);
+        var lending: Bool = false;
+        if formal.ok && formal.signature_row < ArrayLength(signatures.return_types) &&
+            signatures.return_types[formal.signature_row] == "String" {
+            let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, formal.signature_row, formal.ordinal);
+            let flat: Int = signatures.param_starts[formal.signature_row] + formal.ordinal;
+            if IsSome(mode) && (UnwrapOption(mode) == 0 || UnwrapOption(mode) == 3) &&
+                flat < ArrayLength(signatures.param_types) {
+                let read: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
+                    "MapGet", 2, signatures.param_types[flat]);
+                lending = read.applies && read.ok && read.return_type == "String";
+            }
+        }
+        if lending {
+            let backing: Int = SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors, locals,
+                inferred_types, surfaces, assignments, function_id, syntax_id, call.argument_nodes[ordinal], none, 0);
+            if backing != 0 && lent != 0 && backing != lent { ArrayDrop(none); return 1; }
+            if backing != 0 { lent = backing; }
+        }
+        ordinal = ordinal + 1;
+    }
+    ArrayDrop(none);
+    return lent;
+}
+
 func SemanticAstMapStringPayloadAtCallCompletion(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
@@ -74,9 +117,17 @@ func SemanticAstMapStringPayloadAtCallCompletion(
     inout loans: SemanticAstIndexedStringBorrowState, root_slot: Int, call_node: Int, terminal: Int
 ) -> SemanticAstCollectionOwnershipVerdict {
     let surface: Int = root_slot / 3;
-    // With no loan in this routine nothing below can refuse or record.
+    // With no loan in this routine nothing below can refuse or record, except
+    // a MapGet or a user call with a String result making one.
+    let user_target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call_node);
+    var string_result: Bool = false;
+    if IsSome(user_target) && UnwrapOption(user_target) > 0 {
+        let callee: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(user_target));
+        string_result = IsSome(callee) && UnwrapOption(callee) < ArrayLength(signatures.return_types) &&
+            signatures.return_types[UnwrapOption(callee)] == "String";
+    }
     if !SemanticAstMapPayloadLoansIn(loans, surfaces.function_node_ids[surface]) &&
-        !SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapGet") {
+        !SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapGet") && !string_result {
         return SemanticAstCollectionOwnershipVerdictOk();
     }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, terminal);
@@ -136,6 +187,16 @@ func SemanticAstMapStringPayloadAtCallCompletion(
         }
         ordinal = ordinal + 1;
     }
+    // A result lends its ref inputs (2026-10-19): a String returned by a
+    // routine handed a String-valued map through a non-inout formal may be a
+    // MapGet loan of that map, so it is the same loan here. A map whose
+    // backing is unknown is not tracked; two different known maps cannot be.
+    let lent_backing: Int = SemanticAstMapPayloadLentBacking(artifact, signatures, constructors, locals,
+        inferred_types, surfaces, assignments, surfaces.function_node_ids[surface], surfaces.node_ids[surface], call);
+    if lent_backing == 1 {
+        ArrayDrop(none); ArrayDrop(sources_to_invalidate);
+        return SemanticAstMapStringPayloadBoundary(surfaces, surface, terminal, "map_string_borrow_source_unproved");
+    }
     // Keep the state carrier intact through its last read above. From here to
     // the final restoration these four locals are the only owners of the map
     // descriptors, so a growing MapSet cannot alias the carrier fields.
@@ -157,6 +218,12 @@ func SemanticAstMapStringPayloadAtCallCompletion(
             return SemanticAstMapStringPayloadBoundary(surfaces, surface, terminal, "map_string_borrow_source_unproved");
         }
         MapSet(sources, ToString(terminal), backing);
+        MapSet(syntax_ids, ToString(terminal), surfaces.node_ids[surface]);
+        MapSet(functions, ToString(terminal), surfaces.function_node_ids[surface]);
+        MapSet(loan_functions, ToString(surfaces.function_node_ids[surface]), 1);
+    }
+    if lent_backing != 0 {
+        MapSet(sources, ToString(terminal), lent_backing);
         MapSet(syntax_ids, ToString(terminal), surfaces.node_ids[surface]);
         MapSet(functions, ToString(terminal), surfaces.function_node_ids[surface]);
         MapSet(loan_functions, ToString(surfaces.function_node_ids[surface]), 1);

@@ -287,12 +287,14 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     var exclusive_values: SemanticAstCollectionExclusiveValueFacts = SemanticAstCollectionExclusiveValueFactsFrom(
         artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
         assignments, statements);
+    var growth_sites: HashMap<String, Int> = MapNew();
     let mutating_formals: HashMap<String, Int> = SemanticAstCollectionMutatingFormals(
         artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
         formal_effects.effects,
         statements, assignments, origins, source_binding_syntax_ids,
         exclusive_values.dep_locals, exclusive_values.dep_formals, exclusive_values.dep_paths,
-        exclusive_values.paths);
+        exclusive_values.paths, growth_sites);
+    exclusive_values.growth_sites = growth_sites;
     if !exclusive_values.ok || MapHas(mutating_formals, "unconverged") {
         return SemanticAstCollectionOwnershipVerdictError(
             "ast_artifact_invalid",

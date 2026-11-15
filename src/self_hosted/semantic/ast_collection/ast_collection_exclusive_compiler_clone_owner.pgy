@@ -4,6 +4,52 @@
 
 import "ast_collection_focus_recovery_schema_owner.pgy";
 import "../ast_expression/ast_expression_graph_view_owner.pgy";
+import "../ast_type_name_canonical_owner.pgy";
+import "../ast_nominal_constructor_lookup_owner.pgy";
+import "../array_type_shape_owner.pgy";
+import "../../lib/nominal_field_kind_owner.pgy";
+
+// A compiler Clone of a value of this type copies it whole: the copy shares
+// no storage with the original. This is what the C projection of a compiler
+// Clone copies deeply: a String or physical scalar, an Array of them, an
+// Option of such a value, and a struct or class whose every field is one.
+// An Array of Arrays or of structs, a map and a generic instance are copied
+// only by value, so no landing makes them independent.
+func SemanticAstCollectionExclusiveCloneCopiesWhole(
+    ref constructors: SemanticAstNominalConstructorFacts, type_name: String, depth: Int
+) -> Bool {
+    if depth > 16 { return false; }
+    let canonical: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
+    let name: String = canonical.canonical_name;
+    if name == "String" || name == "Int" || name == "Long" || name == "Bool" || name == "Float" ||
+        name == "Double" || name == "Char" { return true; }
+    let element: Option<String> = SemanticArrayElementType(name);
+    if IsSome(element) {
+        let item: String = UnwrapOption(element);
+        return item == "String" || item == "Int" || item == "Long" || item == "Bool" || item == "Float" ||
+            item == "Double" || item == "Char";
+    }
+    if StringLength(name) > 8 && StartsWith(name, "Option<") && SourceCharAt(name, StringLength(name) - 1) == ">" {
+        return SemanticAstCollectionExclusiveCloneCopiesWhole(
+            constructors, Substring(name, 7, StringLength(name) - 8), depth + 1);
+    }
+    if name != canonical.nominal_base_name { return false; }
+    let row: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, name);
+    if !IsSome(row) || UnwrapOption(row) >= ArrayLength(constructors.nominal_kinds) { return false; }
+    let nominal_kind: String = constructors.nominal_kinds[UnwrapOption(row)];
+    if nominal_kind != "struct" && nominal_kind != "class" { return false; }
+    let start: Int = constructors.param_starts[UnwrapOption(row)];
+    var field: Int = 0;
+    while field < constructors.param_counts[UnwrapOption(row)] {
+        if constructors.field_kinds[start + field] == NominalFieldKindSubjectSlot() ||
+            !SemanticAstCollectionExclusiveCloneCopiesWhole(
+                constructors, constructors.param_type_names[start + field], depth + 1) {
+            return false;
+        }
+        field = field + 1;
+    }
+    return true;
+}
 
 func SemanticAstCollectionExclusiveCompilerCloneCount(
     ref copies: HashMap<String, Int>, key: String
