@@ -37,24 +37,14 @@ case "$(uname -s 2>/dev/null || echo unknown)" in
     MINGW*|MSYS*|CYGWIN*) SHELL="$(command -v bash)"; export SHELL ;;
 esac
 
-LOWER_BIN="$BUILD_DIR/mir_lower.exe"
 MIR_JSON="$BUILD_DIR/resource_flow.mirjson"
 VALID_OUT="$BUILD_DIR/resource_flow.out"
 BAD_JSON="$BUILD_DIR/resource_flow.bad.mirjson"
 BAD_OUT="$BUILD_DIR/resource_flow.bad.out"
-LOWER_LOG="$BUILD_DIR/mir_lower.compile.log"
-
-compile_rc=0
-(cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "src/self_hosted/mir_lower/main.pgy")" \
-    --backend=c -o "$(pgy_path_for_compiler "$PGY" "$LOWER_BIN")" \
-    >"$LOWER_LOG" 2>&1) || compile_rc=$?
-if ((compile_rc != 0)); then
-    printf 'compile_rc=%s pgy=%s tmpdir=%s\n' "$compile_rc" "$PGY" "$TMPDIR" >>"$LOWER_LOG"
-    echo "[self-host-mir-resource-flow] mir_lower rebuild failed" >&2
-    cat "$LOWER_LOG" >&2
-    exit 1
-fi
+# The tool comes from the job's one shared build (mir_lower_tool_build_owner.sh).
+source "$ROOT_DIR/tests/self_hosted/mir_lower_tool_build_owner.sh"
+LOWER_BIN="$(pgy_mir_lower_tool_binary "$ROOT_DIR" "$PGY")" ||
+    { echo "[self-host-mir-resource-flow] shared MIR lowering tool is unavailable" >&2; exit 1; }
 
 CASE="tests/cases/function_param_flow_summary/main.pgy"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \

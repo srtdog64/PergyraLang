@@ -2918,14 +2918,22 @@ air-function-param-flow-summary-test-smoke: $(AIR_TEST)
 air-mir-binding-test-smoke: $(AIR_TEST) $(PGY)
 	AIR_TEST_BIN="$(abspath $(AIR_TEST))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/air_mir_binding_smoke.sh
 
+# The MIR flow identity gates run one shared build of the MIR lowering tool
+# per job (tests/self_hosted/mir_lower_tool_build_owner.sh). Each recipe
+# names the launcher its gate uses; matching receipts keep the build.
+MIR_LOWER_TOOL_DIR := $(abspath .tmp/self_hosted/mir_lower_tool)
+
 self-host-mir-function-param-flow-summary-test-smoke:
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_function_param_flow_summary_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
+	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_function_param_flow_summary_smoke.sh
 
 self-host-mir-resource-flow-identity-test-smoke:
-	"$(BASH)" tests/self_hosted/mir_resource_flow_identity_smoke.sh
+	"$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
+	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" "$(BASH)" tests/self_hosted/mir_resource_flow_identity_smoke.sh
 
 self-host-mir-loop-flow-summary-test-smoke:
-	"$(BASH)" tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh
+	"$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
+	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" "$(BASH)" tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh
 
 self-host-mir-machine-layer-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_machine_layer_smoke.sh
@@ -3319,8 +3327,9 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/proof/sot_authority_adequacy_smoke.sh
 	"$(BASH)" tests/proof/sot_authority_edge_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/self_host_compiler_world_contract_smoke.sh
-	"$(BASH)" tests/self_hosted/mir_resource_flow_identity_smoke.sh
-	"$(BASH)" tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh
+	"$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
+	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" "$(BASH)" tests/self_hosted/mir_resource_flow_identity_smoke.sh
+	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" "$(BASH)" tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh
 	PGY_FILESYSTEM_WALK_BACKENDS="$${PGY_FILESYSTEM_WALK_BACKENDS:-$(FILESYSTEM_WALK_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime/filesystem_directory_walk_smoke.sh
 

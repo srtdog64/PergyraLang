@@ -13,7 +13,6 @@ PGY="$(pgy_select_optional_exe_binary "$PGY")"
 
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/mir_loop_flow}"
 mkdir -p "$BUILD_DIR"
-LOWER_BIN="$BUILD_DIR/mir_lower.exe"
 MIR_JSON="$BUILD_DIR/loop_flow.mirjson"
 VALID_OUT="$BUILD_DIR/loop_flow.out"
 BAD_COUNT_JSON="$BUILD_DIR/loop_flow.bad_count.mirjson"
@@ -24,18 +23,10 @@ BAD_KIND_JSON="$BUILD_DIR/loop_flow.bad_kind.mirjson"
 BAD_KIND_OUT="$BUILD_DIR/loop_flow.bad_kind.out"
 BAD_STATE_INDEX_JSON="$BUILD_DIR/loop_flow.bad_state_index.mirjson"
 BAD_STATE_INDEX_OUT="$BUILD_DIR/loop_flow.bad_state_index.out"
-LOWER_LOG="$BUILD_DIR/mir_lower.compile.log"
-
-compile_rc=0
-(cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "src/self_hosted/mir_lower/main.pgy")" \
-    --backend=c -o "$(pgy_path_for_compiler "$PGY" "$LOWER_BIN")" \
-    >"$LOWER_LOG" 2>&1) || compile_rc=$?
-if ((compile_rc != 0)); then
-    echo "mir_lower rebuild failed" >&2
-    cat "$LOWER_LOG" >&2
-    exit 1
-fi
+# The tool comes from the job's one shared build (mir_lower_tool_build_owner.sh).
+source "$ROOT_DIR/tests/self_hosted/mir_lower_tool_build_owner.sh"
+LOWER_BIN="$(pgy_mir_lower_tool_binary "$ROOT_DIR" "$PGY")" ||
+    { echo "[self-host-mir-loop-flow] shared MIR lowering tool is unavailable" >&2; exit 1; }
 
 CASE="tests/cases/semantic_loop_flow/summary_hit.pgy"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
