@@ -6,8 +6,8 @@ native trials); a local PASS is not CI evidence.
 
 | Gate | Last observed result |
 |---|---|
-| Required CI at the published SHA | Last GREEN at `20325cad5` (run 43653186068). Later pushes: `f00fad7b8` failed on the native oracle (`local` reserved) and the cleanup gate, both fixed in `afbd9ab7f`; `e7bb64e06` failed on the word inventory and the ownership gate's public LLVM lane, both fixed in `24fe553f4`; the commit carrying this file is pending |
-| Weekly full pipeline (`platform_full`, dispatch) | Run 43669288274 on `e1a9cba9e`: codegen and harness-evidence parity, Windows toolchain and formal proofs PASS; macOS/Windows transpile (fixed in `e7bb64e06`), semantic parity (fixed in `226613c3c`), Windows driver parity (composition root) and Linux driver/full (runner shutdown, time limit) open |
+| Required CI at the published SHA | GREEN at `e3a0b7ad8` (run 43678859899): all 33 jobs, with the bootstrap, fixed-point join and native oracle jobs executed; the commit carrying this file is pending |
+| Weekly full pipeline (`platform_full`, dispatch) | Run 43669288274 on `e1a9cba9e`: codegen and harness-evidence parity, Windows toolchain and formal proofs PASS; macOS/Windows transpile (fixed in `e7bb64e06`), semantic parity (fixed in `226613c3c`); the driver shards built a test-only driver (fixed by the commit carrying this file); Linux driver llvm lane and `platform-full-linux` open ([blocker](blocker.md)) |
 | SoT registry gate (`scripts/sot_registry_gate.py`) | PASS: 95 authorities, 213 derived carriers; CLOSED=70 BRIDGE=23 ACTIVE=2 (`selfhost.statement_result_type`, `selfhost.expression_place_kind` and `semantic.function_param_flow_summary` closed 2026-11-15) |
 | Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `a7d7655e1`, with the bootstrap policy corpus in the join job |
 | Codegen bootstrap | PASS on CI at `a7d7655e1` |

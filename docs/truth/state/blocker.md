@@ -1,6 +1,6 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-15 on main `24fe553f4`.
+Owner: Claude root lane. Checked 2026-11-15 on main `e3a0b7ad8`.
 
 ## Objective card
 
@@ -14,7 +14,7 @@ Owner: Claude root lane. Checked 2026-11-15 on main `24fe553f4`.
 
 ## Open, in dependency order
 
-1. Required CI on the commit carrying this file (main after `16ac154e1`).
+1. Required CI on the commit carrying this file (green at `e3a0b7ad8`).
 2. Self-host memory errors from the four-leg sweep
    ([evidence](../evidence/2026-11-15_four_leg_wide_memory_sweep.md)):
    40 on the self-host C leg and 10 on the self-host LLVM leg, plus three
@@ -28,24 +28,28 @@ Owner: Claude root lane. Checked 2026-11-15 on main `24fe553f4`.
    escape fact. Changing the semantic owner, the MIR state table, the
    direct MIR transition policy and the native parity gate
    (`collection_ownership_fact_carrier_owner.sh`) together is required.
-4. Weekly pipeline: the Windows driver parity shard needs an installed
-   composition root, and the Linux driver parity and `platform-full-linux`
-   jobs stop on runner shutdown or the time limit.
+4. Weekly pipeline ([evidence](../evidence/2026-11-15_weekly_driver_shard_causes.md)):
+   - Native refuses `driver_rung2_main.pgy`, the Linux llvm lane's input:
+     the flow summary fails at `CompileSourceToC` (`world.pgy:333`) and the
+     failed store reports 18 false escapes. The bootstrap entry, which
+     calls the same method, is admitted: the result depends on demand order.
+   - The self-host source-to-C compile of that entry passed 16.6 GB.
+   - `platform-full-linux` loses its runner during the `test-all` compile.
 5. The self-host admits `let first = values` for a `ref` formal and `fail`
    as a name; native refuses both.
 
 ## Done 2026-11-15
 
 - LLVM `ToString(Bool)` returns the runtime's owned copy (`dab1fc0f7`).
-- Direct MIR refuses releases of storage another holder has
-  (`f6ab5f0ce`, `afbd9ab7f`).
+- Direct MIR refuses releases another holder shares (`f6ab5f0ce`, `afbd9ab7f`).
 - Native refusals restored or added (`226613c3c`): defer releases, extern
   callees, member-held String borrows, reassigned member, shared sort
   result.
 - SoT: `selfhost.statement_result_type`, `selfhost.expression_place_kind`
   (`f5e171720`) and `semantic.function_param_flow_summary` (`16ac154e1`)
   closed; census CLOSED=70 BRIDGE=23 ACTIVE=2.
-- Weekly pipeline fixes: macOS guard, InstCombine, three stale gates.
+- Weekly pipeline fixes: macOS guard, InstCombine, three stale gates, and
+  the installed driver for both driver shards.
 
 ## Falsifiers kept
 

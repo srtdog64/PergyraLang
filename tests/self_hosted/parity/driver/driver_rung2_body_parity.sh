@@ -133,8 +133,16 @@ if [[ -n "$PREBUILT_DRIVER" ]]; then
 else
     compile_driver c "$C_DRIVER"
 fi
-PGY_BIN="$PGY" PGY_SELF_DRIVER_BIN="$C_DRIVER" "$BASH" \
-    "$ROOT_DIR/tests/self_hosted/parity/mir/mir_program_error_storage_owner.sh"
+# The error-storage gate publishes a C artifact through the launcher, which
+# needs an installed driver. The test-only DRV-2 binary built above refuses
+# artifact requests, so it is never handed to the launcher here.
+if [[ -n "$PREBUILT_DRIVER" ]]; then
+    PGY_BIN="$PGY" PGY_SELF_DRIVER_BIN="$PREBUILT_DRIVER" "$BASH" \
+        "$ROOT_DIR/tests/self_hosted/parity/mir/mir_program_error_storage_owner.sh"
+else
+    PGY_BIN="$PGY" "$BASH" \
+        "$ROOT_DIR/tests/self_hosted/parity/mir/mir_program_error_storage_owner.sh"
+fi
 if ! (cd "$ROOT_DIR" && "$MANIFEST_DRIVER" --fixture-manifest >"$FIXTURE_ROWS"); then
     echo "[self-host-parity:driver-rung2] fixture manifest emission failed" >&2
     exit 1

@@ -56,6 +56,10 @@ case "$SHARD" in
         ;;
     driver)
         export PGY_SELFHOST_DRIVER_BACKENDS="$BACKENDS"
+        # The C lane runs the installed driver. Rebuilding the DRV-2 driver
+        # from source here would replace the proof input, and that compile
+        # needs more memory than a hosted runner has.
+        export PGY_SELFHOST_PREBUILT_DRIVER="$DRIVER"
         exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/driver/driver_rung2_body_parity.sh"
         ;;
     harness-evidence)
