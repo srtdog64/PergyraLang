@@ -7,7 +7,7 @@ native trials); a local PASS is not CI evidence.
 | Gate | Last observed result |
 |---|---|
 | Required CI at the published SHA | GREEN at `20325cad5` (run 43653186068, the self-host cleanup policy and ref-argument fixes): all 33 jobs succeeded; before it GREEN at `a7d7655e1` (run 43630062521), `65724e27d` (run 43596693746) and `edbb4575b` (run 43583259892) |
-| SoT registry gate (`scripts/sot_registry_gate.py`) | PASS on `fix/llvm-leg-memory`: 95 authorities, 213 derived carriers; CLOSED=67 BRIDGE=25 ACTIVE=3 |
+| SoT registry gate (`scripts/sot_registry_gate.py`) | PASS on main after `afbd9ab7f`: 95 authorities, 213 derived carriers; CLOSED=69 BRIDGE=23 ACTIVE=3 (`selfhost.statement_result_type` and `selfhost.expression_place_kind` closed on `statement_type_place_contract_parity.sh`, locally PASS on WSL) |
 | Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `a7d7655e1`, with the bootstrap policy corpus in the join job |
 | Codegen bootstrap | PASS on CI at `a7d7655e1` |
 | Bootstrap installed-driver jobs, CLI mode | PASS on CI at `a7d7655e1` |

@@ -1,0 +1,19 @@
+import "../../../src/self_hosted/hir/ast_text_scan_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_statement_type_contract_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_statement_type_query_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy";
+import "../../../src/self_hosted/codegen/emission/expr_semantic_leaf_place_contract_owner.pgy";
+
+// Statement result types and expression place kinds are read only from their
+// semantic facts. Each contract feeds a real input and requires the refusal
+// the deleted readers answered instead: a condition that is not Bool, an Exit
+// argument of the wrong type, a row of the wrong kind or unverified, and a
+// place kind forced to Unknown in the codegen binding projection and in the
+// body type bundle.
+func Main() -> Void {
+    if !SemanticAstStatementTypeFactsContractReady() { Exit(1); }
+    if !SemanticAstStatementTypeQueryContractReady() { Exit(2); }
+    if !CodegenSemanticLeafPlaceContractReady() { Exit(3); }
+    if !SemanticAstBodyTypeBundleMissingPlaceContractReady() { Exit(4); }
+    Log("statement-type-place-ready");
+}

@@ -70,7 +70,7 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
         SemanticAstNominalConstructorFactsFromArtifact(member);
     let member_locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(member, member_signatures);
-    let member_surfaces: SemanticAstExpressionSurfaceFacts =
+    var member_surfaces: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromTypedArtifact(member);
     let member_facts: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(

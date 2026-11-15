@@ -3301,6 +3301,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/registry/mir_decl_field_kind_vocabulary_smoke.sh
 	"$(BASH)" tests/registry/intent_observability_abi_registry_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/builtin_signature_registry_owner_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/statement_type_place_contract_parity.sh
 	"$(BASH)" tests/self_hosted/gates/self_host_preparation_smoke.sh
 	"$(BASH)" tests/self_hosted/gates/self_host_ci_profile_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/driver/self_host_fixed_point_profile_receipt_smoke.sh

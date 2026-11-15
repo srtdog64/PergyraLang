@@ -9,12 +9,12 @@ func SemanticBuiltinMemberCallTargetContractReady(
     enums: SemanticAstEnumFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
-    let kinds: Array<Int> = [];
-    let texts: Array<String> = [];
-    let left: Array<Int> = [];
-    let right: Array<Int> = [];
-    let target_kinds: Array<Int> = [];
-    let target_names: Array<String> = [];
+    var kinds: Array<Int> = [];
+    var texts: Array<String> = [];
+    var left: Array<Int> = [];
+    var right: Array<Int> = [];
+    var target_kinds: Array<Int> = [];
+    var target_names: Array<String> = [];
     let build: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             kinds, texts, left, right, target_kinds, target_names,

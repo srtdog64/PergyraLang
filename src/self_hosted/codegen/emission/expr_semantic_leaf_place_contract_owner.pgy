@@ -9,7 +9,7 @@ func CodegenSemanticLeafPlaceContractReady() -> Bool {
             [SemanticCallTargetNone()], [""],
             [SemanticExpressionPlaceBinding()]
         );
-    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+    var graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         SemanticExpressionGraphArenaReady(arena), [0], [true], arena
     );
     let c_name: String = Concat("pgy", "_shadow");

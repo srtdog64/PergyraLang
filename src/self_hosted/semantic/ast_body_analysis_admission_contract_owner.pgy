@@ -32,7 +32,7 @@ func SemanticAstBodyTypeBundleStaleAdmissionContractReady() -> Bool {
     let stale_artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: omega : Int = 1\n        Return: omega\n"
     );
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(source_artifact, true);
     if !SemanticAstBodyAnalysisAdmissionReady(source_artifact, analysis) ||
         source_artifact.identity_digest == stale_artifact.identity_digest ||
@@ -53,7 +53,7 @@ func SemanticAstBodyTypeBundleMalformedProducerRowAdmissionContractReady(
     let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: malformed : Int = 1\n        Return: malformed\n"
     );
-    let analysis: SemanticAstArtifactAnalysis =
+    var analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) ||
         ArrayLength(analysis.local_bindings.node_ids) != 1 ||
@@ -79,7 +79,7 @@ func SemanticAstBodyAnalysisShapeAdmissionContractReady() -> Bool {
     let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: 1\n"
     );
-    let signature_analysis: SemanticAstArtifactAnalysis =
+    var signature_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, signature_analysis) ||
         ArrayLength(signature_analysis.signatures.generic_starts) != 1 {
@@ -90,21 +90,21 @@ func SemanticAstBodyAnalysisShapeAdmissionContractReady() -> Bool {
         return false;
     }
 
-    let constructor_analysis: SemanticAstArtifactAnalysis =
+    var constructor_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     constructor_analysis.constructors.artifact_node_count = artifact.count + 1;
     if SemanticAstBodyAnalysisAdmissionReady(artifact, constructor_analysis) {
         return false;
     }
 
-    let enum_analysis: SemanticAstArtifactAnalysis =
+    var enum_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     enum_analysis.enums.artifact_node_count = artifact.count + 1;
     if SemanticAstBodyAnalysisAdmissionReady(artifact, enum_analysis) {
         return false;
     }
 
-    let role_analysis: SemanticAstArtifactAnalysis =
+    var role_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let stale_role_starts: Array<Int> = [0];
     role_analysis.roles.impl_starts = stale_role_starts;
@@ -112,7 +112,7 @@ func SemanticAstBodyAnalysisShapeAdmissionContractReady() -> Bool {
         return false;
     }
 
-    let intent_analysis: SemanticAstArtifactAnalysis =
+    var intent_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let stale_intent_starts: Array<Int> = [0];
     intent_analysis.intent_transitions.intent_starts = stale_intent_starts;

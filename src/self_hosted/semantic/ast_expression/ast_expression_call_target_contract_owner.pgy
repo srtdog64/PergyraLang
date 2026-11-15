@@ -21,12 +21,12 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         SemanticAstExpressionFunctionTableFactsFromArtifact(
             artifact, signatures, constructors, enums
         );
-    let node_kinds: Array<Int> = [];
-    let node_texts: Array<String> = [];
-    let left_children: Array<Int> = [];
-    let right_children: Array<Int> = [];
-    let call_target_kinds: Array<Int> = [];
-    let call_target_names: Array<String> = [];
+    var node_kinds: Array<Int> = [];
+    var node_texts: Array<String> = [];
+    var left_children: Array<Int> = [];
+    var right_children: Array<Int> = [];
+    var call_target_kinds: Array<Int> = [];
+    var call_target_names: Array<String> = [];
     let build: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             node_kinds, node_texts, left_children, right_children,
@@ -70,12 +70,12 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     ).ok {
         return false;
     }
-    let builtin_kinds: Array<Int> = [];
-    let builtin_texts: Array<String> = [];
-    let builtin_left: Array<Int> = [];
-    let builtin_right: Array<Int> = [];
-    let builtin_target_kinds: Array<Int> = [];
-    let builtin_target_names: Array<String> = [];
+    var builtin_kinds: Array<Int> = [];
+    var builtin_texts: Array<String> = [];
+    var builtin_left: Array<Int> = [];
+    var builtin_right: Array<Int> = [];
+    var builtin_target_kinds: Array<Int> = [];
+    var builtin_target_names: Array<String> = [];
     let builtin_build: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             builtin_kinds, builtin_texts, builtin_left, builtin_right,
@@ -86,7 +86,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
             SemanticExpressionGraphArenaUnclassified(
                 builtin_kinds, builtin_texts, builtin_left, builtin_right,
                 builtin_target_kinds, builtin_target_names));
-    let builtin_carried: SemanticExpressionGraphFacts =
+    var builtin_carried: SemanticExpressionGraphFacts =
         SemanticExpressionGraphCallTargetsFromSignatures(
             builtin_source, signatures, intents, constructors, enums, false,
             function_tables);
@@ -108,12 +108,12 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     if !SemanticBuiltinMemberCallTargetContractReady(
         signatures, intents, constructors, enums, function_tables
     ) { return false; }
-    let declared_kinds: Array<Int> = [];
-    let declared_texts: Array<String> = [];
-    let declared_left: Array<Int> = [];
-    let declared_right: Array<Int> = [];
-    let declared_target_kinds: Array<Int> = [];
-    let declared_target_names: Array<String> = [];
+    var declared_kinds: Array<Int> = [];
+    var declared_texts: Array<String> = [];
+    var declared_left: Array<Int> = [];
+    var declared_right: Array<Int> = [];
+    var declared_target_kinds: Array<Int> = [];
+    var declared_target_names: Array<String> = [];
     let declared_build: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             declared_kinds, declared_texts, declared_left, declared_right,
@@ -134,12 +134,12 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
             function_tables).ok {
         return false;
     }
-    let constructor_kinds: Array<Int> = [];
-    let constructor_texts: Array<String> = [];
-    let constructor_left: Array<Int> = [];
-    let constructor_right: Array<Int> = [];
-    let constructor_target_kinds: Array<Int> = [];
-    let constructor_target_names: Array<String> = [];
+    var constructor_kinds: Array<Int> = [];
+    var constructor_texts: Array<String> = [];
+    var constructor_left: Array<Int> = [];
+    var constructor_right: Array<Int> = [];
+    var constructor_target_kinds: Array<Int> = [];
+    var constructor_target_names: Array<String> = [];
     let constructor_build: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             constructor_kinds, constructor_texts,
@@ -156,7 +156,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
                 constructor_target_kinds, constructor_target_names
             )
         );
-    let constructor_carried: SemanticExpressionGraphFacts =
+    var constructor_carried: SemanticExpressionGraphFacts =
         SemanticExpressionGraphCallTargetsFromSignatures(
             constructor_source, signatures, intents, constructors, enums, false,
             function_tables
@@ -175,12 +175,12 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         ).ok {
         return false;
     }
-    let member_kinds: Array<Int> = [];
-    let member_texts: Array<String> = [];
-    let member_left: Array<Int> = [];
-    let member_right: Array<Int> = [];
-    let member_target_kinds: Array<Int> = [];
-    let member_target_names: Array<String> = [];
+    var member_kinds: Array<Int> = [];
+    var member_texts: Array<String> = [];
+    var member_left: Array<Int> = [];
+    var member_right: Array<Int> = [];
+    var member_target_kinds: Array<Int> = [];
+    var member_target_names: Array<String> = [];
     let member_build: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             member_kinds, member_texts, member_left, member_right,
@@ -246,12 +246,12 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
             member_carried, signatures, intents, constructors, enums, true,
             function_tables
         );
-    let chain_kinds: Array<Int> = [];
-    let chain_texts: Array<String> = [];
-    let chain_left: Array<Int> = [];
-    let chain_right: Array<Int> = [];
-    let chain_target_kinds: Array<Int> = [];
-    let chain_target_names: Array<String> = [];
+    var chain_kinds: Array<Int> = [];
+    var chain_texts: Array<String> = [];
+    var chain_left: Array<Int> = [];
+    var chain_right: Array<Int> = [];
+    var chain_target_kinds: Array<Int> = [];
+    var chain_target_names: Array<String> = [];
     let chain_build: SemanticExpressionGraphBuild =
         SemanticExpressionGraphImportSerializedParserFact(
             chain_kinds, chain_texts, chain_left, chain_right,
