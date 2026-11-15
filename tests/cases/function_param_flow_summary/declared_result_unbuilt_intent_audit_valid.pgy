@@ -1,0 +1,92 @@
+// A refused declared-result query leaves an unbuilt frame object behind.
+// Collect's ref formal is demanded first: its frame reads Summary()'s
+// declared result, whose build asks for Fill's, and Fill's own no-store
+// graph is refused (it writes its inout Array). Execute's request formal is
+// demanded later; its rows check reaches Fill through the intent step's
+// action. Fill's unbuilt result frame is no premise of Execute's summary, so
+// the summary must not fail closed on it: the verdict may not depend on
+// whether Collect happened to be demanded first.
+struct Request {
+    name: String;
+    count: Int;
+}
+
+struct Outcome {
+    text: String;
+    ok: Bool;
+}
+
+func Fill(inout cells: Array<Int>, count: Int) -> String {
+    var row: Int = 0;
+    while row < count {
+        ArrayPush(cells, row);
+        row = row + 1;
+    }
+    return ToString(ArrayLength(cells));
+}
+
+func Summary() -> String {
+    var cells: Array<Int> = [];
+    return Fill(cells, 3);
+}
+
+func Collect(inout names: Array<String>, ref label: String) -> Void {
+    let summary: String = Summary();
+    ArrayPush(names, Concat(summary, label));
+}
+
+subject Runner {
+    var outcome: Option<Outcome>;
+    action Run(self, request: Request) -> Bool {
+        var scratch: Array<Int> = [];
+        let filled: String = Fill(scratch, request.count);
+        self.outcome = Some(Outcome(Concat(request.name, filled), true));
+        return true;
+    }
+}
+
+zone RunZone {
+    subject slot runner: Runner
+    authority runner
+}
+
+intent RunRequest(
+    run_zone: RunZone,
+    run_execution: Runner,
+    request: Request
+) {
+    exclusive;
+    step Run {
+        using: run_zone;
+        on action_succeeded: run_execution.Run(request);
+        expect: action_succeeded;
+    }
+    success: true;
+    failure: false;
+}
+
+world RunWorld {
+    zone running: RunZone
+    activate running
+
+    func Execute(self, request: Request) -> Outcome {
+        let run_zone: RunZone = Clone(running);
+        let run_execution: Runner = Clone(running.runner);
+        let completed: Bool = RunRequest(run_zone, run_execution, request);
+        if !completed || !IsSome(run_execution.outcome) {
+            return Outcome(request.name, false);
+        }
+        return UnwrapOption(run_execution.outcome);
+    }
+}
+
+func ExecuteThroughWorld(inout world: RunWorld, request: Request) -> Outcome {
+    return world.Execute(request);
+}
+
+func Main() -> Int {
+    var world: RunWorld = RunWorld(RunZone(Runner(None)));
+    let outcome: Outcome = ExecuteThroughWorld(world, Request(Concat("n", "m"), 2));
+    Print(outcome.text);
+    return 0;
+}

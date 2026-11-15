@@ -2626,6 +2626,38 @@ for name in (
         raise SystemExit(f"resource-birth unready {name} lost its exact required-backing refusal")
 print("[function-param-flow-summary] resource-birth unready constructor controls: PASS")
 
+# An earlier demand (Collect's ref formal) leaves an unbuilt declared-result
+# frame on Fill. Execute's request formal, demanded later, reaches Fill only
+# through its intent step's routine-wide audit: that unbuilt frame is no
+# premise, so the summary is admitted whatever was demanded first. The
+# neighbour reads the unbuildable result itself and still fails closed at
+# Execute.
+unbuilt_cases = root / "tests/cases/function_param_flow_summary"
+checked = subprocess.run(
+    [pgy, "--native-pipeline", "--mir-json", "--error-format=json",
+     str(unbuilt_cases / "declared_result_unbuilt_intent_audit_valid.pgy")],
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30.0, check=False)
+if checked.returncode != 0 or b'"pgy.mir.v1"' not in checked.stdout:
+    sys.stderr.buffer.write(checked.stderr)
+    raise SystemExit("unbuilt declared-result audit positive lost MIR admission")
+checked = subprocess.run(
+    [pgy, "--native-pipeline", "--mir-json", "--error-format=json",
+     str(unbuilt_cases / "declared_result_unbuilt_intent_audit_read_invalid.pgy")],
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30.0, check=False)
+output = (checked.stdout + checked.stderr).decode(errors="replace")
+try:
+    diagnostics = json.loads(output)
+except json.JSONDecodeError:
+    raise SystemExit(f"unbuilt declared-result read negative lost structured diagnostics: {output}")
+errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"] if isinstance(diagnostics, list) else []
+first = errors[0] if errors else {}
+if (checked.returncode != 1 or checked.stdout or '"pgy.mir.v1"' in output or
+        first.get("message") != required_backing_message or first.get("stage") != "semantic" or
+        (first.get("location", {}).get("line"), first.get("location", {}).get("column")) != (69, 10)):
+    sys.stderr.buffer.write(checked.stderr)
+    raise SystemExit("unbuilt declared-result read negative lost its required-backing refusal at Execute")
+print("[function-param-flow-summary] unbuilt declared-result audit pair: PASS")
+
 # A private Int push may justify a local store, but an external call before or
 # after it still cannot make the returned nested rows input-independent. The
 # backing owner must fail closed at Probe; do not widen that failure to ALL and
@@ -3138,6 +3170,7 @@ for name, expected in (
      "kind|key|location\nkind2|key2|location2\nkind3|key3|location3\n"),
     ("for_string_binding_backing_valid", "keep one!,keep two!\n"),
     ("array_slice_view_reader_valid", "5ab"),
+    ("declared_result_unbuilt_intent_audit_valid", "nm2"),
 ):
     for backend in ("c", "llvm"):
         if runtime_progress:

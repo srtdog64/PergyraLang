@@ -631,10 +631,22 @@ static bool function_param_flow_backing_rows_capture_target(
             valid = false;
             break;
         }
+        /* A closed no-store graph is a premise of the declared-result frame,
+         * so it is replayed exactly when that frame is a premise of this
+         * check: an exact declared-result edge consumed the frame, and the
+         * routine-wide audit reads the frame only once it is established
+         * (the same test as the result-frame row below). A frame object
+         * whose first query was refused at its no-store graph, or one still
+         * building, pending or built incomplete, is no premise of any
+         * summary. Whether such an object exists depends only on which
+         * demand reached the routine first, so it must not decide currency. */
+        const FunctionParamFlowBackingFact *declared = index->declared_result;
+        bool declared_established = declared != NULL && declared->epoch != 0 &&
+            declared->complete && !declared->building && !declared->pending;
         bool declared_result_stores_current = true;
         bool declared_result_index_current = true;
-        if (index->declared_result != NULL &&
-            (all_rows || target.kind == ROWS_CAPTURE_DECLARED_RESULT)) {
+        if ((target.kind == ROWS_CAPTURE_DECLARED_RESULT && declared != NULL) ||
+            (all_rows && declared_established)) {
             declared_result_stores_current =
                 function_param_flow_no_store_graph_capture(
                     store, current, capture, user);
