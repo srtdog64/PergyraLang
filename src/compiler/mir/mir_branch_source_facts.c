@@ -176,7 +176,9 @@ mir_copy_collection_ownership_facts(MIRRoutine *routine,
                 > (unsigned)PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
             || (source->disposition != PGY_COLLECTION_DISPOSITION_LIVE
                 && source->disposition
-                    != PGY_COLLECTION_DISPOSITION_RETIRED)
+                    != PGY_COLLECTION_DISPOSITION_RETIRED
+                && source->disposition
+                    != PGY_COLLECTION_DISPOSITION_HANDED_OFF)
             || (unsigned)source->origin
                 > (unsigned)PGY_COLLECTION_ORIGIN_OWNED_LITERAL
             || (source->origin == PGY_COLLECTION_ORIGIN_BINDING
@@ -485,7 +487,10 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
             || (unsigned)fact->element_ownership
                 > (unsigned)PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
             || (fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
-                && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED)
+                && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED
+                && fact->disposition != PGY_COLLECTION_DISPOSITION_HANDED_OFF)
+            || (fact->disposition == PGY_COLLECTION_DISPOSITION_HANDED_OFF
+                && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE)
             || (fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED
                 && fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
                 && fact->element_ownership
@@ -549,7 +554,9 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                     fact->element_ownership
                         == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
                     && fact->source_binding_syntax_id == 0
-                    && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE;
+                    && (fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                        || fact->disposition
+                            == PGY_COLLECTION_DISPOSITION_HANDED_OFF);
                 break;
             case PGY_COLLECTION_ORIGIN_MEMBER_MOVE:
                 origin_consistent =

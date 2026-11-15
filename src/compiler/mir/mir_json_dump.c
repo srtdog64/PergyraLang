@@ -519,6 +519,8 @@ mir_json_collection_disposition_name(PgyCollectionDisposition disposition)
             return "live";
         case PGY_COLLECTION_DISPOSITION_RETIRED:
             return "retired";
+        case PGY_COLLECTION_DISPOSITION_HANDED_OFF:
+            return "handed-off";
         /* This is a transient semantic-checker state. A function-exit check
          * must restore the empty carrier before HIR/MIR projection, so never
          * serialize it as an ordinary retired fact. */

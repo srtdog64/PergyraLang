@@ -120,7 +120,8 @@ pgy_collection_owned_local_transitions_validate(
             || fact->function_syntax_id != view->function_syntax_id
             || fact->binding_syntax_id == 0 || fact->origin_syntax_id == 0
             || (fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
-                && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED))
+                && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED
+                && fact->disposition != PGY_COLLECTION_DISPOSITION_HANDED_OFF))
             goto done;
         if ((fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS
                 && (fact->element_ownership != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT

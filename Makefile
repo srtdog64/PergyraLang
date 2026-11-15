@@ -566,6 +566,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/collection_member_path_owner.c \
                    $(SEMANTIC_DIR)/collection_published_member_carrier_owner.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_result.c \
+                   $(SEMANTIC_DIR)/collection_handoff_owner.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_member_transfer.c \
                    $(SEMANTIC_DIR)/collection_moved_member_restoration_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_owner.c \

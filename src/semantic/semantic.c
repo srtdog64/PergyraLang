@@ -392,11 +392,26 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
         && !semantic_collection_ownership_finalize_call_result_births(ctx))
         semantic_error(ctx, ast,
             "Collection call-result birth finalization failed closed");
+    /* Decision 2026-11-15: select the hand-offs while the generation can
+     * still be queried, mark them only after the take has replayed the live
+     * admissions that precede them. */
+    PgyCollectionHandoff *handoffs = NULL;
+    size_t handoff_count = 0;
+    if (!ctx->has_error
+        && !semantic_collection_ownership_select_handoffs(ctx, &handoffs,
+            &handoff_count)
+        && !ctx->has_error)
+        semantic_error(ctx, ast, "Collection hand-off selection failed closed");
 
     /* Last semantic consumer: claims ownership moves without another AST walk. */
     if (!ctx->has_error && !semantic_collection_effect_snapshot_take(ctx,
             &result->collection_effect_snapshot))
         semantic_error(ctx, ast, "Collection effect snapshot transfer failed closed");
+    if (!ctx->has_error
+        && !semantic_collection_ownership_apply_handoffs(ctx, handoffs,
+            handoff_count))
+        semantic_error(ctx, ast, "Collection hand-off application failed closed");
+    free(handoffs);
 
     /* Transfer diagnostics to result */
     result->success          = !ctx->has_error &&

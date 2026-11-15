@@ -9,7 +9,11 @@
 # member that grows in place, and a record lent to a ref formal beside an
 # inout output that may keep its Strings are refused with no artifact; none is
 # released from its operation shape. A local the semantic verdict hands to a record
-# (decision 2026-11-15) is released once, by that record, and runs.
+# (decision 2026-11-15) is released once, by that record, and runs. The native
+# semantic issues the same hand-off, so native MIR of that program runs on the
+# --mir-json route too; with the hand-off removed, or forged onto a member move,
+# the route refuses it. A callee that reads a member of a record it is given
+# by value releases nothing, so the caller's record releases it once.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -24,6 +28,8 @@ SHARED="direct MIR Array<String> cleanup refuses storage another holder still ha
 MEMBER_ALIAS="direct MIR Array<String> alias of a parameter member grows storage the member still names"
 NO_HANDOFF="direct MIR Array<String> constructor input has no hand-off fact"
 LENT_INOUT="owned local lent to a ref formal is released while an inout argument of the same call may hold its Strings"
+# The MIR reader refuses the routine whose member move claims a hand-off.
+FORGED_HANDOFF="direct MIR compile-time declaration erasure declaration schema is invalid"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 
@@ -225,6 +231,25 @@ func Main() -> Void {
 }
 EOF
 printf '4\nkept\n2\n' >"$WORK_DIR/record_observed.expected"
+# A callee reads a member of the record it is given by value. The caller's
+# record releases that storage once; the callee's alias releases nothing (it
+# used to release it too, which glibc aborts as a double free).
+cat >"$WORK_DIR/formal_member_read.pgy" <<'EOF'
+struct Bundle { value: Array<String>; }
+struct Envelope { bundle: Bundle; }
+func Count(envelope: Envelope) -> Int {
+    let value: Array<String> = envelope.bundle.value;
+    return ArrayLength(value);
+}
+func Main() -> Void {
+    var value: Array<String> = [];
+    ArrayPush(value, "borrowed");
+    let bundle: Bundle = Bundle(value);
+    let envelope: Envelope = Envelope(bundle);
+    Log(Count(envelope));
+}
+EOF
+printf '1\n' >"$WORK_DIR/formal_member_read.expected"
 printf '1\n' >"$WORK_DIR/constructor_handoff.expected"
 : >"$WORK_DIR/grown_record.expected"
 
@@ -277,6 +302,79 @@ for backend in c llvm; do
     run_admitted record_observed "$backend" 0
     run_admitted constructor_handoff "$backend" 0
     run_admitted grown_record "$backend" 6
+    run_admitted formal_member_read "$backend" 0
 done
 
-echo "[$LABEL] PASS refused=11 admitted=4x2 evidence=$WORK_REL"
+# Native MIR into the installed backend (--mir-json): the native semantic
+# hands the local to its record as well, so the record releases it once and
+# the program runs. The same MIR with the hand-off taken away, or with one
+# forged onto the member move that takes the storage back, is refused.
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --mir-json "$WORK_REL/constructor_handoff.pgy") \
+    >"$WORK_DIR/native_handoff.json" 2>"$WORK_DIR/native_handoff.err" ||
+    fail "native MIR producer rejected constructor_handoff: $(tail -3 "$WORK_DIR/native_handoff.err")"
+python3 - "$WORK_DIR/native_handoff.json" "$WORK_DIR" <<'PY' ||
+import json
+import sys
+
+document = json.load(open(sys.argv[1], encoding="utf-8"))
+main = next(row for row in document["routines"] if row.get("name") == "Main")
+names = {row["binding_syntax_id"]: row.get("name") for row in main["source_locals"]}
+rows = {names.get(row["binding_syntax_id"]): row for row in main["collection_ownership_facts"]}
+texts, moved = rows.get("texts"), rows.get("moved")
+if texts is None or texts["disposition"] != "handed-off" or texts["origin"] != "empty-literal":
+    raise SystemExit(f"native MIR did not hand texts to its record: {texts}")
+if moved is None or moved["origin"] != "member-move" or moved["disposition"] != "live":
+    raise SystemExit(f"native MIR member move changed: {moved}")
+texts["disposition"] = "live"
+json.dump(document, open(f"{sys.argv[2]}/native_missing.json", "w", encoding="utf-8"))
+texts["disposition"] = "handed-off"
+moved["disposition"] = "handed-off"
+json.dump(document, open(f"{sys.argv[2]}/native_forged.json", "w", encoding="utf-8"))
+PY
+    fail "native MIR lost the constructor hand-off of constructor_handoff"
+# Native MIR of `name` runs on `backend` with the program's expected output.
+native_mir_run() {
+    local name="$1" backend="$2" artifact="$WORK_REL/native_$1.$2"
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" "$WORK_REL/native_$name.json" \
+        -o "$artifact") >"$WORK_DIR/native_$name.$backend.log" 2>&1 ||
+        fail "native MIR of $name was refused on $backend: $(head -3 "$WORK_DIR/native_$name.$backend.log")"
+    if [[ "$backend" == c ]]; then
+        "${PGY_SELFHOST_CC:-gcc}" -x c -std=c11 "$ROOT_DIR/$artifact" "-I$ROOT_DIR/src" \
+            "-I$ROOT_DIR/src/runtime" -pthread -lm -o "$WORK_DIR/native_$name-c.exe" \
+            >"$WORK_DIR/native_$name.c.cc" 2>&1 || fail "native MIR C artifact of $name did not compile"
+    else
+        "${PGY_SELFHOST_CLANG:-clang}" -x ir "$ROOT_DIR/$artifact" -x none "$WORK_DIR/runtime.o" \
+            -pthread -lm -o "$WORK_DIR/native_$name-llvm.exe" \
+            >"$WORK_DIR/native_$name.llvm.cc" 2>&1 || fail "native MIR LLVM artifact of $name did not compile"
+    fi
+    (cd "$ROOT_DIR" && timeout 30 "$WORK_DIR/native_$name-$backend.exe") | tr -d '\r' \
+        >"$WORK_DIR/native_$name-$backend.run" || fail "native MIR of $name failed on $backend"
+    cmp -s "$WORK_DIR/$name.expected" "$WORK_DIR/native_$name-$backend.run" ||
+        fail "native MIR output of $name drifted on $backend"
+}
+cp "$WORK_DIR/native_handoff.json" "$WORK_DIR/native_constructor_handoff.json"
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --mir-json "$WORK_REL/formal_member_read.pgy") \
+    >"$WORK_DIR/native_formal_member_read.json" 2>"$WORK_DIR/native_formal_member_read.err" ||
+    fail "native MIR producer rejected formal_member_read"
+"${PGY_SELFHOST_CLANG:-clang}" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+    -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/runtime.o" \
+    >"$WORK_DIR/runtime.cc" 2>&1 || fail "runtime ABI compilation failed"
+for backend in c llvm; do
+    native_mir_run constructor_handoff "$backend"
+    native_mir_run formal_member_read "$backend"
+    for forged in native_missing native_forged; do
+        message="$NO_HANDOFF"
+        [[ "$forged" == native_forged ]] && message="$FORGED_HANDOFF"
+        set +e
+        (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" "$WORK_REL/$forged.json" \
+            -o "$WORK_REL/$forged.$backend") >"$WORK_DIR/$forged.$backend.log" 2>&1
+        rc=$?
+        set -e
+        [[ "$rc" -ne 0 ]] || fail "$forged MIR was admitted on $backend"
+        [[ ! -e "$WORK_DIR/$forged.$backend" ]] || fail "$forged MIR published an artifact on $backend"
+        grep -Fq "$message" "$WORK_DIR/$forged.$backend.log" ||
+            fail "$forged MIR was refused for another reason on $backend: $(head -3 "$WORK_DIR/$forged.$backend.log")"
+    done
+done
+
+echo "[$LABEL] PASS refused=11+4 admitted=5x2+native-mir-2x2 evidence=$WORK_REL"

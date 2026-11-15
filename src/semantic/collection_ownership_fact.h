@@ -102,7 +102,13 @@ typedef enum
     PGY_COLLECTION_DISPOSITION_RETIRED,
     /* The backing and owned elements were retired, but an empty descriptor
      * still has to return to the exact aggregate field it was moved from. */
-    PGY_COLLECTION_DISPOSITION_RELEASED_MEMBER_MOVE
+    PGY_COLLECTION_DISPOSITION_RELEASED_MEMBER_MOVE,
+    /* A moving callee or a struct constructor took the storage
+     * (decision 2026-11-15). The row keeps the element ownership it had at
+     * the hand-off; every earlier event is that of a live binding, and the
+     * caller releases nothing for it. Marked only after the last semantic
+     * consumer, by semantic_collection_ownership_apply_handoffs. */
+    PGY_COLLECTION_DISPOSITION_HANDED_OFF
 } PgyCollectionDisposition;
 
 typedef enum
@@ -167,6 +173,23 @@ bool semantic_collection_ownership_initialize_binding(
     const ASTNode *initializer,
     const Type *binding_type,
     SemanticContext *ctx);
+
+/* The live local Array<String> rows whose single definition a moving
+ * default-mode formal or a struct constructor takes once
+ * (collection_handoff_owner.c). Selection queries the sealed generation, so
+ * it runs after the call-result births and before the effect snapshot take.
+ * The take still replays the earlier admissions of those rows as live, so
+ * the rows become handed-off only after it, by the apply step, which mutates
+ * the fact store and queries nothing. Either false fails the generation
+ * closed. */
+typedef struct {
+    uint32_t function_syntax_id;
+    uint32_t binding_syntax_id;
+} PgyCollectionHandoff;
+bool semantic_collection_ownership_select_handoffs(SemanticContext *ctx,
+    PgyCollectionHandoff **rows_out, size_t *count_out);
+bool semantic_collection_ownership_apply_handoffs(SemanticContext *ctx,
+    const PgyCollectionHandoff *rows, size_t count);
 
 /* Finalize an Array<String> local born from one declared callable only after
  * the array-storage owner has sealed the callee result.  The durable fact

@@ -39,6 +39,12 @@ STATE_SOURCES=(
     "$FIELD_FIXTURES/exclusive_plain_alias_read_only_positive.pgy|borrowed-literal|borrowed-elements|handed-off"
     "$FIELD_FIXTURES/exclusive_thread_direct_push_positive.pgy|empty-literal|unknown|handed-off"
 )
+# The same hand-offs from the native producer (decision 2026-11-15). Native
+# names the element ownership of a borrowed literal itself.
+NATIVE_STATE_SOURCES=(
+    "$FIELD_FIXTURES/exclusive_plain_alias_read_only_positive.pgy|borrowed-literal|borrowed-elements|handed-off"
+    "$FIELD_FIXTURES/exclusive_thread_direct_push_positive.pgy|empty-literal|unknown|handed-off"
+)
 CC="${PGY_SELFHOST_CC:-gcc}"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
@@ -232,6 +238,30 @@ PY
     fi
     state_index=$((state_index + 1))
 done
+state_index=0
+for state in "${NATIVE_STATE_SOURCES[@]}"; do
+    IFS='|' read -r state_file state_origin state_ownership state_disposition <<<"$state"
+    (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$state_file") \
+        >"$WORK_DIR/native-state-$state_index.json" 2>"$WORK_DIR/native-state-$state_index.err" ||
+        fail "native MIR producer rejected the $state_origin $state_ownership state"
+    grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-state-$state_index.err" ||
+        fail "native $state_origin state producer emitted diagnostics"
+    python3 - "$WORK_DIR/native-state-$state_index.json" "$state_origin" \
+        "$state_ownership" "$state_disposition" <<'PY' ||
+import json
+import sys
+
+document = json.load(open(sys.argv[1], encoding="utf-8"))
+wanted = tuple(sys.argv[2:5])
+rows = [(row["origin"], row["element_ownership"], row["disposition"])
+        for routine in document["routines"]
+        for row in routine.get("collection_ownership_facts") or []]
+if wanted not in rows:
+    raise SystemExit(f"no {wanted} row among {sorted(set(rows))}")
+PY
+        fail "native $state_file lost its $state_origin $state_ownership $state_disposition row"
+    state_index=$((state_index + 1))
+done
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$INDEXED_SOURCE" \
     -o "$WORK_REL/self-indexed.json") >"$WORK_DIR/self-indexed.out" \
     2>"$WORK_DIR/self-indexed.err" || {
@@ -361,7 +391,8 @@ cmp -s "$WORK_DIR/native-meaning" "$WORK_DIR/self-meaning" || {
 
 # Both reader builds admit every routine of each state artifact.
 for consumer in native self; do
-    for artifact in "$WORK_DIR"/self-state-*.json "$WORK_DIR/self-indexed.json"; do
+    for artifact in "$WORK_DIR"/self-state-*.json "$WORK_DIR"/native-state-*.json \
+        "$WORK_DIR/self-indexed.json"; do
         (cd "$ROOT_DIR" && "$WORK_DIR/probe-$consumer.exe" "${artifact#"$ROOT_DIR/"}") \
             >"$artifact.$consumer.out" 2>"$artifact.$consumer.err" || true
         if grep -Fq 'collection ownership probe rejected' "$artifact.$consumer.out" "$artifact.$consumer.err"; then

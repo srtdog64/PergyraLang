@@ -376,7 +376,12 @@ hir_append_collection_ownership_fact(
         || (unsigned)fact->element_ownership
             > (unsigned)PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
         || (fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
-            && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED)
+            && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED
+            && fact->disposition != PGY_COLLECTION_DISPOSITION_HANDED_OFF)
+        /* A member move returns its storage to the aggregate; it is never
+         * handed off. */
+        || (fact->disposition == PGY_COLLECTION_DISPOSITION_HANDED_OFF
+            && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE)
         || (unsigned)fact->origin
             > (unsigned)PGY_COLLECTION_ORIGIN_OWNED_LITERAL
         || (fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS

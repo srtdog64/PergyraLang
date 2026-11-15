@@ -957,6 +957,7 @@ test_mir_carries_region_escape_facts(void)
 #include "tests/mir/test_mir_lexical_binding_identity.cases.h"
 #include "tests/mir/test_mir_lexical_binding_identity_part_2.cases.h"
 #include "tests/mir/test_mir_collection_ownership_validation.cases.h"
+#include "tests/mir/test_mir_collection_handoff.cases.h"
 
 static void
 test_mir_lowering(void)
@@ -993,6 +994,7 @@ test_mir_lowering(void)
     test_mir_lowering_part_i();
     test_mir_runtime_call_abi_facts();
     test_mir_collection_ownership_validation();
+    test_mir_collection_handoff();
 }
 
 int

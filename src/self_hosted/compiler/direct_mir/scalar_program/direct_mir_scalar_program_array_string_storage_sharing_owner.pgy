@@ -7,8 +7,8 @@
 // - a local handed whole to another binding, a store or any consumer other
 //   than a read, or to a callee parameter that the descriptor preservation
 //   proof does not prove only observed (the callee may grow, store or return
-//   it). Neither front end issues the call hand-off yet, so this check stays
-//   until both do;
+//   it). Both front ends issue the call hand-off, but by different move rules,
+//   so this check stays until one rule decides both;
 // - a local that aliases a member of an inout or ref parameter and grows it in
 //   place without storing it back, which leaves that member on the old storage.
 import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
@@ -223,6 +223,44 @@ func DirectMirScalarProgramOperationInCycle(
             ArrayPush(pending, plan.block_succ_true[next]);
             ArrayPush(pending, plan.block_succ_false[next]);
         }
+    }
+    return false;
+}
+
+// A local defined from a member path of a by-value formal names storage the
+// caller's aggregate still holds; the record that took it releases it once.
+// The callee releases nothing it was handed (decision 2026-11-15). Only a
+// by-value carriage counts: an inout, ref or owner-handle formal does not.
+func DirectMirScalarProgramArrayStringByValueFormalMember(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, target_local: Int
+) -> Bool {
+    var operation: Int = plan.routines.operation_starts[routine];
+    let end: Int = operation + plan.routines.operation_counts[routine];
+    while operation < end {
+        let value: Int = plan.operation_result_values[operation];
+        let graph: Int = plan.program.operation_expression_rows[operation];
+        if plan.operation_kinds[operation] == DirectMirScalarCfgOpExpressionDefinition() && graph >= 0 &&
+            value >= 0 && value < ArrayLength(plan.value_local_rows) &&
+            plan.value_local_rows[value] == target_local {
+            var node: Int = plan.program.expressions.graph_roots[graph];
+            var members: Int = 0;
+            while node >= 0 && plan.program.expressions.node_kinds[node] ==
+                    DirectMirScalarProgramExprLogicalRecordMember() {
+                members = members + 1;
+                node = plan.program.expressions.node_lefts[node];
+            }
+            if members > 0 && node >= 0 && plan.program.expressions.node_kinds[node] ==
+                    DirectMirScalarProgramExprParameter() {
+                let ordinal: Int = plan.program.expressions.node_parameter_ordinals[node];
+                if ordinal >= 0 && ordinal < plan.routines.parameter_counts[routine] {
+                    let carriage: String = plan.routines.parameter_carriages[
+                        plan.routines.parameter_starts[routine] + ordinal];
+                    if carriage == "value" &&
+                        !DirectMirScalarProgramParameterValueResultAt(plan, routine, ordinal) { return true; }
+                }
+            }
+        }
+        operation = operation + 1;
     }
     return false;
 }

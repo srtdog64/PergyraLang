@@ -1296,7 +1296,9 @@ mir_validate_collection_ownership_transitions_local(
                     && fact->binding_syntax_id != 0 && fact->origin_syntax_id != 0
                     && fact->source_binding_syntax_id == 0
                     && fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS
-                    && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                    && (fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                        || fact->disposition
+                            == PGY_COLLECTION_DISPOSITION_HANDED_OFF)
                     && local != NULL && local->type_name != NULL
                     && strcmp(local->type_name, "Array<String>") == 0
                     && inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION
@@ -1320,7 +1322,9 @@ mir_validate_collection_ownership_transitions_local(
                     && fact->source_binding_syntax_id != 0
                     && fact->element_ownership
                         == PGY_STRING_ARRAY_BORROWED_ELEMENTS
-                    && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                    && (fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                        || fact->disposition
+                            == PGY_COLLECTION_DISPOSITION_HANDED_OFF)
                     && source_fact != NULL
                     && source_fact->origin
                         == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL
@@ -1343,7 +1347,9 @@ mir_validate_collection_ownership_transitions_local(
                 && fact->origin == PGY_COLLECTION_ORIGIN_UNKNOWN
                 && fact->element_ownership
                     == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
-                && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                && (fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                    || fact->disposition
+                        == PGY_COLLECTION_DISPOSITION_HANDED_OFF)
                 && fact->function_syntax_id == routine->source_syntax_id
                 && fact->binding_syntax_id != 0
                 && fact->source_binding_syntax_id == 0
