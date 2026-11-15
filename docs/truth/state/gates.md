@@ -7,7 +7,7 @@ native trials); a local PASS is not CI evidence.
 | Gate | Last observed result |
 |---|---|
 | Required CI at the published SHA | GREEN at `98bcf67ec` (run 43741218196), all 33 jobs; the commit carrying this file is pending |
-| Weekly full pipeline (`platform_full`, dispatch) | Run 43669288274 on `e1a9cba9e`: codegen and harness-evidence parity, Windows toolchain and formal proofs PASS; macOS/Windows transpile (fixed in `e7bb64e06`), semantic parity (fixed in `226613c3c`); the driver shards built a test-only driver (fixed by the commit carrying this file); Linux driver llvm lane and `platform-full-linux` open ([blocker](blocker.md)) |
+| Weekly full pipeline (`platform_full`, dispatch) | Run 43747258112 on `98bcf67ec`: Linux toolchain, formal proofs, codegen/parser/harness-evidence parity PASS; macOS C-only (fixed in `3fd7bf87a`), semantic and driver parity, `platform-full-linux` and Windows toolchain open ([blocker](blocker.md)) |
 | SoT registry gate (`scripts/sot_registry_gate.py`) | PASS: 95 authorities, 213 derived carriers; CLOSED=70 BRIDGE=23 ACTIVE=2 (`selfhost.statement_result_type`, `selfhost.expression_place_kind` and `semantic.function_param_flow_summary` closed 2026-11-15) |
 | Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `a7d7655e1`, with the bootstrap policy corpus in the join job |
 | Codegen bootstrap | PASS on CI at `a7d7655e1` |

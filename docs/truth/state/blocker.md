@@ -25,12 +25,12 @@ Owner: Claude root lane. Checked 2026-11-16 on main `98bcf67ec`.
    `--mir-json` input; `semantic.hashmap_collection_ownership` stays ACTIVE.
    Of the lifetime fixtures, native LLVM admits 568 and self-host LLVM 167
    ([evidence](../evidence/2026-11-16_selfhost_handoff_fact.md)).
-4. Weekly pipeline ([evidence](../evidence/2026-11-15_weekly_driver_shard_causes.md)):
-   - Native admits `driver_rung2_main.pgy` since `41ab40e3f`
-     ([evidence](../evidence/2026-11-16_native_flow_audit_demand_order.md));
-     its LLVM lane is unconfirmed on CI's LLVM.
-   - The self-host source-to-C compile of that entry passed 16.6 GB.
-   - `platform-full-linux` loses its runner during the `test-all` compile.
+4. Weekly pipeline (run 43747258112,
+   [evidence](../evidence/2026-11-16_weekly_run_43747258112.md)): native
+   refuses two driver MIR fixtures (generic `Array<T>` return, even with
+   `Clone`) and `valid_bool_arith`; `platform-full-linux` (70 min) and the
+   Windows toolchain job (25 min) hit their limits; the self-host
+   source-to-C compile of the DRV-2 entry passed 16.6 GB.
 5. The self-host admits `let first = values` for a `ref` formal and `fail`
    as a name; native refuses both.
 
