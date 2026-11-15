@@ -84,6 +84,19 @@ pgy_long_to_string(int64_t v)
     return buf;
 }
 
+/* The same owned copy the C leg's inline pgy_bool_to_string returns, so an
+ * LLVM ToString(Bool) result may be released like any other owned String. */
+char *
+pgy_bool_to_string(bool v)
+{
+    const char *s = v ? "true" : "false";
+    size_t len = strlen(s);
+    char *buf = (char *)malloc(len + 1);
+    if (buf != NULL)
+        memcpy(buf, s, len + 1);
+    return buf;
+}
+
 char *
 pgy_float_to_string(float v)
 {

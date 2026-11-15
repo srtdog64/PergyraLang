@@ -771,6 +771,7 @@ main() {
         "tests/cases/backend_compare/array_element_assign"
         "tests/cases/backend_compare/nested_array_element_assign"
         "tests/cases/backend_compare/ref_formal_value_argument"
+        "tests/cases/backend_compare/bool_to_string_owned_drop"
         "tests/cases/backend_compare/array_reverse_in_place"
         "tests/cases/backend_compare/array_set_in_place_memo"
         "tests/cases/backend_compare/array_selection_sort"

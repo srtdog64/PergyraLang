@@ -286,6 +286,8 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { ctx->type_f32 }, 1 },
             { "Random", ctx->type_i32,
               { ctx->type_i32 }, 1 },
+            { "pgy_bool_to_string", ctx->type_i8ptr,
+              { ctx->type_i1 }, 1 },
             { "pgy_int_to_string", ctx->type_i8ptr,
               { ctx->type_i32 }, 1 },
             { "pgy_long_to_string", ctx->type_i8ptr,

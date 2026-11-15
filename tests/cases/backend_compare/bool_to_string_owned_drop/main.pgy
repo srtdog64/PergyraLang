@@ -1,0 +1,14 @@
+// ToString(Bool) returns an owned copy on both legs, so releasing the
+// Strings the array holds frees heap copies, never the "true"/"false"
+// literals.
+func Flag(value: Bool) -> String { return ToString(value); }
+
+func Main() -> Void {
+    var values: Array<String> = [];
+    ArrayPush(values, Flag(true));
+    ArrayPush(values, Flag(false));
+    Log(values[0]);
+    Log(values[1]);
+    ArrayDropOwnedStrings(values);
+    Log("dropped");
+}

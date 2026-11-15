@@ -26,11 +26,22 @@ llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
     if (LLVMGetTypeKind(value_type) == LLVMIntegerTypeKind) {
         unsigned width = LLVMGetIntTypeWidth(value_type);
         if (width == 1) {
-            LLVMValueRef true_str = LLVMBuildGlobalStringPtr(
-                ctx->builder, "true", llvm_tmp_name(ctx));
-            LLVMValueRef false_str = LLVMBuildGlobalStringPtr(
-                ctx->builder, "false", llvm_tmp_name(ctx));
-            return LLVMBuildSelect(ctx->builder, value, true_str, false_str,
+            /* The C leg's result is an owned heap copy; a select of two
+             * static strings would hand a releasing consumer a literal. */
+            fn = llvm_lookup_function(ctx, "pgy_bool_to_string");
+            if (fn == NULL) {
+                if (!ctx->has_error) {
+                    llvm_set_error_at_with_hints(ctx, NULL,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM string coercion requires registered runtime function '%s'",
+                        "pgy_bool_to_string");
+                }
+                return NULL;
+            }
+            args[0] = value;
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
                 llvm_tmp_name(ctx));
         } else if (width > 32) {
             fn = llvm_lookup_function(ctx, "pgy_long_to_string");
