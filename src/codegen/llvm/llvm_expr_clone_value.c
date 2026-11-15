@@ -1,4 +1,6 @@
 /* LLVM Clone owner: what a Clone copies into new storage, by type. */
+#ifdef PGY_LLVM_ENABLED
+
 #include "llvm_expr_clone_value.h"
 
 #include <string.h>
@@ -194,3 +196,5 @@ llvm_emit_clone_value(ASTNode *node, LLVMGenCtx *ctx, const char *type_name, LLV
         value = llvm_operand_value_for_storage(ctx, ast_call_argument(node, 0), value, entry->struct_type);
     return llvm_clone_value_at(node, ctx, type_name, value, 0);
 }
+
+#endif /* PGY_LLVM_ENABLED */

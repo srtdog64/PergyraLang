@@ -398,6 +398,14 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
             continue;
         }
         defined_function_count++;
+        /* InstCombine's one-iteration fixpoint check is a pass-quality
+         * assertion: on a large generated function (SemanticEffectMaskJoin
+         * in the self-host sources) it aborts the whole compiler with "did not
+         * reach a fixpoint", although the IR it leaves is correct. LLVM names
+         * this attribute as the way to keep the check off per function. */
+        LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+            LLVMCreateStringAttribute(ctx->context,
+                "instcombine-no-verify-fixpoint", 30, "", 0));
         /* Keep fail-closed checked arithmetic out of the inliner/folder so its
          * overflow and divide-by-zero guards survive optimization. optnone
          * implies (and requires) noinline and excludes the body from IPA. */

@@ -1,41 +1,57 @@
 import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_hashmap_owner.pgy";
 import "../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
 
+// The expression set copies the arrays it is built from (copy semantics of a
+// stored aggregate), so each control builds the set again from the changed
+// rows instead of changing a row the set no longer shares.
+func HashMapProbeFacts(
+    kinds: Array<Int>, types: Array<String>, lefts: Array<Int>, operands: Array<Int>
+) -> DirectMirScalarProgramExpressionSet {
+    let rights: Array<Int> = [-1, -1, -1, -1, 1, -1, -1];
+    let locals: Array<Int> = [0, -1, -1, -1, -1, -1, -1];
+    let absent: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
+    let literals: Array<String> = ["", "key", "7", "", "", "", ""];
+    let empty: Array<Int> = [];
+    let nary_nodes: Array<Int> = [3]; let nary_starts: Array<Int> = [0];
+    let nary_counts: Array<Int> = [3];
+    let nary: DirectMirScalarProgramNaryOperands = DirectMirScalarProgramNaryOperands(
+        true, nary_nodes, nary_starts, nary_counts, operands);
+    return DirectMirScalarProgramExpressionSet(true, 0,
+        empty, empty, empty, empty, kinds, types, lefts, rights, locals, absent, absent, literals, absent, absent, nary);
+}
+
 func Main() -> Void {
     var kinds: Array<Int> = [DirectMirScalarProgramExprLocal(), DirectMirScalarProgramExprStringLiteral(),
         DirectMirScalarProgramExprIntLiteral(), DirectMirScalarProgramExprMapSet(),
         DirectMirScalarProgramExprMapGet(), DirectMirScalarProgramExprMapKeys(), DirectMirScalarProgramExprMapNew()];
     var types: Array<String> = ["HashMap<String, Int>", "String", "Int", "Void", "Int", "Array<String>", "HashMap<String, Int>"];
     var lefts: Array<Int> = [-1, -1, -1, -1, 0, 0, -1];
-    let rights: Array<Int> = [-1, -1, -1, -1, 1, -1, -1];
-    let locals: Array<Int> = [0, -1, -1, -1, -1, -1, -1];
-    let absent: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
-    let literals: Array<String> = ["", "key", "7", "", "", "", ""];
-    let empty: Array<Int> = [];
     var operands: Array<Int> = [0, 1, 2];
-    let nary_nodes: Array<Int> = [3]; let nary_starts: Array<Int> = [0];
-    let nary_counts: Array<Int> = [3];
-    let nary: DirectMirScalarProgramNaryOperands = DirectMirScalarProgramNaryOperands(
-        true, nary_nodes, nary_starts, nary_counts, operands);
-    let facts: DirectMirScalarProgramExpressionSet = DirectMirScalarProgramExpressionSet(true, 0,
-        empty, empty, empty, empty, kinds, types, lefts, rights, locals, absent, absent, literals, absent, absent, nary);
+    var facts: DirectMirScalarProgramExpressionSet = HashMapProbeFacts(kinds, types, lefts, operands);
     Log(DirectMirScalarProgramHashMapNodeReady(facts, 3));
     Log(DirectMirScalarProgramHashMapNodeReady(facts, 4));
     Log(DirectMirScalarProgramHashMapNodeReady(facts, 5));
     Log(DirectMirScalarProgramHashMapNodeReady(facts, 6));
     types[1] = "Int";
+    facts = HashMapProbeFacts(kinds, types, lefts, operands);
     Log(!DirectMirScalarProgramHashMapNodeReady(facts, 3));
     Log(!DirectMirScalarProgramHashMapNodeReady(facts, 4));
     types[1] = "String"; types[2] = "Bool";
+    facts = HashMapProbeFacts(kinds, types, lefts, operands);
     Log(!DirectMirScalarProgramHashMapNodeReady(facts, 3));
     types[2] = "Int"; types[6] = "HashMap<String, Unknown>";
+    facts = HashMapProbeFacts(kinds, types, lefts, operands);
     Log(!DirectMirScalarProgramHashMapNodeReady(facts, 6));
     types[6] = "HashMap<String, Int>"; lefts[3] = 0;
+    facts = HashMapProbeFacts(kinds, types, lefts, operands);
     Log(!DirectMirScalarProgramHashMapNodeReady(facts, 3));
     lefts[3] = -1; operands[2] = 3;
+    facts = HashMapProbeFacts(kinds, types, lefts, operands);
     Log(!DirectMirScalarProgramHashMapNodeReady(facts, 3));
     operands[2] = 2; types[5] = "Array<Int>";
+    facts = HashMapProbeFacts(kinds, types, lefts, operands);
     Log(!DirectMirScalarProgramHashMapNodeReady(facts, 5));
     types[5] = "Array<String>"; kinds[0] = DirectMirScalarProgramExprStringLiteral();
+    facts = HashMapProbeFacts(kinds, types, lefts, operands);
     Log(!DirectMirScalarProgramHashMapNodeReady(facts, 4));
 }

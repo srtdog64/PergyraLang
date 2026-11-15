@@ -79,7 +79,17 @@ compile_run() {
     command+=(-o "$WORK_DIR/$stem-c.exe")
     "${command[@]}" >"$WORK_DIR/$stem-c.compile" 2>&1 ||
         fail "$stem C did not compile"
-    "$CLANG" -x ir "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem-llvm.exe" \
+    # The IR's checked element access panics through the runtime library, so
+    # it links against that library as `pgy --backend=llvm` does.
+    if [[ ! -f "$WORK_DIR/runtime.o" ]]; then
+        "$CC" -std=c11 -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -fwrapv \
+            -fno-strict-aliasing -DPGY_INTENT_OBSERVABILITY_ENABLED=0 -DPGY_LLVM_ENABLED \
+            -I "$ROOT_DIR/src" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+            -o "$WORK_DIR/runtime.o" >"$WORK_DIR/runtime.compile" 2>&1 ||
+            fail "runtime library did not compile"
+    fi
+    "$CLANG" -x ir "$WORK_DIR/$stem.ll" -x none "$WORK_DIR/runtime.o" -pthread -lm \
+        -o "$WORK_DIR/$stem-llvm.exe" \
         >"$WORK_DIR/$stem-llvm.compile" 2>&1 || fail "$stem LLVM did not compile"
     "$WORK_DIR/$stem-c.exe" | tr -d '\r' >"$WORK_DIR/$stem-c.run"
     "$WORK_DIR/$stem-llvm.exe" | tr -d '\r' >"$WORK_DIR/$stem-llvm.run"

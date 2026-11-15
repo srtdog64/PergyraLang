@@ -22,14 +22,29 @@ func Main() -> Void with caps env, io_read {
     ) {
         Die("domain topology graph plan digest mutation was not rejected");
     }
-    var absent: MirDomainTopologyGraphPlan =
+    let absent: MirDomainTopologyGraphPlan =
         EmptyMirDomainTopologyGraphPlan(true, false, "");
     if !MirDomainTopologyGraphPlanReady(absent) {
         Die("canonical absent domain topology graph plan was rejected");
     }
-    ArrayPush(absent.owner_source_syntax_ids, "1");
-    absent.plan_digest = MirDomainTopologyGraphPlanDigest(absent);
-    if MirDomainTopologyGraphPlanReady(absent) {
+    // The plan's arrays are `let` fields: build the absent plan again with one
+    // residual owner row instead of pushing into it.
+    let residual: Array<String> = ["1"];
+    var dirty: MirDomainTopologyGraphPlan = MirDomainTopologyGraphPlan(
+        absent.valid, absent.present, absent.schema, 0, absent.domain_graph_id,
+        absent.owner_names, residual, absent.owner_node_starts,
+        absent.owner_node_counts, absent.owner_edge_starts,
+        absent.owner_edge_counts, absent.owner_schedule_starts,
+        absent.owner_schedule_counts, absent.owner_chain_depths,
+        absent.owner_pass_limits, absent.owner_max_scc_sizes,
+        absent.owner_has_cycles, absent.node_owner_indexes, absent.node_names,
+        absent.node_source_syntax_ids, absent.edge_owner_indexes,
+        absent.edge_from_node_indexes, absent.edge_to_node_indexes,
+        absent.edge_from_source_syntax_ids, absent.edge_to_source_syntax_ids,
+        absent.schedule_node_indexes
+    );
+    dirty.plan_digest = MirDomainTopologyGraphPlanDigest(dirty);
+    if MirDomainTopologyGraphPlanReady(dirty) {
         Die("absent domain topology graph plan admitted residual arrays");
     }
     Log("domain topology graph plan digest mutation rejected");
