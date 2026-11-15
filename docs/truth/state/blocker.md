@@ -1,6 +1,6 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-16 on main `8f03ec5b0`.
+Owner: Claude root lane. Checked 2026-11-16 on main `98bcf67ec`.
 
 ## Objective card
 
@@ -14,19 +14,17 @@ Owner: Claude root lane. Checked 2026-11-16 on main `8f03ec5b0`.
 
 ## Open, in dependency order
 
-1. Required CI on the commit carrying this file (green at `8f03ec5b0`).
-2. Self-host memory errors ([evidence](../evidence/2026-11-15_four_leg_wide_memory_sweep.md)):
-   3 of 50 crashes left after `667e45554` (endless recursion; growth only
-   through a call result; two records releasing one member, sl). The C leg
+1. Required CI on the commit carrying this file (green at `98bcf67ec`).
+2. Memory errors: on four legs only endless recursion is left
+   ([evidence](../evidence/2026-11-16_selfhost_handoff_fact.md)). The C leg
    lost two `*_duplicate*_landed_valid` positives.
-3. The semantic `disposition` stays `live` after a constructor or a callee
-   takes a local's storage. Direct MIR refuses that release instead, which
-   costs 38 LLVM lifetime fixtures and the public LLVM lane of
-   `ast_graph_atom_prebind_valid`. Restoring them needs a retirement or
-   escape fact; after a callee hand-off nobody releases, as in native
+3. Hand-off fact: the self-host issues `handed-off` at constructor and
+   growing-callee edges since `98bcf67ec`
    ([decision](../decisions/2026-11-15_handed_off_array_storage_is_not_released.md)).
-   Semantic owner, MIR state table, direct MIR transition policy and
-   `collection_ownership_fact_carrier_owner.sh` change together.
+   Native issues none, so direct MIR keeps its by-value sharing refusal for
+   `--mir-json` input; `semantic.hashmap_collection_ownership` stays ACTIVE.
+   Of the lifetime fixtures, native LLVM admits 568 and self-host LLVM 167
+   ([evidence](../evidence/2026-11-16_selfhost_handoff_fact.md)).
 4. Weekly pipeline ([evidence](../evidence/2026-11-15_weekly_driver_shard_causes.md)):
    - Native admits `driver_rung2_main.pgy` since `41ab40e3f`
      ([evidence](../evidence/2026-11-16_native_flow_audit_demand_order.md));
@@ -47,6 +45,7 @@ Owner: Claude root lane. Checked 2026-11-16 on main `8f03ec5b0`.
 - Weekly pipeline fixes, with the installed driver for both driver shards.
 - Self-host lands native's copies and refuses the rest (`667e45554`).
 - Native flow audit no longer depends on demand order (`41ab40e3f`).
+- Self-host hand-off fact; last two ownership crashes (`98bcf67ec`).
 
 ## Falsifiers kept
 
