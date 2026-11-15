@@ -1,0 +1,14 @@
+// A record built around the MapGet loan lends the map too.
+// Since 2026-10-19 the result lends the map (results_lend_ref_inputs), and a
+// loan whose owner changes while it is held is copied where it is made
+// (2026-10-22). Native admits this only with that compiler-placed Clone; the
+// readonly-map smoke requires the Clone in MIR and the output on C and LLVM.
+struct CapturedText { value: String; }
+func Capture(ref values: HashMap<String, String>) -> CapturedText { return CapturedText(MapGet(values, "key")); }
+func Main() -> Void {
+    var values: HashMap<String, String> = MapNew();
+    MapSet(values, "key", "a");
+    let captured: CapturedText = Capture(values);
+    MapSet(values, "key", "b");
+    Log(captured.value);
+}

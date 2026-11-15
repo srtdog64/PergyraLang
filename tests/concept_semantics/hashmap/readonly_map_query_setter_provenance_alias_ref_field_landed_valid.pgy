@@ -1,12 +1,17 @@
+// This retaining store used to be refused. Since the 2026-10-19/20 landing
+// rules the store takes a compiler-placed copy (a Clone in MIR), which the
+// readonly-map smoke requires with the output on C and LLVM.
 struct TextRecord { text: String; }
+struct Held { text: String; }
 func Observe(ref text: String) -> String { return text; }
-func SetText(inout destination: String, ref text: String) -> Void {
-    destination = text;
+func SetText(inout destination: Held, ref text: String) -> Void {
+    destination.text = text;
 }
 func ReadRecord(ref record: TextRecord, ref retained: Slot<String>) -> Bool {
-    var staged: String = "";
-    SetText(staged, Observe(record.text));
-    Write(retained, staged);
+    let observed = Observe(record.text);
+    var staged = Held("");
+    SetText(staged, observed);
+    Write(retained, staged.text);
     return true;
 }
 func Publish(ref retained: Slot<String>) -> Bool {

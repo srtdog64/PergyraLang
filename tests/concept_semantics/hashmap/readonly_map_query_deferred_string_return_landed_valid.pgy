@@ -1,0 +1,16 @@
+// A defer does not make the returned record.text independent.
+// Since 2026-10-19 the result lends the record (results_lend_ref_inputs), and a
+// loan whose owner changes while it is held is copied where it is made
+// (2026-10-22). Native admits this only with that compiler-placed Clone; the
+// readonly-map smoke requires the Clone in MIR and the output on C and LLVM.
+struct TextRecord { text: String; }
+func DeferredExtract(ref record: TextRecord) -> String {
+    defer { Log("cleanup"); }
+    return record.text;
+}
+func Main() -> Void {
+    var record: TextRecord = TextRecord(Concat("heap", " text"));
+    let held: String = DeferredExtract(record);
+    record.text = Concat("other", " text");
+    Log(held);
+}

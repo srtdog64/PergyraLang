@@ -1,0 +1,18 @@
+// MapGet through an Array element lends that element's map.
+// Since 2026-10-19 the result lends the element's map (results_lend_ref_inputs), and a
+// loan whose owner changes while it is held is copied where it is made
+// (2026-10-22). Native admits this only with that compiler-placed Clone; the
+// readonly-map smoke requires the Clone in MIR. The C backend refuses the
+// non-addressable MapGet receiver (fail closed), so the program is not run.
+struct NestedArrayMap { entries: HashMap<String, String>; }
+func ReadNestedArrayMapText(ref records: Array<NestedArrayMap>) -> String {
+    return MapGet(records[0].entries, "entry");
+}
+func Main() -> Void {
+    var entries: HashMap<String, String> = MapNew();
+    MapSet(entries, "entry", "a");
+    var records: Array<NestedArrayMap> = [NestedArrayMap(entries)];
+    let held: String = ReadNestedArrayMapText(records);
+    MapSet(records[0].entries, "entry", "b");
+    Log(held);
+}

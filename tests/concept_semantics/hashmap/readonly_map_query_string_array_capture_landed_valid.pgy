@@ -1,0 +1,15 @@
+// An Array that holds the MapGet value would lend the map; the push into the
+// local Array takes an owned copy instead (ArrayPushOwnedString in MIR), so
+// changing the map afterwards is safe. The smoke requires that push.
+func Capture(ref values: HashMap<String, String>) -> Array<String> {
+    var captured: Array<String> = [];
+    ArrayPush(captured, MapGet(values, "key"));
+    return captured;
+}
+func Main() -> Void {
+    var values: HashMap<String, String> = MapNew();
+    MapSet(values, "key", "a");
+    let captured: Array<String> = Capture(values);
+    MapSet(values, "key", "b");
+    Log(captured[0]);
+}

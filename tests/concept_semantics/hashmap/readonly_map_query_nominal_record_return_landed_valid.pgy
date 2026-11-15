@@ -1,3 +1,6 @@
+// This retaining store used to be refused. Since the 2026-10-19/20 landing
+// rules the store takes a compiler-placed copy (a Clone in MIR), which the
+// readonly-map smoke requires with the output on C and LLVM.
 struct TextRecord { text: String; }
 struct TextPayload { text: String; count: Int; }
 func Extract(ref record: TextRecord) -> TextPayload {

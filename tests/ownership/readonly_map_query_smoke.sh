@@ -39,24 +39,44 @@ positives = {
     'nominal_nested_map_read': 'true\n',
     'return_cleanup_order': '1\n1\nonce\ncleanup\n5\n1\n7\nvoid body\nvoid cleanup\n4\n',
 }
+# These were borrow refusals. Since 2026-10-19 a result lends storage of a ref
+# input, and since 2026-10-20/22 a loan that a retaining store keeps, or whose
+# owner changes while it is held, is copied where it is made. Native admits
+# them only with that compiler-placed copy: the marker must be in MIR, and the
+# output must match on C and LLVM (None: not run, see the fixture header).
+landed = {
+    **{n: ('"Clone"', 'a\n') for n in (
+        'string_return', 'string_transitive_return', 'string_default_forward',
+        'string_aggregate_capture', 'nested_string_return', 'nested_string_aggregate')},
+    'string_array_capture': ('ArrayPushOwnedString', 'a\n'),
+    'nested_array_string_return': ('"Clone"', None),
+    **{n: ('"Clone"', 'heap text\n') for n in (
+        'completed_observe_string', 'completed_observe_option', 'completed_observe_record',
+        'completed_observe_default_aggregate', 'nominal_string_return',
+        'nominal_option_return', 'nominal_record_return')},
+    'deferred_string_return': ('"Clone"', 'cleanup\nheap text\n'),
+    **{n: ('"Clone"', 'true\n') for n in (
+        'completed_observe_inout', 'some_field_inout', 'nominal_slot', 'nominal_inout')},
+    **{n: ('"Clone"', 'true\nheap text\n') for n in (
+        'setter_provenance_alias_ref_string', 'setter_provenance_nested_ref_string',
+        'setter_provenance_alias_ref_field', 'setter_provenance_nested_default_string')},
+    'return_provenance_alias_keep': ('"Clone"', None),
+    'nominal_keep': ('"Clone"', None),
+}
 negative_codes = {
     **{n: ('PGY_SEM_BORROW_ESCAPE', 'borrow_escape') for n in (
-        'string_return', 'string_transitive_return', 'string_default_forward',
-        'string_aggregate_capture', 'string_array_capture', 'array_return',
-        'resource_return', 'ref_set', 'ref_remove', 'lexical_shadow_get',
+        'array_return', 'lexical_shadow_get',
         'lexical_shadow_keys', 'late_retaining_callee', 'recursive_retaining_callee',
-        'nested_string_return', 'nested_string_aggregate', 'nested_array_string_return',
-        'completed_observe_string', 'completed_observe_option', 'completed_observe_record',
-        'completed_observe_inout', 'completed_observe_default_aggregate',
-        'return_provenance_nested_keep', 'return_provenance_alias_keep',
+        'return_provenance_nested_keep',
         'return_provenance_alias_helper', 'return_provenance_nested_slot',
         'return_provenance_alias_slot', 'return_provenance_ref_slot_helper',
-        'setter_provenance_alias_ref_string', 'setter_provenance_nested_ref_string',
-        'setter_provenance_alias_ref_field', 'setter_provenance_nested_default_string',
         'numeric_cast_retaining_operand', 'some_map_keep', 'some_field_slot',
-        'some_field_inout', 'some_recursive_output',
-        'nominal_string_return', 'nominal_option_return', 'nominal_record_return',
-        'nominal_slot', 'nominal_inout', 'nominal_keep', 'deferred_string_return')},
+        'some_recursive_output')},
+    # A handle is not lent (2026-10-19); returning one is a typed refusal.
+    'resource_return': ('PGY_SEM_TYPE_MISMATCH', 'semantic:anchored_handle:return_boundary'),
+    # A ref formal is read-only (2026-11-08): a Map write through it is refused.
+    'ref_set': ('PGY_SEM_IMMUTABLE_FIELD_WRITE', 'semantic:immutable_field:write'),
+    'ref_remove': ('PGY_SEM_IMMUTABLE_FIELD_WRITE', 'semantic:immutable_field:write'),
     'setter_provenance_scoped_shadow': ('PGY_SEM_REDECLARATION', 'semantic:scope:duplicate_symbol'),
     'function_shadow_get': ('PGY_SEM_REDECLARATION', 'semantic:function:builtin_name_reserved'),
     'function_shadow_keys': ('PGY_SEM_REDECLARATION', 'semantic:function:builtin_name_reserved'),
@@ -74,6 +94,7 @@ negative_codes = {
     'string_reader_shadow': ('PGY_SEM_REDECLARATION', 'semantic:function:builtin_name_reserved'),
 }
 inputs = [fixtures / f'readonly_map_query_{n}_valid.pgy' for n in positives]
+inputs += [fixtures / f'readonly_map_query_{n}_landed_valid.pgy' for n in landed]
 inputs += [fixtures / f'readonly_map_query_{n}_invalid.pgy' for n in negative_codes]
 sources = sorted(p for p in (root / 'src').rglob('*') if p.suffix in ('.c', '.h', '.def'))
 sources += [root / 'Makefile', root / 'tests/ownership/readonly_map_query_smoke.sh',
@@ -112,6 +133,24 @@ try:
             actual = result.stdout.decode().replace('\r\n', '\n')
             if result.returncode != 0 or actual != expected or result.stderr:
                 failures.append(f'{name}/{backend}: output {actual!r}')
+    for name, (marker, expected) in landed.items():
+        source = fixtures / f'readonly_map_query_{name}_landed_valid.pgy'
+        result = run(name + '-landed-mir', [native, '--native-pipeline', '--mir-json', source])
+        output = result.stdout.decode(errors='replace')
+        if result.returncode != 0 or '"pgy.mir.v1"' not in output or marker not in output:
+            failures.append(f'{name}: expected admission with compiler-placed {marker}, actual rc={result.returncode}')
+            continue
+        for backend in (() if expected is None else ('c', 'llvm')):
+            executable = work / f'{name}-landed-{backend}.exe'
+            result = run(f'{name}-landed-{backend}-compile', [native, '--native-pipeline',
+                f'--backend={backend}', '--opt=dev', source, '-o', executable])
+            if result.returncode != 0:
+                failures.append(f'{name}/{backend}: landed compile {result.returncode}')
+                continue
+            result = run(f'{name}-landed-{backend}-run', [executable], 30)
+            actual = result.stdout.decode().replace('\r\n', '\n')
+            if result.returncode != 0 or actual != expected or result.stderr:
+                failures.append(f'{name}/{backend}: landed output {actual!r}')
     for name, (code, cause) in negative_codes.items():
         # Unsafe inputs are analyzed only: no executable or C/LLVM emission.
         result = run(name + '-negative', [native, '--native-pipeline', '--mir-json',
@@ -120,9 +159,7 @@ try:
         if result.returncode != 1 or '"pgy.mir.v1"' in output or code not in output or cause not in output:
             failures.append(f'{name}: expected {code}/{cause}, actual rc={result.returncode}')
         if name in ('numeric_cast_retaining_operand', 'some_map_keep',
-                    'some_field_slot', 'some_field_inout', 'some_recursive_output',
-                    'nominal_string_return', 'nominal_option_return', 'nominal_record_return',
-                    'nominal_slot', 'nominal_inout', 'nominal_keep', 'deferred_string_return'):
+                    'some_field_slot', 'some_recursive_output'):
             try:
                 diagnostics = json.loads(output)
             except json.JSONDecodeError:
@@ -139,6 +176,6 @@ finally:
     (work / 'end-guards.log').write_text('PASS\n' if not drift else '\n'.join(drift))
     if drift: failures.append('source/input/binary generation drift')
 (work / 'results.log').write_text('\n'.join(failures) if failures else 'PASS\n')
-print(f'[readonly-map-query] receipt {work}; {len(positives)} C/LLVM positives, {len(negative_codes)} analyze-only negatives, direct fact-phase unit')
+print(f'[readonly-map-query] receipt {work}; {len(positives)} C/LLVM positives, {len(landed)} copy-landed admissions, {len(negative_codes)} analyze-only negatives, direct fact-phase unit')
 if failures: raise SystemExit('\n'.join(failures))
 PY
