@@ -2731,6 +2731,11 @@ for name, code, cause in (
         raise SystemExit(f"stdlib identity/arity negative {name} lost {code}/{cause}")
 runtime_dir = pathlib.Path(tempfile.mkdtemp(prefix="stdlib-input-retention."))
 runtime_progress = os.environ.get("PGY_DEBUG_GATE_PROGRESS") == "1"
+# The runtime cases run on every backend the build has; an LLVM-disabled
+# build (macOS and Windows C-only steps) passes "c" through make.
+runtime_backends = tuple(os.environ.get("PGY_FUNCTION_PARAM_FLOW_BACKENDS", "c llvm").split())
+if not runtime_backends or any(b not in ("c", "llvm") for b in runtime_backends):
+    raise SystemExit(f"PGY_FUNCTION_PARAM_FLOW_BACKENDS must name c and/or llvm: {runtime_backends!r}")
 # ToString(Bool) output parity is behavioral only: LLVM may return static text.
 # These cases do not assert a fresh allocation or an exit-drop right.
 for name, expected in (
@@ -3172,7 +3177,7 @@ for name, expected in (
     ("array_slice_view_reader_valid", "5ab"),
     ("declared_result_unbuilt_intent_audit_valid", "nm2"),
 ):
-    for backend in ("c", "llvm"):
+    for backend in runtime_backends:
         if runtime_progress:
             print(f"[function-param-flow-summary] runtime {name} {backend}",
                   flush=True)

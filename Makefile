@@ -220,6 +220,7 @@ LLVM_ENABLED ?= 1
 STDLIB_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 STAGE4_DETERMINISM_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 FILESYSTEM_WALK_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
+FUNCTION_PARAM_FLOW_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 SELFHOST_PARSER_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 SELFHOST_SEMANTIC_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 SELFHOST_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
@@ -2893,8 +2894,8 @@ compatibility-evolution-native-test-smoke: $(PGY)
 
 function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test flow-rows-check-memo-test flow-closure-worklist-test default-aggregate-copy-graph-test
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/function_param_flow_summary_smoke.sh
-	PGY_VERIFY_FLOW_CURRENCY_MEMO=1 PGY_VERIFY_FLOW_WORKLIST=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/function_param_flow_summary_smoke.sh
+	PGY_FUNCTION_PARAM_FLOW_BACKENDS="$${PGY_FUNCTION_PARAM_FLOW_BACKENDS:-$(FUNCTION_PARAM_FLOW_BACKENDS)}" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/function_param_flow_summary_smoke.sh
+	PGY_FUNCTION_PARAM_FLOW_BACKENDS="$${PGY_FUNCTION_PARAM_FLOW_BACKENDS:-$(FUNCTION_PARAM_FLOW_BACKENDS)}" PGY_VERIFY_FLOW_CURRENCY_MEMO=1 PGY_VERIFY_FLOW_WORKLIST=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/function_param_flow_summary_smoke.sh
 
 .PHONY: readonly-map-query-test-smoke
 readonly-map-query-test-smoke: $(PGY) $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT)
