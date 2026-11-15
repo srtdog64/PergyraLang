@@ -19,8 +19,12 @@ test_transpiler_reentry_stability(void)
             "func MakeCount() -> Int {\n"
             "    return 7;\n"
             "}\n"
-            "func Main() -> Vec2 {\n"
+            "func Probe() -> Vec2 {\n"
             "    return MakeVec() + MakeCount();\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let sum: Vec2 = Probe();\n"
+            "    Log(sum.x);\n"
             "}\n";
         bool stable = true;
 

@@ -432,7 +432,8 @@
         const char *source =
             "struct Vec2 { x: Int; y: Int; }\n"
             "func operator_add_Vec2(a: Vec2, b: Vec2) -> Vec2 { return a; }\n"
-            "func Main(a: Vec2, b: Vec2) -> Vec2 { return a + b; }\n";
+            "func Probe(a: Vec2, b: Vec2) -> Vec2 { return a + b; }\n"
+            "func Main() -> Void { Log(0); }\n";
         ASTNode *prog = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
@@ -459,7 +460,8 @@
             "func operator_add_Vec2(a: Vec2, b: Int) -> Vec2 { return a; }\n"
             "func MakeVec() -> Vec2 { return Vec2(1, 2); }\n"
             "func MakeCount() -> Int { return 7; }\n"
-            "func Main() -> Vec2 { return MakeVec() + MakeCount(); }\n";
+            "func Probe() -> Vec2 { return MakeVec() + MakeCount(); }\n"
+            "func Main() -> Void { let sum: Vec2 = Probe(); Log(sum.x); }\n";
         ASTNode *prog = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
