@@ -61,6 +61,7 @@ func DirectMirOwnedCollectionRowTracked(ref index: MirRoutineFactIndex, row: Int
     return index.collection_ownership_facts.binding_syntax_ids[row] > 0 &&
         index.collection_ownership_facts.origin_syntax_ids[row] > 0 &&
         (index.collection_ownership_facts.dispositions[row] == "live" ||
+         index.collection_ownership_facts.dispositions[row] == "handed-off" ||
          index.collection_ownership_facts.dispositions[row] == "retired") &&
         (element_owner || member_owner);
 }

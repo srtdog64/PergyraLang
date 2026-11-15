@@ -3,9 +3,13 @@
 # collection ownership row or a runtime producer, and only while no other
 # holder has its storage. A local whose storage and elements the semantic fact
 # leaves unknown (a call result, an alias of a formal), a local handed to a
-# callee that grows it or to a constructor, and an alias of an inout member
-# that grows in place are refused with no artifact; none is released from its
-# operation shape.
+# callee that grows it without a hand-off fact (here through an alias of the
+# formal, or again on every loop iteration), a local given to two records or
+# to a record in a loop that does not declare it, and an alias of an inout
+# member that grows in place, and a record lent to a ref formal beside an
+# inout output that may keep its Strings are refused with no artifact; none is
+# released from its operation shape. A local the semantic verdict hands to a record
+# (decision 2026-11-15) is released once, by that record, and runs.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -18,6 +22,8 @@ DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/p
 NO_ROW="direct MIR Array<String> cleanup requires an admitted ownership row"
 SHARED="direct MIR Array<String> cleanup refuses storage another holder still has"
 MEMBER_ALIAS="direct MIR Array<String> alias of a parameter member grows storage the member still names"
+NO_HANDOFF="direct MIR Array<String> constructor input has no hand-off fact"
+LENT_INOUT="owned local lent to a ref formal is released while an inout argument of the same call may hold its Strings"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 
@@ -69,8 +75,8 @@ func Main() -> Void {
     Log(GrowCount(names));
 }
 EOF
-# The record takes the local's storage and a member alias takes it back out:
-# releasing both frees one descriptor twice.
+# The record takes the local's storage and a member alias takes it back out.
+# The verdict hands the local to the record, so it is released once.
 cat >"$WORK_DIR/constructor_handoff.pgy" <<'EOF'
 struct Pack { texts: Array<String>; }
 func Main() -> Void {
@@ -82,7 +88,8 @@ func Main() -> Void {
 }
 EOF
 # The record takes the local's storage and a callee grows it past the
-# literal's capacity: the caller's release frees what realloc already freed.
+# literal's capacity. The local was handed to the record, so the caller does
+# not release what realloc already freed.
 cat >"$WORK_DIR/grown_record.pgy" <<'EOF'
 struct NodeSet { valid: Bool; types: Array<String>; }
 func NodeSetAttach(facts: NodeSet, name: String) -> NodeSet {
@@ -96,6 +103,73 @@ func Main() -> Int {
     var facts: NodeSet = NodeSet(true, types);
     facts = NodeSetAttach(facts, "y");
     return ArrayLength(facts.types);
+}
+EOF
+# One local given to two records: no record takes it, and releasing it
+# frees what both records still hold.
+cat >"$WORK_DIR/constructor_twice.pgy" <<'EOF'
+struct Rows { names: Array<String>; }
+func Main() -> Void {
+    var names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("a", ""));
+    let first: Rows = Rows(names);
+    let second: Rows = Rows(names);
+    Log(ArrayLength(first.names) + ArrayLength(second.names));
+}
+EOF
+# A record built in a loop that does not declare the local takes the same
+# storage on every iteration.
+cat >"$WORK_DIR/constructor_loop.pgy" <<'EOF'
+struct Rows { names: Array<String>; }
+func Main() -> Void {
+    let names: Array<String> = ["a"];
+    var i: Int = 0;
+    while i < 2 {
+        let rows: Rows = Rows(names);
+        Log(ArrayLength(rows.names));
+        i = i + 1;
+    }
+}
+EOF
+# A growing callee called again on every iteration with the same local.
+cat >"$WORK_DIR/grown_loop.pgy" <<'EOF'
+func GrowCount(values: Array<String>) -> Int {
+    var grown: Array<String> = values;
+    ArrayPush(grown, "b"); ArrayPush(grown, "c"); ArrayPush(grown, "d"); ArrayPush(grown, "e");
+    return ArrayLength(grown);
+}
+func Main() -> Void {
+    let names: Array<String> = ["a"];
+    var i: Int = 0;
+    while i < 2 { Log(GrowCount(names)); i = i + 1; }
+}
+EOF
+# A record whose owned Strings are lent to a ref formal while the same call
+# writes an inout output: the callee stores borrowed Strings of the loan in
+# that output, and the record's release would leave them dangling.
+cat >"$WORK_DIR/lent_beside_inout.pgy" <<'EOF'
+struct Index { labels: Array<String>; }
+struct Out { names: Array<String>; }
+func Lend(ref index: Index) -> Array<String> {
+    var names: Array<String> = [];
+    var i: Int = 0;
+    while i < ArrayLength(index.labels) { ArrayPush(names, index.labels[i]); i = i + 1; }
+    return names;
+}
+func Fill(ref index: Index, inout out: Out) -> Void {
+    let lent: Array<String> = Lend(index);
+    out.names = lent;
+}
+func Make(inout o: Out) -> Void {
+    let index: Index = Index([Concat("a", "")]);
+    Fill(index, o);
+}
+func Main() -> Int {
+    let none: Array<String> = [];
+    var o: Out = Out(none);
+    Make(o);
+    Log(o.names[0]);
+    return 0;
 }
 EOF
 # The alias of an inout member grows and is never stored back; the caller's
@@ -151,6 +225,8 @@ func Main() -> Void {
 }
 EOF
 printf '4\nkept\n2\n' >"$WORK_DIR/record_observed.expected"
+printf '1\n' >"$WORK_DIR/constructor_handoff.expected"
+: >"$WORK_DIR/grown_record.expected"
 
 refuse() {
     local name="$1" flag="$2" extension="$3" message="$4" rc
@@ -173,22 +249,34 @@ for name in call_result formal_alias; do
 done
 refuse grown_handoff --emit-c c "$SHARED"
 refuse grown_handoff --emit-llvm ll "$SHARED"
+refuse grown_loop --emit-c c "$SHARED"
 # A program with a struct takes the round-trip C route, which copies instead;
 # only the LLVM leg reaches the direct MIR cleanup.
-refuse constructor_handoff --emit-llvm ll "$SHARED"
-refuse grown_record --emit-llvm ll "$SHARED"
+refuse constructor_twice --emit-llvm ll "$NO_HANDOFF"
+refuse constructor_loop --emit-llvm ll "$NO_HANDOFF"
 refuse member_alias --emit-llvm ll "$MEMBER_ALIAS"
+refuse lent_beside_inout --emit-llvm ll "$LENT_INOUT"
 
-for name in rowed record_observed; do
-    for backend in c llvm; do
-        (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE "$PGY" "$WORK_REL/$name.pgy" "--backend=$backend" \
-            -o "$WORK_REL/$name-$backend.exe") >"$WORK_DIR/$name-$backend.log" 2>&1 ||
-            fail "$name was refused on $backend: $(head -3 "$WORK_DIR/$name-$backend.log")"
-        (cd "$ROOT_DIR" && timeout 30 "$WORK_DIR/$name-$backend.exe") | tr -d '\r' >"$WORK_DIR/$name-$backend.run" ||
-            fail "$name failed on $backend"
-        cmp -s "$WORK_DIR/$name.expected" "$WORK_DIR/$name-$backend.run" ||
-            fail "$name output drifted on $backend"
-    done
+# Each admitted program runs on both legs with its stdout and exit status.
+run_admitted() {
+    local name="$1" backend="$2" status="$3" rc
+    (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE "$PGY" "$WORK_REL/$name.pgy" "--backend=$backend" \
+        -o "$WORK_REL/$name-$backend.exe") >"$WORK_DIR/$name-$backend.log" 2>&1 ||
+        fail "$name was refused on $backend: $(head -3 "$WORK_DIR/$name-$backend.log")"
+    set +e
+    (cd "$ROOT_DIR" && timeout 30 "$WORK_DIR/$name-$backend.exe") >"$WORK_DIR/$name-$backend.raw"
+    rc=$?
+    set -e
+    [[ "$rc" -eq "$status" ]] || fail "$name exited $rc on $backend, expected $status"
+    tr -d '\r' <"$WORK_DIR/$name-$backend.raw" >"$WORK_DIR/$name-$backend.run"
+    cmp -s "$WORK_DIR/$name.expected" "$WORK_DIR/$name-$backend.run" ||
+        fail "$name output drifted on $backend"
+}
+for backend in c llvm; do
+    run_admitted rowed "$backend" 0
+    run_admitted record_observed "$backend" 0
+    run_admitted constructor_handoff "$backend" 0
+    run_admitted grown_record "$backend" 6
 done
 
-echo "[$LABEL] PASS refused=9 admitted=2x2 evidence=$WORK_REL"
+echo "[$LABEL] PASS refused=11 admitted=4x2 evidence=$WORK_REL"

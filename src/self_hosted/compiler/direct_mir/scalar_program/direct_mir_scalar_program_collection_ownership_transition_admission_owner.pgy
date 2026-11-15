@@ -196,6 +196,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     var bindings: Array<Int> = fact.binding_syntax_ids;
     var states: Array<Int> = fact.terminal_states;
     var replacements: Array<Int> = fact.replacement_modes;
+    var handed_off: Array<Int> = fact.handed_off;
     var receipt_operations: Array<Int> = fact.operation_ordinals;
     var receipt_effects: Array<Int> = fact.operation_effect_kinds;
     var cfg_rows: Array<Int> = [];
@@ -205,6 +206,8 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
             index.collection_ownership_facts.binding_syntax_ids) {
         let retired: Bool = index.collection_ownership_facts.dispositions[
             ownership_row] == "retired";
+        let handed: Bool = index.collection_ownership_facts.dispositions[
+            ownership_row] == "handed-off";
         let owned: Bool = DirectMirOwnedCollectionRowTracked(index, ownership_row);
         let literal: Bool = index.collection_ownership_facts.origins[ownership_row] ==
                 "borrowed-literal" ||
@@ -215,7 +218,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
             index.collection_ownership_facts.element_ownerships[
                 ownership_row] == "unknown" && !retired;
         let origin: String = index.collection_ownership_facts.origins[ownership_row];
-        if owned || literal || origin == "member-move" || origin == "binding" || retired || unknown {
+        if owned || literal || origin == "member-move" || origin == "binding" || retired || unknown || handed {
             let binding: Int = index.collection_ownership_facts.
                 binding_syntax_ids[ownership_row];
             let local_end: Int = local_offset +
@@ -230,7 +233,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
             let unknown_literal_storage: Bool = unknown &&
                 DirectMirCollectionOwnershipUnknownLiteralStorageReady(
                     storage, expressions, routine, matched_local);
-            let requires_transition: Bool = owned || literal ||
+            let requires_transition: Bool = owned || literal || handed ||
                 origin == "member-move" || origin == "binding" || retired ||
                 unknown_literal_storage ||
                 DirectMirCollectionOwnershipReceiptPlanHasReceiver(
@@ -286,6 +289,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     ArrayPush(cfg_rows, ArrayLength(routines) - 1);
                 }
                 ArrayPush(states, initial_state);
+                if handed { ArrayPush(handed_off, 1); } else { ArrayPush(handed_off, 0); }
                 if retired && index.collection_ownership_facts.origins[
                         ownership_row] == "empty-literal" &&
                     DirectMirScalarProgramOwnedArrayStringAggregateReturnTransferReady(
@@ -480,12 +484,21 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     }
     var replacement_row: Int = ArrayLength(fact.routine_ordinals);
     while replacement_row < ArrayLength(routines) {
-        ArrayPush(replacements, DirectMirArrayStringReplacementModeFromOwners(
-            storage, expressions, callables, routine, locals[replacement_row], states[replacement_row]));
+        // A handed-off binding is defined once and its storage left with the
+        // record: there is nothing to release at a replacement.
+        if handed_off[replacement_row] == 1 {
+            if states[replacement_row] == DirectMirCollectionOwnershipStateRetired() {
+                return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+            }
+            ArrayPush(replacements, 0);
+        } else {
+            ArrayPush(replacements, DirectMirArrayStringReplacementModeFromOwners(
+                storage, expressions, callables, routine, locals[replacement_row], states[replacement_row]));
+        }
         replacement_row = replacement_row + 1;
     }
     return DirectMirScalarProgramCollectionOwnershipTransitionFact(
-        true, 0, routines, locals, bindings, states, replacements,
+        true, 0, routines, locals, bindings, states, replacements, handed_off,
         receipt_operations, receipt_effects
     );
 }

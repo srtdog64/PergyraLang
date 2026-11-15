@@ -17,9 +17,19 @@
 //   release, a named input reservation or an owned-result return consumed
 //   the storage.
 // A string transfer from a formal or a local carries owned elements.
+//
+// "handed-off" (decision 2026-11-15) is a live state whose storage a record
+// or callee took at a constructor input: the binding keeps the element
+// ownership it had there and releases nothing. It is admitted wherever the
+// same live state is, except for a member move, whose storage must return to
+// its aggregate.
 func MirCollectionOwnershipStateAdmitted(
     origin: String, ownership: String, disposition: String
 ) -> Bool {
+    if disposition == "handed-off" {
+        return origin != "member-move" && ownership != "retired" &&
+            MirCollectionOwnershipStateAdmitted(origin, ownership, "live");
+    }
     if disposition != "live" && disposition != "retired" { return false; }
     let retired: Bool = disposition == "retired";
     if ownership == "retired" {

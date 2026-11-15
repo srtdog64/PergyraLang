@@ -18,6 +18,10 @@ struct DirectMirScalarProgramCollectionOwnershipTransitionFact {
     let terminal_states: Array<Int>;
     // 0: no replacement proof; 1: storage only; 2: owned String elements.
     let replacement_modes: Array<Int>;
+    // 1 when the semantic verdict handed the binding's storage to a record
+    // (disposition "handed-off"): its terminal state is the element ownership
+    // at the hand-off, and the binding itself releases nothing.
+    let handed_off: Array<Int>;
     // Exact instruction receipts, keyed by the global MIR operation ordinal.
     // Emitters consume these rows instead of reconstructing ownership effects
     // from an operation kind or terminal local state.
@@ -33,7 +37,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty(
     let states: Array<Int> = [];
     let operations: Array<Int> = []; let effects: Array<Int> = [];
     return DirectMirScalarProgramCollectionOwnershipTransitionFact(
-        true, 0, routines, locals, bindings, states, states, operations, effects
+        true, 0, routines, locals, bindings, states, states, states, operations, effects
     );
 }
 
@@ -45,7 +49,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid(
     let states: Array<Int> = [];
     let operations: Array<Int> = []; let effects: Array<Int> = [];
     return DirectMirScalarProgramCollectionOwnershipTransitionFact(
-        false, 0, routines, locals, bindings, states, states, operations, effects
+        false, 0, routines, locals, bindings, states, states, states, operations, effects
     );
 }
 
@@ -60,6 +64,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionFactDigest(
     hash = DirectMirScalarCfgHashInts(hash, fact.binding_syntax_ids);
     hash = DirectMirScalarCfgHashInts(hash, fact.terminal_states);
     hash = DirectMirScalarCfgHashInts(hash, fact.replacement_modes);
+    hash = DirectMirScalarCfgHashInts(hash, fact.handed_off);
     hash = DirectMirScalarCfgHashInts(hash, fact.operation_ordinals);
     hash = DirectMirScalarCfgHashInts(hash, fact.operation_effect_kinds);
     return DirectMirCfgBoundedDigest(hash);
@@ -73,7 +78,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionFactWithDigest(
         DirectMirScalarProgramCollectionOwnershipTransitionFactDigest(fact),
         fact.routine_ordinals, fact.local_rows,
         fact.binding_syntax_ids, fact.terminal_states, fact.replacement_modes,
-        fact.operation_ordinals, fact.operation_effect_kinds
+        fact.handed_off, fact.operation_ordinals, fact.operation_effect_kinds
     );
 }
 
@@ -98,6 +103,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionFactReady(
         count != ArrayLength(fact.binding_syntax_ids) ||
         count != ArrayLength(fact.terminal_states) ||
         count != ArrayLength(fact.replacement_modes) ||
+        count != ArrayLength(fact.handed_off) ||
         ArrayLength(fact.operation_ordinals) !=
             ArrayLength(fact.operation_effect_kinds) {
         return false;
@@ -119,6 +125,12 @@ func DirectMirScalarProgramCollectionOwnershipTransitionFactReady(
             return false;
         }
         let mode: Int = fact.replacement_modes[row];
+        // A handed-off binding owns nothing left to replace or retire.
+        if fact.handed_off[row] < 0 || fact.handed_off[row] > 1 ||
+            (fact.handed_off[row] == 1 && (mode != 0 ||
+                fact.terminal_states[row] == DirectMirCollectionOwnershipStateRetired())) {
+            return false;
+        }
         if mode < 0 || mode > 2 ||
             (mode == 2 && fact.terminal_states[row] != DirectMirCollectionOwnershipStateOwned()) ||
             (mode == 1 && fact.terminal_states[row] != DirectMirCollectionOwnershipStateEmpty() &&

@@ -15,7 +15,7 @@ func SemanticAstCollectionMutatingFormals(
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
     ref dep_locals: Array<Int>, ref dep_formals: Array<Int>, ref dep_paths: Array<Int>, ref paths: Array<String>,
-    inout growth_sites: HashMap<String, Int>
+    ref carrying: HashMap<String, Int>, inout growth_sites: HashMap<String, Int>
 ) -> HashMap<String, Int> {
     var mutating: HashMap<String, Int> = MapNew();
     var dependency_row: Int = 0;
@@ -108,6 +108,17 @@ func SemanticAstCollectionMutatingFormals(
                                         mutating) {
                                     changed = true;
                                 }
+                            }
+                            if root_id == 0 && formal.ok && MapHas(mutating, ToString(formal.syntax_id)) &&
+                                place.ok && place.temporary {
+                                // A call result the formal grows: what the callee carries into it.
+                                if SemanticAstCollectionExclusiveMarkPassedCallResult(artifact, signatures, constructors,
+                                        locals, inferred_types, surfaces, dep_locals, dep_formals, dep_paths, paths,
+                                        carrying, function_id, syntax_id, edge.argument_node, formal, mutating,
+                                        growth_sites) {
+                                    changed = true;
+                                }
+                                if MapHas(mutating, "unconverged") { return mutating; }
                             }
                         }
                         if root_id > 0 { SemanticAstCollectionExclusiveRecordGrowthSite(growth_sites, root_id, syntax_id); }

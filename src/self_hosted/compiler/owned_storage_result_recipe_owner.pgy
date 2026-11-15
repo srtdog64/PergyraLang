@@ -220,12 +220,27 @@ func DirectMirOwnedStorageRecipe(ref plan: DirectMirScalarCfgGraphPlan,
         while field < arguments.count {
             let field_type: String = plan.program.logical_record.field_types[plan.program.logical_record.field_starts[record] + field];
             var child: Int = -1;
+            let input: Int = DirectMirScalarProgramArgumentViewAt(plan.program.expressions, arguments, field);
+            // A record takes an Array<String> binding the verdict left live
+            // only when that verdict handed the binding to it (decision
+            // 2026-11-15); the element ownership is then the state at the
+            // hand-off. A live binding without the hand-off proves no recipe,
+            // so the binding keeps its own cleanup, which refuses it.
+            if field_type == CompilerAbiLayoutArrayStringTypeName() && input >= 0 &&
+                plan.program.expressions.node_kinds[input] == DirectMirScalarProgramExprLocal() {
+                let input_local: Int = plan.program.expressions.node_local_rows[input];
+                let input_row: Int = DirectMirScalarProgramCollectionOwnershipTransitionRow(
+                    plan.program.collection_ownership, routine, input_local);
+                if input_row >= 0 && plan.program.collection_ownership.handed_off[input_row] != 1 &&
+                    plan.program.collection_ownership.terminal_states[input_row] !=
+                        DirectMirCollectionOwnershipStateRetired() {
+                    return -1;
+                }
+            }
             if DirectMirOwnedLocalStorageMode(plan, field_type, 0) > 0 {
                 child = DirectMirOwnedStorageRecipe(plan, definitions, blocked,
                     result_recipes, result_parameter_ordinals,
-                    routine,
-                    DirectMirScalarProgramArgumentViewAt(plan.program.expressions, arguments, field),
-                    true, depth + 1, origins, release);
+                    routine, input, true, depth + 1, origins, release);
                 if child == DirectMirOwnedStorageRecipeAliasCovered() { child = -1; }
                 else if child < 0 { return -1; }
             }

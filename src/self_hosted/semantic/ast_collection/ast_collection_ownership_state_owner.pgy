@@ -10,6 +10,10 @@ func SemanticAstCollectionOwnershipMapKeysSnapshot() -> Int { return 3; }
 func SemanticAstCollectionOwnershipRetired() -> Int { return 4; }
 func SemanticAstCollectionDispositionLive() -> Int { return 0; }
 func SemanticAstCollectionDispositionRetired() -> Int { return 1; }
+// The binding's storage was handed to a record or callee that keeps it
+// (decision 2026-11-15). Its element ownership is the state at the hand-off;
+// the binding releases nothing. Issued only on the final row, after the scan.
+func SemanticAstCollectionDispositionHandedOff() -> Int { return 2; }
 func SemanticAstCollectionOriginUnknown() -> Int { return 0; }
 func SemanticAstCollectionOriginBorrowedLiteral() -> Int { return 1; }
 func SemanticAstCollectionOriginMapKeys() -> Int { return 2; }

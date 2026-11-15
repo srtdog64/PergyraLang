@@ -596,26 +596,9 @@ for name in "${MOVE_CLONE_CASES[@]}"; do
             command=("$PGY")
             [[ "$lane" == native ]] && command+=(--native-pipeline)
             command+=("$source" "--backend=$backend" --run -o "$output_rel")
-            # The public LLVM route reaches direct MIR, which refuses to release
-            # `source` once a record built from it went to GraphAtomArtifactBuild:
-            # the MIR facts do not say whether a callee grows or keeps that
-            # storage (the semantic disposition stays live after the hand-off).
-            # It must refuse with that reason and publish nothing until the
-            # hand-off fact exists; the other three lanes still run it.
-            if [[ "$name" == ast_graph_atom_prebind_valid && "$lane" == public &&
-                  "$backend" == llvm ]]; then
-                if (cd "$ROOT_DIR" && "${command[@]}") \
-                    >"$WORK_DIR/$name-$lane-$backend.out" \
-                    2>"$WORK_DIR/$name-$lane-$backend.err"; then
-                    fail "public llvm released storage a callee may still hold in $name"
-                fi
-                [[ ! -e "$ROOT_DIR/$output_rel" ]] ||
-                    fail "public llvm published an artifact for $name"
-                grep -Fq "cleanup refuses storage another holder still has" \
-                    "$WORK_DIR/$name-$lane-$backend.out" "$WORK_DIR/$name-$lane-$backend.err" ||
-                    fail "public llvm refused $name for another reason"
-                continue
-            fi
+            # On the public LLVM route `source` is handed to the record that
+            # GraphAtomArtifactBuild takes (decision 2026-11-15): direct MIR
+            # releases it nowhere, and the program runs as on the other lanes.
             (cd "$ROOT_DIR" && "${command[@]}") \
                 >"$WORK_DIR/$name-$lane-$backend.out" \
                 2>"$WORK_DIR/$name-$lane-$backend.err" ||

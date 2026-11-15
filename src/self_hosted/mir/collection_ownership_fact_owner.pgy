@@ -84,6 +84,9 @@ func SelfMirCollectionDispositionName(value: Int) -> String {
         return "retired";
     }
     if value == SemanticAstCollectionDispositionLive() { return "live"; }
+    if value == SemanticAstCollectionDispositionHandedOff() {
+        return "handed-off";
+    }
     return "";
 }
 

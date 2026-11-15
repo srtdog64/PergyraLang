@@ -1,0 +1,95 @@
+// Constructor hand-off of a local Array<String> (decision 2026-11-15,
+// docs/truth/decisions/2026-11-15_handed_off_array_storage_is_not_released.md).
+//
+// A named local passed whole to a nominal constructor field moves its storage
+// into the record (decision 2026-10-18). The record's release recipe releases
+// it once; the caller's binding does not. This owner issues that hand-off on
+// the binding's final row, at the exact constructor input the call-effect
+// facts recorded, after the ordered scan has settled every other transition.
+//
+// The hand-off is issued only when the input is the binding's single
+// definition handed once:
+// - a Clone landed at the input copies it instead, and the local stays live;
+// - a binding given to two constructor inputs would reach two records;
+// - a binding with another definition, a member-move row, or a row the scan
+//   already retired keeps its row;
+// - an input that runs again without a new definition (a loop that does not
+//   declare the binding) would hand the same storage to every record.
+// A row left live is still a constructor input; the direct MIR cleanup owner
+// refuses it rather than release storage a record holds.
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_definition_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+import "ast_collection_ownership_verdict_schema_owner.pgy";
+
+func SemanticAstCollectionConstructorHandOffApply(
+    ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
+    inout verdict: SemanticAstCollectionOwnershipVerdict
+) -> Void {
+    var input: Int = 0;
+    while input < ArrayLength(call_effects.constructor_inputs.binding_ids) {
+        let binding_id: Int = call_effects.constructor_inputs.binding_ids[input];
+        let definition: Int = call_effects.constructor_inputs.definition_rows[input];
+        var row: Int = -1;
+        var candidate: Int = 0;
+        // A named binding, whose current definition holds storage (1) or is
+        // still the vacant empty literal (3).
+        let named: Bool = call_effects.constructor_inputs.producer_kinds[input] == 1 ||
+            call_effects.constructor_inputs.producer_kinds[input] == 3;
+        while named && binding_id > 0 &&
+                candidate < ArrayLength(verdict.binding_syntax_ids) {
+            if verdict.binding_syntax_ids[candidate] == binding_id &&
+                verdict.function_syntax_ids[candidate] == call_effects.constructor_inputs.function_ids[input] {
+                row = candidate;
+            }
+            candidate = candidate + 1;
+        }
+        // One record takes the binding: a second input of the same binding
+        // would hand the same storage to two records.
+        var inputs_of_binding: Int = 0;
+        candidate = 0;
+        while row >= 0 && candidate < ArrayLength(call_effects.constructor_inputs.binding_ids) {
+            if call_effects.constructor_inputs.binding_ids[candidate] == binding_id &&
+                call_effects.constructor_inputs.function_ids[candidate] ==
+                    call_effects.constructor_inputs.function_ids[input] {
+                inputs_of_binding = inputs_of_binding + 1;
+            }
+            candidate = candidate + 1;
+        }
+        var landed: Bool = false;
+        candidate = 0;
+        while row >= 0 && candidate < ArrayLength(verdict.compiler_clone_expression_node_ids) {
+            if verdict.compiler_clone_expression_node_ids[candidate] == call_effects.constructor_inputs.argument_nodes[input] {
+                landed = true;
+            }
+            candidate = candidate + 1;
+        }
+        var binding_row: Int = -1;
+        if definition >= 0 && definition < ArrayLength(definitions.binding_rows) {
+            binding_row = definitions.binding_rows[definition];
+        }
+        var definition_count: Int = 0;
+        candidate = 0;
+        while binding_row >= 0 && candidate < ArrayLength(definitions.binding_rows) {
+            if definitions.binding_rows[candidate] == binding_row { definition_count = definition_count + 1; }
+            candidate = candidate + 1;
+        }
+        let site: Int = call_effects.constructor_inputs.syntax_ids[input];
+        let once: Bool = SemanticAstCollectionEffectSiteTerminatesFlow(artifact, site) ||
+            SemanticAstCollectionCallRetirementSiteForOrigin(artifact, site, binding_id) > 0;
+        if row >= 0 && !landed && inputs_of_binding == 1 && definition_count == 1 && once &&
+            binding_row < ArrayLength(locals.node_ids) && locals.node_ids[binding_row] == binding_id &&
+            verdict.dispositions[row] == SemanticAstCollectionDispositionLive() &&
+            verdict.element_ownerships[row] != SemanticAstCollectionOwnershipRetired() &&
+            verdict.origins[row] != SemanticAstCollectionOriginMemberMove() {
+            var dispositions: Array<Int> = verdict.dispositions;
+            ArraySet(dispositions, row, SemanticAstCollectionDispositionHandedOff());
+            verdict.dispositions = dispositions;
+        }
+        input = input + 1;
+    }
+}

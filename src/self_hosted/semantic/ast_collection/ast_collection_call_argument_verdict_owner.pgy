@@ -7,6 +7,7 @@ import "ast_collection_owned_generation_order_owner.pgy";
 import "ast_collection_descriptor_retention_entry_owner.pgy";
 import "ast_collection_call_storage_status_owner.pgy";
 import "ast_collection_formal_execution_entry_owner.pgy";
+import "ast_collection_call_handoff_owner.pgy";
 
 func SemanticAstCollectionCallArgumentVerdict(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -23,7 +24,8 @@ func SemanticAstCollectionCallArgumentVerdict(
     ref call_effects: SemanticAstCollectionCallEffectFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts,
     ref definitions: SemanticAstCollectionDefinitionFacts,
-    ref current_definitions: Array<Int>, inout retained_definitions: Array<Bool>
+    ref current_definitions: Array<Int>, inout retained_definitions: Array<Bool>,
+    ref compiler_clone_expression_node_ids: Array<Int>
 ) -> SemanticAstCollectionOwnershipVerdict {
     if !edge.ok || ArrayLength(retained_definitions) != ArrayLength(definitions.syntax_ids) {
         return SemanticAstCollectionOwnershipVerdictError(
@@ -118,5 +120,12 @@ func SemanticAstCollectionCallArgumentVerdict(
         artifact, surfaces.node_ids[surface_row], retains_descriptor,
         moves_descriptor, binding.row, current_definition,
         retained_definitions, ownership, dispositions, transition_states); }
+    if result.ok && binding.ok && formal > 0 && binding.row < ArrayLength(locals.node_ids) {
+        SemanticAstCollectionCallHandOffApplyAtCall(
+            artifact, signatures, surfaces, edge, surfaces.node_ids[surface_row],
+            locals.node_ids[binding.row], binding.row, effect, retains_descriptor,
+            moves_descriptor, definitions, compiler_clone_expression_node_ids,
+            origins, ownership, dispositions);
+    }
     return result;
 }

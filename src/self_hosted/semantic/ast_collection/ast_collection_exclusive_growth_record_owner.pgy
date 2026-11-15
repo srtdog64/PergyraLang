@@ -107,6 +107,127 @@ func SemanticAstCollectionExclusiveMarkPassedRoot(
     return changed;
 }
 
+// A user call's result passed to a mutating formal grows what the callee
+// carries into that result: each argument whose formal reaches the result
+// along an exclusive-value carrying path (destination field, source field)
+// grows where the path lands, as a dependency does in MarkRoot. `reached` is
+// one result field the formal grows ("*": any). A member read of the result
+// reaches only the result field it names first. A result reached through no
+// carrying path (a fresh result) grows no caller storage. Returns whether a
+// root was newly marked; sets "unconverged" when a member name is missing.
+func SemanticAstCollectionExclusiveMarkCarriedCallResult(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref dep_locals: Array<Int>, ref dep_formals: Array<Int>, ref dep_paths: Array<Int>, ref paths: Array<String>,
+    ref carrying: HashMap<String, Int>, function_id: Int, syntax_id: Int, node: Int,
+    reached: String, depth: Int,
+    inout mutating: HashMap<String, Int>, inout growth_sites: HashMap<String, Int>
+) -> Bool {
+    if depth > 32 { MapSet(mutating, "unconverged", 1); return false; }
+    var receiver: Int = node;
+    // The member applied to the call result itself names the reached field.
+    var field: String = reached;
+    var member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, receiver);
+    while member.ok {
+        let text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
+        if !IsSome(text) { MapSet(mutating, "unconverged", 1); return false; }
+        field = UnwrapOption(text);
+        receiver = member.receiver_node;
+        member = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, receiver);
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, receiver);
+    if !call.ok { return false; }
+    var changed: Bool = false;
+    var ordinal: Int = 0;
+    while ordinal < ArrayLength(call.argument_nodes) {
+        let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph, call.call_node, ordinal);
+        let formal_key: String = ToString(formal.syntax_id);
+        let carried: Int = SemanticAstCollectionExclusiveCopyCount(carrying, Concat("cn:", formal_key));
+        var carried_index: Int = 0;
+        while formal.ok && carried_index < carried {
+            let path: Int = MapGet(carrying, Concat("ci:", Concat(formal_key, Concat(":", ToString(carried_index)))));
+            let dest: String = paths[2 * path];
+            let source: String = paths[2 * path + 1];
+            // The whole result (or any field of it) is the formal's source
+            // field; a result field holds it whole.
+            var grown: String = "";
+            if field == "*" || dest == "" {
+                grown = source;
+                if grown == "" { grown = field; }
+            } else if dest == field {
+                grown = source;
+                if grown == "" { grown = "*"; }
+            }
+            if grown != "" {
+                let argument: Int = call.argument_nodes[ordinal];
+                let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                    artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, argument);
+                if !place.ok { MapSet(mutating, "unconverged", 1); return false; }
+                if place.temporary {
+                    if SemanticAstCollectionExclusiveMarkCarriedCallResult(artifact, signatures, locals, inferred_types,
+                            surfaces, dep_locals, dep_formals, dep_paths, paths, carrying, function_id, syntax_id,
+                            argument, grown, depth + 1, mutating, growth_sites) {
+                        changed = true;
+                    }
+                    if MapHas(mutating, "unconverged") { return false; }
+                } else {
+                    let root: Int = SemanticAstCollectionExclusivePlaceRoot(locals, place);
+                    SemanticAstCollectionExclusiveRecordGrowthSite(growth_sites, root, syntax_id);
+                    if ArrayLength(place.chain) > 0 {
+                        let first: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+                        if !IsSome(first) { MapSet(mutating, "unconverged", 1); return false; }
+                        grown = UnwrapOption(first);
+                    }
+                    if SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals, dep_formals, dep_paths,
+                            paths, function_id, root, grown, mutating) {
+                        changed = true;
+                    }
+                }
+            }
+            carried_index = carried_index + 1;
+        }
+        ordinal = ordinal + 1;
+    }
+    return changed;
+}
+
+// A call result passed to the mutating formal `formal`: the fields the formal
+// grows (each once, or "*" for any), then what the callee carries into them.
+func SemanticAstCollectionExclusiveMarkPassedCallResult(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref dep_locals: Array<Int>, ref dep_formals: Array<Int>, ref dep_paths: Array<Int>, ref paths: Array<String>,
+    ref carrying: HashMap<String, Int>, function_id: Int, syntax_id: Int, node: Int,
+    formal: SemanticAstCollectionArgumentFormalTarget,
+    inout mutating: HashMap<String, Int>, inout growth_sites: HashMap<String, Int>
+) -> Bool {
+    let fields: Array<String> = SemanticAstCollectionExclusiveTypeFields(constructors,
+        signatures.param_types[signatures.param_starts[formal.signature_row] + formal.ordinal]);
+    let formal_grown: String = Concat("g:", Concat(ToString(formal.syntax_id), ":"));
+    if ArrayLength(fields) == 0 || MapHas(mutating, Concat(formal_grown, "*")) {
+        return SemanticAstCollectionExclusiveMarkCarriedCallResult(artifact, signatures, locals, inferred_types,
+            surfaces, dep_locals, dep_formals, dep_paths, paths, carrying, function_id, syntax_id, node, "*", 0,
+            mutating, growth_sites);
+    }
+    var changed: Bool = false;
+    var index: Int = 0;
+    while index < ArrayLength(fields) {
+        if MapHas(mutating, Concat(formal_grown, fields[index])) &&
+            SemanticAstCollectionExclusiveMarkCarriedCallResult(artifact, signatures, locals, inferred_types,
+                surfaces, dep_locals, dep_formals, dep_paths, paths, carrying, function_id, syntax_id, node,
+                fields[index], 0, mutating, growth_sites) {
+            changed = true;
+        }
+        if MapHas(mutating, "unconverged") { return false; }
+        index = index + 1;
+    }
+    return changed;
+}
+
 // Records the statement `site` where the binding `root_id` grows
 // ("gn:<root>" counts "gs:<root>:<k>") in its own map: the mutating-formal
 // summary keeps only selection keys. Sites never decide convergence.

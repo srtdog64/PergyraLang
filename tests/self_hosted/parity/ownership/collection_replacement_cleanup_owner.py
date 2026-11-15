@@ -50,7 +50,7 @@ for backend in ['c', 'llvm']:
     require(built.returncode == 0, backend + ' replacement proof did not compile')
     executed = run(backend + '.mode-proof.run', [exe], timeout=10)
     require(executed.returncode == 0 and executed.stderr == b'' and
-            executed.stdout == b'true\ntrue\nfalse\nfalse\nfalse\ntrue\ntrue\n',
+            executed.stdout == b'true\ntrue\nfalse\nfalse\nfalse\ntrue\nfalse\nfalse\ntrue\ntrue\n',
             backend + ' missing/forged replacement authority was accepted')
 
 mir = work / 'exits.mir.json'

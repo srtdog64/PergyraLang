@@ -32,6 +32,7 @@ import "ast_collection_owned_element_parameter_requirement_owner.pgy";
 import "ast_collection_ownership_statement_transition_owner.pgy";
 import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_call_argument_verdict_owner.pgy";
+import "ast_collection_constructor_handoff_owner.pgy";
 import "ast_collection_read_literal_argument_owner.pgy";
 import "ast_collection_lifetime_event_order_owner.pgy";
 import "ast_collection_builtin_transition_owner.pgy";
@@ -293,7 +294,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         formal_effects.effects,
         statements, assignments, origins, source_binding_syntax_ids,
         exclusive_values.dep_locals, exclusive_values.dep_formals, exclusive_values.dep_paths,
-        exclusive_values.paths, growth_sites);
+        exclusive_values.paths, exclusive_values.carrying, growth_sites);
     exclusive_values.growth_sites = growth_sites;
     if !exclusive_values.ok || MapHas(mutating_formals, "unconverged") {
         return SemanticAstCollectionOwnershipVerdictError(
@@ -466,6 +467,9 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         retained_definitions, exclusive_values, mutating_formals, focus, verdict);
     SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
     ArrayDrop(retained_definitions);
+    if verdict.ok {
+        SemanticAstCollectionConstructorHandOffApply(artifact, locals, definitions, call_effects, verdict);
+    }
     if verdict.ok && moved_use.capture_syntax_node_id > 0 {
         return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary", "readonly_aggregate_capture", "type", "nominal aggregate"),

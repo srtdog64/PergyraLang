@@ -752,6 +752,8 @@ func InspectOwnStorageAdmission(
                                     pending_use.boundary == "owned_argument_event_identity" && MapSize(retired) == 0;
                             }
                             var retained: Array<Bool> = [];
+                            // No compiler Clone landing is selected at the probed argument.
+                            let no_landings: Array<Int> = [];
                             row = 0;
                             while row < ArrayLength(definitions.syntax_ids) { ArrayPush(retained, false); row = row + 1; }
                             let field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
@@ -765,7 +767,7 @@ func InspectOwnStorageAdmission(
                                 artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                                 analysis.expression_surfaces, slot / 3, edge, false, false, false, false, proved, effects.owned_push_leaf_formals,
                                 requirements, field_requirements, ownership, dispositions, bundle.collection_ownership.origins,
-                                transitions, facts, storage, definitions, current_definitions, retained);
+                                transitions, facts, storage, definitions, current_definitions, retained, no_landings);
                             if refused.ok && pending_use.retirement_source > 0 {
                                 MapSet(retired, ToString(pending_use.retirement_source), pending_use.retirement_site);
                             }
@@ -778,7 +780,7 @@ func InspectOwnStorageAdmission(
                                 artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                                 analysis.expression_surfaces, slot / 3, edge, false, false, false, false, proved, effects.owned_push_leaf_formals,
                                 requirements, field_requirements, ownership, dispositions, bundle.collection_ownership.origins,
-                                transitions, facts, storage, definitions, current_definitions, retained);
+                                transitions, facts, storage, definitions, current_definitions, retained, no_landings);
                             if admitted.ok && pending_use.retirement_source > 0 {
                                 MapSet(retired, ToString(pending_use.retirement_source), pending_use.retirement_site);
                             }

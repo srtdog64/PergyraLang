@@ -262,7 +262,8 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                         element_requirements, field_requirements,
                         ownership, dispositions, origins,
                         transition_states, call_effects, storage, definitions,
-                        current_definitions, retained_definitions);
+                        current_definitions, retained_definitions,
+                        compiler_clone_expression_node_ids);
                     if !argument_verdict.ok {
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         verdict = argument_verdict; return;

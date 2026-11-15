@@ -2882,7 +2882,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection/ast_collection_definition_storage_authority_owner.pgy:91 \
     src/self_hosted/semantic/ast_collection/ast_collection_definition_storage_producer_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection/ast_collection_definition_transition_owner.pgy:84 \
-    src/self_hosted/semantic/ast_collection/ast_collection_call_argument_verdict_owner.pgy:116 \
+    src/self_hosted/semantic/ast_collection/ast_collection_call_argument_verdict_owner.pgy:125 \
     src/self_hosted/semantic/ast_collection/ast_collection_call_argument_effect_verdict_owner.pgy:222 \
     src/self_hosted/semantic/ast_collection/ast_collection_ownership_statement_transition_owner.pgy:145 \
     src/self_hosted/semantic/ast_collection/ast_collection_call_retirement_owner.pgy:96 \
@@ -2940,12 +2940,12 @@ for collection_owner_cap in \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy:100 \
-    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy:181 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy:189 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy:120 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy:220 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy:126 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy:100 \
-    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:477 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:485 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:136 \
     src/self_hosted/compiler/driver/driver_rung2_scalar_c_substitution_owner.pgy:100 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_owned_string_result_fact_owner.pgy:311 \

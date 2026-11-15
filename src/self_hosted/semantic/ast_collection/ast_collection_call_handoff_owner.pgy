@@ -1,0 +1,68 @@
+// Call hand-off of a local Array<String> (decisions 2026-10-18 and
+// 2026-11-15, docs/truth/decisions/2026-11-15_handed_off_array_storage_is_not_released.md).
+//
+// A named local passed whole to a default-mode formal that keeps the
+// descriptor (stores or returns it) or grows it (an owned or shallow
+// mutation) is moved by the call. Neither the caller nor the callee releases
+// it afterwards; both front ends leak that storage. This owner issues the
+// hand-off on the binding's row at that exact call edge. A later use of the
+// binding is refused or copied by the descriptor-retention and exclusive
+// argument owners before this point.
+//
+// No hand-off is issued, and the row keeps its state, when:
+// - a Clone landed at the argument (the copy is handed over instead);
+// - the binding is a member move, whose storage returns to its aggregate;
+// - the formal is not default-mode (an own formal retires the row through
+//   descriptor retention; a ref or inout formal leaves the storage with the
+//   caller);
+// - the binding has another definition;
+// - the call runs again without a new definition of the binding (a loop
+//   that does not declare it).
+// A live row passed by value is then still checked by the direct MIR
+// storage-sharing owner, which refuses a release it cannot prove.
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_definition_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+
+func SemanticAstCollectionCallHandOffApplyAtCall(
+    ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, edge: SemanticCallArgumentEdgeView,
+    syntax_id: Int, binding_id: Int, row: Int, effect: Int, retains_descriptor: Bool,
+    moves_descriptor: Bool, ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref compiler_clone_expression_node_ids: Array<Int>, ref origins: Array<Int>,
+    ref ownership: Array<Int>, inout dispositions: Array<Int>
+) -> Void {
+    if row < 0 || row >= ArrayLength(dispositions) || row >= ArrayLength(ownership) ||
+        row >= ArrayLength(origins) || moves_descriptor ||
+        origins[row] == SemanticAstCollectionOriginMemberMove() ||
+        dispositions[row] != SemanticAstCollectionDispositionLive() ||
+        ownership[row] == SemanticAstCollectionOwnershipRetired() {
+        return;
+    }
+    let moving: Bool = retains_descriptor || effect == 2 ||
+        effect == SemanticAstCollectionFormalShallowMutationEffect();
+    // A Clone landed at this argument hands over the copy, not the binding.
+    if !moving || SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+            compiler_clone_expression_node_ids, edge.argument_node) { return; }
+    let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    if !formal.ok || formal.signature_row < 0 ||
+        signatures.param_starts[formal.signature_row] + formal.ordinal >= ArrayLength(signatures.param_modes) ||
+        signatures.param_modes[signatures.param_starts[formal.signature_row] + formal.ordinal] != 0 {
+        return;
+    }
+    var definition_count: Int = 0;
+    var candidate: Int = 0;
+    while candidate < ArrayLength(definitions.binding_rows) {
+        if definitions.binding_rows[candidate] == row { definition_count = definition_count + 1; }
+        candidate = candidate + 1;
+    }
+    let once: Bool = SemanticAstCollectionEffectSiteTerminatesFlow(artifact, syntax_id) ||
+        SemanticAstCollectionCallRetirementSiteForOrigin(artifact, syntax_id, binding_id) > 0;
+    if definition_count != 1 || !once { return; }
+    // The element ownership stays the state at the hand-off.
+    dispositions[row] = SemanticAstCollectionDispositionHandedOff();
+}

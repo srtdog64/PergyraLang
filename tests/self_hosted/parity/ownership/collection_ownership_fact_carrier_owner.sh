@@ -34,6 +34,10 @@ STATE_SOURCES=(
     "$MEMBER_OWNED_LIVE_SOURCE|member-move|owned-elements|live"
     "$FIELD_FIXTURES/owned_result_forward_late_positive.pgy|call-result|owned-elements|retired"
     "tests/concept_semantics/hashmap/owned_call_result_branch_return_valid.pgy|call-result|retired|retired"
+    # A local handed whole to a constructor keeps its element ownership and
+    # releases nothing (decision 2026-11-15); the record releases it.
+    "$FIELD_FIXTURES/exclusive_plain_alias_read_only_positive.pgy|borrowed-literal|borrowed-elements|handed-off"
+    "$FIELD_FIXTURES/exclusive_thread_direct_push_positive.pgy|empty-literal|unknown|handed-off"
 )
 CC="${PGY_SELFHOST_CC:-gcc}"
 

@@ -1,29 +1,35 @@
 import "../../../../src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
 
-func Check(state: Int, mode: Int, present: Bool) -> Bool {
+func Check(state: Int, mode: Int, present: Bool, handed: Int) -> Bool {
     let routines: Array<Int> = [0];
     let locals: Array<Int> = [0];
     let bindings: Array<Int> = [17];
     let states: Array<Int> = [state];
     var replacements: Array<Int> = [];
     if present { ArrayPush(replacements, mode); }
+    let handed_off: Array<Int> = [handed];
     let operations: Array<Int> = [];
     let effects: Array<Int> = [];
     let fact: DirectMirScalarProgramCollectionOwnershipTransitionFact =
         DirectMirScalarProgramCollectionOwnershipTransitionFact(
             true, 0, routines, locals, bindings, states, replacements,
-            operations, effects);
+            handed_off, operations, effects);
     let sealed: DirectMirScalarProgramCollectionOwnershipTransitionFact =
         DirectMirScalarProgramCollectionOwnershipTransitionFactWithDigest(fact);
     return DirectMirScalarProgramCollectionOwnershipTransitionFactReady(sealed);
 }
 
 func Main() -> Void {
-    Log(Check(DirectMirCollectionOwnershipStateBorrowed(), 1, true));
-    Log(Check(DirectMirCollectionOwnershipStateOwned(), 2, true));
-    Log(Check(DirectMirCollectionOwnershipStateBorrowed(), 2, true));
-    Log(Check(DirectMirCollectionOwnershipStateOwned(), 1, true));
-    Log(Check(DirectMirCollectionOwnershipStateOwned(), 2, false));
+    Log(Check(DirectMirCollectionOwnershipStateBorrowed(), 1, true, 0));
+    Log(Check(DirectMirCollectionOwnershipStateOwned(), 2, true, 0));
+    Log(Check(DirectMirCollectionOwnershipStateBorrowed(), 2, true, 0));
+    Log(Check(DirectMirCollectionOwnershipStateOwned(), 1, true, 0));
+    Log(Check(DirectMirCollectionOwnershipStateOwned(), 2, false, 0));
+    // A handed-off binding keeps its element state and owns no replacement
+    // or retirement of its own (decision 2026-11-15).
+    Log(Check(DirectMirCollectionOwnershipStateOwned(), 0, true, 1));
+    Log(Check(DirectMirCollectionOwnershipStateOwned(), 2, true, 1));
+    Log(Check(DirectMirCollectionOwnershipStateRetired(), 0, true, 1));
     let routines: Array<Int> = [0, 0];
     let locals: Array<Int> = [1, 1];
     let missing: Array<Int> = [1];

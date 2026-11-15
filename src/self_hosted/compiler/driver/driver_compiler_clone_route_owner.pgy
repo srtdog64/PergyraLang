@@ -3,9 +3,8 @@
 // The semantic ownership analysis selects exact expression nodes that must be
 // copied (a compiler Clone, docs/truth/decisions/2026-10-22 and 2026-11-12).
 // A copy of a builtin store's value travels in MIR as its owned-store
-// receipt, and a constructor's shared argument is judged by the direct MIR
-// storage-sharing owner. A copy of an argument of a declared routine has no
-// MIR carrier: self-host MIR JSON has no Clone call for it. The MIR to AST
+// receipt. A copy of an argument of a declared routine or of a constructor
+// has no MIR carrier: self-host MIR JSON has no Clone call for it. The MIR to AST
 // round trip derives the same landings again from the same program, so its C
 // keeps every copy. A direct MIR emitter reads only the MIR and would emit
 // the program without that copy, so a direct route refuses a program with
@@ -31,15 +30,26 @@ func DriverCompilerCloneLandingConsumer(ref graph: SemanticExpressionGraphFacts,
     return -1;
 }
 
-// The landings at an argument of a declared routine's call. A landing that
-// is a lane root (a statement store's value, a binding's initializer) or an
-// argument of a builtin or constructor belongs to the owners named above.
+// The landings at an argument of a declared routine's call or of a nominal
+// constructor. Neither has a MIR carrier: a constructor emitted without its
+// copy leaves the record sharing the local's storage, and every holder that
+// releases it frees it again. A landing that is a lane root (a statement
+// store's value, a binding's initializer) or an argument of a builtin belongs
+// to the owned-store receipt named above.
 func DriverCompilerCloneLandingCount(ref facts: SelfMirProgramFacts) -> Int {
     let node_count: Int = ArrayLength(facts.expression_graph.arena.compiler_clone_kinds);
-    var routines: HashMap<String, Int> = MapNew();
+    var targets: HashMap<String, Int> = MapNew();
     var row: Int = 0;
     while row < ArrayLength(facts.routines.node_ids) {
-        MapSet(routines, ToString(facts.routines.node_ids[row]), 1);
+        MapSet(targets, ToString(facts.routines.node_ids[row]), 1);
+        row = row + 1;
+    }
+    // A constructor call targets its nominal declaration.
+    row = 0;
+    while row < ArrayLength(facts.declarations.source_syntax_ids) {
+        if facts.declarations.source_syntax_ids[row] > 0 {
+            MapSet(targets, ToString(facts.declarations.source_syntax_ids[row]), 1);
+        }
         row = row + 1;
     }
     var count: Int = 0;
@@ -60,7 +70,7 @@ func DriverCompilerCloneLandingCount(ref facts: SelfMirProgramFacts) -> Int {
                         facts.expression_graph, edge.call_node);
                     if IsSome(found) { target = UnwrapOption(found); }
                 }
-                uncarried = edge.ok && edge.argument_node == node && MapHas(routines, ToString(target));
+                uncarried = edge.ok && edge.argument_node == node && MapHas(targets, ToString(target));
             }
             if uncarried { count = count + 1; }
         }

@@ -92,12 +92,18 @@ func DirectMirScalarProgramUnrowedArrayStringLocalDrop(
 }
 
 // A release of storage that a call, constructor or binding still holds frees
-// what that holder reads next; the MIR facts do not say who owns it.
+// what that holder reads next. A constructor input is handed to its record
+// by the semantic verdict (decision 2026-11-15); a binding the verdict left
+// live while a constructor took it has no such fact and is refused.
 func DirectMirScalarProgramArrayStringCleanupDropSymbol(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
 ) -> String {
     let symbol: String = DirectMirScalarProgramArrayStringCleanupDropSymbolFromFacts(
         plan, routine, local_row);
+    if symbol != "" && DirectMirScalarProgramArrayStringConstructorInput(plan, routine, local_row) {
+        Die(Concat("direct MIR Array<String> constructor input has no hand-off fact: routine=",
+            Concat(ToString(routine), Concat(" local=", ToString(local_row)))));
+    }
     if symbol != "" && DirectMirScalarProgramArrayStringLocalShared(plan, routine, local_row) {
         Die(Concat("direct MIR Array<String> cleanup refuses storage another holder still has: routine=",
             Concat(ToString(routine), Concat(" local=", ToString(local_row)))));
@@ -161,9 +167,10 @@ func DirectMirScalarProgramArrayStringLocalCleanupRequired(
         DirectMirScalarProgramCollectionOwnershipTransitionRow(
             plan.program.collection_ownership, routine, local_row
         );
-    if transition_row >= 0 && plan.program.collection_ownership.
+    if transition_row >= 0 && (plan.program.collection_ownership.
             terminal_states[transition_row] ==
-            DirectMirCollectionOwnershipStateRetired() {
+            DirectMirCollectionOwnershipStateRetired() ||
+        plan.program.collection_ownership.handed_off[transition_row] == 1) {
         return false;
     }
     return !DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(

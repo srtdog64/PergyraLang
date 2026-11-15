@@ -381,6 +381,9 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
     if DirectMirOwnedLocalLentReleaseLeaves(plan, graph_definitions, graph_returns, transferred, fresh_returns, modes) {
         Die("owned local lent to a ref formal is released while the call result that may hold its storage leaves the routine");
     }
+    if DirectMirOwnedLocalLentBesideInout(plan, local_recipes, release) {
+        Die("owned local lent to a ref formal is released while an inout argument of the same call may hold its Strings");
+    }
     var valid: Bool = true;
     routine = 0;
     while routine < ArrayLength(fresh_returns) {
