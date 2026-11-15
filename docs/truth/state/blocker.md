@@ -1,6 +1,6 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-15 on main `0d8b9f2bc`.
+Owner: Claude root lane. Checked 2026-11-16 on main `8f03ec5b0`.
 
 ## Objective card
 
@@ -14,7 +14,7 @@ Owner: Claude root lane. Checked 2026-11-15 on main `0d8b9f2bc`.
 
 ## Open, in dependency order
 
-1. Required CI on the commit carrying this file (green at `0d8b9f2bc`).
+1. Required CI on the commit carrying this file (green at `8f03ec5b0`).
 2. Self-host memory errors ([evidence](../evidence/2026-11-15_four_leg_wide_memory_sweep.md)):
    3 of 50 crashes left after `667e45554` (endless recursion; growth only
    through a call result; two records releasing one member, sl). The C leg
@@ -28,10 +28,9 @@ Owner: Claude root lane. Checked 2026-11-15 on main `0d8b9f2bc`.
    Semantic owner, MIR state table, direct MIR transition policy and
    `collection_ownership_fact_carrier_owner.sh` change together.
 4. Weekly pipeline ([evidence](../evidence/2026-11-15_weekly_driver_shard_causes.md)):
-   - Native refuses `driver_rung2_main.pgy`, the Linux llvm lane's input:
-     the flow summary fails at `CompileSourceToC` (`world.pgy:333`) and the
-     failed store reports 18 false escapes. The bootstrap entry, which
-     calls the same method, is admitted: the result depends on demand order.
+   - Native admits `driver_rung2_main.pgy` since `41ab40e3f`
+     ([evidence](../evidence/2026-11-16_native_flow_audit_demand_order.md));
+     its LLVM lane is unconfirmed on CI's LLVM.
    - The self-host source-to-C compile of that entry passed 16.6 GB.
    - `platform-full-linux` loses its runner during the `test-all` compile.
 5. The self-host admits `let first = values` for a `ref` formal and `fail`
@@ -47,6 +46,7 @@ Owner: Claude root lane. Checked 2026-11-15 on main `0d8b9f2bc`.
   closed; census CLOSED=70 BRIDGE=23 ACTIVE=2.
 - Weekly pipeline fixes, with the installed driver for both driver shards.
 - Self-host lands native's copies and refuses the rest (`667e45554`).
+- Native flow audit no longer depends on demand order (`41ab40e3f`).
 
 ## Falsifiers kept
 

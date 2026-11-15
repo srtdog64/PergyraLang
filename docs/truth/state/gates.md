@@ -6,7 +6,7 @@ native trials); a local PASS is not CI evidence.
 
 | Gate | Last observed result |
 |---|---|
-| Required CI at the published SHA | GREEN at `0d8b9f2bc` (run 43687795708, attempt 2: the contracts job finished its 13 steps at the 30 min limit on attempt 1, every step about 1.5x slower, and took 23 min on attempt 2); the commit carrying this file is pending |
+| Required CI at the published SHA | GREEN at `8f03ec5b0` (run 43726879892), all 33 jobs; the commit carrying this file is pending |
 | Weekly full pipeline (`platform_full`, dispatch) | Run 43669288274 on `e1a9cba9e`: codegen and harness-evidence parity, Windows toolchain and formal proofs PASS; macOS/Windows transpile (fixed in `e7bb64e06`), semantic parity (fixed in `226613c3c`); the driver shards built a test-only driver (fixed by the commit carrying this file); Linux driver llvm lane and `platform-full-linux` open ([blocker](blocker.md)) |
 | SoT registry gate (`scripts/sot_registry_gate.py`) | PASS: 95 authorities, 213 derived carriers; CLOSED=70 BRIDGE=23 ACTIVE=2 (`selfhost.statement_result_type`, `selfhost.expression_place_kind` and `semantic.function_param_flow_summary` closed 2026-11-15) |
 | Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `a7d7655e1`, with the bootstrap policy corpus in the join job |
@@ -22,5 +22,6 @@ native trials); a local PASS is not CI evidence.
 
 Job times at `a7d7655e1`: seed part 22 min (limit 60), native oracle
 13 min, build-linux 18 min, join 11 min, codegen bootstrap 19 min,
-contracts 16 min. Contracts took 20 min at `e3a0b7ad8` and 23 min at
-`0d8b9f2bc`.
+contracts 16 min. Contracts took 20 to 30 min from `e3a0b7ad8` on (a slow
+runner runs every step about 1.5x slower); one shared MIR lowering tool build
+(`8f03ec5b0`) took it from 29.6 to 25.6 min on a slow runner.
