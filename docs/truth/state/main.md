@@ -6,11 +6,11 @@ Checked 2026-11-15.
 
 | Item | Observed value |
 |---|---|
-| Published main | fast-forwarded to the commit that carries this file; previous published head `a7d7655e1` (native checker fixes, CI green) |
-| Work branch | `fix/ref-formal-value-argument` (on `a7d7655e1`, the self-host cleanup and ref-argument fixes), worktree `C:\Users\user\pgy-wt\ci-win` |
+| Published main | fast-forwarded to the commit that carries this file; previous published head `20325cad5` (self-host cleanup policy, CI green) |
+| Work branch | `fix/llvm-leg-memory` (on `20325cad5`, the LLVM-leg memory fixes), worktree `C:\Users\user\pgy-wt\ci-win` |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |
 | Linux validation | WSL `Ubuntu-C-WSL`: `/root/cc-phi` synced to the branch plus working changes; a pass-through `wslpath` shim at `/root/shim` |
-| Last CI with Linux jobs executed | `a7d7655e1` (run 43630062521): every required job green (see [gates](gates.md)) |
+| Last CI with Linux jobs executed | `20325cad5` (run 43653186068): every required job green (see [gates](gates.md)) |
 
 The gate results are in [gates](gates.md) and the open items in
 [blocker](blocker.md).
