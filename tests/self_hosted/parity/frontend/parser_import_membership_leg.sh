@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 # Extra import-composition falsifiers, using the parser already built by parity.
+source "$ROOT_DIR/tests/portable_process_helpers.sh"
+
 run_parser_import_membership_leg() {
     local backend="$1" tool_bin="$2"
     local fixtures="tests/self_hosted/parity/fixture/parser_import_membership"
     local prefix="$PERGYRA_TOOL_BUILD_DIR/import_membership_${backend}"
     local input expected_code expected_span rc
 
-    (cd "$ROOT_DIR" && timeout 30 "$tool_bin" "$fixtures/main.pgy" \
-        >"$prefix.main.raw" 2>"$prefix.main.err")
+    rc=0
+    (cd "$ROOT_DIR" && pgy_run_with_timeout 30 "$prefix.main.raw" \
+        "$prefix.main.err" "$tool_bin" "$fixtures/main.pgy") || rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+        echo "[self-host-parity:parser] backend=$backend shared-import parse FAIL (rc=$rc)" >&2
+        cat "$prefix.main.err" >&2
+        return 1
+    fi
     tr -d '\r' <"$prefix.main.raw" >"$prefix.main.out"
     sed -n -E 's/^  (\[export\] )?Function: (.*)$/\2/p' \
         "$prefix.main.out" >"$prefix.names"
@@ -26,8 +34,8 @@ run_parser_import_membership_leg() {
             expected_span=missing.pgy:3:1
         fi
         rc=0
-        (cd "$ROOT_DIR" && timeout 30 "$tool_bin" "$fixtures/$input.pgy" \
-            >"$prefix.$input.raw" 2>"$prefix.$input.err") || rc=$?
+        (cd "$ROOT_DIR" && pgy_run_with_timeout 30 "$prefix.$input.raw" \
+            "$prefix.$input.err" "$tool_bin" "$fixtures/$input.pgy") || rc=$?
         tr -d '\r' <"$prefix.$input.raw" >"$prefix.$input.out"
         if [[ "$rc" -ne 1 ]] ||
             ! grep -Fxq 'Status: error' "$prefix.$input.out" ||
