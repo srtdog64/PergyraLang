@@ -7,7 +7,7 @@
         "}\n"
         "within PaymentZone {\n"
         "    subject Buyer {\n"
-        "        let hp: Int;\n"
+        "        var hp: Int;\n"
         "        action Approve(self) -> Void\n"
         "            authorized by self\n"
         "            causes Charged\n"
@@ -133,7 +133,7 @@
         "1\n";
     static const char *handoff_projection_frontier_source =
         "subject Buyer {\n"
-        "    let hp: Int;\n"
+        "    var hp: Int;\n"
         "    action Promote(self) -> Void {\n"
         "        hp = hp + 2;\n"
         "    }\n"
@@ -204,7 +204,7 @@
         "7\n";
     static const char *handoff_world_state_frontier_source =
         "subject Buyer {\n"
-        "    let hp: Int;\n"
+        "    var hp: Int;\n"
         "    action Promote(self) -> Void {\n"
         "        hp = hp + 2;\n"
         "    }\n"
@@ -280,7 +280,7 @@
     static const char *handoff_layer_state_frontier_source =
         "within PaymentZone {\n"
         "    subject Buyer {\n"
-        "        let hp: Int;\n"
+        "        var hp: Int;\n"
         "        action Promote(self) -> Void\n"
         "            authorized by self\n"
         "            causes Charged\n"
@@ -406,8 +406,8 @@
         "43\n";
     static const char *loop_source =
         "func Spin(limit: Int) -> Int {\n"
-        "    let i: Int = 0;\n"
-        "    let acc: Int = 0;\n"
+        "    var i: Int = 0;\n"
+        "    var acc: Int = 0;\n"
         "    while i < limit {\n"
         "        acc = acc + 1;\n"
         "        i = i + 1;\n"

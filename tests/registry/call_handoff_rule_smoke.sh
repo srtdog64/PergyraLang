@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The call hand-off rule (src/semantic/call_handoff_rule.def): its rendered C
-# header and Pergyra owner stay equal to a fresh render, a malformed rule is
-# refused by the renderer, and both renderings answer every decision cell the
-# same way.
+# header, C source and Pergyra owner stay equal to a fresh render, a malformed
+# rule is refused by the renderer, and both renderings answer every decision
+# cell the same way.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
@@ -12,6 +12,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 CC_BIN="${CC:-cc}"
 RULE="$ROOT_DIR/src/semantic/call_handoff_rule.def"
 HEADER="$ROOT_DIR/src/semantic/call_handoff_rule.h"
+SOURCE="$ROOT_DIR/src/semantic/call_handoff_rule.c"
 OWNER="$ROOT_DIR/src/self_hosted/semantic/call_handoff_rule_projection_owner.pgy"
 RENDER="$ROOT_DIR/scripts/render_call_handoff_rule.py"
 BUILD_DIR="$ROOT_DIR/.tmp/call_handoff_rule"
@@ -21,16 +22,18 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 fail() { echo "[call-handoff-rule] $*" >&2; exit 1; }
 render() { "$PYTHON_BIN" -B "$RENDER" "$@"; }
 
-render "$RULE" "$HEADER" "$OWNER" --check
+render "$RULE" "$HEADER" "$SOURCE" "$OWNER" --check
 
-# A hand edit of either rendered output, or a rule edited without
+# A hand edit of any rendered output, or a rule edited without
 # rendering, is stale.
-for edited in header owner rule; do
+for edited in header source owner rule; do
     cp "$RULE" "$TMP_DIR/rule.def"
     cp "$HEADER" "$TMP_DIR/rule.h"
+    cp "$SOURCE" "$TMP_DIR/rule.c"
     cp "$OWNER" "$TMP_DIR/rule.pgy"
     case "$edited" in
         header) printf '/* edited */\n' >>"$TMP_DIR/rule.h" ;;
+        source) printf '/* edited */\n' >>"$TMP_DIR/rule.c" ;;
         owner) printf '// edited\n' >>"$TMP_DIR/rule.pgy" ;;
         rule)
             sed 's/^PGY_CALL_HANDOFF_ROW(RETURN_ONLY, FRESH, ANY, ANY, ANY, RESULT_OWNS)$/PGY_CALL_HANDOFF_ROW(RETURN_ONLY, FRESH, ANY, ANY, ANY, MOVED)/' \
@@ -38,7 +41,7 @@ for edited in header owner rule; do
             ! cmp -s "$RULE" "$TMP_DIR/rule.def" || fail "the rule edit did not apply"
             ;;
     esac
-    if render "$TMP_DIR/rule.def" "$TMP_DIR/rule.h" "$TMP_DIR/rule.pgy" --check \
+    if render "$TMP_DIR/rule.def" "$TMP_DIR/rule.h" "$TMP_DIR/rule.c" "$TMP_DIR/rule.pgy" --check \
         >"$TMP_DIR/check.log" 2>&1; then
         fail "a stale $edited passed the drift check"
     fi
@@ -51,7 +54,7 @@ expect_refused() {
     local label="$1" program="$2" diagnostic="$3"
     sed -e "$program" "$RULE" >"$TMP_DIR/$label.def"
     ! cmp -s "$RULE" "$TMP_DIR/$label.def" || fail "malformed rule $label did not change the rule"
-    if render "$TMP_DIR/$label.def" "$TMP_DIR/$label.h" "$TMP_DIR/$label.pgy" \
+    if render "$TMP_DIR/$label.def" "$TMP_DIR/$label.h" "$TMP_DIR/$label.c" "$TMP_DIR/$label.pgy" \
         >"$TMP_DIR/$label.log" 2>&1; then
         fail "malformed rule was rendered: $label"
     fi
@@ -83,7 +86,7 @@ expect_refused unknown-macro "\$a PGY_CALL_HANDOFF_ROWS(ANY, ANY, ANY, ANY, ANY,
 # Decision cells: the probe checks the named cells of the native rendering,
 # then both renderings dump every cell and the dumps must be equal.
 "$CC_BIN" -std=c11 -Wall -Wextra -Werror -I"$ROOT_DIR/src" \
-    "$ROOT_DIR/tests/registry/call_handoff_rule_probe.c" -o "$BUILD_DIR/probe.exe"
+    "$ROOT_DIR/tests/registry/call_handoff_rule_probe.c" "$SOURCE" -o "$BUILD_DIR/probe.exe"
 "$BUILD_DIR/probe.exe" || fail "a native decision cell differs from the rule"
 "$BUILD_DIR/probe.exe" --dump >"$BUILD_DIR/native_cells.txt"
 cells="$(grep -c '^cell ' "$BUILD_DIR/native_cells.txt" || true)"

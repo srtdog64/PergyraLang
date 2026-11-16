@@ -566,6 +566,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/collection_member_path_owner.c \
                    $(SEMANTIC_DIR)/collection_published_member_carrier_owner.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_result.c \
+                   $(SEMANTIC_DIR)/call_handoff_rule.c \
                    $(SEMANTIC_DIR)/collection_handoff_owner.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_member_transfer.c \
                    $(SEMANTIC_DIR)/collection_moved_member_restoration_owner.c \
@@ -3134,8 +3135,8 @@ builtin-argument-retention-registry-test-smoke: region-escape-unit-test-smoke
 	"$(BASH)" tests/registry/builtin_argument_retention_registry_smoke.sh
 
 # The call hand-off rule (src/semantic/call_handoff_rule.def): its rendered C
-# header and Pergyra owner stay current, a malformed rule is refused, and the
-# two renderings answer every decision cell alike.
+# header and source and Pergyra owner stay current, a malformed rule is
+# refused, and the two renderings answer every decision cell alike.
 .PHONY: call-handoff-rule-test-smoke
 call-handoff-rule-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/registry/call_handoff_rule_smoke.sh

@@ -638,8 +638,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         if (!ctx->has_error)
             semantic_error(ctx, program,
                 "Typed parameter publication input sealing failed closed");
-        free(topo_order);
-        return false;
+        goto refused;
     }
     if (timing) {
         fprintf(stderr, "[semantic phase] seal_inputs=%.3f\n",
@@ -650,8 +649,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         if (!ctx->has_error)
             semantic_error(ctx, program,
                 "Typed parameter flow preparation failed closed");
-        free(topo_order);
-        return false;
+        goto refused;
     }
     if (timing) {
         fprintf(stderr, "[semantic phase] prepare_flow=%.3f\n",
@@ -665,8 +663,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         if (!ctx->has_error)
             semantic_error(ctx, program,
                 "Aggregate copy landing failed closed");
-        free(topo_order);
-        return false;
+        goto refused;
     }
     if (timing) {
         fprintf(stderr, "[semantic phase] aggregate_landing=%.3f\n",
@@ -677,8 +674,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         if (!ctx->has_error)
             semantic_error(ctx, program,
                 "Final typed parameter publication failed closed");
-        free(topo_order);
-        return false;
+        goto refused;
     }
     if (timing) {
         fprintf(stderr, "[semantic phase] publication_finalize=%.3f\n",
@@ -694,8 +690,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         && semantic_collection_owned_element_requirements_finalize(ctx)
         && semantic_call_argument_sibling_finalize(ctx);
     if (!owned_requirements_finalized) {
-        free(topo_order);
-        return false;
+        goto refused;
     }
     if (timing) {
         fprintf(stderr, "[semantic phase] owned_results=%.3f\n",
@@ -713,13 +708,11 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     == finalizer_copies_before
                 && ctx->string_store_landing_selected_count
                     == finalizer_stores_before)) {
-            free(topo_order);
-            return false;
+            goto refused;
         }
         ctx->has_error = false;
         if (!semantic_default_aggregate_landing_discover_finalized(ctx)) {
-            free(topo_order);
-            return false;
+            goto refused;
         }
         /* Diagnostics from this planning walk describe the already rejected
          * generation.  They grant no fact and must not prevent downstream
@@ -739,8 +732,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
     if (!deferred_discovery
         && !semantic_default_aggregate_move_finalize(ctx)) {
-        free(topo_order);
-        return false;
+        goto refused;
     }
     if (timing) {
         fprintf(stderr, "[semantic phase] aggregate_finalize=%.3f\n",
@@ -752,8 +744,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         ctx->loan_copy_landing_selected_count,
         ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
     if (!semantic_allocator_lane_loan_finalize(ctx)) {
-        free(topo_order);
-        return false;
+        goto refused;
     }
     if (timing) {
         fprintf(stderr, "[semantic phase] allocator_finalize=%.3f\n",
@@ -765,8 +756,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         ctx->loan_copy_landing_selected_count,
         ctx->string_store_landing_selected_count, ctx->has_error ? 1 : 0);
     if (!semantic_indexed_string_named_call_finalize(ctx)) {
-        free(topo_order);
-        return false;
+        goto refused;
     }
     if (timing) {
         fprintf(stderr, "[semantic phase] named_call_finalize=%.3f\n",
@@ -837,4 +827,11 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     }
     if (deferred_discovery) return false;
     return semantic_indexed_string_borrow_finalize(ctx);
+
+refused:
+    /* A program a post-Pass-2 owner refuses still built and validated its
+     * type-resolution graph; the stats observe that graph, not admission. */
+    semantic_maybe_print_type_resolution_stats(ctx);
+    free(topo_order);
+    return false;
 }

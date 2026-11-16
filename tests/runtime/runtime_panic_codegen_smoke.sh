@@ -65,7 +65,7 @@ PGY
 
 cat > "$WORK_DIR/array_set_oob.pgy" <<'PGY'
 func Main() -> Void {
-    let values: Array<Int> = [];
+    var values: Array<Int> = [];
     ArraySet(values, 0, 1);
 }
 PGY
@@ -111,7 +111,7 @@ PGY
 
 cat > "$WORK_DIR/queue_pop_empty.pgy" <<'PGY'
 func Main() -> Void {
-    let jobs: Queue<Int> = QueueNew();
+    var jobs: Queue<Int> = QueueNew();
     Log(QueuePop(jobs));
 }
 PGY
@@ -125,21 +125,21 @@ PGY
 
 cat > "$WORK_DIR/list_set_oob.pgy" <<'PGY'
 func Main() -> Void {
-    let items: List<Int> = ListNew();
+    var items: List<Int> = ListNew();
     ListSet(items, 0, 1);
 }
 PGY
 
 cat > "$WORK_DIR/list_remove_oob.pgy" <<'PGY'
 func Main() -> Void {
-    let items: List<Int> = ListNew();
+    var items: List<Int> = ListNew();
     ListRemove(items, 0);
 }
 PGY
 
 cat > "$WORK_DIR/map_remove_missing.pgy" <<'PGY'
 func Main() -> Void {
-    let table: HashMap<String, Int> = MapNew();
+    var table: HashMap<String, Int> = MapNew();
     MapRemove(table, "missing");
 }
 PGY

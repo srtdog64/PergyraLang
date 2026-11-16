@@ -441,7 +441,7 @@
         "7\n";
     static const char *world_embedded_method_projection_source =
         "subject Player {\n"
-        "    let hp: Int;\n"
+        "    var hp: Int;\n"
         "    func Heal(self, amount: Int) -> Void {\n"
         "        hp = hp + amount;\n"
         "    }\n"
@@ -472,7 +472,7 @@
         "7\n";
     static const char *world_embedded_branch_projection_source =
         "subject Player {\n"
-        "    let hp: Int;\n"
+        "    var hp: Int;\n"
         "    func Heal(self, amount: Int) -> Void {\n"
         "        hp = hp + amount;\n"
         "    }\n"
@@ -511,7 +511,7 @@
     static const char *world_embedded_action_frontier_source =
         "within BattleZone {\n"
         "    subject Player {\n"
-        "        let hp: Int;\n"
+        "        var hp: Int;\n"
         "        action Attack(self) -> Void\n"
         "            authorized by self\n"
         "            causes Poisoned\n"
@@ -561,7 +561,7 @@
     static const char *world_embedded_action_pool_frontier_source =
         "within BattleZone {\n"
         "    subject Player {\n"
-        "        let hp: Int;\n"
+        "        var hp: Int;\n"
         "        action Attack(self) -> Void\n"
         "            authorized by self\n"
         "            causes Poisoned\n"

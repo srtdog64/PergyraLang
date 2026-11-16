@@ -19,8 +19,6 @@
 #ifndef PGY_CALL_HANDOFF_RULE_H
 #define PGY_CALL_HANDOFF_RULE_H
 
-#include <stddef.h>
-
 #include "slot_summary.h"
 
 enum {
@@ -83,201 +81,6 @@ typedef enum {
     PGY_CALL_HANDOFF_ACTION_UNDECIDED
 } PgyCallHandoffAction;
 
-enum {
-    PGY_CALL_HANDOFF_DIVERGENCE_NATIVE_KEEP_REUSE_REFUSED = 1u << 0,
-    PGY_CALL_HANDOFF_DIVERGENCE_NATIVE_UNPROVED_REUSE_REFUSED = 1u << 1,
-    PGY_CALL_HANDOFF_DIVERGENCE_SELF_RETIRED_CONSTRUCTOR_INPUT_KEPT = 1u << 2,
-    PGY_CALL_HANDOFF_DIVERGENCE_SELF_UNPROVED_EFFECT_NOT_MOVING = 1u << 3,
-    PGY_CALL_HANDOFF_DIVERGENCE_NONE = 0u,
-    PGY_CALL_HANDOFF_DIVERGENCE_FLAG_COUNT = 4
-};
-
-/* The row divergences the native front end selects (see the .def). */
-#define PGY_CALL_HANDOFF_NATIVE_ROW_DIVERGENCES (PGY_CALL_HANDOFF_DIVERGENCE_NATIVE_KEEP_REUSE_REFUSED | PGY_CALL_HANDOFF_DIVERGENCE_NATIVE_UNPROVED_REUSE_REFUSED)
-
-/* The kind of a class set: the first kind it matches. A bit outside
- * the members fails closed to the kind of an unproved set. */
-static inline PgyCallHandoffKind
-pgy_call_handoff_kind(unsigned members)
-{
-    if ((members & ~(unsigned)PGY_CALL_HANDOFF_MEMBER_ALL) != 0u)
-        return PGY_CALL_HANDOFF_KIND_UNPROVED;
-    if ((members & 0x20u) != 0u) return PGY_CALL_HANDOFF_KIND_UNPROVED;
-    if ((members & ~0x1u) == 0u) return PGY_CALL_HANDOFF_KIND_READ_ONLY;
-    if ((members & 0x2u) != 0u && (members & ~0x3u) == 0u) return PGY_CALL_HANDOFF_KIND_RETURN_ONLY;
-    if ((members & 0x8u) != 0u && (members & ~0x9u) == 0u) return PGY_CALL_HANDOFF_KIND_KEEP_ONLY;
-    return PGY_CALL_HANDOFF_KIND_MOVING;
-}
-
-/* Study 2.1, native column: a parameter-flow summary mask as a class
- * set. A bit the projection does not name is UNPROVED. */
-static inline unsigned
-pgy_call_handoff_members_from_native_summary(unsigned mask)
-{
-    unsigned members = 0u;
-    if ((mask & (unsigned)SLOT_PARAM_SUMMARY_READ) != 0u) members |= 0x1u;
-    if ((mask & (unsigned)SLOT_PARAM_SUMMARY_WRITE) != 0u) members |= 0x4u;
-    if ((mask & (unsigned)SLOT_PARAM_SUMMARY_RELEASE) != 0u) members |= 0x10u;
-    if ((mask & (unsigned)SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0u) members |= 0x2u;
-    if ((mask & (unsigned)SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0u) members |= 0x8u;
-    if ((mask & (unsigned)SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0u) members |= 0x8u;
-    if ((mask & ~((unsigned)SLOT_PARAM_SUMMARY_READ | (unsigned)SLOT_PARAM_SUMMARY_WRITE | (unsigned)SLOT_PARAM_SUMMARY_RELEASE | (unsigned)SLOT_PARAM_SUMMARY_RETURN_ESCAPE | (unsigned)SLOT_PARAM_SUMMARY_CALL_ESCAPE | (unsigned)SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) != 0u)
-        members |= PGY_CALL_HANDOFF_MEMBER_UNPROVED;
-    return members;
-}
-
-/* The decision table: divergence rows the caller selects first, then
- * the rule. The renderer proves every cell has exactly one rule action. */
-static inline PgyCallHandoffAction
-pgy_call_handoff_action_for_kind(PgyCallHandoffKind kind,
-    PgyCallHandoffOrigin origin, PgyCallHandoffLater later,
-    PgyCallHandoffContext context, PgyCallHandoffElements elements,
-    unsigned divergences)
-{
-    static const struct {
-        unsigned divergence, kinds, origins, later, contexts, elements;
-        PgyCallHandoffAction action;
-    } rows[] = {
-        {1u << 0, 0x8u, 0xeu, 0x2u, 0x3u, 0x1u, PGY_CALL_HANDOFF_ACTION_REFUSE},
-        {1u << 1, 0x1u, 0xeu, 0x2u, 0x1u, 0x1u, PGY_CALL_HANDOFF_ACTION_REFUSE},
-        {1u << 2, 0x1du, 0x2u, 0x1u, 0x1u, 0x1u, PGY_CALL_HANDOFF_ACTION_KEEP_ROW_STATE},
-        {0u, 0x1u, 0xfu, 0x3u, 0x2u, 0x3u, PGY_CALL_HANDOFF_ACTION_REFUSE},
-        {0u, 0x1fu, 0xfu, 0x3u, 0x3u, 0x2u, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE},
-        {0u, 0x2u, 0xfu, 0x3u, 0x3u, 0x3u, PGY_CALL_HANDOFF_ACTION_LEND_FOR_CALL},
-        {0u, 0x4u, 0x1u, 0x3u, 0x3u, 0x3u, PGY_CALL_HANDOFF_ACTION_RESULT_OWNS},
-        {0u, 0x4u, 0x2u, 0x1u, 0x1u, 0x3u, PGY_CALL_HANDOFF_ACTION_HAND_OFF},
-        {0u, 0x4u, 0x4u, 0x1u, 0x1u, 0x3u, PGY_CALL_HANDOFF_ACTION_MOVED_ON},
-        {0u, 0x4u, 0xfu, 0x3u, 0x3u, 0x3u, PGY_CALL_HANDOFF_ACTION_LOAN_TO_RESULT},
-        {0u, 0x19u, 0x1u, 0x3u, 0x3u, 0x3u, PGY_CALL_HANDOFF_ACTION_MOVED},
-        {0u, 0x19u, 0x2u, 0x1u, 0x1u, 0x3u, PGY_CALL_HANDOFF_ACTION_HAND_OFF},
-        {0u, 0x19u, 0x4u, 0x1u, 0x1u, 0x3u, PGY_CALL_HANDOFF_ACTION_MOVED_ON},
-        {0u, 0x19u, 0xfu, 0x3u, 0x3u, 0x3u, PGY_CALL_HANDOFF_ACTION_CLONE_ARGUMENT},
-    };
-    if ((unsigned)kind >= PGY_CALL_HANDOFF_KIND_COUNT ||
-        (unsigned)origin >= PGY_CALL_HANDOFF_ORIGIN_COUNT ||
-        (unsigned)later >= PGY_CALL_HANDOFF_LATER_COUNT ||
-        (unsigned)context >= PGY_CALL_HANDOFF_CONTEXT_COUNT ||
-        (unsigned)elements >= PGY_CALL_HANDOFF_ELEMENTS_COUNT)
-        return PGY_CALL_HANDOFF_ACTION_UNDECIDED;
-    for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); i++) {
-        if (rows[i].divergence != 0u && (divergences & rows[i].divergence) == 0u)
-            continue;
-        if (((rows[i].kinds >> (unsigned)kind) & 1u) != 0u &&
-            ((rows[i].origins >> (unsigned)origin) & 1u) != 0u &&
-            ((rows[i].later >> (unsigned)later) & 1u) != 0u &&
-            ((rows[i].contexts >> (unsigned)context) & 1u) != 0u &&
-            ((rows[i].elements >> (unsigned)elements) & 1u) != 0u)
-            return rows[i].action;
-    }
-    return PGY_CALL_HANDOFF_ACTION_UNDECIDED;
-}
-
-static inline PgyCallHandoffAction
-pgy_call_handoff_action(unsigned members, PgyCallHandoffOrigin origin,
-    PgyCallHandoffLater later, PgyCallHandoffContext context,
-    PgyCallHandoffElements elements, unsigned divergences)
-{
-    return pgy_call_handoff_action_for_kind(pgy_call_handoff_kind(members),
-        origin, later, context, elements, divergences);
-}
-
-/* The rule action every origin and later use of a kind gets, or
- * UNDECIDED when they differ: for a site that knows neither. */
-static inline PgyCallHandoffAction
-pgy_call_handoff_action_any_use(PgyCallHandoffKind kind,
-    PgyCallHandoffContext context, PgyCallHandoffElements elements)
-{
-    static const PgyCallHandoffAction table[5][2][2] = {
-        /* UNPROVED */ {{PGY_CALL_HANDOFF_ACTION_UNDECIDED, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE}, {PGY_CALL_HANDOFF_ACTION_REFUSE, PGY_CALL_HANDOFF_ACTION_REFUSE}},
-        /* READ_ONLY */ {{PGY_CALL_HANDOFF_ACTION_LEND_FOR_CALL, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE}, {PGY_CALL_HANDOFF_ACTION_LEND_FOR_CALL, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE}},
-        /* RETURN_ONLY */ {{PGY_CALL_HANDOFF_ACTION_UNDECIDED, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE}, {PGY_CALL_HANDOFF_ACTION_UNDECIDED, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE}},
-        /* KEEP_ONLY */ {{PGY_CALL_HANDOFF_ACTION_UNDECIDED, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE}, {PGY_CALL_HANDOFF_ACTION_UNDECIDED, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE}},
-        /* MOVING */ {{PGY_CALL_HANDOFF_ACTION_UNDECIDED, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE}, {PGY_CALL_HANDOFF_ACTION_UNDECIDED, PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE}},
-    };
-    if ((unsigned)kind >= PGY_CALL_HANDOFF_KIND_COUNT ||
-        (unsigned)context >= PGY_CALL_HANDOFF_CONTEXT_COUNT ||
-        (unsigned)elements >= PGY_CALL_HANDOFF_ELEMENTS_COUNT)
-        return PGY_CALL_HANDOFF_ACTION_UNDECIDED;
-    return table[kind][context][elements];
-}
-
-/* MIR JSON spellings of the vocabulary (call_handoff rows, slice S2):
- * a member by its bit index, each axis value, each action and each
- * divergence by its declaration index. NULL outside the vocabulary. */
-static inline const char *
-pgy_call_handoff_member_name(unsigned value)
-{
-    switch ((unsigned)value) {
-    case 0: return "READ";
-    case 1: return "RETURN";
-    case 2: return "GROW";
-    case 3: return "KEEP";
-    case 4: return "RELEASE";
-    case 5: return "UNPROVED";
-    default: return NULL;
-    }
-}
-
-static inline const char *
-pgy_call_handoff_origin_name(PgyCallHandoffOrigin value)
-{
-    switch ((unsigned)value) {
-    case 0: return "FRESH";
-    case 1: return "LOCAL";
-    case 2: return "CALLER_FORMAL";
-    case 3: return "BORROWED";
-    default: return NULL;
-    }
-}
-
-static inline const char *
-pgy_call_handoff_later_name(PgyCallHandoffLater value)
-{
-    switch ((unsigned)value) {
-    case 0: return "ONCE";
-    case 1: return "USED_AGAIN";
-    default: return NULL;
-    }
-}
-
-static inline const char *
-pgy_call_handoff_context_name(PgyCallHandoffContext value)
-{
-    switch ((unsigned)value) {
-    case 0: return "SYNC";
-    case 1: return "DETACHED";
-    default: return NULL;
-    }
-}
-
-static inline const char *
-pgy_call_handoff_elements_name(PgyCallHandoffElements value)
-{
-    switch ((unsigned)value) {
-    case 0: return "AS_GIVEN";
-    case 1: return "OWNED_REQUIRED";
-    default: return NULL;
-    }
-}
-
-static inline const char *
-pgy_call_handoff_action_name(PgyCallHandoffAction value)
-{
-    switch ((unsigned)value) {
-    case 0: return "LEND_FOR_CALL";
-    case 1: return "RESULT_OWNS";
-    case 2: return "MOVED";
-    case 3: return "HAND_OFF";
-    case 4: return "MOVED_ON";
-    case 5: return "LOAN_TO_RESULT";
-    case 6: return "CLONE_ARGUMENT";
-    case 7: return "OWNED_ELEMENT_CLONE";
-    case 8: return "REFUSE";
-    case 9: return "KEEP_ROW_STATE";
-    default: return NULL;
-    }
-}
-
 typedef enum {
     PGY_CALL_HANDOFF_DIVERGENCE_ID_NATIVE_KEEP_REUSE_REFUSED = 0,
     PGY_CALL_HANDOFF_DIVERGENCE_ID_NATIVE_UNPROVED_REUSE_REFUSED = 1,
@@ -295,25 +98,53 @@ typedef enum {
     PGY_CALL_HANDOFF_DIVERGENCE_ID_COUNT
 } PgyCallHandoffDivergenceId;
 
-static inline const char *
-pgy_call_handoff_divergence_name(PgyCallHandoffDivergenceId value)
-{
-    switch ((unsigned)value) {
-    case 0: return "NATIVE_KEEP_REUSE_REFUSED";
-    case 1: return "NATIVE_UNPROVED_REUSE_REFUSED";
-    case 2: return "NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY";
-    case 3: return "NATIVE_BORROWED_MOVE_REFUSED";
-    case 4: return "NATIVE_DETACHED_CONTEXT_NOT_READ";
-    case 5: return "SELF_RETIRED_CONSTRUCTOR_INPUT_KEPT";
-    case 6: return "SELF_UNPROVED_EFFECT_NOT_MOVING";
-    case 7: return "SELF_UNPROVED_REFUSED_AT_ENTRY";
-    case 8: return "SELF_LATER_USE_NOT_READ";
-    case 9: return "SELF_REPEAT_SKIPS_DETACHED_BODY";
-    case 10: return "SELF_CONSTRUCTOR_ELEMENT_AXIS_UNREAD";
-    case 11: return "SELF_CONSTRUCTOR_TWICE_NOT_COPIED";
-    case 12: return "SELF_STRUCT_LITERAL_INPUT_UNSEEN";
-    default: return NULL;
-    }
-}
+enum {
+    PGY_CALL_HANDOFF_DIVERGENCE_NATIVE_KEEP_REUSE_REFUSED = 1u << 0,
+    PGY_CALL_HANDOFF_DIVERGENCE_NATIVE_UNPROVED_REUSE_REFUSED = 1u << 1,
+    PGY_CALL_HANDOFF_DIVERGENCE_SELF_RETIRED_CONSTRUCTOR_INPUT_KEPT = 1u << 2,
+    PGY_CALL_HANDOFF_DIVERGENCE_SELF_UNPROVED_EFFECT_NOT_MOVING = 1u << 3,
+    PGY_CALL_HANDOFF_DIVERGENCE_NONE = 0u,
+    PGY_CALL_HANDOFF_DIVERGENCE_FLAG_COUNT = 4
+};
+
+/* The row divergences the native front end selects (see the .def). */
+#define PGY_CALL_HANDOFF_NATIVE_ROW_DIVERGENCES (PGY_CALL_HANDOFF_DIVERGENCE_NATIVE_KEEP_REUSE_REFUSED | PGY_CALL_HANDOFF_DIVERGENCE_NATIVE_UNPROVED_REUSE_REFUSED)
+
+/* The kind of a class set: the first kind it matches. A bit outside
+ * the members fails closed to the kind of an unproved set. */
+PgyCallHandoffKind pgy_call_handoff_kind(unsigned members);
+
+/* Study 2.1, native column: a parameter-flow summary mask as a class
+ * set. A bit the projection does not name is UNPROVED. */
+unsigned pgy_call_handoff_members_from_native_summary(unsigned mask);
+
+/* The decision table: divergence rows the caller selects first, then
+ * the rule. The renderer proves every cell has exactly one rule action.
+ * A value outside an axis is UNDECIDED. */
+PgyCallHandoffAction pgy_call_handoff_action_for_kind(PgyCallHandoffKind kind,
+    PgyCallHandoffOrigin origin, PgyCallHandoffLater later,
+    PgyCallHandoffContext context, PgyCallHandoffElements elements,
+    unsigned divergences);
+
+/* The decision for a class set: its kind, then the table. */
+PgyCallHandoffAction pgy_call_handoff_action(unsigned members, PgyCallHandoffOrigin origin,
+    PgyCallHandoffLater later, PgyCallHandoffContext context,
+    PgyCallHandoffElements elements, unsigned divergences);
+
+/* The rule action every origin and later use of a kind gets, or
+ * UNDECIDED when they differ: for a site that knows neither. */
+PgyCallHandoffAction pgy_call_handoff_action_any_use(PgyCallHandoffKind kind,
+    PgyCallHandoffContext context, PgyCallHandoffElements elements);
+
+/* MIR JSON spellings of the vocabulary (call_handoff rows, slice S2):
+ * a member by its bit index, each axis value, each action and each
+ * divergence by its declaration index. NULL outside the vocabulary. */
+const char *pgy_call_handoff_member_name(unsigned value);
+const char *pgy_call_handoff_origin_name(PgyCallHandoffOrigin value);
+const char *pgy_call_handoff_later_name(PgyCallHandoffLater value);
+const char *pgy_call_handoff_context_name(PgyCallHandoffContext value);
+const char *pgy_call_handoff_elements_name(PgyCallHandoffElements value);
+const char *pgy_call_handoff_action_name(PgyCallHandoffAction value);
+const char *pgy_call_handoff_divergence_name(PgyCallHandoffDivergenceId value);
 
 #endif

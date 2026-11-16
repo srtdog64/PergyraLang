@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Validate the call hand-off rule and render its C header and Pergyra owner.
+"""Validate the call hand-off rule and render its C owner and Pergyra owner.
 
-The source is src/semantic/call_handoff_rule.def. The rendered C header is
-read by the native semantic owners and the rendered .pgy owner by the
-self-host ones; --check fails when either output differs from a fresh render.
+The source is src/semantic/call_handoff_rule.def. The rendered C header
+(declarations only) and C source (the lookups and spellings) are read by the
+native owners and the rendered .pgy owner by the self-host ones; --check
+fails when any output differs from a fresh render.
 """
 
 from __future__ import annotations
@@ -330,11 +331,43 @@ def divergence_comment(rule: Rule, prefix: str) -> list[str]:
     return lines
 
 
+AXIS_TYPES = ("Origin", "Later", "Context", "Elements")
+ACTION_FOR_KIND_PARAMS = ("PgyCallHandoffKind kind,",
+                          "    PgyCallHandoffOrigin origin, PgyCallHandoffLater later,",
+                          "    PgyCallHandoffContext context, PgyCallHandoffElements elements,",
+                          "    unsigned divergences)")
+ACTION_PARAMS = ("unsigned members, PgyCallHandoffOrigin origin,",
+                 "    PgyCallHandoffLater later, PgyCallHandoffContext context,",
+                 "    PgyCallHandoffElements elements, unsigned divergences)")
+ANY_USE_PARAMS = ("PgyCallHandoffKind kind,",
+                  "    PgyCallHandoffContext context, PgyCallHandoffElements elements)")
+
+
+def name_functions(rule: Rule) -> list[tuple[str, str, list[str]]]:
+    """The MIR JSON spelling functions: (name, parameter, spellings)."""
+    out = [("pgy_call_handoff_member_name", "unsigned value", rule.members)]
+    for axis, type_name in zip(AXES, AXIS_TYPES):
+        out.append((f"pgy_call_handoff_{axis.lower()}_name",
+                    f"PgyCallHandoff{type_name} value", rule.axes[axis]))
+    out.append(("pgy_call_handoff_action_name", "PgyCallHandoffAction value", rule.actions))
+    out.append(("pgy_call_handoff_divergence_name", "PgyCallHandoffDivergenceId value",
+                [d.name for d in rule.divergences]))
+    return out
+
+
+def prototype(return_type: str, name: str, params: tuple[str, ...]) -> list[str]:
+    first = f"{return_type} {name}({params[0]}"
+    lines = [first, *params[1:]] if len(params) > 1 else [first]
+    lines[-1] += ";"
+    return lines
+
+
 def render_c(rule: Rule) -> str:
+    """The declaration-only header the native owners include."""
     out = [f"/* {HEADER}", f" * {SOURCE}", " *"]
     out += divergence_comment(rule, " * ")
     out += [" */", "#ifndef PGY_CALL_HANDOFF_RULE_H", "#define PGY_CALL_HANDOFF_RULE_H", "",
-            "#include <stddef.h>", "", '#include "slot_summary.h"', "", "enum {"]
+            '#include "slot_summary.h"', "", "enum {"]
     for i, m in enumerate(rule.members):
         out.append(f"    PGY_CALL_HANDOFF_MEMBER_{m} = 1u << {i},")
     moving = bits(i for i, flag in enumerate(rule.moving) if flag)
@@ -350,9 +383,11 @@ def render_c(rule: Rule) -> str:
         out.append("")
 
     enum("PgyCallHandoffKind", "PGY_CALL_HANDOFF_KIND_", [k.name for k in rule.kinds], "COUNT")
-    for axis, type_name in zip(AXES, ("Origin", "Later", "Context", "Elements")):
+    for axis, type_name in zip(AXES, AXIS_TYPES):
         enum(f"PgyCallHandoff{type_name}", f"PGY_CALL_HANDOFF_{axis}_", rule.axes[axis], "COUNT")
     enum("PgyCallHandoffAction", "PGY_CALL_HANDOFF_ACTION_", rule.actions, "UNDECIDED")
+    enum("PgyCallHandoffDivergenceId", "PGY_CALL_HANDOFF_DIVERGENCE_ID_",
+         [d.name for d in rule.divergences], "COUNT")
     flagged = flag_divergences(rule)
     out.append("enum {")
     for i, d in enumerate(flagged):
@@ -364,9 +399,45 @@ def render_c(rule: Rule) -> str:
             "/* The row divergences the native front end selects (see the .def). */",
             f"#define PGY_CALL_HANDOFF_NATIVE_ROW_DIVERGENCES ({native})", "",
             "/* The kind of a class set: the first kind it matches. A bit outside",
-            " * the members fails closed to the kind of an unproved set. */",
-            "static inline PgyCallHandoffKind",
-            "pgy_call_handoff_kind(unsigned members)", "{"]
+            " * the members fails closed to the kind of an unproved set. */"]
+    out += prototype("PgyCallHandoffKind", "pgy_call_handoff_kind", ("unsigned members)",))
+    out += ["",
+            "/* Study 2.1, native column: a parameter-flow summary mask as a class",
+            " * set. A bit the projection does not name is UNPROVED. */"]
+    out += prototype("unsigned", "pgy_call_handoff_members_from_native_summary",
+                     ("unsigned mask)",))
+    out += ["",
+            "/* The decision table: divergence rows the caller selects first, then",
+            " * the rule. The renderer proves every cell has exactly one rule action.",
+            " * A value outside an axis is UNDECIDED. */"]
+    out += prototype("PgyCallHandoffAction", "pgy_call_handoff_action_for_kind",
+                     ACTION_FOR_KIND_PARAMS)
+    out += ["", "/* The decision for a class set: its kind, then the table. */"]
+    out += prototype("PgyCallHandoffAction", "pgy_call_handoff_action", ACTION_PARAMS)
+    out += ["",
+            "/* The rule action every origin and later use of a kind gets, or",
+            " * UNDECIDED when they differ: for a site that knows neither. */"]
+    out += prototype("PgyCallHandoffAction", "pgy_call_handoff_action_any_use", ANY_USE_PARAMS)
+    out += ["",
+            "/* MIR JSON spellings of the vocabulary (call_handoff rows, slice S2):",
+            " * a member by its bit index, each axis value, each action and each",
+            " * divergence by its declaration index. NULL outside the vocabulary. */"]
+    for fn, param, _ in name_functions(rule):
+        out.append(f"const char *{fn}({param});")
+    out += ["", "#endif", ""]
+    return "\n".join(out)
+
+
+def render_c_source(rule: Rule) -> str:
+    """The C owner of the lookups and spellings the header declares."""
+    out = [f"/* {HEADER}", f" * {SOURCE}", " *",
+           " * The lookups and MIR JSON spellings declared in call_handoff_rule.h. */",
+           "#include <stddef.h>", "", '#include "call_handoff_rule.h"', ""]
+
+    def definition(return_type: str, name: str, params: tuple[str, ...]) -> None:
+        out.extend([return_type, f"{name}({params[0]}", *params[1:], "{"])
+
+    definition("PgyCallHandoffKind", "pgy_call_handoff_kind", ("unsigned members)",))
     unproved_kind = rule.kinds[rule.kind_of(1 << rule.members.index("UNPROVED"))].name \
         if "UNPROVED" in rule.members else rule.kinds[-1].name
     out.append("    if ((members & ~(unsigned)PGY_CALL_HANDOFF_MEMBER_ALL) != 0u)")
@@ -383,29 +454,20 @@ def render_c(rule: Rule) -> str:
         out.append(f"    if ({' && '.join(tests)}) return PGY_CALL_HANDOFF_KIND_{kind.name};")
     else:
         out.append(f"    return PGY_CALL_HANDOFF_KIND_{unproved_kind};")
-    out += ["}", "",
-            "/* Study 2.1, native column: a parameter-flow summary mask as a class",
-            " * set. A bit the projection does not name is UNPROVED. */",
-            "static inline unsigned",
-            "pgy_call_handoff_members_from_native_summary(unsigned mask)", "{",
-            "    unsigned members = 0u;"]
+    out += ["}", ""]
+    definition("unsigned", "pgy_call_handoff_members_from_native_summary", ("unsigned mask)",))
+    out.append("    unsigned members = 0u;")
     for bit, members in rule.native_bits:
         out.append(f"    if ((mask & (unsigned){bit}) != 0u) members |= {members:#x}u;")
     named = " | ".join(f"(unsigned){b}" for b, _ in rule.native_bits)
     out += [f"    if ((mask & ~({named})) != 0u)",
-            "        members |= PGY_CALL_HANDOFF_MEMBER_UNPROVED;", "    return members;", "}", "",
-            "/* The decision table: divergence rows the caller selects first, then",
-            " * the rule. The renderer proves every cell has exactly one rule action. */",
-            "static inline PgyCallHandoffAction",
-            "pgy_call_handoff_action_for_kind(PgyCallHandoffKind kind,",
-            "    PgyCallHandoffOrigin origin, PgyCallHandoffLater later,",
-            "    PgyCallHandoffContext context, PgyCallHandoffElements elements,",
-            "    unsigned divergences)", "{",
-            "    static const struct {",
+            "        members |= PGY_CALL_HANDOFF_MEMBER_UNPROVED;", "    return members;", "}", ""]
+    definition("PgyCallHandoffAction", "pgy_call_handoff_action_for_kind", ACTION_FOR_KIND_PARAMS)
+    out += ["    static const struct {",
             "        unsigned divergence, kinds, origins, later, contexts, elements;",
             "        PgyCallHandoffAction action;",
             "    } rows[] = {"]
-    flag_index = {d.name: i for i, d in enumerate(flagged)}
+    flag_index = {d.name: i for i, d in enumerate(flag_divergences(rule))}
     for row in rule.divergence_rows + rule.rows:
         flag = f"1u << {flag_index[row.divergence]}" if row.divergence else "0u"
         sets = ", ".join(f"{bits(s):#x}u" for s in (row.kinds, *row.axes))
@@ -427,18 +489,11 @@ def render_c(rule: Rule) -> str:
             "            ((rows[i].elements >> (unsigned)elements) & 1u) != 0u)",
             "            return rows[i].action;",
             "    }",
-            "    return PGY_CALL_HANDOFF_ACTION_UNDECIDED;", "}", "",
-            "static inline PgyCallHandoffAction",
-            "pgy_call_handoff_action(unsigned members, PgyCallHandoffOrigin origin,",
-            "    PgyCallHandoffLater later, PgyCallHandoffContext context,",
-            "    PgyCallHandoffElements elements, unsigned divergences)", "{",
-            "    return pgy_call_handoff_action_for_kind(pgy_call_handoff_kind(members),",
-            "        origin, later, context, elements, divergences);", "}", "",
-            "/* The rule action every origin and later use of a kind gets, or",
-            " * UNDECIDED when they differ: for a site that knows neither. */",
-            "static inline PgyCallHandoffAction",
-            "pgy_call_handoff_action_any_use(PgyCallHandoffKind kind,",
-            "    PgyCallHandoffContext context, PgyCallHandoffElements elements)", "{"]
+            "    return PGY_CALL_HANDOFF_ACTION_UNDECIDED;", "}", ""]
+    definition("PgyCallHandoffAction", "pgy_call_handoff_action", ACTION_PARAMS)
+    out += ["    return pgy_call_handoff_action_for_kind(pgy_call_handoff_kind(members),",
+            "        origin, later, context, elements, divergences);", "}", ""]
+    definition("PgyCallHandoffAction", "pgy_call_handoff_action_any_use", ANY_USE_PARAMS)
     table = any_use_table(rule)
     contexts, elements = len(rule.axes["CONTEXT"]), len(rule.axes["ELEMENTS"])
     out.append(f"    static const PgyCallHandoffAction table[{len(rule.kinds)}][{contexts}][{elements}] = {{")
@@ -455,37 +510,14 @@ def render_c(rule: Rule) -> str:
             "        (unsigned)context >= PGY_CALL_HANDOFF_CONTEXT_COUNT ||",
             "        (unsigned)elements >= PGY_CALL_HANDOFF_ELEMENTS_COUNT)",
             "        return PGY_CALL_HANDOFF_ACTION_UNDECIDED;",
-            "    return table[kind][context][elements];", "}", ""]
-    out += render_c_names(rule)
-    out += ["#endif", ""]
-    return "\n".join(out)
-
-
-def render_c_names(rule: Rule) -> list[str]:
-    """The MIR JSON spellings of the vocabulary (slice S2 rows)."""
-    out = ["/* MIR JSON spellings of the vocabulary (call_handoff rows, slice S2):",
-           " * a member by its bit index, each axis value, each action and each",
-           " * divergence by its declaration index. NULL outside the vocabulary. */"]
-
-    def name_function(fn: str, param: str, names: list[str]) -> None:
-        out.extend(["static inline const char *", f"{fn}({param})", "{",
-                    "    switch ((unsigned)value) {"])
+            "    return table[kind][context][elements];", "}"]
+    for fn, param, names in name_functions(rule):
+        out += ["", "const char *", f"{fn}({param})", "{", "    switch ((unsigned)value) {"]
         for i, n in enumerate(names):
             out.append(f"    case {i}: return \"{n}\";")
-        out.extend(["    default: return NULL;", "    }", "}", ""])
-
-    name_function("pgy_call_handoff_member_name", "unsigned value", rule.members)
-    for axis, type_name in zip(AXES, ("Origin", "Later", "Context", "Elements")):
-        name_function(f"pgy_call_handoff_{axis.lower()}_name",
-                      f"PgyCallHandoff{type_name} value", rule.axes[axis])
-    name_function("pgy_call_handoff_action_name", "PgyCallHandoffAction value", rule.actions)
-    out.append("typedef enum {")
-    for i, d in enumerate(rule.divergences):
-        out.append(f"    PGY_CALL_HANDOFF_DIVERGENCE_ID_{d.name} = {i},")
-    out += ["    PGY_CALL_HANDOFF_DIVERGENCE_ID_COUNT", "} PgyCallHandoffDivergenceId;", ""]
-    name_function("pgy_call_handoff_divergence_name", "PgyCallHandoffDivergenceId value",
-                  [d.name for d in rule.divergences])
-    return out
+        out += ["    default: return NULL;", "    }", "}"]
+    out.append("")
+    return "\n".join(out)
 
 
 def render_pgy_names(rule: Rule) -> list[str]:
@@ -652,11 +684,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("rule", type=Path)
     parser.add_argument("header", type=Path)
+    parser.add_argument("source", type=Path)
     parser.add_argument("owner", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     rule = load(args.rule)
-    outputs = ((args.header, render_c(rule)), (args.owner, render_pgy(rule)))
+    outputs = ((args.header, render_c(rule)), (args.source, render_c_source(rule)),
+               (args.owner, render_pgy(rule)))
     if args.check:
         stale = [str(path) for path, text in outputs
                  if not path.is_file() or path.read_text(encoding="utf-8") != text]

@@ -1,5 +1,5 @@
 /* Decision cells of the call hand-off rule as the native front end reads
- * them (src/semantic/call_handoff_rule.h, rendered from
+ * them (src/semantic/call_handoff_rule.h and .c, rendered from
  * src/semantic/call_handoff_rule.def). Named cells are checked here; with
  * --dump the probe prints every cell, which call_handoff_rule_smoke.sh
  * compares with the self-host rendering (call_handoff_rule_probe.pgy). */

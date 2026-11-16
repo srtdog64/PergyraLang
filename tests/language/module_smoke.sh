@@ -217,8 +217,8 @@ run_fail "circular_import" "circular import detected" \
 mkdir -p "$WORK_DIR/intent_failure_result"
 cat > "$WORK_DIR/intent_failure_result/main.pgy" <<'EOF'
 subject Driver {
-    let hp: Int;
-    let started: Bool;
+    var hp: Int;
+    var started: Bool;
 
     action Ignite(self) -> Void {
         started = true;
@@ -262,8 +262,8 @@ run_ok "intent_failure_result" "$WORK_DIR/intent_failure_result/main.pgy" "false
 mkdir -p "$WORK_DIR/nested_intent_orchestration"
 cat > "$WORK_DIR/nested_intent_orchestration/main.pgy" <<'EOF'
 subject Driver {
-    let reserved: Int;
-    let charged: Int;
+    var reserved: Int;
+    var charged: Int;
 
     action Reserve(self) -> Void {
         reserved = reserved + 1;

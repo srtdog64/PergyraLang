@@ -157,7 +157,7 @@ run_compile_fails_case() {
 
 cat > "$TMPDIR/phi_lowering.pgy" <<'EOF'
 func Choose(flag: Bool) -> Int {
-    let x: Int = 0;
+    var x: Int = 0;
     if flag {
         x = 10;
     } else {
@@ -182,19 +182,19 @@ class Cell {
 }
 
 func Main() -> Void {
-    let x: Int = 0;
+    var x: Int = 0;
     if true {
         x = 1;
     }
     Log(x);
 
-    let label: String = "cold";
+    var label: String = "cold";
     if true {
         label = "hot";
     }
     Log(label);
 
-    let cell: Cell = Cell(2);
+    var cell: Cell = Cell(2);
     if true {
         cell = Cell(7);
     }
@@ -205,7 +205,7 @@ run_case "ssa_def_reassign_type_fact" "$TMPDIR/ssa_def_reassign_type_fact.pgy" "
 
 cat > "$TMPDIR/loop_break_continue.pgy" <<'EOF'
 func Main() -> Void {
-    let sum: Int = 0;
+    var sum: Int = 0;
     for i in 0..6 {
         if i == 2 { continue; }
         if i == 5 { break; }
@@ -301,7 +301,7 @@ run_case "tagged_union" "$TMPDIR/tagged_union.pgy" "10" "4" "5" "7"
 
 cat > "$TMPDIR/dynamic_array_ops.pgy" <<'EOF'
 func Main() -> Void {
-    let values: Array<Int> = [];
+    var values: Array<Int> = [];
     ArrayPush(values, 10);
     ArrayPush(values, 20);
     ArraySet(values, 1, 77);
@@ -315,7 +315,7 @@ run_case "dynamic_array_ops" "$TMPDIR/dynamic_array_ops.pgy" "2" "77" "1"
 
 cat > "$TMPDIR/set_ops.pgy" <<'EOF'
 func Main() -> Void {
-    let seen: Set<Int> = SetNew();
+    var seen: Set<Int> = SetNew();
     SetAdd(seen, 7);
     SetAdd(seen, 9);
     Log(SetHas(seen, 7));
@@ -487,7 +487,7 @@ run_case "subject_projection" "$TMPDIR/subject_projection.pgy" "42" "neo"
 
 cat > "$TMPDIR/subject_method_recursion_defer.pgy" <<'EOF'
 subject Counter {
-    let ticks: Int;
+    var ticks: Int;
 
     func Sum(self, n: Int) -> Int {
         if n <= 0 { return 0; }
@@ -508,8 +508,8 @@ run_case "subject_method_recursion_defer" "$TMPDIR/subject_method_recursion_defe
 
 cat > "$TMPDIR/intent_failure_result.pgy" <<'EOF'
 subject Driver {
-    let hp: Int;
-    let started: Bool;
+    var hp: Int;
+    var started: Bool;
 
     action Ignite(self) -> Void {
         started = true;
@@ -651,7 +651,7 @@ run_case "zone_has_layer" "$TMPDIR/zone_has_layer.pgy" "true" "true" "true" "tru
 
 cat > "$TMPDIR/zone_action_effect_runtime.pgy" <<'EOF'
 subject Player {
-    let hp: Int;
+    var hp: Int;
 
     action Attack(self) -> Void
         within BattleZone
@@ -869,7 +869,7 @@ EOF
 run_case "world_zone_mutation_dirty" "$TMPDIR/world_zone_mutation_dirty.pgy" "true" "7" "true" "9"
 
 cat > "$TMPDIR/world_nested_member_assign.pgy" <<'EOF'
-subject Player { let hp: Int; }
+subject Player { var hp: Int; }
 object PlayerView { hp: Int; }
 
 zone BattleZone {
@@ -943,7 +943,7 @@ run_case "object_layer_binding" "$TMPDIR/object_layer_binding.pgy" "true" "true"
 
 cat > "$TMPDIR/subject_class_dispatch.pgy" <<'EOF'
 subject ActiveCounter {
-    let count: Int;
+    var count: Int;
 
     action Tick(self, delta: Int) -> Int {
         count = count + delta;
@@ -952,7 +952,7 @@ subject ActiveCounter {
 }
 
 class PassiveCounter {
-    let count: Int;
+    var count: Int;
 
     func Tick(self, delta: Int) -> Int {
         count = count + delta;
@@ -1338,8 +1338,8 @@ run_case "operators" "$TMPDIR/operators.pgy" "13" "7" "30" "3" "1" "true" "false
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/while_loop.pgy" <<'EOF'
 func Main() -> Void {
-    let i: Int = 0;
-    let sum: Int = 0;
+    var i: Int = 0;
+    var sum: Int = 0;
     while i < 5 {
         sum = sum + i;
         i = i + 1;
@@ -1480,7 +1480,7 @@ run_case "string_concat" "$TMPDIR/string_concat.pgy" "hello world" "11"
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/list_ops.pgy" <<'EOF'
 func Main() -> Void {
-    let items: List<Int> = ListNew();
+    var items: List<Int> = ListNew();
     ListPush(items, 10);
     ListPush(items, 20);
     ListPush(items, 30);
@@ -1501,7 +1501,7 @@ run_case "list_ops" "$TMPDIR/list_ops.pgy" "3" "10" "30" "99" "2" "99"
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/queue_ops.pgy" <<'EOF'
 func Main() -> Void {
-    let q: Queue<Int> = QueueNew();
+    var q: Queue<Int> = QueueNew();
     Log(QueueEmpty(q));
     QueuePush(q, 1);
     QueuePush(q, 2);
@@ -1520,7 +1520,7 @@ run_case "queue_ops" "$TMPDIR/queue_ops.pgy" "true" "3" "false" "1" "2"
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/map_ops.pgy" <<'EOF'
 func Main() -> Void {
-    let m: HashMap<String, Int> = MapNew();
+    var m: HashMap<String, Int> = MapNew();
     MapSet(m, "a", 1);
     MapSet(m, "b", 2);
     Log(MapSize(m));
@@ -1536,14 +1536,14 @@ run_case "map_ops" "$TMPDIR/map_ops.pgy" "2" "true" "false" "2" "1" "false"
 
 cat > "$TMPDIR/map_ops_long_bool.pgy" <<'EOF'
 func Main() -> Void {
-    let longMap: HashMap<Long, Long> = MapNew();
+    var longMap: HashMap<Long, Long> = MapNew();
     MapSet(longMap, 7L, 70L);
     MapSet(longMap, 9L, 90L);
     Log(MapGet(longMap, 7L));
     Log(MapHas(longMap, 9L));
     Log(ArrayLength(MapKeys(longMap)));
 
-    let boolMap: HashMap<Bool, Int> = MapNew();
+    var boolMap: HashMap<Bool, Int> = MapNew();
     MapSet(boolMap, true, 11);
     MapSet(boolMap, false, 22);
     Log(MapGet(boolMap, true));
@@ -1641,7 +1641,7 @@ run_case "party_role_bind" "$TMPDIR/party_role_bind.pgy" "1"
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/nested_loops.pgy" <<'EOF'
 func Main() -> Void {
-    let total: Int = 0;
+    var total: Int = 0;
     for i in 0..3 {
         for j in 0..3 {
             total = total + 1;

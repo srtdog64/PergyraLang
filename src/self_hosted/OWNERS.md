@@ -1085,7 +1085,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- generated Pergyra rendering of the call hand-off rule
   (`src/semantic/call_handoff_rule.def`, rendered by
   `scripts/render_call_handoff_rule.py` beside the native
-  `src/semantic/call_handoff_rule.h`). It owns the effect-class join, the
+  `src/semantic/call_handoff_rule.h` and `.c`). It owns the effect-class join, the
   self-host effect-code projection and the decision table that the call and
   constructor hand-off and the exclusive argument owners consult; it holds no
   analysis of its own.

@@ -5,7 +5,8 @@
  * study docs/audits/unified_handoff_rule_study_2026-11-16.md sections 2.1,
  * 2.2 and 5.3, and decision 2026-11-16_getter_loan_correction_and_element_
  * ownership_axis). scripts/render_call_handoff_rule.py renders it to
- * src/semantic/call_handoff_rule.h and
+ * src/semantic/call_handoff_rule.h (declarations),
+ * src/semantic/call_handoff_rule.c (the lookups) and
  * src/self_hosted/semantic/call_handoff_rule_projection_owner.pgy; its
  * --check mode is the drift gate (tests/registry/call_handoff_rule_smoke.sh).
  *
