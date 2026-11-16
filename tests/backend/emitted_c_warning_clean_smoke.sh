@@ -55,6 +55,14 @@ WARN_FLAGS=(-std=c11 -fwrapv -fno-strict-aliasing
             -Wno-unused-function -Wno-unused-parameter
             -Wno-missing-field-initializers
             -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime")
+# The same platform feature macros the compiler passes when it compiles
+# emitted C (src/compiler/compiler.c); without them glibc hides
+# CLOCK_MONOTONIC under -std=c11 and the gate tests a build nobody runs.
+case "$(uname -s)" in
+    Darwin) WARN_FLAGS+=(-D_DARWIN_C_SOURCE -D_XOPEN_SOURCE=700) ;;
+    MINGW*|MSYS*|CYGWIN*) ;;
+    *) WARN_FLAGS+=(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700) ;;
+esac
 
 # Representative slice of the corpus: scalars/casts, strings, collections,
 # control flow, classes, options/results, channels, parallel.
