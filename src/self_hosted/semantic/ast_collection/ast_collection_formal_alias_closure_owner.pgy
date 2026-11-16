@@ -1,0 +1,362 @@
+// Storage closure of a default-mode Array<String> formal (call hand-off
+// study §2.1, docs/audits/unified_handoff_rule_study_2026-11-16.md, and
+// docs/truth/decisions/2026-11-12_unwritten_field_copy_is_a_copy.md): the
+// formal and the locals that take its storage without a copy. The formal
+// effect owners read a use of an admitted alias as a use of the formal, so
+// growth through `var grown = values; ArrayPush(grown, "b")` is Grow of
+// `values`, as the native summary has it.
+//
+// An alias is admitted only while the closure names its storage through one
+// binding at a time, so no member keeps a descriptor that growth through
+// another member replaced:
+// - it is a single-binding Array<String> local of the formal's function,
+//   declared from exactly the formal or an admitted alias, with no landed
+//   Clone at that initializer (a Clone ends the closure: the local owns a
+//   copy);
+// - its declaration runs once per call (not in a loop, defer, async or
+//   parallel body or a nested callable), and no assignment rebinds it;
+// - the member it is declared from has no other use, and no other alias is
+//   declared from that member;
+// - growth through it stores only String literals (a parser ArrayPush or
+//   ArraySet of a literal). The self-host computes no element ownership for
+//   a formal (decision 2026-11-16, element ownership axis), so a pop, an
+//   element assignment, a call-form mutation or any other element ends it.
+// When an alias of a formal fails any condition, the formal keeps no alias:
+// its alias declaration stays an ordinary use of the formal, as before.
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "../ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+import "../ast_expression/ast_expression_graph_view_owner.pgy";
+import "../ast_expression/ast_expression_graph_surface_order_owner.pgy";
+import "../ast_local_binding_identity_owner.pgy";
+import "../ast_statement_fact_owner.pgy";
+
+struct SemanticAstCollectionFormalAliasClosure {
+    ok: Bool;
+    // Local row -> formal row of each admitted alias.
+    alias_rows: HashMap<String, Int>;
+    // "<function>:<name>" of each admitted alias; a lookup filter only.
+    alias_names: HashMap<String, Int>;
+    // Value-lane root of each admitted alias declaration -> formal row.
+    definition_roots: HashMap<String, Int>;
+}
+
+// The member an alias candidate is declared from.
+struct SemanticAstCollectionFormalAliasSource {
+    ok: Bool;
+    formal_row: Int;
+    // "f<formal row>" for the formal, "l<local row>" for an alias.
+    member: String;
+}
+
+func SemanticAstCollectionFormalAliasClosureEmpty(ok: Bool) -> SemanticAstCollectionFormalAliasClosure {
+    let rows: HashMap<String, Int> = MapNew();
+    let names: HashMap<String, Int> = MapNew();
+    let roots: HashMap<String, Int> = MapNew();
+    return SemanticAstCollectionFormalAliasClosure(ok, rows, names, roots);
+}
+
+func SemanticAstCollectionFormalAliasNameKey(function_id: Int, name: String) -> String {
+    return Concat(ToString(function_id), Concat(":", name));
+}
+
+// The formal row whose storage this graph leaf names through an admitted
+// alias, or -1. `use_node_id` is the statement that holds the leaf.
+func SemanticAstCollectionFormalAliasRowAt(
+    ref closure: SemanticAstCollectionFormalAliasClosure, ref artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref graph: SemanticExpressionGraphFacts, function_id: Int, use_node_id: Int, node: Int
+) -> Int {
+    if MapSize(closure.alias_names) == 0 { return -1; }
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node);
+    if !IsSome(text) ||
+        !MapHas(closure.alias_names, SemanticAstCollectionFormalAliasNameKey(function_id, UnwrapOption(text))) {
+        return -1;
+    }
+    let resolved: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, function_id, use_node_id, graph, node);
+    if !resolved.ok || !MapHas(closure.alias_rows, ToString(resolved.row)) { return -1; }
+    return MapGet(closure.alias_rows, ToString(resolved.row));
+}
+
+// The declaration of an admitted alias of this formal: its root is not a use
+// that escapes the closure.
+func SemanticAstCollectionFormalAliasDefinitionRootOf(
+    ref closure: SemanticAstCollectionFormalAliasClosure, root: Int, formal_row: Int
+) -> Bool {
+    let key: String = ToString(root);
+    return formal_row >= 0 && MapHas(closure.definition_roots, key) &&
+        MapGet(closure.definition_roots, key) == formal_row;
+}
+
+// A parser ArrayPush or ArraySet that stores a String literal.
+func SemanticAstCollectionFormalAliasLiteralGrowth(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, syntax_id: Int, kind: Int
+) -> Bool {
+    var lane: Int = AstExpressionLaneValue();
+    if kind == TypedAstKindArraySetStmtTag() {
+        lane = AstExpressionLaneAuxiliary();
+    } else if kind != TypedAstKindArrayPushStmtTag() {
+        return false;
+    }
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, lane);
+    return IsSome(value) &&
+        surfaces.expression_graph.arena.topology.node_kinds[UnwrapOption(value)] == AstExpressionNodeStringLiteral();
+}
+
+// A mutation builtin whose receiver argument this call-argument node carries.
+func SemanticAstCollectionFormalAliasMutationReceiver(
+    ref graph: SemanticExpressionGraphFacts, node: Int
+) -> Int {
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, node);
+    if !edge.ok || edge.ordinal != 0 { return -1; }
+    if SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayPushOwnedString") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayPush") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArraySet") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayPop") {
+        return edge.argument_node;
+    }
+    return -1;
+}
+
+func SemanticAstCollectionFormalAliasSourceOf(
+    ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref graph: SemanticExpressionGraphFacts, ref inventory: SemanticAstCollectionFormalEffectInventory,
+    ref candidate_rows: HashMap<String, Int>, ref candidate_formals: Array<Int>, row: Int, value: Int
+) -> SemanticAstCollectionFormalAliasSource {
+    let missing: SemanticAstCollectionFormalAliasSource = SemanticAstCollectionFormalAliasSource(false, -1, "");
+    let function_id: Int = locals.function_node_ids[row];
+    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, value);
+    if !binding.ok { return missing; }
+    if binding.kind == SemanticExpressionBindingFormalParameter() {
+        let key: String = ToString(binding.syntax_id);
+        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+        if !MapHas(inventory.row_by_formal, key) || !IsSome(signature) { return missing; }
+        let formal_row: Int = MapGet(inventory.row_by_formal, key);
+        if formal_row < 0 || formal_row >= ArrayLength(inventory.formal_nodes) ||
+            inventory.modes[formal_row] != 0 || inventory.function_nodes[formal_row] != function_id {
+            return missing;
+        }
+        let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
+            signatures, UnwrapOption(signature), inventory.ordinals[formal_row]);
+        if !IsSome(type_name) || !SemanticAstCollectionOwnershipIsStringArray(UnwrapOption(type_name)) {
+            return missing;
+        }
+        return SemanticAstCollectionFormalAliasSource(true, formal_row, Concat("f", ToString(formal_row)));
+    }
+    if binding.kind != SemanticExpressionBindingNone() { return missing; }
+    let resolved: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, function_id, locals.node_ids[row], graph, value);
+    if !resolved.ok || !MapHas(candidate_rows, ToString(resolved.row)) { return missing; }
+    return SemanticAstCollectionFormalAliasSource(
+        true, candidate_formals[MapGet(candidate_rows, ToString(resolved.row))], Concat("l", ToString(resolved.row)));
+}
+
+// The candidate alias a graph leaf names, or -1. `use_node_id` is the
+// statement that holds the leaf.
+func SemanticAstCollectionFormalAliasCandidateAt(
+    ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref graph: SemanticExpressionGraphFacts,
+    ref names: HashMap<String, Int>, ref candidate_rows: HashMap<String, Int>,
+    function_id: Int, use_node_id: Int, node: Int
+) -> Int {
+    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, node);
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node);
+    if !binding.ok || binding.kind != SemanticExpressionBindingNone() || !IsSome(text) ||
+        !MapHas(names, SemanticAstCollectionFormalAliasNameKey(function_id, UnwrapOption(text))) {
+        return -1;
+    }
+    let resolved: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, function_id, use_node_id, graph, node);
+    if !resolved.ok || !MapHas(candidate_rows, ToString(resolved.row)) { return -1; }
+    return MapGet(candidate_rows, ToString(resolved.row));
+}
+
+// Counts the uses of every member an alias is declared from, in graph order,
+// and fails the formal of an alias that a mutation builtin call receives.
+// A name in a synthetic root has no statement to resolve it in; such a name
+// is returned in `synthetic_names` and fails every candidate it could be.
+func SemanticAstCollectionFormalAliasMemberUses(
+    ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    ref order: SemanticExpressionGraphSurfaceOrder, ref names: HashMap<String, Int>,
+    ref candidate_rows: HashMap<String, Int>, ref candidate_locals: Array<Int>,
+    ref candidate_formals: Array<Int>, ref declared_from: HashMap<String, Int>,
+    inout uses: HashMap<String, Int>, inout synthetic_names: HashMap<String, Int>,
+    inout rejected: HashMap<String, Int>
+) -> Bool {
+    var last: Int = -1;
+    var root: Int = 0;
+    while root < ArrayLength(order.slots_by_root) {
+        let slot: Int = order.slots_by_root[root];
+        if slot == -2 || slot >= 0 {
+            var node: Int = last + 1;
+            while node <= root {
+                let kind: Int = surfaces.expression_graph.arena.topology.node_kinds[node];
+                if kind == AstExpressionNodeCallArgument() && slot >= 0 {
+                    let receiver: Int = SemanticAstCollectionFormalAliasMutationReceiver(surfaces.expression_graph, node);
+                    var mutated: Int = -1;
+                    if receiver >= 0 {
+                        mutated = SemanticAstCollectionFormalAliasCandidateAt(artifact, locals, inferred_types,
+                            surfaces.expression_graph, names, candidate_rows, surfaces.function_node_ids[slot / 3],
+                            surfaces.node_ids[slot / 3], receiver);
+                    }
+                    if mutated >= 0 { MapSet(rejected, ToString(candidate_formals[mutated]), 1); }
+                }
+                if kind == AstExpressionNodeLeaf() {
+                    let binding: SemanticExpressionBindingIdentityFact =
+                        SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, node);
+                    if !binding.ok { return false; }
+                    var member: String = "";
+                    if binding.kind == SemanticExpressionBindingFormalParameter() &&
+                        MapHas(inventory.row_by_formal, ToString(binding.syntax_id)) {
+                        member = Concat("f", ToString(MapGet(inventory.row_by_formal, ToString(binding.syntax_id))));
+                    } else if binding.kind == SemanticExpressionBindingNone() && slot == -2 {
+                        let text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, node);
+                        if IsSome(text) { MapSet(synthetic_names, UnwrapOption(text), 1); }
+                    } else if binding.kind == SemanticExpressionBindingNone() {
+                        let candidate: Int = SemanticAstCollectionFormalAliasCandidateAt(artifact, locals,
+                            inferred_types, surfaces.expression_graph, names, candidate_rows,
+                            surfaces.function_node_ids[slot / 3], surfaces.node_ids[slot / 3], node);
+                        if candidate >= 0 { member = Concat("l", ToString(candidate_locals[candidate])); }
+                    }
+                    if member != "" && MapHas(declared_from, member) {
+                        var count: Int = 1;
+                        if MapHas(uses, member) { count = MapGet(uses, member) + 1; }
+                        MapSet(uses, member, count);
+                    }
+                }
+                node = node + 1;
+            }
+            last = root;
+        }
+        root = root + 1;
+    }
+    return true;
+}
+
+// Fails the formal of every candidate that an assignment rebinds or writes
+// an element of, that a pop shrinks, or that a push or set gives anything
+// but a String literal.
+func SemanticAstCollectionFormalAliasStatementRejections(
+    ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts, ref names: HashMap<String, Int>,
+    ref candidate_rows: HashMap<String, Int>, ref candidate_formals: Array<Int>,
+    inout rejected: HashMap<String, Int>
+) -> Void {
+    var row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        let kind: Int = statements.kind_tags[row];
+        var target: Option<Int> = None;
+        if kind == TypedAstKindAssignStmtTag() || kind == TypedAstKindArrayPushStmtTag() ||
+            kind == TypedAstKindArraySetStmtTag() || kind == TypedAstKindArrayPopStmtTag() {
+            target = SemanticAstExpressionGraphRootForNode(surfaces, statements.node_ids[row], AstExpressionLaneAtom());
+        }
+        if IsSome(target) && surfaces.expression_graph.arena.topology.node_kinds[UnwrapOption(target)] ==
+                AstExpressionNodeIndex() {
+            target = SemanticExpressionGraphLeftChild(surfaces.expression_graph, UnwrapOption(target));
+        }
+        var candidate: Int = -1;
+        if IsSome(target) {
+            candidate = SemanticAstCollectionFormalAliasCandidateAt(artifact, locals, inferred_types,
+                surfaces.expression_graph, names, candidate_rows, statements.function_node_ids[row],
+                statements.node_ids[row], UnwrapOption(target));
+        }
+        if candidate >= 0 && (kind == TypedAstKindAssignStmtTag() ||
+                !SemanticAstCollectionFormalAliasLiteralGrowth(surfaces, statements.node_ids[row], kind)) {
+            MapSet(rejected, ToString(candidate_formals[candidate]), 1);
+        }
+        row = row + 1;
+    }
+}
+
+func SemanticAstCollectionFormalAliasClosureFromFacts(
+    ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref statements: SemanticAstStatementFacts,
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    ref owned_store_expression_node_ids: Array<Int>, ref order: SemanticExpressionGraphSurfaceOrder
+) -> SemanticAstCollectionFormalAliasClosure {
+    var closure: SemanticAstCollectionFormalAliasClosure = SemanticAstCollectionFormalAliasClosureEmpty(false);
+    let local_count: Int = ArrayLength(locals.node_ids);
+    if !inventory.ok || !order.ok || !statements.ok ||
+        !SemanticAstLocalBindingIdentityRowsReady(locals, inferred_types) ||
+        ArrayLength(locals.binding_kinds) != local_count || ArrayLength(locals.binding_arities) != local_count ||
+        ArrayLength(statements.kind_tags) != ArrayLength(statements.node_ids) ||
+        ArrayLength(statements.function_node_ids) != ArrayLength(statements.node_ids) {
+        return closure;
+    }
+    closure.ok = true;
+    var candidate_rows: HashMap<String, Int> = MapNew();
+    var candidate_locals: Array<Int> = [];
+    var candidate_formals: Array<Int> = [];
+    var candidate_members: Array<String> = [];
+    var candidate_roots: Array<Int> = [];
+    var names: HashMap<String, Int> = MapNew();
+    var declared_from: HashMap<String, Int> = MapNew();
+    var row: Int = 0;
+    while row < local_count {
+        let function_id: Int = locals.function_node_ids[row];
+        let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, locals.node_ids[row], AstExpressionLaneValue());
+        if locals.binding_kinds[row] == SemanticAstLocalBindingKindNormal() && locals.binding_indices[row] == 0 &&
+            locals.binding_arities[row] == 1 && SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) &&
+            IsSome(value) &&
+            surfaces.expression_graph.arena.topology.node_kinds[UnwrapOption(value)] == AstExpressionNodeLeaf() &&
+            !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(owned_store_expression_node_ids, UnwrapOption(value)) &&
+            SemanticAstCollectionCallRetirementBound(artifact, locals.node_ids[row], function_id, function_id, false) ==
+                locals.node_ids[row] {
+            let source: SemanticAstCollectionFormalAliasSource = SemanticAstCollectionFormalAliasSourceOf(
+                artifact, signatures, locals, inferred_types, surfaces.expression_graph, inventory,
+                candidate_rows, candidate_formals, row, UnwrapOption(value));
+            if source.ok {
+                MapSet(candidate_rows, ToString(row), ArrayLength(candidate_locals));
+                ArrayPush(candidate_locals, row);
+                ArrayPush(candidate_formals, source.formal_row);
+                ArrayPush(candidate_members, source.member);
+                ArrayPush(candidate_roots, UnwrapOption(value));
+                MapSet(names, SemanticAstCollectionFormalAliasNameKey(function_id, locals.names[row]), 1);
+                var declared: Int = 1;
+                if MapHas(declared_from, source.member) { declared = MapGet(declared_from, source.member) + 1; }
+                MapSet(declared_from, source.member, declared);
+            }
+        }
+        row = row + 1;
+    }
+    if ArrayLength(candidate_locals) == 0 { return closure; }
+    var rejected: HashMap<String, Int> = MapNew();
+    var uses: HashMap<String, Int> = MapNew();
+    var synthetic_names: HashMap<String, Int> = MapNew();
+    if !SemanticAstCollectionFormalAliasMemberUses(artifact, locals, inferred_types, surfaces, inventory, order,
+            names, candidate_rows, candidate_locals, candidate_formals, declared_from, uses, synthetic_names,
+            rejected) {
+        closure.ok = false;
+        return closure;
+    }
+    SemanticAstCollectionFormalAliasStatementRejections(artifact, locals, inferred_types, surfaces, statements,
+        names, candidate_rows, candidate_formals, rejected);
+    var index: Int = 0;
+    while index < ArrayLength(candidate_locals) {
+        let member: String = candidate_members[index];
+        if MapGet(declared_from, member) != 1 || !MapHas(uses, member) || MapGet(uses, member) != 1 ||
+            MapHas(synthetic_names, locals.names[candidate_locals[index]]) {
+            MapSet(rejected, ToString(candidate_formals[index]), 1);
+        }
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(candidate_locals) {
+        let local_row: Int = candidate_locals[index];
+        if !MapHas(rejected, ToString(candidate_formals[index])) {
+            MapSet(closure.alias_rows, ToString(local_row), candidate_formals[index]);
+            MapSet(closure.alias_names, SemanticAstCollectionFormalAliasNameKey(
+                locals.function_node_ids[local_row], locals.names[local_row]), 1);
+            MapSet(closure.definition_roots, ToString(candidate_roots[index]), candidate_formals[index]);
+        }
+        index = index + 1;
+    }
+    return closure;
+}

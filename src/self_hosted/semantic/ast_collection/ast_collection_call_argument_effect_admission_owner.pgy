@@ -38,7 +38,13 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
             prior_non_deep_site = prior_retiring_site;
         }
     }
-    if effect == SemanticAstCollectionFormalShallowMutationEffect() {
+    // This entry is the inout/own write-back proof. A default-mode formal that
+    // grows (through an alias, slice S3) takes its argument by move (decision
+    // 2026-10-18): the call hand-off owner issues the move, and the direct MIR
+    // storage-sharing owner refuses a live row passed to a callee that may grow it.
+    let callee: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    let callee_mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, callee.signature_row, callee.ordinal);
+    if effect == SemanticAstCollectionFormalShallowMutationEffect() && !(callee.ok && IsSome(callee_mode) && UnwrapOption(callee_mode) == 0) {
         if binding.ok {
             // A member alias of an exclusive root holds that field's storage.
             var borrowed: Bool = ownership[binding.row] ==

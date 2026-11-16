@@ -6,11 +6,13 @@ import "../ast_statement_fact_owner.pgy";
 import "../ast_owned_string_call_result_admission_owner.pgy";
 import "ast_collection_exclusive_compiler_clone_owner.pgy";
 import "ast_collection_formal_statement_effect_schema_owner.pgy";
+import "ast_collection_formal_alias_closure_owner.pgy";
 
 // Parser mutators are statement facts, not call-expression nodes. Attach their
 // exact formal effect from the admitted statement row and its carried Atom
-// target. An exact owned-store landing is an owned mutation; every other
-// parser mutation is only a shallow descriptor mutation.
+// target, the formal itself or an admitted alias of it. An exact owned-store
+// landing is an owned mutation; every other parser mutation is only a shallow
+// descriptor mutation.
 func SemanticAstCollectionFormalStatementEffectsFromFacts(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,
@@ -21,7 +23,7 @@ func SemanticAstCollectionFormalStatementEffectsFromFacts(
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref owned_store_expression_node_ids: Array<Int>,
     ref inventory: SemanticAstCollectionFormalEffectInventory,
-    formal_rows: HashMap<String, Int>
+    formal_rows: HashMap<String, Int>, ref alias_closure: SemanticAstCollectionFormalAliasClosure
 ) -> SemanticAstCollectionFormalStatementEffects {
     var owned_formals: HashMap<String, Int> = MapNew();
     var shallow_formals: HashMap<String, Int> = MapNew();
@@ -85,6 +87,10 @@ func SemanticAstCollectionFormalStatementEffectsFromFacts(
                     false, owned_formals, shallow_formals, target_rows,
                     owned_site_nodes);
             }
+            // The target is the formal or an admitted alias of it (the
+            // formal's storage closure); any other local is not a formal.
+            var formal_row: Int = -1;
+            var formal_mode: Int = -1;
             if binding.kind == SemanticExpressionBindingFormalParameter() {
                 let formal: SemanticAstCollectionFormalStorageIdentity =
                     SemanticAstCollectionSourceFormalIdentity(
@@ -97,13 +103,12 @@ func SemanticAstCollectionFormalStatementEffectsFromFacts(
                 }
                 if SemanticAstCollectionOwnershipIsStringArray(
                         formal.declared_type_name) {
-                    let formal_key: String = ToString(formal.syntax_id);
-                    if !MapHas(formal_rows, formal_key) {
+                    if !MapHas(formal_rows, ToString(formal.syntax_id)) {
                         return SemanticAstCollectionFormalStatementEffects(
                             false, owned_formals, shallow_formals, target_rows,
                             owned_site_nodes);
                     }
-                    let formal_row: Int = MapGet(formal_rows, formal_key);
+                    formal_row = MapGet(formal_rows, ToString(formal.syntax_id));
                     if formal_row < 0 ||
                         formal_row >= ArrayLength(inventory.formal_nodes) ||
                         inventory.function_nodes[formal_row] != function_id ||
@@ -112,71 +117,79 @@ func SemanticAstCollectionFormalStatementEffectsFromFacts(
                             false, owned_formals, shallow_formals,
                             target_rows, owned_site_nodes);
                     }
-                    var value_root: Option<Int> = None;
-                    if kind == TypedAstKindArrayPushStmtTag() ||
-                        kind == TypedAstKindArraySetStmtTag() {
-                        var value_lane: Int = AstExpressionLaneValue();
-                        if kind == TypedAstKindArraySetStmtTag() {
-                            value_lane = AstExpressionLaneAuxiliary();
-                        }
-                        value_root = SemanticAstExpressionGraphRootForNode(
-                            surfaces, syntax_id, value_lane);
-                        if !IsSome(value_root) {
-                            return SemanticAstCollectionFormalStatementEffects(
-                                false, owned_formals, shallow_formals,
-                                target_rows, owned_site_nodes);
-                        }
+                    formal_mode = formal.mode;
+                }
+            } else if binding.kind == SemanticExpressionBindingNone() {
+                formal_row = SemanticAstCollectionFormalAliasRowAt(alias_closure, artifact, locals,
+                    initializer_types.inferred_type_names, surfaces.expression_graph,
+                    function_id, syntax_id, target);
+                if formal_row >= 0 { formal_mode = inventory.modes[formal_row]; }
+            }
+            if formal_row >= 0 {
+                let formal_key: String = ToString(inventory.formal_nodes[formal_row]);
+                var value_root: Option<Int> = None;
+                if kind == TypedAstKindArrayPushStmtTag() ||
+                    kind == TypedAstKindArraySetStmtTag() {
+                    var value_lane: Int = AstExpressionLaneValue();
+                    if kind == TypedAstKindArraySetStmtTag() {
+                        value_lane = AstExpressionLaneAuxiliary();
                     }
-                    var owned_store: Bool = false;
-                    if kind == TypedAstKindArrayPushStmtTag() ||
-                        kind == TypedAstKindArraySetStmtTag() {
-                        let surface_row: Option<Int> =
-                            SemanticAstExpressionSurfaceIndexForNode(
-                                surfaces, syntax_id);
-                        if !IsSome(surface_row) {
-                            return SemanticAstCollectionFormalStatementEffects(
-                                false, owned_formals, shallow_formals,
-                                target_rows, owned_site_nodes);
-                        }
-                        owned_store =
-                            SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
-                                owned_store_expression_node_ids,
-                                UnwrapOption(value_root));
-                        if kind == TypedAstKindArrayPushStmtTag() {
-                            owned_store = owned_store ||
-                                SemanticAstOwnedStringCallTarget(
-                                    artifact, signatures, locals,
-                                    initializer_types, surfaces,
-                                    owned_string_results,
-                                    UnwrapOption(surface_row),
-                                    UnwrapOption(value_root)) > 0;
-                        }
-                    }
-                    // An inout Array<String> pop retires one element owned by
-                    // the caller. The requirement owner validates every
-                    // concrete caller before this owned mutation reaches MIR.
-                    let owned_inout_pop: Bool =
-                        kind == TypedAstKindArrayPopStmtTag() &&
-                        formal.mode == 1;
-                    if owned_store || owned_inout_pop {
-                        MapSet(owned_formals, formal_key, 1);
-                        if MapHas(owned_site_nodes, formal_key) {
-                            MapSet(owned_site_nodes, formal_key, -1);
-                        } else {
-                            MapSet(owned_site_nodes, formal_key, syntax_id);
-                        }
-                    } else {
-                        MapSet(shallow_formals, formal_key, 1);
-                    }
-                    let root_key: String = ToString(
-                        UnwrapOption(target_root));
-                    if MapHas(target_rows, root_key) {
+                    value_root = SemanticAstExpressionGraphRootForNode(
+                        surfaces, syntax_id, value_lane);
+                    if !IsSome(value_root) {
                         return SemanticAstCollectionFormalStatementEffects(
                             false, owned_formals, shallow_formals,
                             target_rows, owned_site_nodes);
                     }
-                    MapSet(target_rows, root_key, formal_row);
                 }
+                var owned_store: Bool = false;
+                if kind == TypedAstKindArrayPushStmtTag() ||
+                    kind == TypedAstKindArraySetStmtTag() {
+                    let surface_row: Option<Int> =
+                        SemanticAstExpressionSurfaceIndexForNode(
+                            surfaces, syntax_id);
+                    if !IsSome(surface_row) {
+                        return SemanticAstCollectionFormalStatementEffects(
+                            false, owned_formals, shallow_formals,
+                            target_rows, owned_site_nodes);
+                    }
+                    owned_store =
+                        SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+                            owned_store_expression_node_ids,
+                            UnwrapOption(value_root));
+                    if kind == TypedAstKindArrayPushStmtTag() {
+                        owned_store = owned_store ||
+                            SemanticAstOwnedStringCallTarget(
+                                artifact, signatures, locals,
+                                initializer_types, surfaces,
+                                owned_string_results,
+                                UnwrapOption(surface_row),
+                                UnwrapOption(value_root)) > 0;
+                    }
+                }
+                // An inout Array<String> pop retires one element owned by
+                // the caller. The requirement owner validates every
+                // concrete caller before this owned mutation reaches MIR.
+                let owned_inout_pop: Bool =
+                    kind == TypedAstKindArrayPopStmtTag() && formal_mode == 1;
+                if owned_store || owned_inout_pop {
+                    MapSet(owned_formals, formal_key, 1);
+                    if MapHas(owned_site_nodes, formal_key) {
+                        MapSet(owned_site_nodes, formal_key, -1);
+                    } else {
+                        MapSet(owned_site_nodes, formal_key, syntax_id);
+                    }
+                } else {
+                    MapSet(shallow_formals, formal_key, 1);
+                }
+                let root_key: String = ToString(
+                    UnwrapOption(target_root));
+                if MapHas(target_rows, root_key) {
+                    return SemanticAstCollectionFormalStatementEffects(
+                        false, owned_formals, shallow_formals,
+                        target_rows, owned_site_nodes);
+                }
+                MapSet(target_rows, root_key, formal_row);
             }
         }
         statement_row = statement_row + 1;

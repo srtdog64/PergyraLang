@@ -357,11 +357,14 @@ func CollectionFormalKeyConsumptionProbeMain(args: Array<String>) -> Void with c
     }
     // Observed fixture coverage, not a second production effect authority.
     let no_owned_store_landings: Array<Int> = [];
+    // The observer counts statement targets that name a formal directly; it
+    // passes no alias closure.
+    let no_aliases: SemanticAstCollectionFormalAliasClosure = SemanticAstCollectionFormalAliasClosureEmpty(true);
     let statements: SemanticAstCollectionFormalStatementEffects = SemanticAstCollectionFormalStatementEffectsFromFacts(
         artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types,
         analysis.expression_surfaces, analysis.statements, bundle.owned_string_result_domains,
         no_owned_store_landings, actual.inventory,
-        actual.inventory.row_by_formal);
+        actual.inventory.row_by_formal, no_aliases);
     if !statements.ok { Exit(3); }
     let targets: HashMap<String, Int> = statements.target_rows;
     var formal_targets: Int = 0;

@@ -62,7 +62,10 @@ printf 'body=ok\nAppend:0:2=6\nPop:0:2=6\nSet:0:2=6\nIndexed:0:2=5\ntargets=3:0\
 printf 'body=ok\nMatches:0:0=3\nAppendBorrowed:0:1=2\nForward:0:1=2\ntargets=1:0\nordinary=6\n' >"$WORK/expected-1"
 # borrow_formal_identity_input binds its `ref` formal to a local; the source
 # pass refuses that new binding as native does, after the formal owner ran.
-printf 'body=borrow_boundary_escape\nMetadata:0:2=1\nMatches:0:0=3\nForeign:0:3=1\nModes:0:0=-1\nModes:1:1=-1\nModes:2:2=-1\nModes:3:3=-1\ntargets=0:0\nordinary=12\n' >"$WORK/expected-2"
+# Its default-mode formal's local alias is in that formal's storage closure
+# (slice S3), so the formal takes the alias's Read (3). The inout, own and ref
+# formals keep no alias: their alias declarations still block them (-1).
+printf 'body=borrow_boundary_escape\nMetadata:0:2=1\nMatches:0:0=3\nForeign:0:3=1\nModes:0:0=3\nModes:1:1=-1\nModes:2:2=-1\nModes:3:3=-1\ntargets=0:0\nordinary=12\n' >"$WORK/expected-2"
 printf 'body=move_from_released\nRetire:0:2=1\nForward:0:2=1\ntargets=0:0\nordinary=6\n' >"$WORK/expected-3"
 printf 'body=borrow_boundary_escape\nMetadata:0:2=1\nObserve:0:3=-1\ntargets=0:0\nordinary=4\n' >"$WORK/expected-4"
 printf 'body=borrow_boundary_escape\nMetadata:0:2=1\nOpaque:0:1=2\nObserve:0:3=4\ntargets=1:0\nordinary=8\n' >"$WORK/expected-5"

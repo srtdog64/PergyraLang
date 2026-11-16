@@ -4,8 +4,9 @@
 # holder has its storage. A local whose storage and elements the semantic fact
 # leaves unknown (a call result; an alias of a `ref` formal is refused earlier,
 # in semantic, as native does), a local handed to a
-# callee that grows it without a hand-off fact (here through an alias of the
-# formal, or again on every loop iteration), a local given to two records or
+# callee that grows it without a hand-off fact (again on every loop
+# iteration, through an alias whose formal is read after it grew, or with an
+# element the self-host cannot classify), a local given to two records or
 # to a record in a loop that does not declare it, and an alias of an inout
 # member that grows in place, and a record lent to a ref formal beside an
 # inout output that may keep its Strings are refused with no artifact; none is
@@ -15,6 +16,10 @@
 # --mir-json route too; with the hand-off removed, or forged onto a member move,
 # the route refuses it. A callee that reads a member of a record it is given
 # by value releases nothing, so the caller's record releases it once.
+# A local handed once to a callee that grows its formal through a local alias
+# is handed off: the alias is in the formal's storage closure (slice S3), so
+# the caller releases nothing and the program runs. The closure is per
+# formal: a sibling formal that is only read keeps its caller's release.
 # A record or call result is the only owner of the locals it takes, of any
 # collection type: a local it takes that is also returned or taken by another
 # record, or taken again on each pass of a loop that defines it outside, is
@@ -78,8 +83,9 @@ func Observe(ref values: Array<String>) -> Bool {
 }
 func Main() -> Void { let values: Array<String> = ["borrowed"]; Log(Observe(values)); }
 EOF
-# The callee grows its parameter's storage in place; the caller's release
-# would free it a second time.
+# The callee grows its parameter's storage through an alias. The alias is in
+# the formal's storage closure, so the call hands `names` off and the caller
+# does not free what the growth reallocated.
 cat >"$WORK_DIR/grown_handoff.pgy" <<'EOF'
 func GrowCount(values: Array<String>) -> Int {
     var grown: Array<String> = values;
@@ -160,6 +166,64 @@ func Main() -> Void {
     while i < 2 { Log(GrowCount(names)); i = i + 1; }
 }
 EOF
+# Neighbours of the alias closure that stay refused: the formal is read after
+# its alias grew (the alias needs a copy, decision 2026-11-12), the alias is
+# rebound on every pass of a loop, and the alias receives an element the
+# self-host does not classify (an owned String into borrowed elements).
+cat >"$WORK_DIR/alias_read_after.pgy" <<'EOF'
+func GrowCount(values: Array<String>) -> Int {
+    var grown: Array<String> = values;
+    ArrayPush(grown, "b"); ArrayPush(grown, "c"); ArrayPush(grown, "d"); ArrayPush(grown, "e");
+    return ArrayLength(grown) + ArrayLength(values);
+}
+func Main() -> Void {
+    let names: Array<String> = ["a"];
+    Log(GrowCount(names));
+}
+EOF
+cat >"$WORK_DIR/alias_loop_rebind.pgy" <<'EOF'
+func GrowCount(values: Array<String>) -> Int {
+    var grown: Array<String> = values;
+    var i: Int = 0;
+    while i < 3 {
+        ArrayPush(grown, "b"); ArrayPush(grown, "c"); ArrayPush(grown, "d");
+        grown = values;
+        i = i + 1;
+    }
+    return ArrayLength(grown);
+}
+func Main() -> Void {
+    let names: Array<String> = ["a"];
+    Log(GrowCount(names));
+}
+EOF
+cat >"$WORK_DIR/alias_owned_element.pgy" <<'EOF'
+func AppendFresh(rows: Array<String>) -> Void {
+    var names: Array<String> = rows;
+    ArrayPush(names, Concat("owned", " value"));
+}
+func Main() -> Void {
+    let rows: Array<String> = ["borrowed"];
+    AppendFresh(rows);
+}
+EOF
+# The closure is per formal: the grown alias belongs to `second`, so `others`
+# is handed off and `names`, only read, is released once by its caller.
+cat >"$WORK_DIR/alias_other_formal.pgy" <<'EOF'
+func GrowSecond(first: Array<String>, second: Array<String>) -> Int {
+    var grown: Array<String> = second;
+    ArrayPush(grown, "b"); ArrayPush(grown, "c"); ArrayPush(grown, "d"); ArrayPush(grown, "e");
+    return ArrayLength(first) + ArrayLength(grown);
+}
+func Main() -> Void {
+    let names: Array<String> = ["a"];
+    let others: Array<String> = ["x"];
+    Log(GrowSecond(names, others));
+    Log(names[0]);
+}
+EOF
+printf '5\n' >"$WORK_DIR/grown_handoff.expected"
+printf '6\na\n' >"$WORK_DIR/alias_other_formal.expected"
 # A record whose owned Strings are lent to a ref formal while the same call
 # writes an inout output: the callee stores borrowed Strings of the loan in
 # that output, and the record's release would leave them dangling.
@@ -340,9 +404,13 @@ refuse call_result --emit-c c "$NO_ROW"
 refuse call_result --emit-llvm ll "$NO_ROW"
 refuse formal_alias --emit-c c "boundary: new_binding"
 refuse formal_alias --emit-llvm ll "boundary: new_binding"
-refuse grown_handoff --emit-c c "$SHARED"
-refuse grown_handoff --emit-llvm ll "$SHARED"
 refuse grown_loop --emit-c c "$SHARED"
+refuse alias_read_after --emit-c c "$SHARED"
+refuse alias_read_after --emit-llvm ll "$SHARED"
+refuse alias_loop_rebind --emit-c c "boundary: unproved_exclusive_member_mutation"
+refuse alias_loop_rebind --emit-llvm ll "boundary: unproved_exclusive_member_mutation"
+refuse alias_owned_element --emit-c c "$SHARED"
+refuse alias_owned_element --emit-llvm ll "$SHARED"
 # A program with a struct takes the round-trip C route, which copies instead;
 # only the LLVM leg reaches the direct MIR cleanup.
 refuse constructor_twice --emit-llvm ll "$NO_HANDOFF"
@@ -381,6 +449,8 @@ for backend in c llvm; do
     run_admitted grown_record "$backend" 6
     run_admitted formal_member_read "$backend" 0
     run_admitted record_single_owner "$backend" 0
+    run_admitted grown_handoff "$backend" 0
+    run_admitted alias_other_formal "$backend" 0
 done
 
 # Native MIR into the installed backend (--mir-json): the native semantic
@@ -455,4 +525,4 @@ for backend in c llvm; do
     done
 done
 
-echo "[$LABEL] PASS refused=14+4 admitted=6x2+native-mir-2x2 evidence=$WORK_REL"
+echo "[$LABEL] PASS refused=18+4 admitted=8x2+native-mir-2x2 evidence=$WORK_REL"

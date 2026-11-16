@@ -13,6 +13,7 @@ import "../ast_string_formal_text_containment_owner.pgy";
 import "ast_collection_descriptor_effect_owner.pgy";
 import "ast_collection_formal_use_entry_owner.pgy";
 import "ast_collection_owned_push_leaf_resolution_owner.pgy";
+import "ast_collection_formal_alias_closure_owner.pgy";
 
 func SemanticAstCollectionFormalEffectsWithSurfaceOrderAndOwnedStoreLandings(
     artifact: AstTreeArtifact,
@@ -67,11 +68,15 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrderAndOwnedStoreLandings(
     var sources: Array<Int> = [];
     var targets: Array<Int> = [];
     let count: Int = ArrayLength(inventory.formal_nodes);
+    // A use of an admitted alias of a formal is a use of the formal.
+    let alias_closure: SemanticAstCollectionFormalAliasClosure = SemanticAstCollectionFormalAliasClosureFromFacts(
+        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, statements,
+        inventory, owned_store_expression_node_ids, order);
     let statement_effects: SemanticAstCollectionFormalStatementEffects =
         SemanticAstCollectionFormalStatementEffectsFromFacts(
             artifact, signatures, locals, initializer_types, surfaces,
             statements, owned_string_results,
-            owned_store_expression_node_ids, inventory, formal_rows);
+            owned_store_expression_node_ids, inventory, formal_rows, alias_closure);
     let statement_owned_formals: HashMap<String, Int> =
         statement_effects.owned_formals;
     let statement_shallow_formals: HashMap<String, Int> =
@@ -122,7 +127,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrderAndOwnedStoreLandings(
     }
     var ok: Bool = contexts.ok && inventory.ok && signatures.ok &&
         SemanticBuiltinArgumentRetentionProjectionReady() &&
-        statement_effects.ok && statement_site_shape_ready;
+        statement_effects.ok && statement_site_shape_ready && alias_closure.ok;
     var last: Int = -1;
     var root: Int = 0;
     while ok && root < ArrayLength(order.slots_by_root) {
@@ -166,6 +171,10 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrderAndOwnedStoreLandings(
                             ok = false; break;
                         }
                     }
+                } else if binding.kind == SemanticExpressionBindingNone() {
+                    formal_row = SemanticAstCollectionFormalAliasRowAt(alias_closure, artifact, locals,
+                        initializer_types.inferred_type_names, surfaces.expression_graph,
+                        surfaces.function_node_ids[slot / 3], surfaces.node_ids[slot / 3], node);
                 }
                 ArrayPush(node_rows, formal_row);
                 ArrayPush(element_rows, -1);
@@ -451,8 +460,10 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrderAndOwnedStoreLandings(
                         statement_target_rows, root_key);
                 }
             }
+            // An alias declaration keeps the formal's storage in its closure.
             if ok && node_rows[root] >= 0 &&
-                node_rows[root] != statement_mutation_row {
+                node_rows[root] != statement_mutation_row &&
+                !SemanticAstCollectionFormalAliasDefinitionRootOf(alias_closure, root, node_rows[root]) {
                 blocked[node_rows[root]] = true;
                 owned_push_leaf_disqualified[node_rows[root]] = true;
             }

@@ -692,6 +692,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   A canonical release is consumption of an owning formal, not unresolved
   user-call forwarding. Caller element requirements and event order remain
   separate obligations.
+- `src/self_hosted/semantic/ast_collection/ast_collection_formal_alias_closure_owner.pgy`
+  -- the storage closure of a default-mode `Array<String>` formal (slice S3):
+  the locals declared from the formal, or from such a local, with no landed
+  Clone, that the formal-use and statement-effect owners read as the
+  formal. It admits an alias only while one member names the storage at a
+  time (one declaration that runs once, no rebinding, the member it comes
+  from has no other use); otherwise the formal keeps no alias.
 - `src/self_hosted/semantic/ast_collection/ast_collection_formal_effect_fact_owner.pgy` --
   canonical body-owned formal-effect carrier and its empty admission value.
 - `src/self_hosted/semantic/ast_collection/ast_collection_formal_statement_effect_owner.pgy`
