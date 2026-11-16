@@ -6,6 +6,7 @@ import "direct_mir/scalar_program/direct_mir_scalar_program_logical_record_expre
 import "direct_mir/scalar_program/direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 import "owned_storage_result_recipe_owner.pgy";
+import "owned_storage_exclusive_take_owner.pgy";
 import "direct_mir/scalar_program/direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_owner.pgy";
 import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_parameter_policy_owner.pgy";
@@ -347,6 +348,16 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
                 result_parameter_ordinals, target_routine, root, false, 0,
                 aggregate_origins, release);
             if aggregate_recipe >= 0 {
+                // The aggregate becomes the only owner of what it takes.
+                let taken: Int = DirectMirOwnedLocalStorageTakenTwice(
+                    plan, definitions, result_parameter_ordinals, local_recipes,
+                    transferred, root, definitions[target], 0);
+                if taken == 1 {
+                    Die("owned local taken by a record or call result is already held by another owner");
+                }
+                if taken == 2 {
+                    Die("owned local taken by a record or call result is taken again on each pass of a loop");
+                }
                 local_recipes[target] = aggregate_recipe;
                 DirectMirOwnedStorageReturnClosure(
                     plan, definitions, result_parameter_ordinals,

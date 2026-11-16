@@ -219,7 +219,7 @@ func DirectMirScalarProgramArrayStringReplacementDropSymbol(
     // A definition that runs again releases the storage of the previous run;
     // one that runs once releases the zero descriptor.
     if (mode == 1 || mode == 2) &&
-        DirectMirScalarProgramOperationInCycle(plan, operation) &&
+        DirectMirScalarProgramOperationInCycle(plan, operation, -1) &&
         DirectMirScalarProgramArrayStringLocalShared(plan, routine, local_row) {
         Die("direct MIR Array<String> replacement refuses storage another holder still has");
     }

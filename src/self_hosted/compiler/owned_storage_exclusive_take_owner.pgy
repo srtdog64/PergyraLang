@@ -1,0 +1,59 @@
+// A record or call result that takes local storage must be its only owner.
+// The lifetime owner asks this before it grants the taker a release recipe.
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir/scalar_program/direct_mir_scalar_program_array_string_storage_sharing_owner.pgy";
+import "owned_storage_release_plan_owner.pgy";
+
+// Whether a record or call result defined by `taker` (an operation, or -1)
+// takes storage under `node` that it may not own alone: 1 when another owner
+// already took a local (a return, a callee taking the handle, another record),
+// 2 when `taker` runs again in a loop before the local is defined anew, else 0.
+// The walk follows the locals and alias arguments the release recipe follows;
+// a local with a granted recipe keeps the inputs it took, so it ends there.
+func DirectMirOwnedLocalStorageTakenTwice(ref plan: DirectMirScalarCfgGraphPlan,
+    ref definitions: Array<Int>, ref result_parameter_ordinals: Array<Int>,
+    ref local_recipes: Array<Int>, ref transferred: Array<Bool>,
+    node: Int, taker: Int, depth: Int) -> Int {
+    if node < 0 || node >= ArrayLength(plan.program.expressions.node_kinds) { return 0; }
+    if depth > ArrayLength(definitions) + ArrayLength(plan.program.logical_record.names) + 1 { return 1; }
+    if DirectMirOwnedLocalStorageMode(plan, plan.program.expressions.node_types[node], 0) == 0 { return 0; }
+    let kind: Int = plan.program.expressions.node_kinds[node];
+    if kind == DirectMirScalarProgramExprLocal() {
+        let local_row: Int = plan.program.expressions.node_local_rows[node];
+        if local_row < 0 || local_row >= ArrayLength(definitions) { return 0; }
+        if transferred[local_row] { return 1; }
+        let operation: Int = definitions[local_row];
+        if operation < 0 { return 0; }
+        if taker >= 0 && DirectMirScalarProgramOperationInCycle(plan, taker, operation) { return 2; }
+        if local_recipes[local_row] >= 0 { return 0; }
+        let graph: Int = plan.program.operation_expression_rows[operation];
+        if graph < 0 { return 0; }
+        return DirectMirOwnedLocalStorageTakenTwice(plan, definitions, result_parameter_ordinals,
+            local_recipes, transferred, plan.program.expressions.graph_roots[graph], taker, depth + 1);
+    }
+    let args: DirectMirScalarProgramArgumentView =
+        DirectMirScalarProgramArgumentViewFromNode(plan.program.expressions, node);
+    if !args.valid { return 1; }
+    if kind == DirectMirScalarProgramExprDirectCall() {
+        let callee: Int = plan.program.expressions.node_callable_rows[node];
+        if callee < 0 || callee >= ArrayLength(result_parameter_ordinals) ||
+            result_parameter_ordinals[callee] < 0 ||
+            result_parameter_ordinals[callee] >= args.count { return 0; }
+        return DirectMirOwnedLocalStorageTakenTwice(plan, definitions, result_parameter_ordinals,
+            local_recipes, transferred,
+            DirectMirScalarProgramArgumentViewAt(plan.program.expressions, args, result_parameter_ordinals[callee]),
+            taker, depth + 1);
+    }
+    if kind != DirectMirScalarProgramExprLogicalRecordConstructor() { return 0; }
+    var arg: Int = 0;
+    while arg < args.count {
+        let taken: Int = DirectMirOwnedLocalStorageTakenTwice(plan, definitions, result_parameter_ordinals,
+            local_recipes, transferred,
+            DirectMirScalarProgramArgumentViewAt(plan.program.expressions, args, arg), taker, depth + 1);
+        if taken != 0 { return taken; }
+        arg = arg + 1;
+    }
+    return 0;
+}

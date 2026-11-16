@@ -14,6 +14,11 @@
 # --mir-json route too; with the hand-off removed, or forged onto a member move,
 # the route refuses it. A callee that reads a member of a record it is given
 # by value releases nothing, so the caller's record releases it once.
+# A record or call result is the only owner of the locals it takes, of any
+# collection type: a local it takes that is also returned or taken by another
+# record, or taken again on each pass of a loop that defines it outside, is
+# refused (the old driver released that storage twice). Admitted programs run
+# under glibc heap checks, so a second release aborts them.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -30,6 +35,8 @@ NO_HANDOFF="direct MIR Array<String> constructor input has no hand-off fact"
 LENT_INOUT="owned local lent to a ref formal is released while an inout argument of the same call may hold its Strings"
 # The MIR reader refuses the routine whose member move claims a hand-off.
 FORGED_HANDOFF="direct MIR compile-time declaration erasure declaration schema is invalid"
+TAKEN="owned local taken by a record or call result is already held by another owner"
+TAKEN_AGAIN="owned local taken by a record or call result is taken again on each pass of a loop"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 
@@ -252,6 +259,64 @@ EOF
 printf '1\n' >"$WORK_DIR/formal_member_read.expected"
 printf '1\n' >"$WORK_DIR/constructor_handoff.expected"
 : >"$WORK_DIR/grown_record.expected"
+# The Pair takes `first` and the function also returns it: the Pair's release
+# and the caller's would free one Array<Int> storage twice.
+cat >"$WORK_DIR/record_then_return.pgy" <<'EOF'
+struct Pair { first: Array<Int>; second: Array<Int>; }
+func Make() -> Array<Int> {
+    let first: Array<Int> = [1];
+    let second: Array<Int> = [2];
+    let pair: Pair = Pair(first, second);
+    Log(ArrayLength(pair.first));
+    return first;
+}
+func Main() -> Void { let rows: Array<Int> = Make(); Log(ArrayLength(rows)); }
+EOF
+# Two records take one Array<Int> local; each would release it.
+cat >"$WORK_DIR/record_twice.pgy" <<'EOF'
+struct Rows { values: Array<Int>; }
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    let first: Rows = Rows(values);
+    let second: Rows = Rows(values);
+    Log(ArrayLength(first.values) + ArrayLength(second.values));
+}
+EOF
+# A record in a loop takes a local defined before the loop on every pass; the
+# replaced record releases the storage the next pass takes again.
+cat >"$WORK_DIR/record_loop.pgy" <<'EOF'
+struct Rows { values: Array<Int>; }
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    var i: Int = 0;
+    while i < 2 {
+        let rows: Rows = Rows(values);
+        Log(ArrayLength(rows.values));
+        i = i + 1;
+    }
+}
+EOF
+# Neighbours with one owner each: a record that a second record takes whole,
+# a record whose local is also read, and a loop that defines the local anew
+# before its record takes it.
+cat >"$WORK_DIR/record_single_owner.pgy" <<'EOF'
+struct Rows { values: Array<Int>; }
+struct Outer { rows: Rows; }
+func Main() -> Void {
+    let values: Array<Int> = [1, 2];
+    let rows: Rows = Rows(values);
+    let outer: Outer = Outer(rows);
+    Log(ArrayLength(outer.rows.values) + ArrayLength(values));
+    var i: Int = 0;
+    while i < 2 {
+        let fresh: Array<Int> = [i, i, i];
+        let again: Rows = Rows(fresh);
+        Log(ArrayLength(again.values));
+        i = i + 1;
+    }
+}
+EOF
+printf '4\n3\n3\n' >"$WORK_DIR/record_single_owner.expected"
 
 refuse() {
     local name="$1" flag="$2" extension="$3" message="$4" rc
@@ -281,15 +346,24 @@ refuse constructor_twice --emit-llvm ll "$NO_HANDOFF"
 refuse constructor_loop --emit-llvm ll "$NO_HANDOFF"
 refuse member_alias --emit-llvm ll "$MEMBER_ALIAS"
 refuse lent_beside_inout --emit-llvm ll "$LENT_INOUT"
+refuse record_then_return --emit-llvm ll "$TAKEN"
+refuse record_twice --emit-llvm ll "$TAKEN"
+refuse record_loop --emit-llvm ll "$TAKEN_AGAIN"
 
-# Each admitted program runs on both legs with its stdout and exit status.
+# Each admitted program runs on both legs with its stdout and exit status. The
+# default profile builds the LLVM artifact at -O0, which keeps a second free
+# in the program; glibc's heap checks then abort it.
+heap_check=(env MALLOC_CHECK_=3)
+for library in /lib/x86_64-linux-gnu/libc_malloc_debug.so.0 /lib64/libc_malloc_debug.so.0; do
+    if [[ -e "$library" ]]; then heap_check+=("LD_PRELOAD=$library"); break; fi
+done
 run_admitted() {
     local name="$1" backend="$2" status="$3" rc
     (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE "$PGY" "$WORK_REL/$name.pgy" "--backend=$backend" \
         -o "$WORK_REL/$name-$backend.exe") >"$WORK_DIR/$name-$backend.log" 2>&1 ||
         fail "$name was refused on $backend: $(head -3 "$WORK_DIR/$name-$backend.log")"
     set +e
-    (cd "$ROOT_DIR" && timeout 30 "$WORK_DIR/$name-$backend.exe") >"$WORK_DIR/$name-$backend.raw"
+    (cd "$ROOT_DIR" && timeout 30 "${heap_check[@]}" "$WORK_DIR/$name-$backend.exe") >"$WORK_DIR/$name-$backend.raw"
     rc=$?
     set -e
     [[ "$rc" -eq "$status" ]] || fail "$name exited $rc on $backend, expected $status"
@@ -303,6 +377,7 @@ for backend in c llvm; do
     run_admitted constructor_handoff "$backend" 0
     run_admitted grown_record "$backend" 6
     run_admitted formal_member_read "$backend" 0
+    run_admitted record_single_owner "$backend" 0
 done
 
 # Native MIR into the installed backend (--mir-json): the native semantic
@@ -347,7 +422,7 @@ native_mir_run() {
             -pthread -lm -o "$WORK_DIR/native_$name-llvm.exe" \
             >"$WORK_DIR/native_$name.llvm.cc" 2>&1 || fail "native MIR LLVM artifact of $name did not compile"
     fi
-    (cd "$ROOT_DIR" && timeout 30 "$WORK_DIR/native_$name-$backend.exe") | tr -d '\r' \
+    (cd "$ROOT_DIR" && timeout 30 "${heap_check[@]}" "$WORK_DIR/native_$name-$backend.exe") | tr -d '\r' \
         >"$WORK_DIR/native_$name-$backend.run" || fail "native MIR of $name failed on $backend"
     cmp -s "$WORK_DIR/$name.expected" "$WORK_DIR/native_$name-$backend.run" ||
         fail "native MIR output of $name drifted on $backend"
@@ -377,4 +452,4 @@ for backend in c llvm; do
     done
 done
 
-echo "[$LABEL] PASS refused=11+4 admitted=5x2+native-mir-2x2 evidence=$WORK_REL"
+echo "[$LABEL] PASS refused=14+4 admitted=6x2+native-mir-2x2 evidence=$WORK_REL"

@@ -193,20 +193,25 @@ func DirectMirScalarProgramArrayStringConstructorInput(
 }
 
 // Whether the block holding this operation can run again: a successor path
-// returns to it. Block successors are program-wide block rows.
+// returns to it. Block successors are program-wide block rows. A path through
+// the block of `renewed` (an operation, or -1 for none) does not count: that
+// operation runs again before this one does. When both share one block, the
+// renewing operation precedes this one on every pass.
 func DirectMirScalarProgramOperationInCycle(
-    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int, renewed: Int
 ) -> Bool {
     var home: Int = -1;
+    var avoided: Int = -1;
     var block: Int = 0;
     while block < ArrayLength(plan.block_operation_starts) {
-        if operation >= plan.block_operation_starts[block] &&
-            operation < plan.block_operation_starts[block] + plan.block_operation_counts[block] {
-            home = block;
-        }
+        let start: Int = plan.block_operation_starts[block];
+        let end: Int = start + plan.block_operation_counts[block];
+        if operation >= start && operation < end { home = block; }
+        if renewed >= 0 && renewed >= start && renewed < end { avoided = block; }
         block = block + 1;
     }
-    if home < 0 { return true; }
+    if home < 0 || (renewed >= 0 && avoided < 0) { return true; }
+    if avoided == home { return false; }
     var reached: Array<Bool> = [];
     var pending: Array<Int> = [];
     block = 0;
@@ -218,7 +223,7 @@ func DirectMirScalarProgramOperationInCycle(
         let next: Int = pending[cursor];
         cursor = cursor + 1;
         if next == home { return true; }
-        if next >= 0 && next < ArrayLength(reached) && !reached[next] {
+        if next >= 0 && next < ArrayLength(reached) && !reached[next] && next != avoided {
             reached[next] = true;
             ArrayPush(pending, plan.block_succ_true[next]);
             ArrayPush(pending, plan.block_succ_false[next]);
