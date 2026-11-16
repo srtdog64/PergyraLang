@@ -3097,7 +3097,7 @@ region-backend-wiring-test-smoke: $(PGY)
 # C; the driver now produces this immutable plan before backend dispatch.
 REGION_PLAN_UNIT_BIN := $(BUILD_DIR)/region_plan_unit$(EXEEXT)
 
-$(REGION_PLAN_UNIT_BIN): tests/ownership/region_plan_unit.c src/compiler/verified_region_plan.c
+$(REGION_PLAN_UNIT_BIN): tests/ownership/region_plan_unit.c src/compiler/verified_region_plan.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/ownership/region_plan_unit.c src/compiler/verified_region_plan.c
 
 region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
@@ -3122,7 +3122,7 @@ REGION_ESCAPE_UNIT_SOURCES := tests/ownership/region_escape_unit.c \
     src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c \
     src/parser/ast_async_lambda_accessors.c
 
-$(REGION_ESCAPE_UNIT_BIN): $(REGION_ESCAPE_UNIT_SOURCES) src/semantic/region_retention_summary.h src/semantic/builtin_argument_retention_registry.def
+$(REGION_ESCAPE_UNIT_BIN): $(REGION_ESCAPE_UNIT_SOURCES) src/semantic/region_retention_summary.h src/semantic/builtin_argument_retention_registry.def | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ $(REGION_ESCAPE_UNIT_SOURCES)
 
 region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
@@ -3175,7 +3175,7 @@ arena-ledger-test-smoke: $(ARENA_LEDGER_BIN)
 
 RUNTIME_CONTEXT_BIN := $(BUILD_DIR)/runtime_context_smoke$(EXEEXT)
 
-$(RUNTIME_CONTEXT_BIN): tests/runtime/runtime_context_smoke.c
+$(RUNTIME_CONTEXT_BIN): tests/runtime/runtime_context_smoke.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ tests/runtime/runtime_context_smoke.c $(THREAD_LINK_LIB) -lm
 
 runtime-context-test-smoke: $(RUNTIME_CONTEXT_BIN)
