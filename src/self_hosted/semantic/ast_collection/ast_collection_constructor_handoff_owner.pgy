@@ -32,11 +32,14 @@ import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_formal_descriptor_retention_owner.pgy";
 import "ast_collection_ownership_verdict_schema_owner.pgy";
 import "../call_handoff_rule_projection_owner.pgy";
+import "ast_collection_call_handoff_ledger_owner.pgy";
 
 func SemanticAstCollectionConstructorHandOffApply(
     ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
     ref definitions: SemanticAstCollectionDefinitionFacts,
     ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    inout call_handoff: SemanticAstCollectionCallHandoffLedger,
     inout verdict: SemanticAstCollectionOwnershipVerdict
 ) -> Void {
     var input: Int = 0;
@@ -101,10 +104,31 @@ func SemanticAstCollectionConstructorHandOffApply(
         }
         let handoff: Int = SemanticCallHandoffAction(SemanticCallHandoffMemberKeep(), origin, later,
             SemanticCallHandoffContextSync(), SemanticCallHandoffElementsAsGiven(), divergences);
-        if row >= 0 && handoff == SemanticCallHandoffActionHandOff() && definition_count == 1 &&
+        let handed_off: Bool = row >= 0 && handoff == SemanticCallHandoffActionHandOff() &&
+            definition_count == 1 &&
             binding_row < ArrayLength(locals.node_ids) && locals.node_ids[binding_row] == binding_id &&
             verdict.dispositions[row] == SemanticAstCollectionDispositionLive() &&
-            verdict.origins[row] != SemanticAstCollectionOriginMemberMove() {
+            verdict.origins[row] != SemanticAstCollectionOriginMemberMove();
+        // The ledger row of a tracked binding: the divergence is named when
+        // its row changed the answer.
+        if row >= 0 && call_effects.constructor_inputs.function_ids[input] > 0 {
+            var divergence: Int = -1;
+            if handoff != SemanticCallHandoffAction(SemanticCallHandoffMemberKeep(), origin, later,
+                    SemanticCallHandoffContextSync(), SemanticCallHandoffElementsAsGiven(), 0) {
+                divergence = SemanticCallHandoffDivergenceIdSelfRetiredConstructorInputKept();
+            }
+            let call_node: Int = call_effects.constructor_inputs.call_nodes[input];
+            var callee: String = "";
+            if call_node >= 0 && call_node < ArrayLength(surfaces.expression_graph.arena.call_target_names) {
+                callee = Concat("", surfaces.expression_graph.arena.call_target_names[call_node]);
+            }
+            SemanticAstCollectionCallHandoffLedgerAppendAction(call_handoff,
+                call_effects.constructor_inputs.function_ids[input], call_node, callee,
+                call_effects.constructor_inputs.ordinals[input], binding_id, landed,
+                SemanticCallHandoffMemberKeep(), origin, later, SemanticCallHandoffContextSync(),
+                SemanticCallHandoffElementsAsGiven(), handoff, divergence, handed_off);
+        }
+        if handed_off {
             var dispositions: Array<Int> = verdict.dispositions;
             ArraySet(dispositions, row, SemanticAstCollectionDispositionHandedOff());
             verdict.dispositions = dispositions;

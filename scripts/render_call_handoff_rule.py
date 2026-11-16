@@ -455,9 +455,73 @@ def render_c(rule: Rule) -> str:
             "        (unsigned)context >= PGY_CALL_HANDOFF_CONTEXT_COUNT ||",
             "        (unsigned)elements >= PGY_CALL_HANDOFF_ELEMENTS_COUNT)",
             "        return PGY_CALL_HANDOFF_ACTION_UNDECIDED;",
-            "    return table[kind][context][elements];", "}", "",
-            "#endif", ""]
+            "    return table[kind][context][elements];", "}", ""]
+    out += render_c_names(rule)
+    out += ["#endif", ""]
     return "\n".join(out)
+
+
+def render_c_names(rule: Rule) -> list[str]:
+    """The MIR JSON spellings of the vocabulary (slice S2 rows)."""
+    out = ["/* MIR JSON spellings of the vocabulary (call_handoff rows, slice S2):",
+           " * a member by its bit index, each axis value, each action and each",
+           " * divergence by its declaration index. NULL outside the vocabulary. */"]
+
+    def name_function(fn: str, param: str, names: list[str]) -> None:
+        out.extend(["static inline const char *", f"{fn}({param})", "{",
+                    "    switch ((unsigned)value) {"])
+        for i, n in enumerate(names):
+            out.append(f"    case {i}: return \"{n}\";")
+        out.extend(["    default: return NULL;", "    }", "}", ""])
+
+    name_function("pgy_call_handoff_member_name", "unsigned value", rule.members)
+    for axis, type_name in zip(AXES, ("Origin", "Later", "Context", "Elements")):
+        name_function(f"pgy_call_handoff_{axis.lower()}_name",
+                      f"PgyCallHandoff{type_name} value", rule.axes[axis])
+    name_function("pgy_call_handoff_action_name", "PgyCallHandoffAction value", rule.actions)
+    out.append("typedef enum {")
+    for i, d in enumerate(rule.divergences):
+        out.append(f"    PGY_CALL_HANDOFF_DIVERGENCE_ID_{d.name} = {i},")
+    out += ["    PGY_CALL_HANDOFF_DIVERGENCE_ID_COUNT", "} PgyCallHandoffDivergenceId;", ""]
+    name_function("pgy_call_handoff_divergence_name", "PgyCallHandoffDivergenceId value",
+                  [d.name for d in rule.divergences])
+    return out
+
+
+def render_pgy_names(rule: Rule) -> list[str]:
+    """The MIR JSON spellings of the vocabulary (slice S2 rows)."""
+    out = ["// MIR JSON spellings of the vocabulary (call_handoff rows, slice S2):",
+           "// a member by its bit index, each axis value, each action and each",
+           "// divergence by its declaration index, with the divergence's form and",
+           "// row flag (0 for an input divergence). \"\" outside the vocabulary."]
+
+    def name_function(fn: str, names: list[str]) -> None:
+        out.append(f"func SemanticCallHandoff{fn}(value: Int) -> String {{")
+        for i, n in enumerate(names):
+            out.append(f"    if value == {i} {{ return \"{n}\"; }}")
+        out.extend(["    return \"\";", "}"])
+
+    out.append(f"func SemanticCallHandoffMemberCount() -> Int {{ return {len(rule.members)}; }}")
+    name_function("MemberName", rule.members)
+    for axis in AXES:
+        out.append(f"func SemanticCallHandoff{camel(axis)}Count() -> Int "
+                   f"{{ return {len(rule.axes[axis])}; }}")
+        name_function(f"{camel(axis)}Name", rule.axes[axis])
+    out.append(f"func SemanticCallHandoffActionCount() -> Int {{ return {len(rule.actions)}; }}")
+    name_function("ActionName", rule.actions)
+    out.append(f"func SemanticCallHandoffDivergenceCount() -> Int "
+               f"{{ return {len(rule.divergences)}; }}")
+    for i, d in enumerate(rule.divergences):
+        out.append(f"func SemanticCallHandoffDivergenceId{camel(d.name)}() -> Int {{ return {i}; }}")
+    name_function("DivergenceName", [d.name for d in rule.divergences])
+    name_function("DivergenceForm", [d.form for d in rule.divergences])
+    flag_index = {d.name: i for i, d in enumerate(flag_divergences(rule))}
+    out.append("func SemanticCallHandoffDivergenceFlag(value: Int) -> Int {")
+    for i, d in enumerate(rule.divergences):
+        if d.name in flag_index:
+            out.append(f"    if value == {i} {{ return {1 << flag_index[d.name]}; }}")
+    out.extend(["    return 0;", "}", ""])
+    return out
 
 
 def render_pgy(rule: Rule) -> str:
@@ -580,6 +644,7 @@ def render_pgy(rule: Rule) -> str:
             "    }",
             "    return common_answer;",
             "}", ""]
+    out += render_pgy_names(rule)
     return "\n".join(out)
 
 

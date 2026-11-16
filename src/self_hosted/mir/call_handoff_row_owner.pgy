@@ -1,0 +1,136 @@
+// The call hand-off rows of each self-host MIR routine (slice S2 of the
+// hand-off rule migration, docs/audits/unified_handoff_rule_study_2026-11-16.md
+// section 3).
+//
+// The semantic ledger (ast_collection_call_handoff_ledger_owner.pgy) is the
+// one producer; this owner only selects a routine's rows and renders the
+// routine's `call_handoff` object in the vocabulary of
+// src/semantic/call_handoff_rule.def, in the shape the native writer
+// (src/compiler/mir/mir_json_dump.c) uses:
+//   {"complete", "class_count", "classes", "action_count", "actions",
+//    "clone_count", "clones"}.
+// The self-host ledger leaves no routine out, so `complete` is true. Both
+// JSON writers emit the rendered object; the MIR reader validates it
+// (src/self_hosted/mir_lower/call_handoff_row_fact_owner.pgy).
+import "../semantic/ast_collection/ast_collection_ownership_verdict_schema_owner.pgy";
+import "../semantic/call_handoff_rule_projection_owner.pgy";
+import "../lib/json_emit.pgy";
+
+struct SelfMirCallHandoffRows {
+    // The rendered object of each routine, in routine order.
+    routine_objects: Array<String>;
+}
+
+func SelfMirCallHandoffRowsEmpty() -> SelfMirCallHandoffRows {
+    let strings: Array<String> = [];
+    return SelfMirCallHandoffRows(strings);
+}
+
+func SelfMirCallHandoffMembersJson(members: Int) -> String {
+    var names: Array<String> = [];
+    var index: Int = 0;
+    while index < SemanticCallHandoffMemberCount() {
+        if SemanticCallHandoffSetHas(members, index) {
+            ArrayPush(names, JsonStringLiteral(SemanticCallHandoffMemberName(index)));
+        }
+        index = index + 1;
+    }
+    return JsonEmitArray(names);
+}
+
+func SelfMirCallHandoffDivergenceName(divergence: Int) -> String {
+    if divergence < 0 { return ""; }
+    return SemanticCallHandoffDivergenceName(divergence);
+}
+
+func SelfMirCallHandoffActionJson(ref ledger: SemanticAstCollectionCallHandoffLedger, row: Int) -> String {
+    var row_state: String = "kept";
+    if ledger.action_handed_off[row] == 1 { row_state = "handed-off"; }
+    return JsonEmitObject([
+        JsonEmitFieldNumber("call_site", ToString(ledger.action_call_sites[row])),
+        JsonEmitFieldString("callee", ledger.action_callees[row]),
+        JsonEmitFieldNumber("parameter_index", ToString(ledger.action_parameter_indices[row])),
+        JsonEmitFieldNumber("binding_syntax_id", ToString(ledger.action_binding_ids[row])),
+        JsonEmitFieldBool("compiler_clone", ledger.action_compiler_clones[row] == 1),
+        JsonEmitFieldRaw("members", SelfMirCallHandoffMembersJson(ledger.action_members[row])),
+        JsonEmitFieldString("origin", SemanticCallHandoffOriginName(ledger.action_origins[row])),
+        JsonEmitFieldString("later", SemanticCallHandoffLaterName(ledger.action_laters[row])),
+        JsonEmitFieldString("context", SemanticCallHandoffContextName(ledger.action_site_contexts[row])),
+        JsonEmitFieldString("elements", SemanticCallHandoffElementsName(ledger.action_elements[row])),
+        JsonEmitFieldString("action", SemanticCallHandoffActionName(ledger.action_codes[row])),
+        JsonEmitFieldString("divergence", SelfMirCallHandoffDivergenceName(ledger.action_divergences[row])),
+        JsonEmitFieldString("row", row_state)
+    ]);
+}
+
+// The `call_handoff` object of the routine `function_node_id`.
+func SelfMirCallHandoffObject(
+    ref ledger: SemanticAstCollectionCallHandoffLedger, function_node_id: Int
+) -> String {
+    var classes: Array<String> = [];
+    var row: Int = 0;
+    while row < ArrayLength(ledger.class_function_ids) {
+        if ledger.class_function_ids[row] == function_node_id {
+            ArrayPush(classes, JsonEmitObject([
+                JsonEmitFieldNumber("parameter_index", ToString(ledger.class_parameter_indices[row])),
+                JsonEmitFieldRaw("members", SelfMirCallHandoffMembersJson(ledger.class_members[row])),
+                JsonEmitFieldString("divergence", SelfMirCallHandoffDivergenceName(ledger.class_divergences[row]))
+            ]));
+        }
+        row = row + 1;
+    }
+    var actions: Array<String> = [];
+    row = 0;
+    while row < ArrayLength(ledger.action_function_ids) {
+        if ledger.action_function_ids[row] == function_node_id {
+            ArrayPush(actions, SelfMirCallHandoffActionJson(ledger, row));
+        }
+        row = row + 1;
+    }
+    var clones: Array<String> = [];
+    row = 0;
+    while row < ArrayLength(ledger.clone_function_ids) {
+        if ledger.clone_function_ids[row] == function_node_id {
+            ArrayPush(clones, JsonEmitObject([
+                JsonEmitFieldNumber("site", ToString(ledger.clone_sites[row])),
+                JsonEmitFieldNumber("binding_syntax_id", ToString(ledger.clone_binding_ids[row])),
+                JsonEmitFieldString("callee", ledger.clone_callees[row]),
+                JsonEmitFieldNumber("argument_index", ToString(ledger.clone_argument_indices[row]))
+            ]));
+        }
+        row = row + 1;
+    }
+    return JsonEmitObject([
+        JsonEmitFieldBool("complete", true),
+        JsonEmitFieldNumber("class_count", ToString(ArrayLength(classes))),
+        JsonEmitFieldRaw("classes", JsonEmitArray(classes)),
+        JsonEmitFieldNumber("action_count", ToString(ArrayLength(actions))),
+        JsonEmitFieldRaw("actions", JsonEmitArray(actions)),
+        JsonEmitFieldNumber("clone_count", ToString(ArrayLength(clones))),
+        JsonEmitFieldRaw("clones", JsonEmitArray(clones))
+    ]);
+}
+
+func SelfMirCallHandoffRowsAppendRoutine(
+    rows: SelfMirCallHandoffRows,
+    ref collection_ownership: SemanticAstCollectionOwnershipVerdict,
+    function_node_id: Int
+) -> SelfMirCallHandoffRows {
+    var rendered: Array<String> = rows.routine_objects;
+    ArrayPush(rendered, SelfMirCallHandoffObject(collection_ownership.call_handoff, function_node_id));
+    return SelfMirCallHandoffRows(rendered);
+}
+
+// An intent routine holds no ledger rows.
+func SelfMirCallHandoffRowsAppendEmptyRoutine(
+    rows: SelfMirCallHandoffRows
+) -> SelfMirCallHandoffRows {
+    var rendered: Array<String> = rows.routine_objects;
+    let empty: SemanticAstCollectionCallHandoffLedger = SemanticAstCollectionCallHandoffLedgerEmpty();
+    ArrayPush(rendered, SelfMirCallHandoffObject(empty, 0));
+    return SelfMirCallHandoffRows(rendered);
+}
+
+func SelfMirCallHandoffRowsReady(ref rows: SelfMirCallHandoffRows, routine_count: Int) -> Bool {
+    return ArrayLength(rows.routine_objects) == routine_count;
+}

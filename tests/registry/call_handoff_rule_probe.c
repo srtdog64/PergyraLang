@@ -131,6 +131,22 @@ dump(void)
     }
     for (unsigned m = 0; m <= PGY_CALL_HANDOFF_MEMBER_ALL; m++)
         printf("kind %u %d\n", m, (int)pgy_call_handoff_kind(m));
+    /* The MIR JSON spellings the native writer uses (slice S2). */
+    for (unsigned i = 0; pgy_call_handoff_member_name(i) != NULL; i++)
+        printf("name member %u %s\n", i, pgy_call_handoff_member_name(i));
+    for (int i = 0; i < PGY_CALL_HANDOFF_ORIGIN_COUNT; i++)
+        printf("name origin %d %s\n", i, pgy_call_handoff_origin_name((PgyCallHandoffOrigin)i));
+    for (int i = 0; i < PGY_CALL_HANDOFF_LATER_COUNT; i++)
+        printf("name later %d %s\n", i, pgy_call_handoff_later_name((PgyCallHandoffLater)i));
+    for (int i = 0; i < PGY_CALL_HANDOFF_CONTEXT_COUNT; i++)
+        printf("name context %d %s\n", i, pgy_call_handoff_context_name((PgyCallHandoffContext)i));
+    for (int i = 0; i < PGY_CALL_HANDOFF_ELEMENTS_COUNT; i++)
+        printf("name elements %d %s\n", i, pgy_call_handoff_elements_name((PgyCallHandoffElements)i));
+    for (int i = 0; i < PGY_CALL_HANDOFF_ACTION_UNDECIDED; i++)
+        printf("name action %d %s\n", i, pgy_call_handoff_action_name((PgyCallHandoffAction)i));
+    for (int i = 0; i < PGY_CALL_HANDOFF_DIVERGENCE_ID_COUNT; i++)
+        printf("name divergence %d %s\n", i,
+            pgy_call_handoff_divergence_name((PgyCallHandoffDivergenceId)i));
 }
 
 int

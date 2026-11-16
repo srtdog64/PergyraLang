@@ -1,6 +1,7 @@
 // Collection-ownership verdict schema and success constructors.
 
 import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_call_handoff_ledger_owner.pgy";
 
 struct SemanticAstCollectionOwnershipVerdict {
     ok: Bool;
@@ -21,6 +22,8 @@ struct SemanticAstCollectionOwnershipVerdict {
     fresh_owned_result_function_syntax_ids: Array<Int>;
     compiler_clone_expression_node_ids: Array<Int>;
     receipts: SemanticAstCollectionOwnershipReceiptRows;
+    // The call hand-off ledger of the scan (slice S2); MIR publishes it.
+    call_handoff: SemanticAstCollectionCallHandoffLedger;
 }
 
 func SemanticAstCollectionOwnershipVerdictOk(
@@ -44,7 +47,8 @@ func SemanticAstCollectionOwnershipVerdictOk(
         element_ownerships, dispositions, origins,
         fresh_owned_result_function_syntax_ids,
         compiler_clone_expression_node_ids,
-        SemanticAstCollectionOwnershipReceiptRowsEmpty()
+        SemanticAstCollectionOwnershipReceiptRowsEmpty(),
+        SemanticAstCollectionCallHandoffLedgerEmpty()
     );
 }
 
@@ -71,7 +75,7 @@ func SemanticAstCollectionOwnershipVerdictOkWithFacts(
         element_ownerships, dispositions, origins,
         fresh_owned_result_function_syntax_ids,
         compiler_clone_expression_node_ids,
-        receipts
+        receipts, SemanticAstCollectionCallHandoffLedgerEmpty()
     );
 }
 

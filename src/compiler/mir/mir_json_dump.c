@@ -13,6 +13,8 @@
 #include "mir_json_dump_runtime_abi.h"
 #include "mir_json_dump_intent_execution.h"
 #include "mir_parallel_capture_facts.h"
+#include "../../semantic/call_handoff_ledger.h"
+#include "../../semantic/call_handoff_rule.h"
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -590,7 +592,116 @@ mir_json_emit_collection_ownership_facts(FILE *out,
 }
 
 static void
-mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
+mir_json_emit_call_handoff_members(FILE *out, unsigned members)
+{
+    fputs("\"members\":[", out);
+    bool first = true;
+    for (unsigned bit = 0; pgy_call_handoff_member_name(bit) != NULL; bit++) {
+        if ((members & (1u << bit)) == 0u) continue;
+        if (!first) fputc(',', out);
+        mir_json_emit_str(out, pgy_call_handoff_member_name(bit));
+        first = false;
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_call_handoff_divergence(FILE *out, int divergence)
+{
+    fputs(",\"divergence\":", out);
+    const char *name = divergence >= 0
+        ? pgy_call_handoff_divergence_name((PgyCallHandoffDivergenceId)divergence)
+        : NULL;
+    mir_json_emit_str(out, name != NULL ? name : "");
+}
+
+static void
+mir_json_emit_call_handoff_action(FILE *out, const PgyCallHandoffActionRow *row)
+{
+    fprintf(out, "{\"call_site\":%u,\"callee\":", row->call_site);
+    mir_json_emit_str(out, row->callee != NULL ? row->callee : "");
+    fprintf(out, ",\"parameter_index\":%u,\"binding_syntax_id\":%u,"
+        "\"compiler_clone\":%s,", row->parameter_index, row->binding_syntax_id,
+        row->compiler_clone ? "true" : "false");
+    mir_json_emit_call_handoff_members(out, row->members);
+    fputs(",\"origin\":", out);
+    mir_json_emit_str(out, pgy_call_handoff_origin_name(
+        (PgyCallHandoffOrigin)row->origin));
+    fputs(",\"later\":", out);
+    mir_json_emit_str(out, pgy_call_handoff_later_name(
+        (PgyCallHandoffLater)row->later));
+    fputs(",\"context\":", out);
+    mir_json_emit_str(out, pgy_call_handoff_context_name(
+        (PgyCallHandoffContext)row->context));
+    fputs(",\"elements\":", out);
+    mir_json_emit_str(out, pgy_call_handoff_elements_name(
+        (PgyCallHandoffElements)row->elements));
+    fputs(",\"action\":", out);
+    mir_json_emit_str(out, pgy_call_handoff_action_name(
+        (PgyCallHandoffAction)row->action));
+    mir_json_emit_call_handoff_divergence(out, row->divergence);
+    fputs(",\"row\":", out);
+    mir_json_emit_str(out, row->handed_off ? "handed-off" : "kept");
+    fputc('}', out);
+}
+
+/* The routine's call hand-off rows (slice S2): the class of each of its
+ * formals the hand-off owner read, the action at each site of a tracked
+ * local, and the copy plan. The vocabulary is call_handoff_rule.def's. */
+static void
+mir_json_emit_call_handoff(FILE *out, const MIRProgram *mir,
+                           const MIRRoutine *routine)
+{
+    const PgyCallHandoffLedger *ledger = mir->call_handoff_ledger;
+    uint32_t id = routine->source_syntax_id;
+    size_t classes = 0, actions = 0, clones = 0;
+    for (size_t i = 0; ledger != NULL && i < ledger->class_count; i++)
+        classes += ledger->classes[i].function_syntax_id == id;
+    for (size_t i = 0; ledger != NULL && i < ledger->action_count; i++)
+        actions += ledger->actions[i].function_syntax_id == id;
+    for (size_t i = 0; ledger != NULL && i < ledger->clone_count; i++)
+        clones += ledger->clones[i].function_syntax_id == id;
+    fprintf(out, ",\"call_handoff\":{\"complete\":%s,\"class_count\":%zu,"
+        "\"classes\":[",
+        pgy_call_handoff_ledger_incomplete(ledger, id) ? "false" : "true",
+        classes);
+    bool first = true;
+    for (size_t i = 0; ledger != NULL && i < ledger->class_count; i++) {
+        const PgyCallHandoffClassRow *row = &ledger->classes[i];
+        if (row->function_syntax_id != id) continue;
+        if (!first) fputc(',', out);
+        fprintf(out, "{\"parameter_index\":%u,", row->parameter_index);
+        mir_json_emit_call_handoff_members(out, row->members);
+        mir_json_emit_call_handoff_divergence(out, row->divergence);
+        fputc('}', out);
+        first = false;
+    }
+    fprintf(out, "],\"action_count\":%zu,\"actions\":[", actions);
+    first = true;
+    for (size_t i = 0; ledger != NULL && i < ledger->action_count; i++) {
+        if (ledger->actions[i].function_syntax_id != id) continue;
+        if (!first) fputc(',', out);
+        mir_json_emit_call_handoff_action(out, &ledger->actions[i]);
+        first = false;
+    }
+    fprintf(out, "],\"clone_count\":%zu,\"clones\":[", clones);
+    first = true;
+    for (size_t i = 0; ledger != NULL && i < ledger->clone_count; i++) {
+        const PgyCallHandoffCloneRow *row = &ledger->clones[i];
+        if (row->function_syntax_id != id) continue;
+        if (!first) fputc(',', out);
+        fprintf(out, "{\"site\":%u,\"binding_syntax_id\":%u,\"callee\":",
+            row->site, row->binding_syntax_id);
+        mir_json_emit_str(out, row->callee != NULL ? row->callee : "");
+        fprintf(out, ",\"argument_index\":%ld}", row->argument_index);
+        first = false;
+    }
+    fputs("]}", out);
+}
+
+static void
+mir_json_emit_routine(FILE *out, const MIRProgram *mir,
+                      const MIRRoutine *routine)
 {
     fputs("{\"name\":", out);
     mir_json_emit_str_or_null(out, routine->name);
@@ -625,6 +736,7 @@ mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
     mir_json_emit_iteration_type_facts(out, routine);
     mir_json_emit_destructure_type_facts(out, routine);
     mir_json_emit_collection_ownership_facts(out, routine);
+    mir_json_emit_call_handoff(out, mir, routine);
     bool emit_local_refs = mir_json_routine_local_refs_required(routine);
     fputs(",\"blocks\":[", out);
     for (size_t j = 0;
@@ -646,7 +758,7 @@ mir_json_emit_routines(FILE *out, const MIRProgram *mir)
     for (size_t i = 0; i < mir->routine_count; i++) {
         if (i > 0)
             fputc(',', out);
-        mir_json_emit_routine(out, &mir->routines[i]);
+        mir_json_emit_routine(out, mir, &mir->routines[i]);
     }
 }
 

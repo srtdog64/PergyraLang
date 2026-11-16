@@ -52,6 +52,38 @@
 #include "mir/mir_abi_layout.h"
 #include "mir/mir_nominal_abi_layout.h"
 
+static bool
+mir_routine_known(const MIRProgram *mir, uint32_t function_syntax_id)
+{
+    for (size_t r = 0; r < mir->routine_count; r++)
+        if (mir->routines[r].source_syntax_id == function_syntax_id)
+            return true;
+    return false;
+}
+
+/* MIR JSON publishes the call hand-off ledger per routine, so a row whose
+ * routine MIR does not hold would be dropped unseen: fail closed instead. */
+static bool
+mir_call_handoff_ledger_routines_known(const MIRProgram *mir,
+    char **error_message)
+{
+    const PgyCallHandoffLedger *ledger = mir->call_handoff_ledger;
+    bool known = ledger != NULL;
+    for (size_t i = 0; known && i < ledger->class_count; i++)
+        known = mir_routine_known(mir, ledger->classes[i].function_syntax_id);
+    for (size_t i = 0; known && i < ledger->action_count; i++)
+        known = mir_routine_known(mir, ledger->actions[i].function_syntax_id);
+    for (size_t i = 0; known && i < ledger->clone_count; i++)
+        known = mir_routine_known(mir, ledger->clones[i].function_syntax_id);
+    for (size_t i = 0; known && i < ledger->incomplete_count; i++)
+        known = mir_routine_known(mir,
+            ledger->incomplete_function_syntax_ids[i]);
+    if (!known && error_message != NULL && *error_message == NULL)
+        *error_message = pergyra_strdup(
+            "Call hand-off ledger row references an unknown MIR routine");
+    return known;
+}
+
 MIRProgram *
 mir_lower(const MIRLowerRequest *request, char **error_message)
 {
@@ -142,6 +174,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         mir_destroy(mir);
         return NULL;
     }
+    mir->call_handoff_ledger = &semantic->call_handoff_ledger;
 
 #define MIR_COPY_AST_LIST(field, count_field) \
     do { \
@@ -553,6 +586,10 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         }
     }
     mir_refresh_non_cfg_body_fallback_inventory(mir);
+    if (!mir_call_handoff_ledger_routines_known(mir, error_message)) {
+        mir_destroy(mir);
+        return NULL;
+    }
 
     if (getenv("PGY_DEBUG_MIR_TIMING") != NULL)
         mir_timing_report();

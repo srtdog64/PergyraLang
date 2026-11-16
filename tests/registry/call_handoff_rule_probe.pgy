@@ -56,4 +56,31 @@ func Main() -> Void {
             Concat(" ", ToString(SemanticCallHandoffKind(members)))));
         members = members + 1;
     }
+    // The MIR JSON spellings the self-host writer and reader use (slice S2).
+    CallHandoffProbeNames("member", SemanticCallHandoffMemberCount());
+    CallHandoffProbeNames("origin", SemanticCallHandoffOriginCount());
+    CallHandoffProbeNames("later", SemanticCallHandoffLaterCount());
+    CallHandoffProbeNames("context", SemanticCallHandoffContextCount());
+    CallHandoffProbeNames("elements", SemanticCallHandoffElementsCount());
+    CallHandoffProbeNames("action", SemanticCallHandoffActionCount());
+    CallHandoffProbeNames("divergence", SemanticCallHandoffDivergenceCount());
+}
+
+func CallHandoffProbeName(vocabulary: String, index: Int) -> String {
+    if vocabulary == "member" { return SemanticCallHandoffMemberName(index); }
+    if vocabulary == "origin" { return SemanticCallHandoffOriginName(index); }
+    if vocabulary == "later" { return SemanticCallHandoffLaterName(index); }
+    if vocabulary == "context" { return SemanticCallHandoffContextName(index); }
+    if vocabulary == "elements" { return SemanticCallHandoffElementsName(index); }
+    if vocabulary == "action" { return SemanticCallHandoffActionName(index); }
+    return SemanticCallHandoffDivergenceName(index);
+}
+
+func CallHandoffProbeNames(vocabulary: String, count: Int) -> Void {
+    var index: Int = 0;
+    while index < count {
+        Log(Concat(Concat(Concat("name ", vocabulary), Concat(" ", ToString(index))),
+            Concat(" ", CallHandoffProbeName(vocabulary, index))));
+        index = index + 1;
+    }
 }

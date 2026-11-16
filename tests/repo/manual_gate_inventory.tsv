@@ -65,3 +65,4 @@ tests/parallel/concurrency_examples_smoke.sh	Not wired into any target; only a r
 tests/self_hosted/parity/direct_mir/direct_mir_scalar_runtime_value_lifecycle_owner.sh	Not wired into any target; only a removed source-text check named it (2026-10-13). Run by hand until a target owns it.
 tests/self_hosted/parity/mir/expression_root_consumption_owner.sh	Not wired into any target; only a removed source-text check named it (2026-10-13). Run by hand until a target owns it.
 tests/self_hosted/parity/ownership/slice_length_codegen_source_owner.sh	Not wired into any target; only a removed source-text check named it (2026-10-13). Run by hand until a target owns it.
+tests/self_hosted/parity/ownership/call_handoff_differential_measure.sh	Manual G2 call hand-off row measurement (slice S2); writes counts and differences, no pass pin until slice S5.

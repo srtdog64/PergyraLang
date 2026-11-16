@@ -28,7 +28,8 @@ func SemanticAstCollectionOwnershipVerdictError(
         element_ownerships, dispositions, origins,
         fresh_owned_result_function_syntax_ids,
         compiler_clone_expression_node_ids,
-        SemanticAstCollectionOwnershipReceiptRowsEmpty()
+        SemanticAstCollectionOwnershipReceiptRowsEmpty(),
+        SemanticAstCollectionCallHandoffLedgerEmpty()
     );
 }
 

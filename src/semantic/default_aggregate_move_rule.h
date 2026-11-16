@@ -16,6 +16,10 @@ bool semantic_default_aggregate_value(SemanticContext *ctx, const Type *type);
  * no class, for any other formal. */
 bool semantic_default_aggregate_formal_class(SemanticContext *ctx,
     ASTNode *callee, size_t formal, unsigned *members);
+/* The same class read only from a final, current summary; false when the
+ * summary was never demanded. It starts no analysis. */
+bool semantic_default_aggregate_formal_class_settled(SemanticContext *ctx,
+    ASTNode *callee, size_t formal, unsigned *members);
 /* An own formal consumes its aggregate; a default formal moves when its
  * final flow summary changes, keeps, returns or releases shared storage. */
 bool semantic_default_aggregate_formal_moves(SemanticContext *ctx, ASTNode *callee, size_t formal);

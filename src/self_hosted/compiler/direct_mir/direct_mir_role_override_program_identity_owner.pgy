@@ -221,7 +221,7 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         admitted.routines, routine_row, 0, 0
     );
     if !JsonObjectFactTableReady(routine) ||
-        JsonObjectFactCount(routine) != 23 ||
+        JsonObjectFactCount(routine) != 24 ||
         !DirectMirRoutineHasNoUnsupportedFacts(routine) ||
         !JsonObjectFactStringFieldEquals(routine, "return", "String") ||
         !DirectMirRoleOverrideRoutineCfgReady(index, 0) ||
@@ -385,7 +385,7 @@ func DirectMirRoleOverrideMainFromRoutine(
     let uses: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(admitted.routines, routine_row);
     if !JsonObjectFactTableReady(routine) ||
-        JsonObjectFactCount(routine) != 22 ||
+        JsonObjectFactCount(routine) != 23 ||
         !DirectMirRoutineHasNoUnsupportedFacts(routine) ||
         !DirectMirRoleOverrideRoutineCfgReady(index, 1) ||
         index.source_local_names[0] == "" ||

@@ -180,3 +180,111 @@ func SemanticCallHandoffActionForNamedOwner(
     }
     return common_answer;
 }
+
+// MIR JSON spellings of the vocabulary (call_handoff rows, slice S2):
+// a member by its bit index, each axis value, each action and each
+// divergence by its declaration index, with the divergence's form and
+// row flag (0 for an input divergence). "" outside the vocabulary.
+func SemanticCallHandoffMemberCount() -> Int { return 6; }
+func SemanticCallHandoffMemberName(value: Int) -> String {
+    if value == 0 { return "READ"; }
+    if value == 1 { return "RETURN"; }
+    if value == 2 { return "GROW"; }
+    if value == 3 { return "KEEP"; }
+    if value == 4 { return "RELEASE"; }
+    if value == 5 { return "UNPROVED"; }
+    return "";
+}
+func SemanticCallHandoffOriginCount() -> Int { return 4; }
+func SemanticCallHandoffOriginName(value: Int) -> String {
+    if value == 0 { return "FRESH"; }
+    if value == 1 { return "LOCAL"; }
+    if value == 2 { return "CALLER_FORMAL"; }
+    if value == 3 { return "BORROWED"; }
+    return "";
+}
+func SemanticCallHandoffLaterCount() -> Int { return 2; }
+func SemanticCallHandoffLaterName(value: Int) -> String {
+    if value == 0 { return "ONCE"; }
+    if value == 1 { return "USED_AGAIN"; }
+    return "";
+}
+func SemanticCallHandoffContextCount() -> Int { return 2; }
+func SemanticCallHandoffContextName(value: Int) -> String {
+    if value == 0 { return "SYNC"; }
+    if value == 1 { return "DETACHED"; }
+    return "";
+}
+func SemanticCallHandoffElementsCount() -> Int { return 2; }
+func SemanticCallHandoffElementsName(value: Int) -> String {
+    if value == 0 { return "AS_GIVEN"; }
+    if value == 1 { return "OWNED_REQUIRED"; }
+    return "";
+}
+func SemanticCallHandoffActionCount() -> Int { return 10; }
+func SemanticCallHandoffActionName(value: Int) -> String {
+    if value == 0 { return "LEND_FOR_CALL"; }
+    if value == 1 { return "RESULT_OWNS"; }
+    if value == 2 { return "MOVED"; }
+    if value == 3 { return "HAND_OFF"; }
+    if value == 4 { return "MOVED_ON"; }
+    if value == 5 { return "LOAN_TO_RESULT"; }
+    if value == 6 { return "CLONE_ARGUMENT"; }
+    if value == 7 { return "OWNED_ELEMENT_CLONE"; }
+    if value == 8 { return "REFUSE"; }
+    if value == 9 { return "KEEP_ROW_STATE"; }
+    return "";
+}
+func SemanticCallHandoffDivergenceCount() -> Int { return 13; }
+func SemanticCallHandoffDivergenceIdNativeKeepReuseRefused() -> Int { return 0; }
+func SemanticCallHandoffDivergenceIdNativeUnprovedReuseRefused() -> Int { return 1; }
+func SemanticCallHandoffDivergenceIdNativeArrayFormalDescriptorOnly() -> Int { return 2; }
+func SemanticCallHandoffDivergenceIdNativeBorrowedMoveRefused() -> Int { return 3; }
+func SemanticCallHandoffDivergenceIdNativeDetachedContextNotRead() -> Int { return 4; }
+func SemanticCallHandoffDivergenceIdSelfRetiredConstructorInputKept() -> Int { return 5; }
+func SemanticCallHandoffDivergenceIdSelfUnprovedEffectNotMoving() -> Int { return 6; }
+func SemanticCallHandoffDivergenceIdSelfUnprovedRefusedAtEntry() -> Int { return 7; }
+func SemanticCallHandoffDivergenceIdSelfLaterUseNotRead() -> Int { return 8; }
+func SemanticCallHandoffDivergenceIdSelfRepeatSkipsDetachedBody() -> Int { return 9; }
+func SemanticCallHandoffDivergenceIdSelfConstructorElementAxisUnread() -> Int { return 10; }
+func SemanticCallHandoffDivergenceIdSelfConstructorTwiceNotCopied() -> Int { return 11; }
+func SemanticCallHandoffDivergenceIdSelfStructLiteralInputUnseen() -> Int { return 12; }
+func SemanticCallHandoffDivergenceName(value: Int) -> String {
+    if value == 0 { return "NATIVE_KEEP_REUSE_REFUSED"; }
+    if value == 1 { return "NATIVE_UNPROVED_REUSE_REFUSED"; }
+    if value == 2 { return "NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY"; }
+    if value == 3 { return "NATIVE_BORROWED_MOVE_REFUSED"; }
+    if value == 4 { return "NATIVE_DETACHED_CONTEXT_NOT_READ"; }
+    if value == 5 { return "SELF_RETIRED_CONSTRUCTOR_INPUT_KEPT"; }
+    if value == 6 { return "SELF_UNPROVED_EFFECT_NOT_MOVING"; }
+    if value == 7 { return "SELF_UNPROVED_REFUSED_AT_ENTRY"; }
+    if value == 8 { return "SELF_LATER_USE_NOT_READ"; }
+    if value == 9 { return "SELF_REPEAT_SKIPS_DETACHED_BODY"; }
+    if value == 10 { return "SELF_CONSTRUCTOR_ELEMENT_AXIS_UNREAD"; }
+    if value == 11 { return "SELF_CONSTRUCTOR_TWICE_NOT_COPIED"; }
+    if value == 12 { return "SELF_STRUCT_LITERAL_INPUT_UNSEEN"; }
+    return "";
+}
+func SemanticCallHandoffDivergenceForm(value: Int) -> String {
+    if value == 0 { return "ROW"; }
+    if value == 1 { return "ROW"; }
+    if value == 2 { return "INPUT"; }
+    if value == 3 { return "INPUT"; }
+    if value == 4 { return "INPUT"; }
+    if value == 5 { return "ROW"; }
+    if value == 6 { return "PROJECTION"; }
+    if value == 7 { return "INPUT"; }
+    if value == 8 { return "INPUT"; }
+    if value == 9 { return "INPUT"; }
+    if value == 10 { return "INPUT"; }
+    if value == 11 { return "INPUT"; }
+    if value == 12 { return "INPUT"; }
+    return "";
+}
+func SemanticCallHandoffDivergenceFlag(value: Int) -> Int {
+    if value == 0 { return 1; }
+    if value == 1 { return 2; }
+    if value == 5 { return 4; }
+    if value == 6 { return 8; }
+    return 0;
+}

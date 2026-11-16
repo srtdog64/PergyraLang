@@ -282,6 +282,9 @@ func SelfMirJsonRoutineWriteFile(
         collection_i = collection_i + 1;
     }
     CompilerArtifactWrite(output, "]");
+    // The rendered object is a borrowed fact string: write it, keep it.
+    CompilerArtifactWrite(output, ",\"call_handoff\":");
+    CompilerArtifactWrite(output, rows.call_handoff.routine_objects[routine_index]);
     CompilerArtifactWrite(output, ",\"blocks\":[");
     var block_i: Int = 0;
     while block_i < rows.block_counts[routine_index] {

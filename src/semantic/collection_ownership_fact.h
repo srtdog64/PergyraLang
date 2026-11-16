@@ -181,13 +181,16 @@ bool semantic_collection_ownership_initialize_binding(
  * The take still replays the earlier admissions of those rows as live, so
  * the rows become handed-off only after it, by the apply step, which mutates
  * the fact store and queries nothing. Either false fails the generation
- * closed. */
+ * closed. The selection also fills the call hand-off ledger
+ * (call_handoff_ledger.h); a false selection leaves it empty. */
 typedef struct {
     uint32_t function_syntax_id;
     uint32_t binding_syntax_id;
 } PgyCollectionHandoff;
+typedef struct PgyCallHandoffLedger PgyCallHandoffLedger;
 bool semantic_collection_ownership_select_handoffs(SemanticContext *ctx,
-    PgyCollectionHandoff **rows_out, size_t *count_out);
+    PgyCollectionHandoff **rows_out, size_t *count_out,
+    PgyCallHandoffLedger *ledger);
 bool semantic_collection_ownership_apply_handoffs(SemanticContext *ctx,
     const PgyCollectionHandoff *rows, size_t count);
 

@@ -1,0 +1,185 @@
+// The self-host call hand-off ledger (slice S2 of the hand-off rule
+// migration, docs/audits/unified_handoff_rule_study_2026-11-16.md section 3).
+//
+// What the self-host hand-off owners decided, in the vocabulary of
+// src/semantic/call_handoff_rule.def, for MIR JSON to publish beside the
+// collection ownership rows:
+// - an action row per argument site of a tracked local Array<String> row:
+//   a default-mode Array<String> formal of a declared routine
+//   (ast_collection_call_handoff_owner.pgy) or an Array<String> field input
+//   of a constructor (ast_collection_constructor_handoff_owner.pgy), with the
+//   lookup inputs the owner used, the table's answer, the divergence that
+//   changed it, and whether the binding's row was handed off there;
+// - a class row per callee formal the call hand-off owner read;
+// - a copy row per compiler Clone the ownership verdict selected, with the
+//   routine whose body holds it and the call that takes the copy.
+// Nothing reads the ledger for a verdict in S2: the MIR reader validates the
+// rows and the G2 measurement compares them with the native front end's.
+import "../call_handoff_rule_projection_owner.pgy";
+import "../ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "../ast_expression/ast_expression_graph_consumer_owner.pgy";
+import "../ast_expression/ast_expression_surface_fact_owner.pgy";
+
+struct SemanticAstCollectionCallHandoffLedger {
+    action_function_ids: Array<Int>;
+    action_call_sites: Array<Int>;
+    action_callees: Array<String>;
+    action_parameter_indices: Array<Int>;
+    action_binding_ids: Array<Int>;
+    action_compiler_clones: Array<Int>;
+    action_members: Array<Int>;
+    action_origins: Array<Int>;
+    action_laters: Array<Int>;
+    action_site_contexts: Array<Int>;
+    action_elements: Array<Int>;
+    action_codes: Array<Int>;
+    action_divergences: Array<Int>;
+    action_handed_off: Array<Int>;
+    class_function_ids: Array<Int>;
+    class_parameter_indices: Array<Int>;
+    class_members: Array<Int>;
+    class_divergences: Array<Int>;
+    clone_function_ids: Array<Int>;
+    clone_sites: Array<Int>;
+    clone_binding_ids: Array<Int>;
+    clone_callees: Array<String>;
+    clone_argument_indices: Array<Int>;
+}
+
+func SemanticAstCollectionCallHandoffLedgerEmpty() -> SemanticAstCollectionCallHandoffLedger {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SemanticAstCollectionCallHandoffLedger(
+        ints, ints, strings, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints,
+        ints, ints, ints, ints, ints, ints, ints, strings, ints);
+}
+
+// One action row. `divergence` is a divergence id of the rule, or -1.
+func SemanticAstCollectionCallHandoffLedgerAppendAction(
+    inout ledger: SemanticAstCollectionCallHandoffLedger,
+    function_id: Int, call_site: Int, callee: String, parameter_index: Int, binding_id: Int,
+    compiler_clone: Bool, members: Int, origin: Int, later: Int, site_context: Int,
+    elements: Int, action_code: Int, divergence: Int, handed_off: Bool
+) -> Void {
+    ArrayPush(ledger.action_function_ids, function_id);
+    ArrayPush(ledger.action_call_sites, call_site);
+    ArrayPushOwnedString(ledger.action_callees, callee);
+    ArrayPush(ledger.action_parameter_indices, parameter_index);
+    ArrayPush(ledger.action_binding_ids, binding_id);
+    if compiler_clone { ArrayPush(ledger.action_compiler_clones, 1); } else { ArrayPush(ledger.action_compiler_clones, 0); }
+    ArrayPush(ledger.action_members, members);
+    ArrayPush(ledger.action_origins, origin);
+    ArrayPush(ledger.action_laters, later);
+    ArrayPush(ledger.action_site_contexts, site_context);
+    ArrayPush(ledger.action_elements, elements);
+    ArrayPush(ledger.action_codes, action_code);
+    ArrayPush(ledger.action_divergences, divergence);
+    if handed_off { ArrayPush(ledger.action_handed_off, 1); } else { ArrayPush(ledger.action_handed_off, 0); }
+}
+
+// The class row of a callee formal the call hand-off owner read, once per
+// formal.
+func SemanticAstCollectionCallHandoffLedgerNoteClass(
+    inout ledger: SemanticAstCollectionCallHandoffLedger,
+    function_id: Int, parameter_index: Int, members: Int, divergence: Int
+) -> Void {
+    var row: Int = 0;
+    while row < ArrayLength(ledger.class_function_ids) {
+        if ledger.class_function_ids[row] == function_id &&
+            ledger.class_parameter_indices[row] == parameter_index { return; }
+        row = row + 1;
+    }
+    ArrayPush(ledger.class_function_ids, function_id);
+    ArrayPush(ledger.class_parameter_indices, parameter_index);
+    ArrayPush(ledger.class_members, members);
+    ArrayPush(ledger.class_divergences, divergence);
+}
+
+func SemanticAstCollectionCallHandoffLedgerAppendClone(
+    inout ledger: SemanticAstCollectionCallHandoffLedger,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, node: Int
+) -> Void {
+    let count: Int = SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
+    var consumer: Int = -1;
+    var row: Int = node + 1;
+    // A sealed arena carries each node's first consumer.
+    if surfaces.expression_graph.arena.shape_ready &&
+        ArrayLength(surfaces.expression_graph.arena.consumer_rows) == count {
+        consumer = surfaces.expression_graph.arena.consumer_rows[node];
+        row = count;
+    }
+    while consumer < 0 && row < count {
+        if SemanticExpressionGraphRowConsumes(surfaces.expression_graph.arena.topology, row, node) {
+            consumer = row;
+        }
+        row = row + 1;
+    }
+    var callee: String = "";
+    var argument_index: Int = -1;
+    if consumer >= 0 {
+        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+            surfaces.expression_graph, consumer);
+        if edge.ok && edge.argument_node == node &&
+            edge.call_node < ArrayLength(surfaces.expression_graph.arena.call_target_names) {
+            callee = Concat("", surfaces.expression_graph.arena.call_target_names[edge.call_node]);
+            argument_index = edge.ordinal;
+        }
+    }
+    var binding_id: Int = 0;
+    if node < ArrayLength(surfaces.expression_graph.arena.identities.binding_syntax_ids) &&
+        surfaces.expression_graph.arena.identities.binding_syntax_ids[node] > 0 {
+        binding_id = surfaces.expression_graph.arena.identities.binding_syntax_ids[node];
+    }
+    ArrayPush(ledger.clone_function_ids, function_id);
+    ArrayPush(ledger.clone_sites, node);
+    ArrayPush(ledger.clone_binding_ids, binding_id);
+    ArrayPushOwnedString(ledger.clone_callees, callee);
+    ArrayPush(ledger.clone_argument_indices, argument_index);
+}
+
+// The copy rows: each selected compiler Clone node with the routine whose
+// statement holds it and, when it is a call argument, the call. A surface
+// root's subtree is the node range after the previous root up to it, so one
+// pass over the roots in order assigns every node. False when a node lies
+// outside every root or the roots are not in order.
+func SemanticAstCollectionCallHandoffLedgerAppendClones(
+    inout ledger: SemanticAstCollectionCallHandoffLedger,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref compiler_clone_expression_node_ids: Array<Int>
+) -> Bool {
+    let graph_count: Int = SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
+    var nodes: Array<Int> = [];
+    var index: Int = 0;
+    while index < ArrayLength(compiler_clone_expression_node_ids) {
+        let node: Int = compiler_clone_expression_node_ids[index];
+        if node < 0 || node >= graph_count { return false; }
+        var position: Int = ArrayLength(nodes);
+        ArrayPush(nodes, node);
+        while position > 0 && nodes[position - 1] > node {
+            ArraySet(nodes, position, nodes[position - 1]);
+            position = position - 1;
+        }
+        ArraySet(nodes, position, node);
+        index = index + 1;
+    }
+    let roots: Int = ArrayLength(surfaces.expression_graph.roots);
+    if ArrayLength(surfaces.expression_graph.has_roots) != roots ||
+        ArrayLength(surfaces.function_node_ids) * 3 != roots { return false; }
+    var next: Int = 0;
+    var previous_root: Int = -1;
+    var root_slot: Int = 0;
+    while root_slot < roots && next < ArrayLength(nodes) {
+        if surfaces.expression_graph.has_roots[root_slot] {
+            let root: Int = surfaces.expression_graph.roots[root_slot];
+            if root <= previous_root { return false; }
+            while next < ArrayLength(nodes) && nodes[next] <= root {
+                SemanticAstCollectionCallHandoffLedgerAppendClone(
+                    ledger, surfaces, surfaces.function_node_ids[root_slot / 3], nodes[next]);
+                next = next + 1;
+            }
+            previous_root = root;
+        }
+        root_slot = root_slot + 1;
+    }
+    return next == ArrayLength(nodes);
+}

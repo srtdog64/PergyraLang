@@ -490,6 +490,9 @@ func SelfMirJsonRoutine(
         "collection_ownership_facts",
         JsonEmitArray(collection_ownership_facts)
     ));
+    ArrayPush(fields3, JsonEmitFieldRaw(
+        "call_handoff", rows.call_handoff.routine_objects[routine_index]
+    ));
     ArrayPush(fields3, JsonEmitFieldRaw("blocks", JsonEmitArray(blocks)));
     ArrayPush(fields3, JsonEmitFieldRaw("source_locals", JsonEmitArray(locals)));
     return JsonEmitObject(fields3);

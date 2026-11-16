@@ -25,7 +25,7 @@ func SemanticAstCollectionCallArgumentVerdict(
     ref storage: SemanticAstCollectionStorageAuthorityFacts,
     ref definitions: SemanticAstCollectionDefinitionFacts,
     ref current_definitions: Array<Int>, inout retained_definitions: Array<Bool>,
-    ref compiler_clone_expression_node_ids: Array<Int>
+    ref compiler_clone_expression_node_ids: Array<Int>, inout call_handoff: SemanticAstCollectionCallHandoffLedger
 ) -> SemanticAstCollectionOwnershipVerdict {
     if !edge.ok || ArrayLength(retained_definitions) != ArrayLength(definitions.syntax_ids) {
         return SemanticAstCollectionOwnershipVerdictError(
@@ -125,7 +125,7 @@ func SemanticAstCollectionCallArgumentVerdict(
             artifact, signatures, surfaces, edge, surfaces.node_ids[surface_row],
             locals.node_ids[binding.row], binding.row, effect, retains_descriptor,
             moves_descriptor, definitions, compiler_clone_expression_node_ids,
-            origins, ownership, dispositions);
+            origins, ownership, dispositions, inferred_types, surface_row, call_handoff);
     }
     return result;
 }

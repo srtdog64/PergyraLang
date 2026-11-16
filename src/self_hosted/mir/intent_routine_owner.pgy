@@ -361,6 +361,8 @@ func SelfMirIntentAppendEmptyRoutineFacts(
         SelfMirCollectionOwnershipFactRowsAppendEmptyRoutine(
             rows.collection_ownership_facts
         );
+    let call_handoff: SelfMirCallHandoffRows =
+        SelfMirCallHandoffRowsAppendEmptyRoutine(rows.call_handoff);
     return SelfMirRoutineRows(
         rows.node_ids, rows.names, rows.kinds, rows.owners,
         rows.source_module_paths, rows.receiver_carriages, rows.return_types,
@@ -383,7 +385,8 @@ func SelfMirIntentAppendEmptyRoutineFacts(
         ),
         SelfMirLoopFlowRows(
             loop_starts, loop_counts, loops.summaries, loops.states
-        )
+        ),
+        call_handoff
     );
 }
 
@@ -466,7 +469,7 @@ func SelfMirAppendIntentRoutine(
             rows.iteration_binding_types, rows.iteration_iterable_types,
             rows.iteration_collection_hoists,
             rows.collection_ownership_facts, rows.destructure_type_facts,
-            rows.loop_flows
+            rows.loop_flows, rows.call_handoff
         )
     );
     return SelfMirProgramFacts(

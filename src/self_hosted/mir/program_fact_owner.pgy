@@ -21,6 +21,7 @@ import "instruction_abi_receipt_fact_owner.pgy";
 import "local_ref_fact_owner.pgy";
 import "intent_execution_fact_owner.pgy";
 import "collection_ownership_fact_owner.pgy";
+import "call_handoff_row_owner.pgy";
 import "collection_ownership_receipt_fact_owner.pgy";
 
 struct SelfMirInstructionRows {
@@ -109,6 +110,7 @@ struct SelfMirRoutineRows {
     collection_ownership_facts: SelfMirCollectionOwnershipFactRows;
     destructure_type_facts: SelfMirDestructureTypeFactRows;
     loop_flows: SelfMirLoopFlowRows;
+    call_handoff: SelfMirCallHandoffRows;
 }
 
 struct SelfMirProgramFacts {
@@ -197,7 +199,8 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
         ints, ints, ints, ints, strings, strings, ints,
         SelfMirCollectionOwnershipFactRowsEmpty(),
         SelfMirDestructureTypeFactRowsEmpty(),
-        SelfMirLoopFlowRowsEmpty()
+        SelfMirLoopFlowRowsEmpty(),
+        SelfMirCallHandoffRowsEmpty()
     );
 }
 

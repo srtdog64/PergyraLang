@@ -24,6 +24,7 @@
 #include "destructure_type_fact.h"
 #include "match_binding_type_fact.h"
 #include "collection_ownership_fact.h"
+#include "call_handoff_ledger.h"
 #include "region_escape_fact.h"
 #include "domain_runtime_fact.h"
 #include "type_system.h"
@@ -91,6 +92,9 @@ typedef struct SemanticResult
     PgyCollectionOwnershipFact *collection_ownership_facts;
     size_t       collection_ownership_fact_count;
     PgyCollectionEffectSnapshot *collection_effect_snapshot;
+    /* The call hand-off owner's class, action and copy rows (slice S2).
+     * MIR borrows them for its JSON; nothing reads them for a verdict. */
+    PgyCallHandoffLedger call_handoff_ledger;
     /* Semantic-owned bounded region escape facts. The driver converts these
      * stable rows into the verified plan; it must not rescan the AST. */
     PgyRegionEscapeFact *region_escape_facts;

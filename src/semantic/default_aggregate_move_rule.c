@@ -37,6 +37,19 @@ bool semantic_default_aggregate_value(SemanticContext *ctx, const Type *type)
  * NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY). Any other aggregate also counts the
  * descriptor bit: a store through its access paths that changes the
  * storage it shares with the caller. */
+static unsigned
+formal_class_of_entry(const FuncParam *param, unsigned mask,
+    const FunctionParamFlowSummaryStore *store, size_t index)
+{
+    unsigned descriptor = store->entries[index].array_storage_unproved
+        ? PGY_CALL_HANDOFF_MEMBER_GROW : 0u;
+    const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
+    if (type_name != NULL && strcmp(type_name, "Array") == 0)
+        return descriptor | ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0
+            ? PGY_CALL_HANDOFF_MEMBER_RELEASE : 0u);
+    return pgy_call_handoff_members_from_native_summary(mask) | descriptor;
+}
+
 bool semantic_default_aggregate_formal_class(SemanticContext *ctx,
     ASTNode *callee, size_t formal, unsigned *members)
 {
@@ -50,14 +63,27 @@ bool semantic_default_aggregate_formal_class(SemanticContext *ctx,
     if (store == NULL || store->failed) return true;
     size_t index = function_param_flow_find(store, ast_node_stable_id(callee), formal);
     if (index == SIZE_MAX || store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE) return true;
-    unsigned descriptor = store->entries[index].array_storage_unproved
-        ? PGY_CALL_HANDOFF_MEMBER_GROW : 0u;
-    const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
-    if (type_name != NULL && strcmp(type_name, "Array") == 0)
-        *members = descriptor | ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0
-            ? PGY_CALL_HANDOFF_MEMBER_RELEASE : 0u);
-    else
-        *members = pgy_call_handoff_members_from_native_summary(mask) | descriptor;
+    *members = formal_class_of_entry(param, mask, store, index);
+    return true;
+}
+
+/* The same class from a summary that is already final and current, without
+ * demanding one: false when there is none. For a reader that must not start
+ * an analysis (the call hand-off ledger at a compiler Clone argument). */
+bool semantic_default_aggregate_formal_class_settled(SemanticContext *ctx,
+    ASTNode *callee, size_t formal, unsigned *members)
+{
+    FuncParam *param = ast_func_param(callee, formal);
+    FunctionParamFlowSummaryStore *store = ctx != NULL
+        ? ctx->function_param_flow_summaries : NULL;
+    if (param == NULL || members == NULL || param->mode != PARAM_MODE_DEFAULT
+        || ast_func_body(callee) == NULL || store == NULL || store->failed)
+        return false;
+    size_t index = function_param_flow_find(store, ast_node_stable_id(callee), formal);
+    if (index == SIZE_MAX || store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE
+        || !function_param_flow_output_current(store, index, false))
+        return false;
+    *members = formal_class_of_entry(param, store->entries[index].mask, store, index);
     return true;
 }
 

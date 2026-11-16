@@ -1,0 +1,336 @@
+// Fail-closed reader of each routine's call hand-off rows (slice S2 of the
+// hand-off rule migration, docs/audits/unified_handoff_rule_study_2026-11-16.md
+// section 3). Both front ends write the rows (src/compiler/mir/mir_json_dump.c,
+// src/self_hosted/mir/call_handoff_row_owner.pgy) in the vocabulary of
+// src/semantic/call_handoff_rule.def; this owner checks each routine's
+// `call_handoff` object at MIR admission:
+// - the object and every row carry exactly their fields, and each count
+//   matches its rows;
+// - every member, axis value, action and divergence is a rule name; a class
+//   row names a projection or input divergence, an action row a row or
+//   projection divergence;
+// - an action row's class set and inputs give its action through the rule,
+//   with the named row divergence's flag, and that divergence changed the
+//   answer; a compiler Clone site has origin Fresh; a handed-off row is a
+//   HAND_OFF of the binding and one binding is handed off once;
+// - no class formal, action site or copy site appears twice.
+// In S2 nothing reads the rows for a verdict.
+import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
+import "../semantic/call_handoff_rule_projection_owner.pgy";
+
+// The index of `name` among the `count` names `kind` gives, or -1.
+func MirCallHandoffNameIndex(kind: String, name: String) -> Int {
+    var count: Int = 0;
+    if kind == "member" { count = SemanticCallHandoffMemberCount(); }
+    if kind == "origin" { count = SemanticCallHandoffOriginCount(); }
+    if kind == "later" { count = SemanticCallHandoffLaterCount(); }
+    if kind == "context" { count = SemanticCallHandoffContextCount(); }
+    if kind == "elements" { count = SemanticCallHandoffElementsCount(); }
+    if kind == "action" { count = SemanticCallHandoffActionCount(); }
+    if kind == "divergence" { count = SemanticCallHandoffDivergenceCount(); }
+    var index: Int = 0;
+    while index < count {
+        var spelled: String = "";
+        if kind == "member" { spelled = SemanticCallHandoffMemberName(index); }
+        if kind == "origin" { spelled = SemanticCallHandoffOriginName(index); }
+        if kind == "later" { spelled = SemanticCallHandoffLaterName(index); }
+        if kind == "context" { spelled = SemanticCallHandoffContextName(index); }
+        if kind == "elements" { spelled = SemanticCallHandoffElementsName(index); }
+        if kind == "action" { spelled = SemanticCallHandoffActionName(index); }
+        if kind == "divergence" { spelled = SemanticCallHandoffDivergenceName(index); }
+        if spelled != "" && spelled == name { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+// The object at `start`..`end` has exactly the named fields, once each.
+func MirCallHandoffExactFields(
+    json: String, json_extent: Int, start: Int, end: Int, ref field_names: Array<String>
+) -> Bool {
+    let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(json, json_extent, start, end);
+    if !JsonObjectFactTableReady(table) || JsonObjectFactCount(table) != ArrayLength(field_names) {
+        return false;
+    }
+    var field: Int = 0;
+    while field < ArrayLength(field_names) {
+        if MirObjectFieldOccurrenceCountAtBounds(json, json_extent, start, end, field_names[field]) != 1 {
+            return false;
+        }
+        field = field + 1;
+    }
+    return true;
+}
+
+// A canonical integer field at least `minimum`, or `minimum - 1`.
+func MirCallHandoffInteger(
+    json: String, json_extent: Int, start: Int, end: Int, field: String, minimum: Int
+) -> Int {
+    let text: Option<String> = MirObjectUniqueNumberFactAtBounds(json, json_extent, start, end, field);
+    if !IsSome(text) { return minimum - 1; }
+    let value: Int = ToInt(UnwrapOption(text));
+    if ToString(value) != UnwrapOption(text) || value < minimum { return minimum - 1; }
+    return value;
+}
+
+// A string field, or None.
+func MirCallHandoffString(
+    json: String, json_extent: Int, start: Int, end: Int, field: String
+) -> Option<String> {
+    return MirObjectUniqueStringFactAtBounds(json, json_extent, start, end, field);
+}
+
+// The class set a `members` array names, or -1 for an unknown or repeated
+// member.
+func MirCallHandoffMembers(json: String, json_extent: Int, start: Int, end: Int) -> Int {
+    var bounds: Array<Int> = [0, 0];
+    if MirObjectFieldOccurrenceCountAtBounds(json, json_extent, start, end, "members") != 1 ||
+        !MirObjectArrayBoundsAtBounds(json, json_extent, start, end, "members", bounds) {
+        return -1;
+    }
+    let names: Array<String> = MirObjectArrayStringFactsAtBounds(json, json_extent, start, end, "members");
+    var members: Int = 0;
+    var row: Int = 0;
+    while row < ArrayLength(names) {
+        let index: Int = MirCallHandoffNameIndex("member", names[row]);
+        if index < 0 || SemanticCallHandoffSetHas(members, index) { return -1; }
+        var bit: Int = 1;
+        var shift: Int = 0;
+        while shift < index { bit = bit * 2; shift = shift + 1; }
+        members = members + bit;
+        row = row + 1;
+    }
+    return members;
+}
+
+// A divergence field: -1 for "", the divergence id for a name whose form is
+// one of the two allowed, -2 otherwise.
+func MirCallHandoffDivergence(
+    json: String, json_extent: Int, start: Int, end: Int, form_a: String, form_b: String
+) -> Int {
+    let text: Option<String> = MirCallHandoffString(json, json_extent, start, end, "divergence");
+    if !IsSome(text) { return -2; }
+    if UnwrapOption(text) == "" { return -1; }
+    let index: Int = MirCallHandoffNameIndex("divergence", UnwrapOption(text));
+    if index < 0 { return -2; }
+    let form: String = SemanticCallHandoffDivergenceForm(index);
+    if form != form_a && form != form_b { return -2; }
+    return index;
+}
+
+// The bounds of the array field `field` and its declared count, or a stage.
+func MirCallHandoffArrayStage(
+    json: String, json_extent: Int, start: Int, end: Int, field: String, count_field: String,
+    inout bounds: Array<Int>
+) -> String {
+    if !MirObjectArrayBoundsAtBounds(json, json_extent, start, end, field, bounds) ||
+        MirCallHandoffInteger(json, json_extent, start, end, count_field, 0) < 0 {
+        return "call_handoff_shape";
+    }
+    return "";
+}
+
+func MirCallHandoffClassRowsStage(json: String, json_extent: Int, start: Int, end: Int) -> String {
+    var bounds: Array<Int> = [0, 0];
+    let shape: String = MirCallHandoffArrayStage(json, json_extent, start, end, "classes", "class_count", bounds);
+    if shape != "" { return shape; }
+    let field_names: Array<String> = ["parameter_index", "members", "divergence"];
+    var formals: Array<Int> = [];
+    var cursor: Int = bounds[0] + 1;
+    var row_bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(json, json_extent, cursor, bounds[1], row_bounds) {
+        let row_start: Int = row_bounds[0];
+        let row_end: Int = row_bounds[1];
+        if !MirCallHandoffExactFields(json, json_extent, row_start, row_end, field_names) {
+            return "call_handoff_class_shape";
+        }
+        let formal: Int = MirCallHandoffInteger(json, json_extent, row_start, row_end, "parameter_index", 0);
+        if formal < 0 || MirCallHandoffMembers(json, json_extent, row_start, row_end) < 0 ||
+            MirCallHandoffDivergence(json, json_extent, row_start, row_end, "PROJECTION", "INPUT") < -1 {
+            return "call_handoff_class_vocabulary";
+        }
+        var prior: Int = 0;
+        while prior < ArrayLength(formals) {
+            if formals[prior] == formal { return "call_handoff_class_duplicate"; }
+            prior = prior + 1;
+        }
+        ArrayPush(formals, formal);
+        cursor = row_end;
+    }
+    if !MirProgramRoutineArrayCursorAtEnd(json, json_extent, cursor, bounds[1]) ||
+        MirCallHandoffInteger(json, json_extent, start, end, "class_count", 0) != ArrayLength(formals) {
+        return "call_handoff_class_count";
+    }
+    return "";
+}
+
+// One action row's stage: its vocabulary, then whether the rule gives its
+// action from its class set and inputs.
+func MirCallHandoffActionRowStage(json: String, json_extent: Int, start: Int, end: Int) -> String {
+    let members: Int = MirCallHandoffMembers(json, json_extent, start, end);
+    let origin_name: Option<String> = MirCallHandoffString(json, json_extent, start, end, "origin");
+    let later_name: Option<String> = MirCallHandoffString(json, json_extent, start, end, "later");
+    let context_name: Option<String> = MirCallHandoffString(json, json_extent, start, end, "context");
+    let elements_name: Option<String> = MirCallHandoffString(json, json_extent, start, end, "elements");
+    let action_name: Option<String> = MirCallHandoffString(json, json_extent, start, end, "action");
+    let row_name: Option<String> = MirCallHandoffString(json, json_extent, start, end, "row");
+    let callee_present: Bool = IsSome(MirCallHandoffString(json, json_extent, start, end, "callee"));
+    let clone_true: Bool = JsonObjectBoolFieldEqualsWithin(json, json_extent, start, end, "compiler_clone", true);
+    let clone_false: Bool = JsonObjectBoolFieldEqualsWithin(json, json_extent, start, end, "compiler_clone", false);
+    if !IsSome(origin_name) || !IsSome(later_name) || !IsSome(context_name) ||
+        !IsSome(elements_name) || !IsSome(action_name) || !IsSome(row_name) || !callee_present ||
+        clone_true == clone_false ||
+        MirCallHandoffInteger(json, json_extent, start, end, "call_site", 0) < 0 ||
+        MirCallHandoffInteger(json, json_extent, start, end, "parameter_index", 0) < 0 ||
+        MirCallHandoffInteger(json, json_extent, start, end, "binding_syntax_id", 1) < 1 {
+        return "call_handoff_action_shape";
+    }
+    let origin: Int = MirCallHandoffNameIndex("origin", UnwrapOption(origin_name));
+    let later: Int = MirCallHandoffNameIndex("later", UnwrapOption(later_name));
+    let site_context: Int = MirCallHandoffNameIndex("context", UnwrapOption(context_name));
+    let elements: Int = MirCallHandoffNameIndex("elements", UnwrapOption(elements_name));
+    let action_code: Int = MirCallHandoffNameIndex("action", UnwrapOption(action_name));
+    let divergence: Int = MirCallHandoffDivergence(json, json_extent, start, end, "ROW", "PROJECTION");
+    let handed_off: Bool = UnwrapOption(row_name) == "handed-off";
+    if members < 0 || origin < 0 || later < 0 || site_context < 0 || elements < 0 || action_code < 0 ||
+        divergence < -1 || (!handed_off && UnwrapOption(row_name) != "kept") {
+        return "call_handoff_action_vocabulary";
+    }
+    var flag: Int = 0;
+    if divergence >= 0 { flag = SemanticCallHandoffDivergenceFlag(divergence); }
+    let answer: Int = SemanticCallHandoffAction(members, origin, later, site_context, elements, flag);
+    let rule_answer: Int = SemanticCallHandoffAction(members, origin, later, site_context, elements, 0);
+    if answer != action_code ||
+        (divergence >= 0 && SemanticCallHandoffDivergenceForm(divergence) == "ROW" &&
+            rule_answer == action_code) {
+        return "call_handoff_action_rule";
+    }
+    if (clone_true && origin != SemanticCallHandoffOriginFresh()) ||
+        (handed_off && (clone_true || action_code != SemanticCallHandoffActionHandOff())) {
+        return "call_handoff_action_site";
+    }
+    return "";
+}
+
+func MirCallHandoffActionRowsStage(json: String, json_extent: Int, start: Int, end: Int) -> String {
+    var bounds: Array<Int> = [0, 0];
+    let shape: String = MirCallHandoffArrayStage(json, json_extent, start, end, "actions", "action_count", bounds);
+    if shape != "" { return shape; }
+    let field_names: Array<String> = [
+        "call_site", "callee", "parameter_index", "binding_syntax_id", "compiler_clone",
+        "members", "origin", "later", "context", "elements", "action", "divergence", "row"
+    ];
+    var sites: Array<Int> = [];
+    var formals: Array<Int> = [];
+    var handed_off_bindings: Array<Int> = [];
+    var cursor: Int = bounds[0] + 1;
+    var row_bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(json, json_extent, cursor, bounds[1], row_bounds) {
+        let row_start: Int = row_bounds[0];
+        let row_end: Int = row_bounds[1];
+        if !MirCallHandoffExactFields(json, json_extent, row_start, row_end, field_names) {
+            return "call_handoff_action_shape";
+        }
+        let stage: String = MirCallHandoffActionRowStage(json, json_extent, row_start, row_end);
+        if stage != "" { return stage; }
+        let site: Int = MirCallHandoffInteger(json, json_extent, row_start, row_end, "call_site", 0);
+        let formal: Int = MirCallHandoffInteger(json, json_extent, row_start, row_end, "parameter_index", 0);
+        let binding_id: Int = MirCallHandoffInteger(json, json_extent, row_start, row_end, "binding_syntax_id", 1);
+        var prior: Int = 0;
+        while prior < ArrayLength(sites) {
+            if sites[prior] == site && formals[prior] == formal { return "call_handoff_action_duplicate"; }
+            prior = prior + 1;
+        }
+        ArrayPush(sites, site);
+        ArrayPush(formals, formal);
+        if MirObjectStringFactAtBounds(json, json_extent, row_start, row_end, "row") == "handed-off" {
+            prior = 0;
+            while prior < ArrayLength(handed_off_bindings) {
+                if handed_off_bindings[prior] == binding_id { return "call_handoff_action_duplicate"; }
+                prior = prior + 1;
+            }
+            ArrayPush(handed_off_bindings, binding_id);
+        }
+        cursor = row_end;
+    }
+    if !MirProgramRoutineArrayCursorAtEnd(json, json_extent, cursor, bounds[1]) ||
+        MirCallHandoffInteger(json, json_extent, start, end, "action_count", 0) != ArrayLength(sites) {
+        return "call_handoff_action_count";
+    }
+    return "";
+}
+
+func MirCallHandoffCloneRowsStage(json: String, json_extent: Int, start: Int, end: Int) -> String {
+    var bounds: Array<Int> = [0, 0];
+    let shape: String = MirCallHandoffArrayStage(json, json_extent, start, end, "clones", "clone_count", bounds);
+    if shape != "" { return shape; }
+    let field_names: Array<String> = ["site", "binding_syntax_id", "callee", "argument_index"];
+    var sites: Array<Int> = [];
+    var cursor: Int = bounds[0] + 1;
+    var row_bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(json, json_extent, cursor, bounds[1], row_bounds) {
+        let row_start: Int = row_bounds[0];
+        let row_end: Int = row_bounds[1];
+        if !MirCallHandoffExactFields(json, json_extent, row_start, row_end, field_names) {
+            return "call_handoff_clone_shape";
+        }
+        let site: Int = MirCallHandoffInteger(json, json_extent, row_start, row_end, "site", 0);
+        let argument_index: Int = MirCallHandoffInteger(json, json_extent, row_start, row_end, "argument_index", -1);
+        let callee: Option<String> = MirCallHandoffString(json, json_extent, row_start, row_end, "callee");
+        if site < 0 || argument_index < -1 || !IsSome(callee) ||
+            MirCallHandoffInteger(json, json_extent, row_start, row_end, "binding_syntax_id", 0) < 0 ||
+            (argument_index == -1 && UnwrapOption(callee) != "") {
+            return "call_handoff_clone_shape";
+        }
+        var prior: Int = 0;
+        while prior < ArrayLength(sites) {
+            if sites[prior] == site { return "call_handoff_clone_duplicate"; }
+            prior = prior + 1;
+        }
+        ArrayPush(sites, site);
+        cursor = row_end;
+    }
+    if !MirProgramRoutineArrayCursorAtEnd(json, json_extent, cursor, bounds[1]) ||
+        MirCallHandoffInteger(json, json_extent, start, end, "clone_count", 0) != ArrayLength(sites) {
+        return "call_handoff_clone_count";
+    }
+    return "";
+}
+
+// The stage that refuses one routine's `call_handoff` object, or "".
+func MirCallHandoffRoutineStage(json: String, json_extent: Int, routine_start: Int, routine_end: Int) -> String {
+    var bounds: Array<Int> = [0, 0];
+    if MirObjectFieldOccurrenceCountAtBounds(json, json_extent, routine_start, routine_end, "call_handoff") != 1 ||
+        !MirObjectFieldValueBoundsAtBounds(json, json_extent, routine_start, routine_end, "call_handoff", bounds) {
+        return "call_handoff_missing";
+    }
+    let start: Int = bounds[0];
+    let end: Int = bounds[1];
+    let field_names: Array<String> = [
+        "complete", "class_count", "classes", "action_count", "actions", "clone_count", "clones"
+    ];
+    if !MirCallHandoffExactFields(json, json_extent, start, end, field_names) ||
+        JsonObjectBoolFieldEqualsWithin(json, json_extent, start, end, "complete", true) ==
+            JsonObjectBoolFieldEqualsWithin(json, json_extent, start, end, "complete", false) {
+        return "call_handoff_shape";
+    }
+    let classes: String = MirCallHandoffClassRowsStage(json, json_extent, start, end);
+    if classes != "" { return classes; }
+    let actions: String = MirCallHandoffActionRowsStage(json, json_extent, start, end);
+    if actions != "" { return actions; }
+    return MirCallHandoffCloneRowsStage(json, json_extent, start, end);
+}
+
+// The stage that refuses the program's call hand-off rows, or "" when every
+// routine's rows are well formed.
+func MirCallHandoffRowsRefusal(ref routines: MirProgramRoutineIndex) -> String {
+    var routine: Int = 0;
+    while routine < ArrayLength(routines.starts) && routine < ArrayLength(routines.ends) {
+        let stage: String = MirCallHandoffRoutineStage(routines.source_json, routines.source_json_extent,
+            routines.starts[routine], routines.ends[routine]);
+        if stage != "" { return stage; }
+        routine = routine + 1;
+    }
+    return "";
+}

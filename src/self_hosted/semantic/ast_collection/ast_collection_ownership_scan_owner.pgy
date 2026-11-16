@@ -63,6 +63,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     inout exclusive_values: SemanticAstCollectionExclusiveValueFacts,
     mutating_formals: HashMap<String, Int>,
     ref focus_recovery: SemanticAstCollectionFocusRecoveryFacts,
+    inout call_handoff: SemanticAstCollectionCallHandoffLedger,
     inout verdict: SemanticAstCollectionOwnershipVerdict
 ) -> Void {
     // Unpublished exact-consumption scratch. This descriptor cannot escape
@@ -263,7 +264,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                         ownership, dispositions, origins,
                         transition_states, call_effects, storage, definitions,
                         current_definitions, retained_definitions,
-                        compiler_clone_expression_node_ids);
+                        compiler_clone_expression_node_ids, call_handoff);
                     if !argument_verdict.ok {
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         verdict = argument_verdict; return;

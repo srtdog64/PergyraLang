@@ -201,4 +201,119 @@ pgy_call_handoff_action_any_use(PgyCallHandoffKind kind,
     return table[kind][context][elements];
 }
 
+/* MIR JSON spellings of the vocabulary (call_handoff rows, slice S2):
+ * a member by its bit index, each axis value, each action and each
+ * divergence by its declaration index. NULL outside the vocabulary. */
+static inline const char *
+pgy_call_handoff_member_name(unsigned value)
+{
+    switch ((unsigned)value) {
+    case 0: return "READ";
+    case 1: return "RETURN";
+    case 2: return "GROW";
+    case 3: return "KEEP";
+    case 4: return "RELEASE";
+    case 5: return "UNPROVED";
+    default: return NULL;
+    }
+}
+
+static inline const char *
+pgy_call_handoff_origin_name(PgyCallHandoffOrigin value)
+{
+    switch ((unsigned)value) {
+    case 0: return "FRESH";
+    case 1: return "LOCAL";
+    case 2: return "CALLER_FORMAL";
+    case 3: return "BORROWED";
+    default: return NULL;
+    }
+}
+
+static inline const char *
+pgy_call_handoff_later_name(PgyCallHandoffLater value)
+{
+    switch ((unsigned)value) {
+    case 0: return "ONCE";
+    case 1: return "USED_AGAIN";
+    default: return NULL;
+    }
+}
+
+static inline const char *
+pgy_call_handoff_context_name(PgyCallHandoffContext value)
+{
+    switch ((unsigned)value) {
+    case 0: return "SYNC";
+    case 1: return "DETACHED";
+    default: return NULL;
+    }
+}
+
+static inline const char *
+pgy_call_handoff_elements_name(PgyCallHandoffElements value)
+{
+    switch ((unsigned)value) {
+    case 0: return "AS_GIVEN";
+    case 1: return "OWNED_REQUIRED";
+    default: return NULL;
+    }
+}
+
+static inline const char *
+pgy_call_handoff_action_name(PgyCallHandoffAction value)
+{
+    switch ((unsigned)value) {
+    case 0: return "LEND_FOR_CALL";
+    case 1: return "RESULT_OWNS";
+    case 2: return "MOVED";
+    case 3: return "HAND_OFF";
+    case 4: return "MOVED_ON";
+    case 5: return "LOAN_TO_RESULT";
+    case 6: return "CLONE_ARGUMENT";
+    case 7: return "OWNED_ELEMENT_CLONE";
+    case 8: return "REFUSE";
+    case 9: return "KEEP_ROW_STATE";
+    default: return NULL;
+    }
+}
+
+typedef enum {
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_NATIVE_KEEP_REUSE_REFUSED = 0,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_NATIVE_UNPROVED_REUSE_REFUSED = 1,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY = 2,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_NATIVE_BORROWED_MOVE_REFUSED = 3,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_NATIVE_DETACHED_CONTEXT_NOT_READ = 4,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_SELF_RETIRED_CONSTRUCTOR_INPUT_KEPT = 5,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_SELF_UNPROVED_EFFECT_NOT_MOVING = 6,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_SELF_UNPROVED_REFUSED_AT_ENTRY = 7,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_SELF_LATER_USE_NOT_READ = 8,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_SELF_REPEAT_SKIPS_DETACHED_BODY = 9,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_SELF_CONSTRUCTOR_ELEMENT_AXIS_UNREAD = 10,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_SELF_CONSTRUCTOR_TWICE_NOT_COPIED = 11,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_SELF_STRUCT_LITERAL_INPUT_UNSEEN = 12,
+    PGY_CALL_HANDOFF_DIVERGENCE_ID_COUNT
+} PgyCallHandoffDivergenceId;
+
+static inline const char *
+pgy_call_handoff_divergence_name(PgyCallHandoffDivergenceId value)
+{
+    switch ((unsigned)value) {
+    case 0: return "NATIVE_KEEP_REUSE_REFUSED";
+    case 1: return "NATIVE_UNPROVED_REUSE_REFUSED";
+    case 2: return "NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY";
+    case 3: return "NATIVE_BORROWED_MOVE_REFUSED";
+    case 4: return "NATIVE_DETACHED_CONTEXT_NOT_READ";
+    case 5: return "SELF_RETIRED_CONSTRUCTOR_INPUT_KEPT";
+    case 6: return "SELF_UNPROVED_EFFECT_NOT_MOVING";
+    case 7: return "SELF_UNPROVED_REFUSED_AT_ENTRY";
+    case 8: return "SELF_LATER_USE_NOT_READ";
+    case 9: return "SELF_REPEAT_SKIPS_DETACHED_BODY";
+    case 10: return "SELF_CONSTRUCTOR_ELEMENT_AXIS_UNREAD";
+    case 11: return "SELF_CONSTRUCTOR_TWICE_NOT_COPIED";
+    case 12: return "SELF_STRUCT_LITERAL_INPUT_UNSEEN";
+    default: return NULL;
+    }
+}
+
 #endif

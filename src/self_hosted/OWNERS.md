@@ -1089,6 +1089,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   self-host effect-code projection and the decision table that the call and
   constructor hand-off and the exclusive argument owners consult; it holds no
   analysis of its own.
+- `src/self_hosted/semantic/ast_collection/ast_collection_call_handoff_ledger_owner.pgy`
+  -- the call hand-off ledger of the ownership verdict (slice S2): the
+  action rows the call and constructor hand-off owners record with the rule
+  inputs they used, the class rows of the callee formals the call owner
+  read, and the copy rows of the selected compiler Clones. It records
+  decisions made elsewhere and grants no ownership.
 - `src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy`
   -- sparse derived join between the sealed expression-call identity and the
   selected canonical builtin row. Same-name program/local callables, member or
@@ -1581,6 +1587,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   carriage, validation, and JSON projection of semantic collection ownership
   rows keyed by stable binding identity; names and type spelling never own the
   join.
+- `src/self_hosted/mir/call_handoff_row_owner.pgy` -- routine-aligned
+  rendering of the semantic call hand-off ledger as each routine's
+  `call_handoff` MIR object, in the shape the native writer uses; it selects
+  and renders rows and decides nothing.
 - `src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy`,
   `src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy`, and
   `src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy`
@@ -2283,6 +2293,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   fail-closed admission of semantic-owned `Array<String>` element lifetime rows
   against the routine-local binding inventory; malformed, missing, duplicate,
   or inconsistent provenance cannot fall back to type or name inference.
+- `src/self_hosted/mir_lower/call_handoff_row_fact_owner.pgy` -- fail-closed
+  admission of each routine's call hand-off rows at MIR input: exact fields
+  and counts, rule vocabulary, the rule's answer for each action row, and no
+  repeated row. In slice S2 no verdict reads the rows.
 - `src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy` --
   exact direct-local move evidence joining destination declaration identity to
   one earlier source SSA value and one admitted leaf graph; type spelling and

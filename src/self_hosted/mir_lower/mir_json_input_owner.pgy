@@ -85,6 +85,16 @@ func MirJsonAdmitBorrowedTextObserved(
                 "MIR instruction identities are missing or duplicated"
             );
         }
+        if failed_routines.valid {
+            let call_handoff_stage: String =
+                MirCallHandoffRowsRefusal(failed_routines);
+            if call_handoff_stage != "" {
+                MirLowerFailClosed(Concat(
+                    "MIR call hand-off rows are missing or invalid: ",
+                    call_handoff_stage
+                ));
+            }
+        }
         if JsonObjectFactTableReady(document.intent_execution) {
             MirLowerFailClosed(
                 "MIR intent execution facts are missing or invalid"

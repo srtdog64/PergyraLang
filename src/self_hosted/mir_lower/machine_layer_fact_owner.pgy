@@ -12,6 +12,7 @@ import "domain_topology_graph_plan_owner.pgy";
 import "domain_runtime_assignment_fact_owner.pgy";
 import "domain_runtime_plan_owner.pgy";
 import "program_routine_index_owner.pgy";
+import "call_handoff_row_fact_owner.pgy";
 import "program_instruction_identity_owner.pgy";
 import "intent_execution_plan_fact_owner.pgy";
 import "program_declaration_index_owner.pgy";
@@ -379,6 +380,11 @@ func MirMachineLayerAdmitDocumentWithTopologyAndDeclarationsObserved(
         document.routines, declarations
     );
     if !routines.valid {
+        return None;
+    }
+    // Every routine's call hand-off rows are well formed (slice S2); the
+    // caller names the refusing stage.
+    if MirCallHandoffRowsRefusal(routines) != "" {
         return None;
     }
     MirMachineLayerPressureStage(

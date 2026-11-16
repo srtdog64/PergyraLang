@@ -451,6 +451,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner",
                 "collection_ownership_scan_verdict"), -1, -1);
+    var call_handoff: SemanticAstCollectionCallHandoffLedger =
+        SemanticAstCollectionCallHandoffLedgerEmpty();
     SemanticAstCollectionOwnershipScanIntoVerdict(
         artifact, signatures, constructors, locals, initializer_types, surfaces,
         resolved_leaf_types, numeric_string_allocations, owned_string_results,
@@ -464,12 +466,21 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         member_path_field_syntax_ids,
         current_definitions, receipts, literal_transfers,
         call_effects, aggregate_release_plan, indexed_string_borrows,
-        retained_definitions, exclusive_values, mutating_formals, focus, verdict);
+        retained_definitions, exclusive_values, mutating_formals, focus,
+        call_handoff, verdict);
     SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
     ArrayDrop(retained_definitions);
     if verdict.ok {
-        SemanticAstCollectionConstructorHandOffApply(artifact, locals, definitions, call_effects, verdict);
+        SemanticAstCollectionConstructorHandOffApply(artifact, locals, definitions, call_effects,
+            surfaces, call_handoff, verdict);
     }
+    // The copy plan rows join the ledger once every Clone is selected.
+    if verdict.ok && !SemanticAstCollectionCallHandoffLedgerAppendClones(
+            call_handoff, surfaces, verdict.compiler_clone_expression_node_ids) {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "call_handoff_copy_rows"), -1, -1);
+    }
+    if verdict.ok { verdict.call_handoff = call_handoff; }
     if verdict.ok && moved_use.capture_syntax_node_id > 0 {
         return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary", "readonly_aggregate_capture", "type", "nominal aggregate"),

@@ -190,7 +190,8 @@ func MachineProbeFacts(
         SelfMirCollectionOwnershipFactRowsAppendEmptyRoutine(
             SelfMirCollectionOwnershipFactRowsEmpty()),
         SelfMirDestructureTypeFactRowsWithoutFacts(1),
-        SelfMirLoopFlowRowsWithoutLoops(1)
+        SelfMirLoopFlowRowsWithoutLoops(1),
+        SelfMirCallHandoffRowsAppendEmptyRoutine(SelfMirCallHandoffRowsEmpty())
     );
     // The driver seals call occurrences against the CFG before it
     // publishes facts, so the probe carries the same sealed rows even

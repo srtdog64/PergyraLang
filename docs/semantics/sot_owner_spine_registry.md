@@ -715,6 +715,7 @@ src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_log
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_opaque_readonly_zone_fact_owner.pgy | DirectMirScalarProgramOpaqueReadonlyZoneFact | selfhost.zone_authority_rows | projection
 src/self_hosted/mir_lower/collection_cleanup_fact_owner.pgy | MirCollectionCleanupFacts | semantic.hashmap_collection_ownership | projection
 src/self_hosted/mir_lower/collection_ownership_binding_move_fact_owner.pgy | MirCollectionOwnershipBindingMoveFacts | semantic.hashmap_collection_ownership | projection
+src/self_hosted/mir_lower/call_handoff_row_fact_owner.pgy | MirCallHandoffRowsRefusal | semantic.hashmap_collection_ownership | projection
 src/self_hosted/mir_lower/expression_identity_epoch_fact_owner.pgy | MirExpressionIdentityEpoch | mir.execution_graph | projection
 src/self_hosted/semantic/ast_body_termination_fact_owner.pgy | SemanticAstBodyTerminationFactsFromFacts | hir.typed_control_flow | projection
 src/self_hosted/semantic/ast_collection/ast_collection_aggregate_named_input_reservation_fact_owner.pgy | SemanticAstCollectionAggregateNamedInputKind | semantic.hashmap_collection_ownership | local_view

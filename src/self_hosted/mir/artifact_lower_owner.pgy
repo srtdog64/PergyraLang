@@ -232,6 +232,9 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
             )
         );
     }
+    facts.routines.call_handoff = SelfMirCallHandoffRowsAppendRoutine(
+        facts.routines.call_handoff, collection_ownership, function_node_id
+    );
     facts.collection_ownership_receipts =
         SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
             facts.collection_ownership_receipts,

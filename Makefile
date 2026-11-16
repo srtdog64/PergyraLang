@@ -5387,7 +5387,7 @@ self-host-identity-cell-receiver-test-smoke: $(PGY) self-host-compiler self-host
 		python3 tests/concept_semantics/identity_cell_receiver_execution.py \
 		"$(abspath $(PGY))" "$(abspath $(SELF_HOST_DRIVER))"
 
-self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke
+self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke self-host-call-handoff-row-reader-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/ownership/collection_ownership_semantic_owner.sh
 
@@ -5457,6 +5457,13 @@ self-host-mir-round-trip-semantic-test-smoke: self-host-compiler
 self-host-collection-ownership-fact-carrier-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/ownership/collection_ownership_fact_carrier_owner.sh
+
+# Call hand-off rows (slice S2): both producers' rows pass the installed
+# driver's MIR admission, and forged rows the rule cannot produce are refused.
+.PHONY: self-host-call-handoff-row-reader-test-smoke
+self-host-call-handoff-row-reader-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/ownership/call_handoff_row_reader_owner.sh
 
 mir-param-carriage-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir/mir_param_carriage_smoke.sh

@@ -101,12 +101,14 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     var ok: Bool = true;
     // No compiler Clone landing is selected at the probed argument.
     let no_landings: Array<Int> = [];
+    // This observer keeps no call hand-off ledger rows.
+    var no_ledger: SemanticAstCollectionCallHandoffLedger = SemanticAstCollectionCallHandoffLedgerEmpty();
     if mode == 90 || mode == 93 {
         let before: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
             artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
             edge, false, false, false, false, formal.effects, owned_push_leaf_formals,
             requirements, field_requirements, ownership, dispositions,
-            origins, transitions, effects, storage, definitions, current, retained, no_landings);
+            origins, transitions, effects, storage, definitions, current, retained, no_landings, no_ledger);
         ok = !before.ok && before.diagnostic_code == "borrow_boundary_escape" && current[owned] == -1;
         if mode == 93 { slot = slot - AstExpressionLaneValue(); }
     } else {
@@ -123,7 +125,7 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
             artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
             edge, false, false, false, false, formal.effects, owned_push_leaf_formals,
             requirements, field_requirements, ownership, dispositions,
-            origins, transitions, effects, storage, definitions, current, retained, no_landings);
+            origins, transitions, effects, storage, definitions, current, retained, no_landings, no_ledger);
         ok = ok && completed.ok && current[owned] == owned && after.ok;
     } else if mode == 93 { ok = ok && completed.ok && current[owned] == -1; }
     else if mode == 92 {

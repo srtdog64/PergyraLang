@@ -283,7 +283,8 @@ func SelfMirRoutineRowsReady(
         !SelfMirDestructureTypeFactRowsReady(
             rows.destructure_type_facts, count
         ) ||
-        !SelfMirLoopFlowRowsReady(rows.loop_flows, count) {
+        !SelfMirLoopFlowRowsReady(rows.loop_flows, count) ||
+        !SelfMirCallHandoffRowsReady(rows.call_handoff, count) {
         return false;
     }
     var param_cursor: Int = 0;

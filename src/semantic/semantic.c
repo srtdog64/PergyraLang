@@ -399,7 +399,7 @@ semantic_analyze_landed(ASTNode *ast, bool emit_advisories,
     size_t handoff_count = 0;
     if (!ctx->has_error
         && !semantic_collection_ownership_select_handoffs(ctx, &handoffs,
-            &handoff_count)
+            &handoff_count, &result->call_handoff_ledger)
         && !ctx->has_error)
         semantic_error(ctx, ast, "Collection hand-off selection failed closed");
 
@@ -555,6 +555,7 @@ semantic_result_destroy(SemanticResult *result)
     free(result->string_store_landing_kinds);
     free(result->loan_copy_landings);
     free(result->lifecycle_state_spaces);
+    pgy_call_handoff_ledger_clear(&result->call_handoff_ledger);
     semantic_parallel_capture_facts_clear(
         result->parallel_capture_boundaries,
         result->parallel_capture_boundary_capacity);

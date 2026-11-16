@@ -106,5 +106,7 @@ probe_c="$(pgy_path_for_compiler "$PGY_BIN" "$BUILD_DIR/probe_pgy.c")"
 cmp -s "$BUILD_DIR/native_cells.txt" "$BUILD_DIR/self_host_cells.txt" ||
     { diff "$BUILD_DIR/native_cells.txt" "$BUILD_DIR/self_host_cells.txt" | head -20 >&2
       fail "the C header and the Pergyra owner disagree on a cell"; }
-echo "[call-handoff-rule] $cells cells: the C header and the Pergyra owner agree"
+names="$(grep -c '^name ' "$BUILD_DIR/native_cells.txt" || true)"
+[[ "$names" -gt 0 ]] || fail "the native probe dumped no MIR JSON spelling"
+echo "[call-handoff-rule] $cells cells and $names spellings: the C header and the Pergyra owner agree"
 echo "[call-handoff-rule] drift, malformed-rule and decision-cell checks: ok"

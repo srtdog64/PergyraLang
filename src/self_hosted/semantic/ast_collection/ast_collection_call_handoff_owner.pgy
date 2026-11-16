@@ -34,6 +34,8 @@ import "ast_collection_formal_descriptor_retention_owner.pgy";
 import "ast_collection_formal_effect_identity_owner.pgy";
 import "ast_collection_exclusive_compiler_clone_owner.pgy";
 import "../call_handoff_rule_projection_owner.pgy";
+import "ast_collection_call_handoff_ledger_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
 
 func SemanticAstCollectionCallHandOffApplyAtCall(
     ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -41,31 +43,19 @@ func SemanticAstCollectionCallHandOffApplyAtCall(
     syntax_id: Int, binding_id: Int, row: Int, effect: Int, retains_descriptor: Bool,
     moves_descriptor: Bool, ref definitions: SemanticAstCollectionDefinitionFacts,
     ref compiler_clone_expression_node_ids: Array<Int>, ref origins: Array<Int>,
-    ref ownership: Array<Int>, inout dispositions: Array<Int>
+    ref ownership: Array<Int>, inout dispositions: Array<Int>,
+    ref inferred_types: Array<String>, surface_row: Int,
+    inout ledger: SemanticAstCollectionCallHandoffLedger
 ) -> Void {
     if row < 0 || row >= ArrayLength(dispositions) || row >= ArrayLength(ownership) ||
-        row >= ArrayLength(origins) || moves_descriptor ||
-        origins[row] == SemanticAstCollectionOriginMemberMove() ||
-        dispositions[row] != SemanticAstCollectionDispositionLive() ||
-        ownership[row] == SemanticAstCollectionOwnershipRetired() {
+        row >= ArrayLength(origins) || moves_descriptor {
         return;
     }
-    let divergences: Int = SemanticCallHandoffDivergenceSelfUnprovedEffectNotMoving();
-    var members: Int = SemanticCallHandoffMembersForSelfHostEffect(effect, divergences);
-    if retains_descriptor {
-        members = SemanticCallHandoffJoin(members, SemanticCallHandoffMemberKeep());
-    }
-    // A Clone landed at this argument hands over the copy, not the binding.
-    var origin: Int = SemanticCallHandoffOriginLocal();
-    if SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
-            compiler_clone_expression_node_ids, edge.argument_node) {
-        origin = SemanticCallHandoffOriginFresh();
-    }
-    // The renderer refuses a rule that hands off a site used again, so the
-    // answer for a site used once decides whether its later use is needed.
-    if SemanticCallHandoffAction(members, origin, SemanticCallHandoffLaterOnce(),
-            SemanticCallHandoffContextSync(), SemanticCallHandoffElementsAsGiven(),
-            divergences) != SemanticCallHandoffActionHandOff() { return; }
+    // The ledger records the site of a tracked local row: an Array<String>
+    // local of a declared routine.
+    let function_id: Int = surfaces.function_node_ids[surface_row];
+    let tracked: Bool = row < ArrayLength(inferred_types) &&
+        SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]);
     let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
     if !formal.ok || formal.signature_row < 0 ||
@@ -73,6 +63,20 @@ func SemanticAstCollectionCallHandOffApplyAtCall(
         signatures.param_modes[signatures.param_starts[formal.signature_row] + formal.ordinal] != 0 {
         return;
     }
+    let divergences: Int = SemanticCallHandoffDivergenceSelfUnprovedEffectNotMoving();
+    var members: Int = SemanticCallHandoffMembersForSelfHostEffect(effect, divergences);
+    var divergence: Int = -1;
+    if members != SemanticCallHandoffMembersForSelfHostEffect(effect, 0) {
+        divergence = SemanticCallHandoffDivergenceIdSelfUnprovedEffectNotMoving();
+    }
+    if retains_descriptor {
+        members = SemanticCallHandoffJoin(members, SemanticCallHandoffMemberKeep());
+    }
+    // A Clone landed at this argument hands over the copy, not the binding.
+    var origin: Int = SemanticCallHandoffOriginLocal();
+    let landed: Bool = SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+        compiler_clone_expression_node_ids, edge.argument_node);
+    if landed { origin = SemanticCallHandoffOriginFresh(); }
     var definition_count: Int = 0;
     var candidate: Int = 0;
     while candidate < ArrayLength(definitions.binding_rows) {
@@ -84,9 +88,23 @@ func SemanticAstCollectionCallHandOffApplyAtCall(
         SemanticAstCollectionCallRetirementSiteForOrigin(artifact, syntax_id, binding_id) > 0 {
         later = SemanticCallHandoffLaterOnce();
     }
-    if definition_count != 1 || SemanticCallHandoffAction(members, origin, later,
-            SemanticCallHandoffContextSync(), SemanticCallHandoffElementsAsGiven(),
-            divergences) != SemanticCallHandoffActionHandOff() { return; }
+    // The renderer refuses a rule that hands off a site used again, so the
+    // answer for the site's own later use decides.
+    let action_code: Int = SemanticCallHandoffAction(members, origin, later,
+        SemanticCallHandoffContextSync(), SemanticCallHandoffElementsAsGiven(), divergences);
+    let handed_off: Bool = action_code == SemanticCallHandoffActionHandOff() &&
+        definition_count == 1 &&
+        origins[row] != SemanticAstCollectionOriginMemberMove() &&
+        dispositions[row] == SemanticAstCollectionDispositionLive() &&
+        ownership[row] != SemanticAstCollectionOwnershipRetired();
+    if tracked && function_id > 0 {
+        SemanticAstCollectionCallHandoffLedgerNoteClass(ledger,
+            signatures.function_node_ids[formal.signature_row], formal.ordinal, members, divergence);
+        SemanticAstCollectionCallHandoffLedgerAppendAction(ledger, function_id, edge.call_node,
+            surfaces.expression_graph.arena.call_target_names[edge.call_node], formal.ordinal,
+            binding_id, landed, members, origin, later, SemanticCallHandoffContextSync(),
+            SemanticCallHandoffElementsAsGiven(), action_code, divergence, handed_off);
+    }
     // The element ownership stays the state at the hand-off.
-    dispositions[row] = SemanticAstCollectionDispositionHandedOff();
+    if handed_off { dispositions[row] = SemanticAstCollectionDispositionHandedOff(); }
 }

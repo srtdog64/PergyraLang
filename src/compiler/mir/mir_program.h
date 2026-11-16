@@ -46,6 +46,10 @@ struct MIRProgram
     size_t      parallel_capture_boundary_count;
     size_t      parallel_capture_boundary_capacity;
     bool        parallel_capture_facts_imported;
+    /* The semantic call hand-off ledger (slice S2), borrowed like the AST:
+     * the semantic result outlives this program. Only MIR JSON reads it,
+     * per routine; every row names one of this program's routines. */
+    const struct PgyCallHandoffLedger *call_handoff_ledger;
     /* HIR-projected semantic region rows retained as MIR-owned facts. */
     bool        has_region_escape_facts;
     PgyRegionEscapeFact *region_escape_facts;
