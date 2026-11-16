@@ -6,7 +6,7 @@ native trials); a local PASS is not CI evidence.
 
 | Gate | Last observed result |
 |---|---|
-| Required CI at the published SHA | GREEN at `98bcf67ec` (run 43741218196), all 33 jobs; the commit carrying this file is pending |
+| Required CI at the published SHA | GREEN at `a2b78e746` (all 33 jobs); the commit carrying this file is pending |
 | Weekly full pipeline (`platform_full`, dispatch) | Run 43747258112 on `98bcf67ec`: Linux toolchain, formal proofs, codegen/parser/harness-evidence parity PASS; macOS C-only (fixed in `3fd7bf87a`), semantic and driver parity, `platform-full-linux` and Windows toolchain open ([blocker](blocker.md)) |
 | SoT registry gate (`scripts/sot_registry_gate.py`) | PASS: 95 authorities, 213 derived carriers; CLOSED=70 BRIDGE=23 ACTIVE=2 (`selfhost.statement_result_type`, `selfhost.expression_place_kind` and `semantic.function_param_flow_summary` closed 2026-11-15) |
 | Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `a7d7655e1`, with the bootstrap policy corpus in the join job |
@@ -16,7 +16,7 @@ native trials); a local PASS is not CI evidence.
 | Contracts shard (identity probe in the shared probe build) | PASS on CI at `a7d7655e1` (job 16 min of the 30 min limit) |
 | Backend compare (20 shards, 989 cases), sanitizers, native oracle | PASS on CI at `a7d7655e1` |
 | macOS, Windows, formal proofs, tsan | PASS on CI at `a7d7655e1` |
-| Memory sweeps (ASan; not CI gates) | Lifetime fixtures (868) on four legs and every corpus (2597): only endless recursion left after `98bcf67ec` ([evidence](../evidence/2026-11-16_selfhost_handoff_fact.md)) |
+| Memory sweeps (ASan; not CI gates) | Four legs, LLVM IR at -O0, at `a2b78e746`: lifetime fixtures (868) and tests/cases: only endless recursion, plus one unconfirmed native LLVM report ([evidence](../evidence/2026-11-16_llvm_legs_at_o0.md)) |
 | LSP hover registry (`make self-host-lsp` first; not in a CI shard) | PASS locally on WSL at `751e5dd05` (language=27, builtin=7) |
 | Entrypoint exit status on four legs (`entrypoint_exit_status_leg_owner.sh`, core shard) | 2026-11-15: PASS locally on WSL (`/root/mx-exit`, branch `claude/jovial-austin-8f780a`); FAIL on `a7d7655e1` binaries (native C exited 0 for `return 3`); not yet on CI |
 

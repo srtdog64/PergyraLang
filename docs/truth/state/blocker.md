@@ -1,6 +1,6 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-16 on main `98bcf67ec`.
+Owner: Claude root lane. Checked 2026-11-16 on main `a2b78e746`.
 
 ## Objective card
 
@@ -14,44 +14,46 @@ Owner: Claude root lane. Checked 2026-11-16 on main `98bcf67ec`.
 
 ## Open, in dependency order
 
-1. Required CI on the commit carrying this file (green at `98bcf67ec`).
-2. Memory errors: on four legs only endless recursion is left
-   ([evidence](../evidence/2026-11-16_selfhost_handoff_fact.md)). The C leg
-   lost two `*_duplicate*_landed_valid` positives.
-3. Hand-off fact: the self-host issues `handed-off` at constructor and
-   growing-callee edges since `98bcf67ec`
-   ([decision](../decisions/2026-11-15_handed_off_array_storage_is_not_released.md)).
-   Native issues none, so direct MIR keeps its by-value sharing refusal for
-   `--mir-json` input; `semantic.hashmap_collection_ownership` stays ACTIVE.
-   Of the lifetime fixtures, native LLVM admits 568 and self-host LLVM 167
-   ([evidence](../evidence/2026-11-16_selfhost_handoff_fact.md)).
-4. Weekly pipeline (run 43747258112,
-   [evidence](../evidence/2026-11-16_weekly_run_43747258112.md)): native
-   refuses two driver MIR fixtures (generic `Array<T>` return, even with
-   `Clone`) and `valid_bool_arith`; `platform-full-linux` (70 min) and the
-   Windows toolchain job (25 min) hit their limits; the self-host
-   source-to-C compile of the DRV-2 entry passed 16.6 GB.
-5. The self-host admits `let first = values` for a `ref` formal and `fail`
-   as a name; native refuses both.
+1. Required CI on the commit carrying this file (green at `a2b78e746`).
+2. Memory: four legs, LLVM IR at -O0, 3143 inputs: only endless recursion
+   ([evidence](../evidence/2026-11-16_llvm_legs_at_o0.md)), and one native
+   LLVM report not confirmed under the mismatched ASan runtime.
+3. One hand-off rule for both front ends
+   ([decision](../decisions/2026-11-16_one_handoff_rule_for_both_front_ends.md)):
+   S0 attributed all 69 disagreeing rows
+   ([evidence](../evidence/2026-11-16_handoff_disagreement_attribution.md));
+   S1 (the rule `.def`) is next. `semantic.hashmap_collection_ownership`
+   stays ACTIVE until the backend sharing guard is deleted (S6).
+4. Compiler temporaries released at last use
+   ([decision](../decisions/2026-11-16_compiler_temporaries_are_released_at_last_use.md)):
+   the self-host-emitted driver frees about a quarter of what it allocates,
+   so the one-process DRV-2 source-to-C compile needs about 23 GB. Slice 0
+   counts every direct MIR refusal of the compiler's own entry.
+5. Weekly pipeline: the integration head reuses the same-run compiler pair
+   (Track J); `machine_layer_runtime_projection_owner.pgy` assigns
+   `r.value` to a union Result in its await bridge, so formal-semantics
+   stays red; the driver shard's next stop is `valid_array_builtins`
+   (direct MIR `stage=builtin-call`).
+6. Self-host front end still differs from native: `x = values`
+   reassignment from a ref formal, generic `ref value: T`, reserved words
+   in zone/role/effect names, and no generic own/ref rule in the graph
+   checker (later refusals catch the falsifiers).
 
-## Done 2026-11-15
+## Done 2026-11-15 and 2026-11-16
 
-- LLVM `ToString(Bool)` returns the runtime's owned copy (`dab1fc0f7`).
-- Direct MIR refuses releases another holder shares (`f6ab5f0ce`, `afbd9ab7f`).
-- Native refusals restored or added (`226613c3c`).
-- SoT: `selfhost.statement_result_type`, `selfhost.expression_place_kind`
-  (`f5e171720`) and `semantic.function_param_flow_summary` (`16ac154e1`)
-  closed; census CLOSED=70 BRIDGE=23 ACTIVE=2.
-- Weekly pipeline fixes, with the installed driver for both driver shards.
-- Self-host lands native's copies and refuses the rest (`667e45554`).
-- Native flow audit no longer depends on demand order (`41ab40e3f`).
-- Self-host hand-off fact; last two ownership crashes (`98bcf67ec`).
+- `226613c3c`, `41ab40e3f`, `667e45554`, `98bcf67ec`: native refusals,
+  demand-order audit, self-host copies, hand-off fact, ownership crashes.
+- `f1456722d`, `23989a49a`: native hand-off fact; by-value member and
+  shared record release double frees closed.
+- `a2b78e746`: generic moves; Bool arithmetic refused; native C
+  `Echo(a)` then `ArrayPush(a)` use after free closed.
+- LLVM-leg sweeps at -O0 (`-O1` hid double frees).
 
 ## Falsifiers kept
 
-- `direct_mir_array_string_cleanup_fact_owner.sh`: 9 refusals, and reading
-  callees and a read-only record run on both legs.
+- `direct_mir_array_string_cleanup_fact_owner.sh`: refusals 14+4, record
+  and loop takes refused, glibc heap checks.
 - `native_unsafe_negative_refusal_smoke.sh`: 39 refusals, 17 admissions,
   8 copy landings.
-- `statement_type_place_contract_parity.sh`: the four contracts refuse.
 - `shared_storage_copy_landing_owner.sh`: 2 landings, 12 refusals.
+- `reserved_name_ref_alias_refusal_owner.sh` (Track F).
