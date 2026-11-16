@@ -285,9 +285,6 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         list_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_non_inout_param_collection_mutator_receiver(
-                arg0, list_type, "ListSet", "list", ctx))
-            return TYPE_UNKNOWN;
         index_type = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
         require_assignable(index_type, TYPE_INT, arg1, ctx);
@@ -314,7 +311,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         list_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
         if (reject_non_inout_param_collection_mutator_receiver(
-                arg0, list_type, "ListRemove", "list", ctx))
+                arg0, list_type, "ListSet", "list", ctx))
             return TYPE_UNKNOWN;
         index_type = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
@@ -360,6 +357,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         list_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_non_inout_param_collection_mutator_receiver(
+                arg0, list_type, "ListRemove", "list", ctx))
+            return TYPE_UNKNOWN;
         index_type = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
         require_assignable(index_type, TYPE_INT, arg1, ctx);

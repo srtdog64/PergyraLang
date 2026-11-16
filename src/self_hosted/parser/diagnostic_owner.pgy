@@ -140,7 +140,7 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
     if code == "binding_form_invalid" {
         return ParseDiagnosticRow(
             "destructured bindings are immutable; a mutable declaration names one binding",
-            "destructure with `let (a, b) = ...`, then use `var` or `let mut` for a name that must change"
+            "destructure with `let (a, b) = ...`, then use `var` for a name that must change"
         );
     }
     if code == "binding_name_reserved" {

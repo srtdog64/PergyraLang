@@ -397,6 +397,101 @@ test_engine_collections(void)
         lexer_destroy(lexer);
     }
 
+    /* The List mutator receiver check once sat one branch off: ListGet ran
+     * it and ListRemove did not, so a read of a let list was refused and a
+     * removal through a let list or a read-only ref formal was admitted. */
+    TEST("ListGet reads a let list and a default List formal");
+    {
+        const char *let_read =
+            "func Main() -> Void {\n"
+            "    let items: List<Int> = ListNew();\n"
+            "    Log(ListGet(items, 0));\n"
+            "}\n";
+        const char *formal_read =
+            "func Show(items: List<Int>) -> Void {\n"
+            "    Log(ListGet(items, 0));\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    var items: List<Int> = ListNew();\n"
+            "    Show(items);\n"
+            "}\n";
+        const char *sources[2] = { let_read, formal_read };
+        for (int i = 0; i < 2; i++) {
+            Lexer *lexer = lexer_create(sources[i]);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+
+            EXPECT(!parser_has_error(parser));
+            EXPECT(result != NULL && result->error_count == 0);
+
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
+    }
+
+    TEST("ListRemove refuses a let list");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let items: List<Int> = ListNew();\n"
+            "    Log(ListRemove(items, 0));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(result,
+                "immutable binding 'items'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ListRemove and ListSet refuse a ref List formal");
+    {
+        const char *removes =
+            "func Drop(ref items: List<Int>) -> Int {\n"
+            "    return ListRemove(items, 0);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    var items: List<Int> = ListNew();\n"
+            "    Log(Drop(items));\n"
+            "}\n";
+        const char *sets =
+            "func Put(ref items: List<Int>) -> Void {\n"
+            "    ListSet(items, 0, 1);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    var items: List<Int> = ListNew();\n"
+            "    Put(items);\n"
+            "}\n";
+        const char *sources[2] = { removes, sets };
+        for (int i = 0; i < 2; i++) {
+            Lexer *lexer = lexer_create(sources[i]);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+
+            EXPECT(!parser_has_error(parser));
+            EXPECT(result != NULL && result->error_count > 0
+                && ctx_has_diagnostic_substring_from_result(result,
+                    "read-only ref parameter 'items'"));
+
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
+    }
+
     TEST("SetAdd rejects wrong element type");
     {
         const char *source =

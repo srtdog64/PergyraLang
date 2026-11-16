@@ -148,7 +148,7 @@ semantic_admit_binding_replacement(ASTNode *target, SemanticContext *ctx)
         PGY_CAUSE_IMMUTABLE_BINDING_WRITE, PGY_FIX_USE_MUTABLE_BINDING,
         target, "Cannot reassign immutable binding '%s' declared at %u:%u.\n"
         "Reason:\n- `let` fixes the binding after initialization\n"
-        "Fix:\n- declare it with `var` or `let mut` when rebinding is intended",
+        "Fix:\n- declare it with `var` when rebinding is intended",
         binding->name, binding->decl_line, binding->decl_col);
     return false;
 }
@@ -176,7 +176,7 @@ semantic_admit_value_mutation(ASTNode *place, SemanticContext *ctx)
                 PGY_CAUSE_IMMUTABLE_BINDING_WRITE, PGY_FIX_USE_MUTABLE_BINDING,
                 root, "Cannot change storage through '%s': it names a value held by immutable binding '%s' declared at %u:%u.\n"
                 "Reason:\n- a loop or match binding names its iterable's or subject's storage\n"
-                "Fix:\n- declare that owner with `var` or `let mut`",
+                "Fix:\n- declare that owner with `var`",
                 binding->name, owner != NULL ? owner->name : "<unknown>",
                 owner != NULL ? owner->decl_line : 0u,
                 owner != NULL ? owner->decl_col : 0u);
