@@ -1081,6 +1081,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   registry. It owns stable identity/name projection and identity/ordinal lookup;
   it cannot invent retention policy or allocation permission outside the
   registry definition.
+- `src/self_hosted/semantic/call_handoff_rule_projection_owner.pgy`
+  -- generated Pergyra rendering of the call hand-off rule
+  (`src/semantic/call_handoff_rule.def`, rendered by
+  `scripts/render_call_handoff_rule.py` beside the native
+  `src/semantic/call_handoff_rule.h`). It owns the effect-class join, the
+  self-host effect-code projection and the decision table that the call and
+  constructor hand-off and the exclusive argument owners consult; it holds no
+  analysis of its own.
 - `src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy`
   -- sparse derived join between the sealed expression-call identity and the
   selected canonical builtin row. Same-name program/local callables, member or

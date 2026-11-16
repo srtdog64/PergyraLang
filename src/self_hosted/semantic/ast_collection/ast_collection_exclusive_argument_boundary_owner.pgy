@@ -2,6 +2,7 @@
 // enter its callee as it is, takes a compiler Clone where the call takes it
 // (decisions 2026-10-22 and 2026-11-12), or is refused, and why.
 import "ast_collection_exclusive_value_mutation_owner.pgy";
+import "../call_handoff_rule_projection_owner.pgy";
 
 // A root that grows in this routine may not be handed, while it stays live, to
 // a formal whose storage flows into a result or to a constructor: the result
@@ -67,9 +68,11 @@ func SemanticAstCollectionExclusiveSharingUseReady(
 }
 
 // A default-mode argument the callee grows, that the caller cannot hand over
-// (it is used again, or shared), is copied where the call takes it when Clone
-// copies the formal's type whole (decisions 2026-10-22 and 2026-11-12): the
-// callee then changes its own copy. Any other such argument stays refused.
+// (it is used again, or shared), takes the call hand-off rule's action for a
+// named owner of a Grow formal used again: it is copied where the call takes
+// it when Clone copies the formal's type whole (decisions 2026-10-22 and
+// 2026-11-12), and the callee then changes its own copy. Any other such
+// argument stays refused.
 func SemanticAstCollectionExclusiveLandMovedArgument(
     ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, mutating: HashMap<String, Int>,
@@ -79,6 +82,11 @@ func SemanticAstCollectionExclusiveLandMovedArgument(
     let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
     if !formal.ok || !MapHas(mutating, ToString(formal.syntax_id)) { return false; }
+    if SemanticCallHandoffActionForNamedOwner(SemanticCallHandoffMemberGrow(),
+            SemanticCallHandoffLaterUsedAgain(), SemanticCallHandoffContextSync(),
+            SemanticCallHandoffElementsAsGiven(), 0) != SemanticCallHandoffActionCloneArgument() {
+        return false;
+    }
     return SemanticAstCollectionExclusiveLandArgumentCopy(signatures, constructors, formal, edge,
         compiler_clone_expression_node_ids);
 }

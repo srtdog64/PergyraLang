@@ -1,16 +1,23 @@
 // Call hand-off of a local Array<String> (decisions 2026-10-18 and
 // 2026-11-15, docs/truth/decisions/2026-11-15_handed_off_array_storage_is_not_released.md).
 //
-// A named local passed whole to a default-mode formal that keeps the
-// descriptor (stores or returns it) or grows it (an owned or shallow
-// mutation) is moved by the call. Neither the caller nor the callee releases
-// it afterwards; both front ends leak that storage. This owner issues the
-// hand-off on the binding's row at that exact call edge. A later use of the
-// binding is refused or copied by the descriptor-retention and exclusive
-// argument owners before this point.
+// A named local passed whole to a default-mode formal is handed off when
+// the call hand-off rule (call_handoff_rule_projection_owner.pgy, generated
+// from src/semantic/call_handoff_rule.def) gives HAND_OFF for the formal's
+// class: its effect code (an owned or shallow mutation is Grow) joined with
+// Keep when it keeps the descriptor (stores or returns it). Neither the
+// caller nor the callee releases it afterwards; both front ends leak that
+// storage. This owner issues the hand-off on the binding's row at that
+// exact call edge. A later use of the binding is refused or copied by the
+// descriptor-retention and exclusive argument owners before this point, so
+// the site's later use is read from its repetition alone (divergence
+// SELF_LATER_USE_NOT_READ), and only loops and defer repeat it (divergence
+// SELF_REPEAT_SKIPS_DETACHED_BODY). An unproved effect is not a move here
+// (divergence SELF_UNPROVED_EFFECT_NOT_MOVING).
 //
 // No hand-off is issued, and the row keeps its state, when:
-// - a Clone landed at the argument (the copy is handed over instead);
+// - a Clone landed at the argument (the copy, a fresh value, is handed over
+//   instead);
 // - the binding is a member move, whose storage returns to its aggregate;
 // - the formal is not default-mode (an own formal retires the row through
 //   descriptor retention; a ref or inout formal leaves the storage with the
@@ -26,6 +33,7 @@ import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_formal_descriptor_retention_owner.pgy";
 import "ast_collection_formal_effect_identity_owner.pgy";
 import "ast_collection_exclusive_compiler_clone_owner.pgy";
+import "../call_handoff_rule_projection_owner.pgy";
 
 func SemanticAstCollectionCallHandOffApplyAtCall(
     ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -42,11 +50,22 @@ func SemanticAstCollectionCallHandOffApplyAtCall(
         ownership[row] == SemanticAstCollectionOwnershipRetired() {
         return;
     }
-    let moving: Bool = retains_descriptor || effect == 2 ||
-        effect == SemanticAstCollectionFormalShallowMutationEffect();
+    let divergences: Int = SemanticCallHandoffDivergenceSelfUnprovedEffectNotMoving();
+    var members: Int = SemanticCallHandoffMembersForSelfHostEffect(effect, divergences);
+    if retains_descriptor {
+        members = SemanticCallHandoffJoin(members, SemanticCallHandoffMemberKeep());
+    }
     // A Clone landed at this argument hands over the copy, not the binding.
-    if !moving || SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
-            compiler_clone_expression_node_ids, edge.argument_node) { return; }
+    var origin: Int = SemanticCallHandoffOriginLocal();
+    if SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+            compiler_clone_expression_node_ids, edge.argument_node) {
+        origin = SemanticCallHandoffOriginFresh();
+    }
+    // The renderer refuses a rule that hands off a site used again, so the
+    // answer for a site used once decides whether its later use is needed.
+    if SemanticCallHandoffAction(members, origin, SemanticCallHandoffLaterOnce(),
+            SemanticCallHandoffContextSync(), SemanticCallHandoffElementsAsGiven(),
+            divergences) != SemanticCallHandoffActionHandOff() { return; }
     let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
     if !formal.ok || formal.signature_row < 0 ||
@@ -60,9 +79,14 @@ func SemanticAstCollectionCallHandOffApplyAtCall(
         if definitions.binding_rows[candidate] == row { definition_count = definition_count + 1; }
         candidate = candidate + 1;
     }
-    let once: Bool = SemanticAstCollectionEffectSiteTerminatesFlow(artifact, syntax_id) ||
-        SemanticAstCollectionCallRetirementSiteForOrigin(artifact, syntax_id, binding_id) > 0;
-    if definition_count != 1 || !once { return; }
+    var later: Int = SemanticCallHandoffLaterUsedAgain();
+    if SemanticAstCollectionEffectSiteTerminatesFlow(artifact, syntax_id) ||
+        SemanticAstCollectionCallRetirementSiteForOrigin(artifact, syntax_id, binding_id) > 0 {
+        later = SemanticCallHandoffLaterOnce();
+    }
+    if definition_count != 1 || SemanticCallHandoffAction(members, origin, later,
+            SemanticCallHandoffContextSync(), SemanticCallHandoffElementsAsGiven(),
+            divergences) != SemanticCallHandoffActionHandOff() { return; }
     // The element ownership stays the state at the hand-off.
     dispositions[row] = SemanticAstCollectionDispositionHandedOff();
 }

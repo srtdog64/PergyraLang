@@ -1,0 +1,59 @@
+// Every cell of the call hand-off rule as the self-host front end reads it
+// (src/self_hosted/semantic/call_handoff_rule_projection_owner.pgy, rendered
+// from src/semantic/call_handoff_rule.def). call_handoff_rule_smoke.sh
+// compares this dump with the native rendering's (call_handoff_rule_probe.c).
+import "../../src/self_hosted/semantic/call_handoff_rule_projection_owner.pgy";
+
+func CallHandoffProbeCell(divergences: Int, kind: Int, origin: Int, later: Int,
+    site_context: Int, elements: Int) -> String {
+    let answer: Int = SemanticCallHandoffActionForKind(kind, origin, later, site_context,
+        elements, divergences);
+    var line: String = Concat("cell ", ToString(divergences));
+    line = Concat(line, Concat(" ", ToString(kind)));
+    line = Concat(line, Concat(" ", ToString(origin)));
+    line = Concat(line, Concat(" ", ToString(later)));
+    line = Concat(line, Concat(" ", ToString(site_context)));
+    line = Concat(line, Concat(" ", ToString(elements)));
+    return Concat(line, Concat(" ", ToString(answer)));
+}
+
+func Main() -> Void {
+    var flag: Int = -1;
+    while flag < SemanticCallHandoffDivergenceFlagCount() {
+        var divergences: Int = 0;
+        if flag >= 0 {
+            divergences = 1;
+            var shift: Int = 0;
+            while shift < flag { divergences = divergences * 2; shift = shift + 1; }
+        }
+        var kind: Int = 0;
+        while kind <= SemanticCallHandoffKindMoving() {
+            var origin: Int = 0;
+            while origin <= SemanticCallHandoffOriginBorrowed() {
+                var later: Int = 0;
+                while later <= SemanticCallHandoffLaterUsedAgain() {
+                    var site_context: Int = 0;
+                    while site_context <= SemanticCallHandoffContextDetached() {
+                        var elements: Int = 0;
+                        while elements <= SemanticCallHandoffElementsOwnedRequired() {
+                            Log(CallHandoffProbeCell(divergences, kind, origin, later,
+                                site_context, elements));
+                            elements = elements + 1;
+                        }
+                        site_context = site_context + 1;
+                    }
+                    later = later + 1;
+                }
+                origin = origin + 1;
+            }
+            kind = kind + 1;
+        }
+        flag = flag + 1;
+    }
+    var members: Int = 0;
+    while members < 64 {
+        Log(Concat(Concat("kind ", ToString(members)),
+            Concat(" ", ToString(SemanticCallHandoffKind(members)))));
+        members = members + 1;
+    }
+}

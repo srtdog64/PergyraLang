@@ -3133,6 +3133,13 @@ region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
 builtin-argument-retention-registry-test-smoke: region-escape-unit-test-smoke
 	"$(BASH)" tests/registry/builtin_argument_retention_registry_smoke.sh
 
+# The call hand-off rule (src/semantic/call_handoff_rule.def): its rendered C
+# header and Pergyra owner stay current, a malformed rule is refused, and the
+# two renderings answer every decision cell alike.
+.PHONY: call-handoff-rule-test-smoke
+call-handoff-rule-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/registry/call_handoff_rule_smoke.sh
+
 # "No mechanism without a consumer": censuses each declared mechanism against
 # its actual consumers, both directions. See reachability_owner.pgy.
 selfhost-reachability-contract-test-smoke: $(PGY)

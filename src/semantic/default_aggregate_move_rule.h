@@ -11,6 +11,11 @@ typedef struct Type Type;
 /* A value of `type` is an aggregate: copying it copies a struct, tuple,
  * collection or payload enum by value and shares the storage it holds. */
 bool semantic_default_aggregate_value(SemanticContext *ctx, const Type *type);
+/* The call hand-off effect class (call_handoff_rule.def members) of a
+ * default-mode formal with a body, from its final flow summary. False, with
+ * no class, for any other formal. */
+bool semantic_default_aggregate_formal_class(SemanticContext *ctx,
+    ASTNode *callee, size_t formal, unsigned *members);
 /* An own formal consumes its aggregate; a default formal moves when its
  * final flow summary changes, keeps, returns or releases shared storage. */
 bool semantic_default_aggregate_formal_moves(SemanticContext *ctx, ASTNode *callee, size_t formal);

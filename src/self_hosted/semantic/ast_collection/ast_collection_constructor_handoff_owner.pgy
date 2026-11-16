@@ -7,14 +7,22 @@
 // the binding's final row, at the exact constructor input the call-effect
 // facts recorded, after the ordered scan has settled every other transition.
 //
-// The hand-off is issued only when the input is the binding's single
-// definition handed once:
-// - a Clone landed at the input copies it instead, and the local stays live;
-// - a binding given to two constructor inputs would reach two records;
-// - a binding with another definition, a member-move row, or a row the scan
-//   already retired keeps its row;
+// The hand-off is the call hand-off rule's HAND_OFF action
+// (call_handoff_rule_projection_owner.pgy, generated from
+// src/semantic/call_handoff_rule.def) for a field formal (Keep), and it is
+// issued only when the input is the binding's single definition handed once:
+// - a Clone landed at the input copies it instead (a fresh value), and the
+//   local stays live;
+// - a binding given to two constructor inputs would reach two records: each
+//   input is used again, and none takes a Clone here (divergence
+//   SELF_CONSTRUCTOR_TWICE_NOT_COPIED);
+// - a binding with another definition or a member-move row keeps its row;
+// - a row the release plan already retired keeps `retired` (divergence
+//   SELF_RETIRED_CONSTRUCTOR_INPUT_KEPT, a row of the rule);
 // - an input that runs again without a new definition (a loop that does not
 //   declare the binding) would hand the same storage to every record.
+// The element axis is not read here (divergence
+// SELF_CONSTRUCTOR_ELEMENT_AXIS_UNREAD).
 // A row left live is still a constructor input; the direct MIR cleanup owner
 // refuses it rather than release storage a record holds.
 import "ast_collection_ownership_state_owner.pgy";
@@ -23,6 +31,7 @@ import "ast_collection_definition_fact_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_formal_descriptor_retention_owner.pgy";
 import "ast_collection_ownership_verdict_schema_owner.pgy";
+import "../call_handoff_rule_projection_owner.pgy";
 
 func SemanticAstCollectionConstructorHandOffApply(
     ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
@@ -81,10 +90,20 @@ func SemanticAstCollectionConstructorHandOffApply(
         let site: Int = call_effects.constructor_inputs.syntax_ids[input];
         let once: Bool = SemanticAstCollectionEffectSiteTerminatesFlow(artifact, site) ||
             SemanticAstCollectionCallRetirementSiteForOrigin(artifact, site, binding_id) > 0;
-        if row >= 0 && !landed && inputs_of_binding == 1 && definition_count == 1 && once &&
+        var origin: Int = SemanticCallHandoffOriginLocal();
+        if landed { origin = SemanticCallHandoffOriginFresh(); }
+        var later: Int = SemanticCallHandoffLaterUsedAgain();
+        if once && inputs_of_binding == 1 { later = SemanticCallHandoffLaterOnce(); }
+        var divergences: Int = 0;
+        if row >= 0 && row < ArrayLength(verdict.element_ownerships) &&
+            verdict.element_ownerships[row] == SemanticAstCollectionOwnershipRetired() {
+            divergences = SemanticCallHandoffDivergenceSelfRetiredConstructorInputKept();
+        }
+        let handoff: Int = SemanticCallHandoffAction(SemanticCallHandoffMemberKeep(), origin, later,
+            SemanticCallHandoffContextSync(), SemanticCallHandoffElementsAsGiven(), divergences);
+        if row >= 0 && handoff == SemanticCallHandoffActionHandOff() && definition_count == 1 &&
             binding_row < ArrayLength(locals.node_ids) && locals.node_ids[binding_row] == binding_id &&
             verdict.dispositions[row] == SemanticAstCollectionDispositionLive() &&
-            verdict.element_ownerships[row] != SemanticAstCollectionOwnershipRetired() &&
             verdict.origins[row] != SemanticAstCollectionOriginMemberMove() {
             var dispositions: Array<Int> = verdict.dispositions;
             ArraySet(dispositions, row, SemanticAstCollectionDispositionHandedOff());

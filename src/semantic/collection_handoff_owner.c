@@ -8,9 +8,12 @@
  * the caller releases nothing for it. A callee never releases what it was
  * handed either; a record releases a constructor input once, by its recipe.
  *
- * The hand-off is issued on the final row, after every other transition has
- * settled, and only when the input is the binding's single definition handed
- * once. It is not issued, and the row keeps its state, when:
+ * The hand-off is the HAND_OFF action of the call hand-off rule
+ * (call_handoff_rule.def) for the formal's class (a constructor field is
+ * Keep), a local origin, the site's later use and context. It is issued on
+ * the final row, after every other transition has settled, and only when
+ * the input is the binding's single definition handed once. It is not
+ * issued, and the row keeps its state, when:
  * - the argument is not the bare name of a let-declared local of this
  *   routine (a Clone the move owner landed there is a call, not a name);
  * - the row is not live, or is a member move whose storage returns to its
@@ -31,6 +34,7 @@
  * routine whose body holds a construct this walk cannot enumerate issues no
  * hand-off. A body call whose argument facts are missing fails closed. */
 #include "collection_ownership_fact_internal.h"
+#include "call_handoff_rule.h"
 #include "default_aggregate_move_rule.h"
 
 #include <stdint.h>
@@ -52,6 +56,7 @@ typedef struct {
 typedef struct {
     uint32_t binding;
     size_t loop_depth;
+    unsigned members;
     bool repeats;
     bool terminal;
     bool constructor;
@@ -114,8 +119,10 @@ handoff_note_definition(HandoffWalk *walk, uint32_t binding, bool declaration)
     };
 }
 
+/* `members` is the effect class of the formal that takes the argument. */
 static void
-handoff_note_site(HandoffWalk *walk, const ASTNode *argument, bool constructor)
+handoff_note_site(HandoffWalk *walk, const ASTNode *argument, bool constructor,
+    unsigned members)
 {
     if (argument == NULL || argument->type != AST_IDENTIFIER) return;
     uint32_t binding = ast_identifier_binding_syntax_id(argument);
@@ -128,14 +135,15 @@ handoff_note_site(HandoffWalk *walk, const ASTNode *argument, bool constructor)
     walk->sites[walk->site_count++] = (HandoffSite){
         .binding = binding,
         .loop_depth = walk->loop_depth,
+        .members = members,
         .repeats = walk->detached_depth > 0,
         .terminal = walk->terminal,
         .constructor = constructor,
     };
 }
 
-/* A struct constructor's Array<String> field inputs, or the arguments of a
- * body call whose default-mode formal moves what it receives. */
+/* A struct constructor's Array<String> field inputs (a field formal is Keep),
+ * or the arguments of a body call to a default-mode formal with its class. */
 static void
 handoff_note_call(HandoffWalk *walk, ASTNode *call)
 {
@@ -150,7 +158,8 @@ handoff_note_call(HandoffWalk *walk, ASTNode *call)
             return;
         for (size_t p = 0; p < snapshot->field_count; p++)
             if (snapshot->fields[p].string_array_elements_present)
-                handoff_note_site(walk, ast_call_argument(call, p), true);
+                handoff_note_site(walk, ast_call_argument(call, p), true,
+                    PGY_CALL_HANDOFF_MEMBER_KEEP);
         return;
     }
     /* A call in a detached body runs again or elsewhere: it hands nothing
@@ -179,11 +188,11 @@ handoff_note_call(HandoffWalk *walk, ASTNode *call)
             return;
         }
         if (!body_call) continue;
-        FuncParam *param = ast_func_param(callee, formal);
-        if (param == NULL || param->mode != PARAM_MODE_DEFAULT
-            || !semantic_default_aggregate_formal_moves(walk->ctx, callee, formal))
+        unsigned members = 0u;
+        if (!semantic_default_aggregate_formal_class(walk->ctx, callee, formal,
+                &members))
             continue;
-        handoff_note_site(walk, argument, false);
+        handoff_note_site(walk, argument, false, members);
     }
 }
 
@@ -258,7 +267,12 @@ handoff_walk(HandoffWalk *walk, ASTNode *node)
     }
 }
 
-/* Whether the site at `at` hands `binding` off once, as its only input. */
+/* Whether the rule hands `binding` off at the site `at`, and the binding has
+ * the one definition a hand-off is recorded for. The site is used again
+ * when it runs again without a new definition, or when the binding is given
+ * to another constructor input. This walk reads no later use: the move owner
+ * lands a Clone at a moved argument that is used again (then the argument
+ * is a call, not a site) or refuses the program. */
 static bool
 handoff_site_admitted(const HandoffWalk *walk, const HandoffSite *at)
 {
@@ -266,15 +280,21 @@ handoff_site_admitted(const HandoffWalk *walk, const HandoffSite *at)
     for (size_t i = 0; i < walk->binding_count; i++)
         if (walk->bindings[i].binding == at->binding)
             binding = &walk->bindings[i];
-    if (binding == NULL || binding->definitions != 1 || at->repeats
-        || (!at->terminal && at->loop_depth != binding->loop_depth))
+    if (binding == NULL || binding->definitions != 1)
         return false;
-    if (!at->constructor) return true;
     size_t inputs = 0;
-    for (size_t i = 0; i < walk->site_count; i++)
+    for (size_t i = 0; at->constructor && i < walk->site_count; i++)
         if (walk->sites[i].constructor && walk->sites[i].binding == at->binding)
             inputs++;
-    return inputs == 1;
+    bool once = !at->repeats
+        && (at->terminal || at->loop_depth == binding->loop_depth)
+        && (!at->constructor || inputs == 1);
+    return pgy_call_handoff_action(at->members, PGY_CALL_HANDOFF_ORIGIN_LOCAL,
+            once ? PGY_CALL_HANDOFF_LATER_ONCE : PGY_CALL_HANDOFF_LATER_USED_AGAIN,
+            at->repeats ? PGY_CALL_HANDOFF_CONTEXT_DETACHED
+                : PGY_CALL_HANDOFF_CONTEXT_SYNC,
+            PGY_CALL_HANDOFF_ELEMENTS_AS_GIVEN, PGY_CALL_HANDOFF_DIVERGENCE_NONE)
+        == PGY_CALL_HANDOFF_ACTION_HAND_OFF;
 }
 
 typedef struct {

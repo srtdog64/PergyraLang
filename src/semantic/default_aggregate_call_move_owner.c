@@ -3,6 +3,7 @@
  * moving actuals. Control-flow state joining remains in the walk owner. */
 #include "default_aggregate_move_internal.h"
 #include "default_aggregate_move_rule.h"
+#include "call_handoff_rule.h"
 #include "collection_ownership_fact.h"
 #include "loan_copy_landing_owner.h"
 
@@ -427,11 +428,29 @@ move_walk_apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         /* Automatic copy-on-reuse belongs only to the default aggregate
          * value contract. An explicit `own` formal is an authority transfer;
          * inserting Clone at that boundary would both change the contract
-         * and violate the named-value boundary. */
+         * and violate the named-value boundary. A later use takes the call
+         * hand-off rule's used-again action for the edge's outward class
+         * (not current: Unproved; a call or channel escape alone: Keep
+         * only; lending: Return only): a whole Clone, a loan with its copy
+         * ladder, or a refusal (native divergence rows refuse Keep only and
+         * Unproved). */
+        PgyCallHandoffAction reuse = pgy_call_handoff_action_for_kind(
+            !outward_current ? PGY_CALL_HANDOFF_KIND_UNPROVED
+                : borrow_handoff ? PGY_CALL_HANDOFF_KIND_KEEP_ONLY
+                : lends ? PGY_CALL_HANDOFF_KIND_RETURN_ONLY
+                : PGY_CALL_HANDOFF_KIND_MOVING,
+            !parameter ? PGY_CALL_HANDOFF_ORIGIN_LOCAL
+                : mode == PARAM_MODE_DEFAULT || mode == PARAM_MODE_OWN
+                    ? PGY_CALL_HANDOFF_ORIGIN_CALLER_FORMAL
+                    : PGY_CALL_HANDOFF_ORIGIN_BORROWED,
+            PGY_CALL_HANDOFF_LATER_USED_AGAIN, PGY_CALL_HANDOFF_CONTEXT_SYNC,
+            PGY_CALL_HANDOFF_ELEMENTS_AS_GIVEN,
+            PGY_CALL_HANDOFF_NATIVE_ROW_DIVERGENCES);
         bool copy_on_reuse = param->mode == PARAM_MODE_DEFAULT
-            && outward_current && !borrow_handoff;
+            && (reuse == PGY_CALL_HANDOFF_ACTION_CLONE_ARGUMENT
+                || reuse == PGY_CALL_HANDOFF_ACTION_LOAN_TO_RESULT);
         bool outward_borrow_escape = param->mode == PARAM_MODE_DEFAULT
-            && (!outward_current || borrow_handoff);
+            && reuse == PGY_CALL_HANDOFF_ACTION_REFUSE;
         const char *callee_name = ast_declaration_name(callee) != NULL
             ? ast_declaration_name(callee) : "callee";
         const char *param_name = param != NULL && param->name != NULL

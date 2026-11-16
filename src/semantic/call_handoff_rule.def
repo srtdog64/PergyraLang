@@ -1,0 +1,205 @@
+/* PGY_CALL_HANDOFF_RULE
+ *
+ * The one hand-off rule for a default-mode aggregate argument or a struct
+ * constructor input (decision 2026-11-16_one_handoff_rule_for_both_front_ends,
+ * study docs/audits/unified_handoff_rule_study_2026-11-16.md sections 2.1,
+ * 2.2 and 5.3, and decision 2026-11-16_getter_loan_correction_and_element_
+ * ownership_axis). scripts/render_call_handoff_rule.py renders it to
+ * src/semantic/call_handoff_rule.h and
+ * src/self_hosted/semantic/call_handoff_rule_projection_owner.pgy; its
+ * --check mode is the drift gate (tests/registry/call_handoff_rule_smoke.sh).
+ *
+ * Inputs of one lookup:
+ * - the effect class of the callee formal: a set of MEMBERs, reduced to the
+ *   first KIND it matches (a constructor field formal has class KEEP);
+ * - the ORIGIN of the argument;
+ * - LATER use: ONCE means no path reads the binding's storage after the call
+ *   before its next definition and the site runs once; USED_AGAIN means a
+ *   later read, or a site that runs again without a new definition (a loop
+ *   that does not declare the binding, a defer, lambda, async or parallel
+ *   body), or a second constructor input of the same binding;
+ * - the execution CONTEXT of the site;
+ * - the ELEMENTS a constructor field must own (OWNED_REQUIRED: the field must
+ *   own its elements and the argument's elements are borrowed or unknown).
+ * The ROW table maps them to an ACTION; the first matching row wins.
+ *
+ * Not in the table, unchanged (study 2.2): an `own` formal always consumes;
+ * a callee without a body keeps its declared contract; a member-path
+ * argument stays with the member-move owner (decision 2026-11-12). A HAND_OFF
+ * is recorded on the binding's row only when the binding has one definition;
+ * both front ends apply that recording rule after the lookup.
+ *
+ * Today's code differs from the table in the places named by DIVERGENCE
+ * entries. A ROW divergence carries DIVERGENCE_ROWs that a front end selects
+ * by passing its flag; a PROJECTION divergence carries SELF_HOST_EFFECT
+ * divergence rows; an INPUT divergence names a table input a front end
+ * computes differently from the rule and has no rows. Each names the
+ * migration slice (study 3.5) that removes it. S1 changes no verdict.
+ *
+ * Grammar (one macro per row):
+ *   PGY_CALL_HANDOFF_MEMBER(name, MOVING | NOT_MOVING)
+ *   PGY_CALL_HANDOFF_KIND(name, any-of members | NONE, only members | ALL)
+ *   PGY_CALL_HANDOFF_AXIS(ORIGIN | LATER | CONTEXT | ELEMENTS, value)
+ *   PGY_CALL_HANDOFF_ACTION(name, RULE | DIVERGENCE_ONLY)
+ *   PGY_CALL_HANDOFF_DIVERGENCE(name, NATIVE | SELF_HOST, ROW | PROJECTION | INPUT, slice)
+ *   PGY_CALL_HANDOFF_NATIVE_SUMMARY_BIT(slot summary bit, member)
+ *   PGY_CALL_HANDOFF_SELF_HOST_EFFECT(effect code, members | NONE)
+ *   PGY_CALL_HANDOFF_SELF_HOST_EFFECT_DIVERGENCE(divergence, effect code, members | NONE)
+ *   PGY_CALL_HANDOFF_ROW(kinds, origins, later, contexts, elements, action)
+ *   PGY_CALL_HANDOFF_DIVERGENCE_ROW(divergence, kinds, origins, later, contexts, elements, action)
+ * A list joins names with `|`; ANY is every value of the axis.
+ */
+
+/* Study 2.1: the members of an effect class. A moving member makes the call
+ * take the argument. */
+PGY_CALL_HANDOFF_MEMBER(READ, NOT_MOVING)
+PGY_CALL_HANDOFF_MEMBER(RETURN, NOT_MOVING)
+PGY_CALL_HANDOFF_MEMBER(GROW, MOVING)
+PGY_CALL_HANDOFF_MEMBER(KEEP, MOVING)
+PGY_CALL_HANDOFF_MEMBER(RELEASE, MOVING)
+PGY_CALL_HANDOFF_MEMBER(UNPROVED, MOVING)
+
+/* The join: a class set is the first kind it matches. */
+PGY_CALL_HANDOFF_KIND(UNPROVED, UNPROVED, ALL)
+PGY_CALL_HANDOFF_KIND(READ_ONLY, NONE, READ)
+PGY_CALL_HANDOFF_KIND(RETURN_ONLY, RETURN, READ|RETURN)
+PGY_CALL_HANDOFF_KIND(KEEP_ONLY, KEEP, READ|KEEP)
+PGY_CALL_HANDOFF_KIND(MOVING, NONE, ALL)
+
+/* FRESH: a value no binding names (a call result, a literal, or the Clone a
+ * front end landed at the argument). LOCAL: a named local of the routine.
+ * CALLER_FORMAL: the routine's own default-mode or own formal. BORROWED: a
+ * ref or inout formal, a live loan, or an element borrow. */
+PGY_CALL_HANDOFF_AXIS(ORIGIN, FRESH)
+PGY_CALL_HANDOFF_AXIS(ORIGIN, LOCAL)
+PGY_CALL_HANDOFF_AXIS(ORIGIN, CALLER_FORMAL)
+PGY_CALL_HANDOFF_AXIS(ORIGIN, BORROWED)
+PGY_CALL_HANDOFF_AXIS(LATER, ONCE)
+PGY_CALL_HANDOFF_AXIS(LATER, USED_AGAIN)
+PGY_CALL_HANDOFF_AXIS(CONTEXT, SYNC)
+PGY_CALL_HANDOFF_AXIS(CONTEXT, DETACHED)
+PGY_CALL_HANDOFF_AXIS(ELEMENTS, AS_GIVEN)
+PGY_CALL_HANDOFF_AXIS(ELEMENTS, OWNED_REQUIRED)
+
+/* LEND_FOR_CALL: the row is unchanged and the caller still releases.
+ * RESULT_OWNS / MOVED: a fresh value goes to the result or the callee; no row.
+ * HAND_OFF: the binding's row is handed off; neither side releases it
+ *   (decision 2026-11-15); a record releases a constructor input once.
+ * MOVED_ON: the caller's own formal moves on; its class joins into that
+ *   formal's class (the transitive step); no row.
+ * LOAN_TO_RESULT: the result is a loan of the owner while the loan proof
+ *   holds (decisions 2026-10-19 and 2026-11-16 getter loan); a conflict or
+ *   an escape takes the copy ladder of decisions 2026-10-20 and 2026-10-24.
+ * CLONE_ARGUMENT: a Clone at the argument where Clone copies the whole value
+ *   (decision 2026-10-22); otherwise refused, naming callee and formal.
+ * OWNED_ELEMENT_CLONE: the constructor input takes an owned-element Clone
+ *   where Clone copies the whole value; otherwise refused.
+ * REFUSE: refused, naming callee and formal.
+ * KEEP_ROW_STATE: the binding's row keeps its state (live or retired) and the
+ *   direct MIR storage-sharing guard decides; only a divergence row gives it. */
+PGY_CALL_HANDOFF_ACTION(LEND_FOR_CALL, RULE)
+PGY_CALL_HANDOFF_ACTION(RESULT_OWNS, RULE)
+PGY_CALL_HANDOFF_ACTION(MOVED, RULE)
+PGY_CALL_HANDOFF_ACTION(HAND_OFF, RULE)
+PGY_CALL_HANDOFF_ACTION(MOVED_ON, RULE)
+PGY_CALL_HANDOFF_ACTION(LOAN_TO_RESULT, RULE)
+PGY_CALL_HANDOFF_ACTION(CLONE_ARGUMENT, RULE)
+PGY_CALL_HANDOFF_ACTION(OWNED_ELEMENT_CLONE, RULE)
+PGY_CALL_HANDOFF_ACTION(REFUSE, RULE)
+PGY_CALL_HANDOFF_ACTION(KEEP_ROW_STATE, DIVERGENCE_ONLY)
+
+/* Native, rows. A local whose callee formal only keeps the storage (a call
+ * or channel escape), or whose callee summary is not current, is refused
+ * when used again: the move owner sets no copy-on-reuse for it
+ * (default_aggregate_call_move_owner.c). The rule copies it whole. */
+PGY_CALL_HANDOFF_DIVERGENCE(NATIVE_KEEP_REUSE_REFUSED, NATIVE, ROW, S5)
+PGY_CALL_HANDOFF_DIVERGENCE(NATIVE_UNPROVED_REUSE_REFUSED, NATIVE, ROW, S5)
+/* Native, inputs. An Array formal's class is read from the descriptor bit
+ * alone (array_storage_unproved), so Return, Keep and Grow all count as
+ * GROW and an Array formal never lends (default_aggregate_move_rule.c). */
+PGY_CALL_HANDOFF_DIVERGENCE(NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY, NATIVE, INPUT, S4)
+/* A ref or inout formal of the caller handed to a moving formal is refused
+ * instead of copied (default_aggregate_call_move_owner.c, "Borrowed
+ * parameter storage cannot be moved"), unless the callee only keeps it
+ * (its escape is carried to the caller's own summary) or a loan proof
+ * admits a lending formal; the rule copies it whole. */
+PGY_CALL_HANDOFF_DIVERGENCE(NATIVE_BORROWED_MOVE_REFUSED, NATIVE, INPUT, S5)
+/* The move owner does not read the context of a call: a move made in a
+ * detached body does not flow back to the enclosing walk (walk_detached),
+ * and an Unproved class there is not refused by this rule; the worker
+ * boundary and capture owners still decide such a body. */
+PGY_CALL_HANDOFF_DIVERGENCE(NATIVE_DETACHED_CONTEXT_NOT_READ, NATIVE, INPUT, S5)
+
+/* Self-host, rows. A constructor input whose row the aggregate release plan
+ * already retired keeps `retired` (S0 cause 1, 33 rows); the rule hands it
+ * off. The constructor hand-off owner passes the flag for such a row only. */
+PGY_CALL_HANDOFF_DIVERGENCE(SELF_RETIRED_CONSTRUCTOR_INPUT_KEPT, SELF_HOST, ROW, S5)
+/* Self-host, projection. The call hand-off owner does not count an unproved
+ * element use or an opaque execution effect as a move: the row stays live. */
+PGY_CALL_HANDOFF_DIVERGENCE(SELF_UNPROVED_EFFECT_NOT_MOVING, SELF_HOST, PROJECTION, S5)
+/* Self-host, inputs.
+ * - The formal execution entry owner refuses an opaque execution effect,
+ *   and an unproved element use without an element-escape proof, also in
+ *   a synchronous call.
+ * - The hand-off owners compute ONCE without reading later uses: the
+ *   descriptor-retention and exclusive owners refuse or copy those first,
+ *   and a constructor input read later is handed off (S0 cause 3, 5 rows).
+ * - The repeat predicate sees loops and defer only, not lambda, async or
+ *   parallel bodies (SemanticAstCollectionCallRetirementSiteForOrigin).
+ * - The constructor hand-off owner does not read the element axis: a
+ *   borrowed-literal input is handed to an owned field (S0 cause 2a, 15 rows;
+ *   the 9 callee-side rows of cause 2b need the revised S4).
+ * - A binding given to two constructor inputs takes no Clone at the earlier
+ *   input, so every input is USED_AGAIN and none is handed off (S0 cause 4).
+ * - A named-field struct literal is not a constructor input (S0 cause 5). */
+PGY_CALL_HANDOFF_DIVERGENCE(SELF_UNPROVED_REFUSED_AT_ENTRY, SELF_HOST, INPUT, S5)
+PGY_CALL_HANDOFF_DIVERGENCE(SELF_LATER_USE_NOT_READ, SELF_HOST, INPUT, S5)
+PGY_CALL_HANDOFF_DIVERGENCE(SELF_REPEAT_SKIPS_DETACHED_BODY, SELF_HOST, INPUT, S5)
+PGY_CALL_HANDOFF_DIVERGENCE(SELF_CONSTRUCTOR_ELEMENT_AXIS_UNREAD, SELF_HOST, INPUT, S5)
+PGY_CALL_HANDOFF_DIVERGENCE(SELF_CONSTRUCTOR_TWICE_NOT_COPIED, SELF_HOST, INPUT, S5)
+PGY_CALL_HANDOFF_DIVERGENCE(SELF_STRUCT_LITERAL_INPUT_UNSEEN, SELF_HOST, INPUT, S5)
+
+/* Study 2.1, native column: the parameter-flow summary bits. A bit the list
+ * does not name projects to UNPROVED. */
+PGY_CALL_HANDOFF_NATIVE_SUMMARY_BIT(SLOT_PARAM_SUMMARY_READ, READ)
+PGY_CALL_HANDOFF_NATIVE_SUMMARY_BIT(SLOT_PARAM_SUMMARY_WRITE, GROW)
+PGY_CALL_HANDOFF_NATIVE_SUMMARY_BIT(SLOT_PARAM_SUMMARY_RELEASE, RELEASE)
+PGY_CALL_HANDOFF_NATIVE_SUMMARY_BIT(SLOT_PARAM_SUMMARY_RETURN_ESCAPE, RETURN)
+PGY_CALL_HANDOFF_NATIVE_SUMMARY_BIT(SLOT_PARAM_SUMMARY_CALL_ESCAPE, KEEP)
+PGY_CALL_HANDOFF_NATIVE_SUMMARY_BIT(SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE, KEEP)
+
+/* Study 2.1, self-host column: the formal effect codes of
+ * ast_collection_formal_effect_graph_owner.pgy. 0 is no recorded effect,
+ * 1 an unused formal, 2 an owned mutation, 3 an element read, 4 an opaque
+ * execution, 5 an unproved element use, 6 a shallow mutation. Descriptor
+ * retention adds KEEP at the consumer. */
+PGY_CALL_HANDOFF_SELF_HOST_EFFECT(0, NONE)
+PGY_CALL_HANDOFF_SELF_HOST_EFFECT(1, NONE)
+PGY_CALL_HANDOFF_SELF_HOST_EFFECT(2, GROW)
+PGY_CALL_HANDOFF_SELF_HOST_EFFECT(3, READ)
+PGY_CALL_HANDOFF_SELF_HOST_EFFECT(4, UNPROVED)
+PGY_CALL_HANDOFF_SELF_HOST_EFFECT(5, UNPROVED)
+PGY_CALL_HANDOFF_SELF_HOST_EFFECT(6, GROW)
+PGY_CALL_HANDOFF_SELF_HOST_EFFECT_DIVERGENCE(SELF_UNPROVED_EFFECT_NOT_MOVING, 4, NONE)
+PGY_CALL_HANDOFF_SELF_HOST_EFFECT_DIVERGENCE(SELF_UNPROVED_EFFECT_NOT_MOVING, 5, NONE)
+
+/* The decision table (study 2.2 with 5.3 for the used-again Return rows). */
+/* User decision 2026-11-16: an unproved effect in a detached context is
+ * refused; in a synchronous call it moves. */
+PGY_CALL_HANDOFF_ROW(UNPROVED, ANY, ANY, DETACHED, ANY, REFUSE)
+/* Element ownership axis (decision 2026-11-16, getter correction 2). */
+PGY_CALL_HANDOFF_ROW(ANY, ANY, ANY, ANY, OWNED_REQUIRED, OWNED_ELEMENT_CLONE)
+PGY_CALL_HANDOFF_ROW(READ_ONLY, ANY, ANY, ANY, ANY, LEND_FOR_CALL)
+PGY_CALL_HANDOFF_ROW(RETURN_ONLY, FRESH, ANY, ANY, ANY, RESULT_OWNS)
+PGY_CALL_HANDOFF_ROW(RETURN_ONLY, LOCAL, ONCE, SYNC, ANY, HAND_OFF)
+PGY_CALL_HANDOFF_ROW(RETURN_ONLY, CALLER_FORMAL, ONCE, SYNC, ANY, MOVED_ON)
+PGY_CALL_HANDOFF_ROW(RETURN_ONLY, ANY, ANY, ANY, ANY, LOAN_TO_RESULT)
+PGY_CALL_HANDOFF_ROW(KEEP_ONLY|MOVING|UNPROVED, FRESH, ANY, ANY, ANY, MOVED)
+PGY_CALL_HANDOFF_ROW(KEEP_ONLY|MOVING|UNPROVED, LOCAL, ONCE, SYNC, ANY, HAND_OFF)
+PGY_CALL_HANDOFF_ROW(KEEP_ONLY|MOVING|UNPROVED, CALLER_FORMAL, ONCE, SYNC, ANY, MOVED_ON)
+PGY_CALL_HANDOFF_ROW(KEEP_ONLY|MOVING|UNPROVED, ANY, ANY, ANY, ANY, CLONE_ARGUMENT)
+
+/* Divergence rows, checked before the table when the caller passes the flag. */
+PGY_CALL_HANDOFF_DIVERGENCE_ROW(NATIVE_KEEP_REUSE_REFUSED, KEEP_ONLY, LOCAL|CALLER_FORMAL|BORROWED, USED_AGAIN, ANY, AS_GIVEN, REFUSE)
+PGY_CALL_HANDOFF_DIVERGENCE_ROW(NATIVE_UNPROVED_REUSE_REFUSED, UNPROVED, LOCAL|CALLER_FORMAL|BORROWED, USED_AGAIN, SYNC, AS_GIVEN, REFUSE)
+PGY_CALL_HANDOFF_DIVERGENCE_ROW(SELF_RETIRED_CONSTRUCTOR_INPUT_KEPT, RETURN_ONLY|KEEP_ONLY|MOVING|UNPROVED, LOCAL, ONCE, SYNC, AS_GIVEN, KEEP_ROW_STATE)

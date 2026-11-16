@@ -4,6 +4,7 @@
 
 #include "array_storage_release_owner.h"
 #include "builtin_kind.h"
+#include "call_handoff_rule.h"
 #include "collection_ownership_fact_internal.h"
 #include "default_aggregate_move_rule.h"
 #include "diag_codes.h"
@@ -557,11 +558,20 @@ aggregate_constructor_proves(
         if (!ready && semantic_loan_copy_landing_satisfied(ctx, actual))
             ready = true;
         /* A constructor must not silently turn a shallow Array<String>
-         * descriptor into an owned field.  When Clone can copy the complete
-         * actual, select that exact occurrence for the driver's next landed
-         * analysis.  The deferred diagnostic keeps this analysis unusable;
-         * only the reloaded AST with the Clone may establish `ready`. */
+         * descriptor into an owned field.  The field must own its elements;
+         * an input whose elements are not proved owned takes the call
+         * hand-off rule's element-axis action for a field formal (Keep),
+         * whatever its origin and later use: an owned-element Clone where
+         * Clone can copy the complete actual.  Select that exact occurrence
+         * for the driver's next landed analysis.  The deferred diagnostic
+         * keeps this analysis unusable; only the reloaded AST with the Clone
+         * may establish `ready`. */
         if (!ready
+            && pgy_call_handoff_action_any_use(
+                    pgy_call_handoff_kind(PGY_CALL_HANDOFF_MEMBER_KEEP),
+                    PGY_CALL_HANDOFF_CONTEXT_SYNC,
+                    PGY_CALL_HANDOFF_ELEMENTS_OWNED_REQUIRED)
+                == PGY_CALL_HANDOFF_ACTION_OWNED_ELEMENT_CLONE
             && semantic_loan_copy_landing_carrier_copies(ctx, actual)
             && semantic_loan_copy_landing_select_carrier(ctx, actual)) {
             semantic_loan_copy_landing_error_with_hints(ctx,
