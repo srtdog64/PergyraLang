@@ -77,6 +77,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/frontend/builtin_surface_parity_owner.sh'
     run 'bash tests/self_hosted/parity/driver/io_result_builtin_owner.sh'
     run 'bash tests/self_hosted/parity/semantic/default_route_diagnostic_position_owner.sh'
+    run 'bash tests/self_hosted/parity/semantic/reserved_name_ref_alias_refusal_owner.sh'
 
     run 'make build-source-inventory-test-smoke'
     run 'make gate-subject-declaration-test-smoke'

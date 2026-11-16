@@ -25,11 +25,16 @@ func ParseIntentVariantBinding(
     i = ParseExpectIn(context, content, i, "(", "intent_step_outcome");
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
+    let payload_start: Int = i;
     let payload_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if payload_name == "" {
         ParseRefuse(context, i, "declaration_name_missing",
             "construct", "intent_step_payload", "", "");
+    }
+    if ParserBindingNameReserved(payload_name) {
+        ParseRefuse(context, payload_start, "binding_name_reserved",
+            "name", payload_name, "construct", "intent_step_payload");
     }
     i = ParseExpectIn(context, content, i, ")", "intent_step_outcome");
     ArraySet(cursor_out, 0, i);

@@ -11,10 +11,15 @@ func ParseEventDecl(content: String, content_extent: Int, start: Int, inout curs
     var i: Int = LanguageWordEnd(start, LanguageWordId.WordEvent);
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     ArraySet(cursor_out, 0, i);
+    let ev_start: Int = i;
     let ev_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
     i = cursor_out[0];
     if StringLength(ev_name) == 0 {
         ParseRefuse(location_context, i, "declaration_name_missing", "construct", "event", "", "");
+    }
+    if ParserDeclarationNameReserved(ev_name) {
+        ParseRefuse(location_context, ev_start, "declaration_name_reserved",
+            "name", ev_name, "construct", "event");
     }
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if ParserCharAtWithin(content, content_extent, i) == ":" {
@@ -27,10 +32,15 @@ func ParseEventDecl(content: String, content_extent: Int, start: Int, inout curs
         while true {
             i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             ArraySet(cursor_out, 0, i);
+            let p_start: Int = i;
             let p_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if StringLength(p_name) == 0 {
                 ParseRefuse(location_context, i, "declaration_name_missing", "construct", "event_parameter", "", "");
+            }
+            if ParserDeclarationNameReserved(p_name) {
+                ParseRefuse(location_context, p_start, "declaration_name_reserved",
+                    "name", p_name, "construct", "event_parameter");
             }
             i = ParseExpectIn(location_context, content, i, ":", "event_parameter");
             ArraySet(cursor_out, 0, i);

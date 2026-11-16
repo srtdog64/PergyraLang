@@ -100,10 +100,14 @@ CASES=(no-moves late-move borrowed-handoff borrowed-exclusive pre-reassign post-
 # scanner triple/text, caller/body message and node IDs, canonical rows/storage
 # lineage and every root's completion/start observation. The two rejected-body
 # inputs are NOT_OBSERVED, not evidence of production scanner call order.
+# borrowed-handoff binds a `ref` formal to a local. Since 2026-11-16 the body
+# refuses that new binding as native does (boundary new_binding); the source
+# boundary stage runs after the collection owners, so its other rows are the
+# same observation as before.
 EXPECTED=(
     5b8bd35b336ef04eb45d13692b2d7895243e0e157c61492fc7480600aa5dcea7
     3605478c9d38eb0db1f5f0b2da21a1bc8b63e265a9c396582f3765fe80c0f798
-    fb0e6ecb004e07765e3133e7cad6c28b08be4828ae9d2d1026ff80c6ce2f6226
+    2a749daf1849150537b7e688a0a2d4c1c5a10e0d2878471e922e9d1f6cccb645
     a1ebfbb37bbb0b4c2fe186bfc540e6a7be992644e44c716d6f13453607f41e4e
     5411727cbd382ef69ec118c910996cdd8ce2c6f93013e1ba33fbc822eba803b9
     e2c0caa354ea93d27c911f4884b5b072c0082912aa948a430549f73bc4781543

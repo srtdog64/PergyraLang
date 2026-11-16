@@ -21,10 +21,15 @@ func ParseEnumDecl(
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
+    let enum_name_start: Int = i;
     let enum_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(enum_name) == 0 {
         ParseRefuse(location_context, i, "declaration_name_missing", "construct", "enum", "", "");
+    }
+    if ParserDeclarationNameReserved(enum_name) {
+        ParseRefuse(location_context, enum_name_start, "declaration_name_reserved",
+            "name", enum_name, "construct", "enum");
     }
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "enum");
@@ -51,10 +56,15 @@ func ParseEnumDecl(
             continue;
         }
         ArraySet(cursor_out, 0, i);
+        let v_name_start: Int = i;
         let v_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(v_name) == 0 {
             ParseRefuse(location_context, i, "declaration_name_missing", "construct", "enum_variant", "", "");
+        }
+        if ParserDeclarationNameReserved(v_name) {
+            ParseRefuse(location_context, v_name_start, "declaration_name_reserved",
+                "name", v_name, "construct", "enum_variant");
         }
         var variant_text: String = v_name;
         i = SkipWhitespaceAndComments(content, i);

@@ -149,6 +149,18 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "rename the binding, for example by adding a suffix"
         );
     }
+    if code == "declaration_name_reserved" {
+        return ParseDiagnosticRow(
+            "a reserved language word cannot name a declaration",
+            "rename the declaration, for example by adding a suffix"
+        );
+    }
+    if code == "reserved_word_not_a_value" {
+        return ParseDiagnosticRow(
+            "a reserved language word is not a value or a name",
+            "rename the name it was meant to be, for example by adding a suffix"
+        );
+    }
     if code == "bind_subject_missing" {
         return ParseDiagnosticRow(
             "a bind names a role without a local subject for its self",
@@ -273,6 +285,8 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "block_unclosed" || code == "expected_token" ||
         code == "match_arm_empty" ||
         code == "expression_invalid" || code == "binding_name_reserved" ||
+        code == "declaration_name_reserved" ||
+        code == "reserved_word_not_a_value" ||
         code == "binding_form_invalid" ||
         code == "field_name_reserved" || code == "bind_subject_missing" ||
         code == "declaration_name_missing" || code == "type_name_invalid" ||

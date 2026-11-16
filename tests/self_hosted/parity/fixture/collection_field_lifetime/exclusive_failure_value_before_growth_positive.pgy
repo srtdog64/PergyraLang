@@ -4,9 +4,9 @@ struct NodeSet {
     types: Array<String>;
 }
 
-func NodeSetGrowChecked(facts: NodeSet, fail: Bool) -> NodeSet {
+func NodeSetGrowChecked(facts: NodeSet, failing: Bool) -> NodeSet {
     let invalid: NodeSet = NodeSet(false, facts.types);
-    if fail { return invalid; }
+    if failing { return invalid; }
     var types: Array<String> = facts.types;
     ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
     return NodeSet(true, types);

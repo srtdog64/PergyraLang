@@ -58,10 +58,15 @@ func ParseNominalDecl(
         i = i + decl_kw_len;
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
+        let decl_name_start: Int = i;
         let decl_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(decl_name) == 0 {
             ParseRefuse(location_context, i, "declaration_name_missing", "construct", decl_label, "", "");
+        }
+        if ParserDeclarationNameReserved(decl_name) {
+            ParseRefuse(location_context, decl_name_start, "declaration_name_reserved",
+                "name", decl_name, "construct", decl_label);
         }
         if decl_label == "Subject" {
             ArrayPush(involve_types, decl_name);

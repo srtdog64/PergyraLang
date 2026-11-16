@@ -8,11 +8,11 @@ func Invalid(facts: NodeSet) -> NodeSet {
     return NodeSet(false, facts.types);
 }
 
-func Grow(facts: NodeSet, fail: Bool) -> NodeSet {
+func Grow(facts: NodeSet, failing: Bool) -> NodeSet {
     let invalid: NodeSet = Invalid(facts);
     var types: Array<String> = facts.types;
     ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
-    if fail { return invalid; }
+    if failing { return invalid; }
     return NodeSet(true, types);
 }
 

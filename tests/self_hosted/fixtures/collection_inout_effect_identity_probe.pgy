@@ -92,8 +92,16 @@ func CollectionInoutEffectIdentityProbeMain(args: Array<String>) -> Void with ca
                 analysis.expression_surfaces));
         return;
     }
+    if !SemanticAstArtifactAnalysisMatches(artifact, analysis, analysis.verdict.requires_entrypoint) {
+        Log("identity input analysis is stale"); Exit(2);
+    }
+    // The identity inputs bind a `ref` formal to a local to reach every formal
+    // mode. The source pass refuses that binding as native does; the
+    // MIR-consumer pass admits it and runs the same fact owners, so the units
+    // read their facts from that pass.
     var bundle: SemanticAstBodyTypeBundle =
-        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+        SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
+            artifact, analysis, false, false, true, false);
     if mutation >= 120 && mutation <= 124 {
         if !bundle.verdict.ok { Log("baseline receipt admission failed"); Exit(2); }
         let receipt: SemanticAstBodyTypeBundleAdmissionReceipt =

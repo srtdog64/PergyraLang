@@ -13,10 +13,15 @@ func ParseTypeDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
+    let alias_name_start: Int = i;
     let alias_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(alias_name) == 0 {
         ParseRefuse(location_context, i, "declaration_name_missing", "construct", "type", "", "");
+    }
+    if ParserDeclarationNameReserved(alias_name) {
+        ParseRefuse(location_context, alias_name_start, "declaration_name_reserved",
+            "name", alias_name, "construct", "type");
     }
     i = ParseExpectIn(location_context, content, i, "=", "type");
     i = SkipWhitespaceAndComments(content, i);

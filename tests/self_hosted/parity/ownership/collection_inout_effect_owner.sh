@@ -667,6 +667,12 @@ for backend in c llvm; do
                 # rules made their locals `var` (native: a borrowed ref value
                 # cannot escape into a new binding / an inout replacement).
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
+            borrow_formal_chain_read_positive.pgy|borrow_formal_modes_read_clone_positive.pgy|borrow_formal_fresh_clone_positive.pgy|borrow_formal_fresh_empty_positive.pgy|borrow_formal_fresh_own_positive.pgy|borrow_formal_fresh_binding_move_positive.pgy|borrow_formal_old_view_after_fresh_positive.pgy|borrow_formal_same_name_local_positive.pgy|borrow_formal_alias_fresh_isolated_positive.pgy|borrow_formal_seed_fresh_isolated_positive.pgy|borrow_formal_assign_read_before_positive.pgy|member_formal_identity_input.pgy)
+                # Each binds a `ref` formal, or a field of one, to a new
+                # local. Native refuses that new binding for a value that is
+                # not copy-only; the self-host source pass refuses it the same
+                # way (boundary new_binding) since 2026-11-16.
+                printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             descriptor_text_escape_read_positive.pgy|descriptor_text_escape_loop_positive.pgy|descriptor_text_escape_forward_positive.pgy|own_formal_shallow_forward_positive.pgy|exclusive_thread_inout_positive.pgy|exclusive_inout_repeat_alias_positive.pgy|exclusive_alias_inout_then_read_positive.pgy)
                 # Self-host generality gaps: native admits these and runs them
                 # clean under ASan; the self-host still refuses them

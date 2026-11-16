@@ -90,9 +90,17 @@ func LanguageWordEnd(start: Int, id: LanguageWordId) -> Int {
     return start + LanguageWordLength(id);
 }
 
+// A declaration name (a function, a type, an enum variant) is an identifier
+// token in native, so no reserved word names one, NAME context or not.
+// Contextual and soft rows lex as identifiers and stay admitted.
+func ParserDeclarationNameReserved(name: String) -> Bool {
+    return LanguageKeywordDebugIdentity(name) != "IDENTIFIER";
+}
+
 // A reserved word may name a local binding only when its registry row
 // carries the NAME context (the same rows native admits). Non-reserved
-// spellings are identifiers.
+// spellings are identifiers. The same rule decides whether a reserved word
+// may stand as a value in an expression.
 func ParserBindingNameReserved(name: String) -> Bool {
     if LanguageKeywordDebugIdentity(name) == "IDENTIFIER" { return false; }
     var index: Int = 0;

@@ -80,10 +80,15 @@ func ParseForStmt(
     // terminates the lower bound and this owner consumes the upper explicitly.
     var i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, after_head);
     ArraySet(cursor_out, 0, i);
+    let var_start: Int = i;
     let var_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
     i = cursor_out[0];
     if StringLength(var_name) == 0 {
         ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
+    }
+    if ParserBindingNameReserved(var_name) {
+        ParseRefuse(location_context, var_start, "binding_name_reserved",
+            "name", var_name, "construct", "for");
     }
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if !MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordIn) {

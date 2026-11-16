@@ -87,7 +87,7 @@ evidence.
 | `export` | reserved | native+self_host | 2 | 2 | 0 | 15 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `extends` | reserved | native+self_host | 1 | 1 | 0 | 1 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `extern` | reserved | native+self_host | 3 | 1 | 0 | 9 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
-| `fail` | reserved | native+self_host | 1 | 0 | 0 | 8 | TextMate:keyword.control.pergyra | native-only |
+| `fail` | reserved | native+self_host | 1 | 0 | 0 | 3 | TextMate:keyword.control.pergyra | native-only |
 | `failure` | contextual | native+self_host | 2 | 3 | 0 | 28 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
 | `false` | reserved | native+self_host | 1 | 0 | 0 | 287 | TextMate:constant.language.pergyra | native-only |
 | `fields` | contextual | native+self_host | 1 | 1 | 0 | 16 | none | native+selfhost-typed |

@@ -1419,6 +1419,7 @@ require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_cfg_identity_d
 
 require_max_lines "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" 300
 require_max_lines "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" 286
+require_max_lines "src/self_hosted/semantic/ast_borrowed_new_binding_verdict_owner.pgy" 160
 require_max_lines \
     "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" 80
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 60

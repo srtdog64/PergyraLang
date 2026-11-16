@@ -28,6 +28,10 @@ func ParseIfLetPayload(location_context: ParserSourceLocationContext, content: S
     if StringLength(payload) == 0 {
         ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
     }
+    if ParserBindingNameReserved(payload) {
+        ParseRefuse(location_context, i, "binding_name_reserved",
+            "name", payload, "construct", "if");
+    }
     return payload;
 }
 

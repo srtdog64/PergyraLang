@@ -17,10 +17,15 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     i = LanguageWordEnd(i, LanguageWordId.WordIntent);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
+    let intent_name_start: Int = i;
     let intent_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(intent_name) == 0 {
         ParseRefuse(location_context, i, "declaration_name_missing", "construct", "intent", "", "");
+    }
+    if ParserDeclarationNameReserved(intent_name) {
+        ParseRefuse(location_context, intent_name_start, "declaration_name_reserved",
+            "name", intent_name, "construct", "intent");
     }
     i = SkipWhitespaceAndComments(content, i);
     if ParserCharAt(content, i) == "{" {
@@ -35,10 +40,15 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         while true {
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
+            let ip_start: Int = i;
             let ip_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(ip_name) == 0 {
                 ParseRefuse(location_context, i, "declaration_name_missing", "construct", "intent_parameter", "", "");
+            }
+            if ParserBindingNameReserved(ip_name) {
+                ParseRefuse(location_context, ip_start, "binding_name_reserved",
+                    "name", ip_name, "construct", "intent_parameter");
             }
             i = ParseExpectIn(location_context, content, i, ":", "intent_parameter");
             i = SkipWhitespaceAndComments(content, i);

@@ -57,10 +57,14 @@ func ParsePrimaryFact(
             while true {
                 i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                 ArraySet(cursor_out, 0, i);
+                let pipe_start: Int = i;
                 let pipe_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
                 i = cursor_out[0];
                 if StringLength(pipe_name) == 0 {
                     return ParserExpressionInvalidAt(i, "expected_token");
+                }
+                if ParserBindingNameReserved(pipe_name) {
+                    return ParserExpressionInvalidAt(pipe_start, "binding_name_reserved");
                 }
                 if StringLength(lam_params) == 0 {
                     lam_params = pipe_name;
@@ -160,10 +164,14 @@ func ParsePrimaryFact(
                 while true {
                     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     ArraySet(cursor_out, 0, i);
+                    let lp_start: Int = i;
                     let lp_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
                     i = cursor_out[0];
                     if StringLength(lp_name) == 0 {
                         return ParserExpressionInvalidAt(i, "expected_token");
+                    }
+                    if ParserBindingNameReserved(lp_name) {
+                        return ParserExpressionInvalidAt(lp_start, "binding_name_reserved");
                     }
                     var pair_text: String = lp_name;
                     let after_lp_name: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
@@ -357,6 +365,15 @@ func ParsePrimaryFact(
         preserves_bool_literal_fact =
             MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordTrue) ||
             MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordFalse);
+        // A primary is a name or one of the words this owner reads as a
+        // value (`true`, `false`, `parallel`, `async`). Any other reserved
+        // word is no value and no name, as in native parse_primary; read as
+        // a name it would bind or resolve a word native never admits.
+        if ParserBindingNameReserved(base) && !preserves_bool_literal_fact &&
+            !MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordParallel) &&
+            !MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordAsync) {
+            return ParserExpressionInvalidAt(base_start, "reserved_word_not_a_value");
+        }
         if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordParallel) {
             i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             // The tree keeps a parallel expression as one leaf, but its join

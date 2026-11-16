@@ -1,0 +1,177 @@
+// Source `let`/`var` rule for a value read from a `ref` formal.
+//
+// A binding that names a place read from a `ref` formal (the formal itself,
+// a field path or an element of it), when the value is not copy-only, puts
+// the borrowed storage under a second name that can outlive the borrow.
+// Native refuses that new binding (type_checker_ownership_let.c and the
+// destructure owner); this owner joins the same admitted facts: the local
+// binding rows, their initializer types, the formal modes and the expression
+// place kinds. A `self` receiver carries no declared type in native and is
+// no borrowed root there; an intent body has no formal signature here or
+// there. The body assembly applies it to the source pass only: the MIR round
+// trip writes a match binding as `let b = subject.Variant._N`, which is part
+// of its subject. It runs after the collection ownership stage, so a program
+// that stage refuses keeps its reason and the stage's facts stay complete for
+// every input.
+
+import "ast_artifact_verdict_owner.pgy";
+import "ast_body_verdict_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_expression/ast_expression_place_fact_owner.pgy";
+
+// The `ref` formal leaf a place reads through, as native's
+// semantic_borrowed_boundary_root_name follows identifier, member and index
+// nodes. -1 when the value is no such place, -2 when a node is malformed.
+func SemanticAstBorrowedFormalPlaceLeaf(
+    ref graph: SemanticExpressionGraphFacts, root_id: Int
+) -> Int {
+    var node: Int = root_id;
+    while node >= 0 {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        if !IsSome(kind) { return -2; }
+        if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+            let place: Option<Int> = SemanticExpressionGraphPlaceKind(graph, node);
+            if !IsSome(place) { return -2; }
+            if UnwrapOption(place) == SemanticExpressionPlaceReadonlyRefBinding() { return node; }
+            return -1;
+        }
+        var next: Int = -2;
+        if UnwrapOption(kind) == AstExpressionNodeMemberAccess() {
+            let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node);
+            if member.ok { next = member.receiver_node; }
+        } else if UnwrapOption(kind) == AstExpressionNodeIndex() {
+            let receiver: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+            if IsSome(receiver) { next = UnwrapOption(receiver); }
+        } else {
+            return -1;
+        }
+        if next < 0 || next >= node { return -2; }
+        node = next;
+    }
+    return -2;
+}
+
+func SemanticAstBorrowedGenericName(
+    ref signatures: SemanticAstFunctionSignatureFacts, signature_row: Int, name: String
+) -> Bool {
+    var index: Int = signatures.generic_starts[signature_row];
+    let end: Int = index + signatures.generic_counts[signature_row];
+    while index < end {
+        if signatures.generic_names[index] == name { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+// Native's copy-only ownership class (type_checker_ownership_classify.c): a
+// primitive, a callable, or an enum whose payloads are all copy-only. A
+// constructed type, a tuple, a declared nominal type and a generic parameter
+// are tracked; so is a type the facts do not name.
+func SemanticAstBorrowedValueCopyOnly(
+    type_name: String, ref enums: SemanticAstEnumFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts, signature_row: Int,
+    depth: Int
+) -> Bool {
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    if canonical == "" || canonical == "Unknown" || depth >= 8 { return false; }
+    if (StartsWith(canonical, "(") || StartsWith(canonical, "func")) &&
+        StringIndexOf(canonical, "->") >= 0 {
+        return true;
+    }
+    if StringIndexOf(canonical, "<") >= 0 || StartsWith(canonical, "(") { return false; }
+    if SemanticAstBorrowedGenericName(signatures, signature_row, canonical) { return false; }
+    if IsSome(SemanticAstNominalConstructorIndexForName(constructors, canonical)) { return false; }
+    var variant: Int = 0;
+    while variant < ArrayLength(enums.variant_enum_names) {
+        if enums.variant_enum_names[variant] == canonical {
+            var param: Int = enums.variant_param_starts[variant];
+            let end: Int = param + enums.variant_param_counts[variant];
+            while param < end {
+                if !SemanticAstBorrowedValueCopyOnly(
+                        Concat("", enums.variant_param_type_names[param]), enums,
+                        constructors, signatures, signature_row, depth + 1) {
+                    return false;
+                }
+                param = param + 1;
+            }
+        }
+        variant = variant + 1;
+    }
+    return true;
+}
+
+// The `ref` formal row of a function signature, or -1.
+func SemanticAstBorrowedRefFormalRow(
+    ref signatures: SemanticAstFunctionSignatureFacts, signature_row: Int, name: String
+) -> Int {
+    var param: Int = signatures.param_starts[signature_row];
+    let end: Int = param + signatures.param_counts[signature_row];
+    while param < end {
+        if signatures.param_names[param] == name && signatures.param_modes[param] == 3 {
+            return param;
+        }
+        param = param + 1;
+    }
+    return -1;
+}
+
+func SemanticAstBorrowedNewBindingVerdict(
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref initializer_types: SemanticAstInitializerTypeFacts
+) -> SemanticAstBodyVerdict {
+    let invalid: SemanticAstBodyVerdict = SemanticAstBodyVerdictError(
+        "ast_artifact_invalid", SemanticError1("ast_artifact_invalid", "owner",
+            "borrowed_new_binding"), -1);
+    let graph_ready: Bool = SemanticExpressionGraphPlaceKindsReady(
+        analysis.expression_surfaces.expression_graph);
+    if !analysis.local_bindings.ok || !analysis.signatures.ok || !graph_ready ||
+        ArrayLength(initializer_types.inferred_type_names) !=
+            ArrayLength(analysis.local_bindings.node_ids) {
+        return invalid;
+    }
+    var row: Int = 0;
+    while row < ArrayLength(analysis.local_bindings.node_ids) {
+        let destructure: Bool = analysis.local_bindings.binding_kinds[row] ==
+            SemanticAstLocalBindingKindDestructure();
+        let syntax: Int = analysis.local_bindings.node_ids[row];
+        let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            analysis.expression_surfaces, syntax, AstExpressionLaneValue());
+        if !IsSome(root) { return invalid; }
+        let leaf: Int = SemanticAstBorrowedFormalPlaceLeaf(
+            analysis.expression_surfaces.expression_graph, UnwrapOption(root));
+        if leaf == -2 { return invalid; }
+        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+            analysis.signatures, analysis.local_bindings.function_node_ids[row]);
+        if leaf >= 0 && IsSome(signature) &&
+            (!destructure || analysis.local_bindings.binding_indices[row] == 0) {
+            let formal_name: Option<String> = SemanticExpressionGraphNodeText(
+                analysis.expression_surfaces.expression_graph, leaf);
+            if !IsSome(formal_name) { return invalid; }
+            let signature_row: Int = UnwrapOption(signature);
+            let formal: Int = SemanticAstBorrowedRefFormalRow(
+                analysis.signatures, signature_row, UnwrapOption(formal_name));
+            if formal < 0 && UnwrapOption(formal_name) != "self" { return invalid; }
+            let value_type: String = Concat("", initializer_types.inferred_type_names[row]);
+            if formal >= 0 && UnwrapOption(formal_name) != "self" &&
+                !SemanticAstBorrowedGenericName(analysis.signatures, signature_row,
+                    SemanticCanonicalTypeName(Concat("", analysis.signatures.param_types[formal]))) &&
+                (destructure || !SemanticAstBorrowedValueCopyOnly(value_type, analysis.enums,
+                    analysis.constructors, analysis.signatures, signature_row, 0)) {
+                var boundary: String = "new_binding";
+                if destructure { boundary = "destructure_binding"; }
+                return SemanticAstBodyVerdictError("borrow_boundary_escape", SemanticError3(
+                    "borrow_boundary_escape", "boundary", boundary,
+                    "type", value_type, "formal", UnwrapOption(formal_name)),
+                    SemanticAstExpressionGraphOwnerAstNode(
+                        analysis.expression_surfaces, UnwrapOption(root)));
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

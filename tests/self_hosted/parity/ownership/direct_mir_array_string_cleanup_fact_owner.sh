@@ -2,7 +2,8 @@
 # A direct-MIR Array<String> local is cleaned up only from its admitted
 # collection ownership row or a runtime producer, and only while no other
 # holder has its storage. A local whose storage and elements the semantic fact
-# leaves unknown (a call result, an alias of a formal), a local handed to a
+# leaves unknown (a call result; an alias of a `ref` formal is refused earlier,
+# in semantic, as native does), a local handed to a
 # callee that grows it without a hand-off fact (here through an alias of the
 # formal, or again on every loop iteration), a local given to two records or
 # to a record in a loop that does not declare it, and an alias of an inout
@@ -66,6 +67,8 @@ func Main() -> Void {
 }
 EOF
 # Locals that alias a ref formal own neither its storage nor its elements.
+# Native refuses that new binding in semantic; since 2026-11-16 the self-host
+# semantic does too, so it no longer reaches the direct MIR cleanup.
 cat >"$WORK_DIR/formal_alias.pgy" <<'EOF'
 func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
 func Observe(ref values: Array<String>) -> Bool {
@@ -333,10 +336,10 @@ refuse() {
         fail "$name $flag was refused for another reason: $(head -3 "$WORK_DIR/$name.$extension.out" "$WORK_DIR/$name.$extension.err")"
 }
 
-for name in call_result formal_alias; do
-    refuse "$name" --emit-c c "$NO_ROW"
-    refuse "$name" --emit-llvm ll "$NO_ROW"
-done
+refuse call_result --emit-c c "$NO_ROW"
+refuse call_result --emit-llvm ll "$NO_ROW"
+refuse formal_alias --emit-c c "boundary: new_binding"
+refuse formal_alias --emit-llvm ll "boundary: new_binding"
 refuse grown_handoff --emit-c c "$SHARED"
 refuse grown_handoff --emit-llvm ll "$SHARED"
 refuse grown_loop --emit-c c "$SHARED"

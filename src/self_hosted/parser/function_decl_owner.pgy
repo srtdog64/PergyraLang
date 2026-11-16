@@ -185,6 +185,10 @@ func ParseFunctionObserved(
         ParseRefuse(location_context, i, "declaration_name_missing",
             "construct", "function", "source_offset", ToString(i));
     }
+    if ParserDeclarationNameReserved(fn_name) {
+        ParseRefuse(location_context, cursor_out[0] - StringLength(fn_name),
+            "declaration_name_reserved", "name", fn_name, "construct", "function");
+    }
     ParserSourceLocationCommit(
         function_slot, TypedAstKindFuncDeclTag(),
         Concat(name_prefix, fn_name), source_locations
@@ -221,11 +225,16 @@ func ParseFunctionObserved(
                 i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             }
             ArraySet(cursor_out, 0, i);
+            let p_start: Int = i;
             let p_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if StringLength(p_name) == 0 {
                 ParseRefuse(location_context, i, "declaration_name_missing",
                     "construct", "parameter", "source_offset", ToString(i));
+            }
+            if ParserBindingNameReserved(p_name) {
+                ParseRefuse(location_context, p_start, "binding_name_reserved",
+                    "name", p_name, "construct", "parameter");
             }
             // `self` parameter has no `: TYPE` annotation. Emit a bare
             // `self` row when the name is `self` and the next char is

@@ -39,7 +39,7 @@ for backend in c llvm; do
     for name in inout_borrowed_push_indexed_read_positive inout_owned_push_indexed_read_positive own_generation_indexed_read_positive \
         inout_borrowed_loop_growth_positive inout_borrowed_conditional_loop_growth_positive \
         inout_borrowed_loop_terminal_transfer_positive storage_opaque_return_read_positive \
-        borrow_formal_fresh_clone_positive inout_terminal_short_circuit_growth_positive \
+        inout_terminal_short_circuit_growth_positive \
         own_terminal_cleanup_positive aggregate_terminal_owned_return_positive \
         inout_terminal_owned_mutation_read_positive inout_terminal_formal_mutation_chain_positive \
         inout_owned_loop_conditional_generation_positive inout_owned_loop_nested_read_positive \
@@ -78,11 +78,16 @@ for backend in c llvm; do
         member_scalar_shallow_accumulator_negative participant_loop_scalar_borrow_negative \
         borrow_formal_retained_owned_seed_negative borrow_formal_aggregate_scalar_return_negative \
         borrow_formal_deferred_typed_result_cleanup_negative borrow_formal_member_array_return_negative \
-        borrow_formal_row_scalar_return_negative inout_use_unique_scalar_raw_negative; do
+        borrow_formal_row_scalar_return_negative inout_use_unique_scalar_raw_negative \
+        borrow_formal_fresh_clone_positive; do
         observe "$name"
         grep -Fxq 'body_ok=false' "$WORK/$backend-$name.log" || fail "$backend accepted $name"
         grep -Eq '^body_diagnostic=(borrow_boundary_escape|move_from_released)$' "$WORK/$backend-$name.log" || fail "$name lost ownership diagnosis"
         case "$name" in
+            borrow_formal_fresh_clone_positive)
+                # It binds its `ref` formal to a local. Native refuses that new
+                # binding; the self-host source pass does too since 2026-11-16.
+                grep -Fq 'boundary: new_binding' "$WORK/$backend-$name.log" || fail "$name lost the new-binding refusal" ;;
             own_descriptor_retention_use_after_move_negative)
                 grep -Fq 'owned_argument_use_after_move' "$WORK/$backend-$name.log" || fail "$name bypassed moved descriptor use refusal" ;;
             inout_use_unique_scalar_raw_negative)

@@ -16,6 +16,7 @@ import "ast_match_materialization_fact_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_body_type_bundle_readiness_owner.pgy";
 import "ast_named_value_boundary_verdict_owner.pgy";
+import "ast_borrowed_new_binding_verdict_owner.pgy";
 import "ast_collection/ast_collection_ownership_verdict_owner.pgy";
 import "ast_collection/ast_collection_formal_effect_admission_owner.pgy";
 import "ast_owned_string_result_fact_owner.pgy";
@@ -305,6 +306,9 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             analysis.local_bindings, initializer_types,
             analysis.expression_surfaces, analysis.enums,
             exhaustive_match_nodes);
+    }
+    if verdict.ok && require_source_body_flow {
+        verdict = SemanticAstBorrowedNewBindingVerdict(analysis, initializer_types);
     }
     verdict = SemanticAstBodySourceBoundaryVerdictFromFacts(
         artifact, analysis, verdict, initializer_types, statement_types,

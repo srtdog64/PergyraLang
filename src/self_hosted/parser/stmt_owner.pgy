@@ -110,10 +110,15 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         i = LanguageWordEnd(i, LanguageWordId.WordAs);
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
+        let as_start: Int = i;
         let as_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(as_name) == 0 {
             ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
+        }
+        if ParserBindingNameReserved(as_name) {
+            ParseRefuse(location_context, as_start, "binding_name_reserved",
+                "name", as_name, "construct", "with");
         }
         ArraySet(cursor_out, 0, i);
         let with_body: String = ParseBlockObserved(
@@ -282,7 +287,8 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
                     "form", "var (", "construct", "var");
             }
             return ParseDestructureLetStmt(
-                content, content_extent, i, cursor_out, stmt_indent, expression_graphs
+                content, content_extent, i, cursor_out, stmt_indent, expression_graphs,
+                location_context
             );
         }
         ArraySet(cursor_out, 0, i);

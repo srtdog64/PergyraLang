@@ -12,8 +12,18 @@ func CollectionMemberIdentityProbeMain(args: Array<String>) -> Void with caps en
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("member input parser refused"); Exit(2); }
     var analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
-    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
-    if !analysis.verdict.ok || !bundle.verdict.ok { Log("member input body refused"); Exit(2); }
+    if !analysis.verdict.ok ||
+        !SemanticAstArtifactAnalysisMatches(artifact, analysis, analysis.verdict.requires_entrypoint) {
+        Log("member input body refused"); Exit(2);
+    }
+    // The input binds a member of every formal mode, `ref` included, to a
+    // local. The source pass refuses that `ref` binding as native does; the
+    // MIR-consumer pass, which meets `ref` member paths as match payloads,
+    // admits it and runs the same member owners.
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
+            artifact, analysis, false, false, true, false);
+    if !bundle.verdict.ok { Log("member input body refused"); Exit(2); }
     let ok: Bool = InspectMemberIdentity(artifact, analysis, bundle, mutation);
     Log(ok);
     if !ok { Exit(2); }
