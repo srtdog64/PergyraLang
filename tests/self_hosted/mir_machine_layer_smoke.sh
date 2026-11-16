@@ -7,6 +7,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/portable_text_mutation_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/mir_lower_tool_build_owner.sh"
 pgy_prepend_windows_runtime_paths
 export PATH
 
@@ -22,7 +23,6 @@ PROJECTION_PROBE_SOURCE="$ROOT_DIR/src/self_hosted/tools/machine_layer_mir_proje
 
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/mir_machine_layer}"
 mkdir -p "$BUILD_DIR"
-LOWER_BIN="$BUILD_DIR/mir_lower.exe"
 MIR_JSON="$BUILD_DIR/device_slot.mirjson"
 AST_OUT="$BUILD_DIR/device_slot.reast"
 BAD_JSON="$BUILD_DIR/device_slot.bad.mirjson"
@@ -31,7 +31,6 @@ BAD_PHYSICAL_SHAPE_JSON="$BUILD_DIR/device_slot.bad-physical-shape.mirjson"
 BAD_OUT="$BUILD_DIR/device_slot.bad.out"
 BAD_MISSING_JSON="$BUILD_DIR/device_slot.missing-fact.mirjson"
 BAD_MISSING_OUT="$BUILD_DIR/device_slot.missing-fact.out"
-LOWER_LOG="$BUILD_DIR/mir_lower.compile.log"
 DRIVER_BIN="$BUILD_DIR/driver_rung2.exe"
 DRIVER_LOG="$BUILD_DIR/driver_rung2.compile.log"
 SOURCE_MACHINE_MIR="$BUILD_DIR/device_slot.source.mirjson"
@@ -68,26 +67,29 @@ BAD_PROVENANCE_MACHINE_MANIFEST_OUT="$BUILD_DIR/machine-layer-declaration.bad-pr
 (cd "$ROOT_DIR" && "$PGY" --machine-manifest-json >"$MACHINE_MANIFEST_JSON")
 MACHINE_MANIFEST_REL=".tmp/self_hosted/mir_machine_layer/machine-layer-declaration.json"
 
-compile_rc=0
-(cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "src/self_hosted/mir_lower/main.pgy")" \
-    --backend=c -o "$(pgy_path_for_compiler "$PGY" "$LOWER_BIN")" \
-    >"$LOWER_LOG" 2>&1) || compile_rc=$?
-if ((compile_rc != 0)); then
-    echo "[self-host-mir-machine-layer] mir_lower rebuild failed" >&2
-    cat "$LOWER_LOG" >&2
-    exit 1
-fi
+# The MIR lowering tool is the job's one shared build, taken only through its
+# receipts (mir_lower_tool_build_owner.sh); this gate never builds it.
+LOWER_BIN="$(pgy_mir_lower_tool_binary "$ROOT_DIR" "$PGY")" || exit 1
 
-compile_rc=0
-(cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "src/self_hosted/compiler/driver/driver_rung2_main.pgy")" \
-    --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER_BIN")" \
-    >"$DRIVER_LOG" 2>&1) || compile_rc=$?
-if ((compile_rc != 0)); then
-    echo "[self-host-mir-machine-layer] source-to-MIR driver rebuild failed" >&2
-    cat "$DRIVER_LOG" >&2
-    exit 1
+# A same-run installed DRV-2 driver is admitted as is, as in the other DRV-2
+# owners. Without one, the DRV-2 entry is compiled from source here.
+if [[ -n "${PGY_SELFHOST_PREBUILT_DRIVER:-}" ]]; then
+    DRIVER_BIN="$(pgy_select_optional_exe_binary "$PGY_SELFHOST_PREBUILT_DRIVER")"
+    if [[ ! -x "$DRIVER_BIN" ]]; then
+        echo "[self-host-mir-machine-layer] prebuilt driver is not runnable: $DRIVER_BIN" >&2
+        exit 1
+    fi
+else
+    compile_rc=0
+    (cd "$ROOT_DIR" && "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "src/self_hosted/compiler/driver/driver_rung2_main.pgy")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER_BIN")" \
+        >"$DRIVER_LOG" 2>&1) || compile_rc=$?
+    if ((compile_rc != 0)); then
+        echo "[self-host-mir-machine-layer] source-to-MIR driver rebuild failed" >&2
+        cat "$DRIVER_LOG" >&2
+        exit 1
+    fi
 fi
 
 compile_rc=0
@@ -240,7 +242,10 @@ grep -Fq -- 'pgy_machine_layer_runtime_bind_mapping_export' "$SELFHOST_MACHINE_C
 grep -Fq -- 'pgy_machine_layer_require_mapping();' "$SELFHOST_MACHINE_C"
 grep -Fq -- 'machine-layer runtime bind rejected' "$SELFHOST_MACHINE_C"
 if command -v gcc >/dev/null 2>&1; then
-    gcc -std=c11 -Wall -Wextra -Isrc -Isrc/runtime -fsyntax-only \
+    # Emitted C that includes the runtime headers compiles with -pthread, as
+    # the installer and the remote leg below compile it; without it glibc hides
+    # CLOCK_MONOTONIC from pgy_runtime_host_clock.h under -std=c11.
+    gcc -std=c11 -Wall -Wextra -Isrc -Isrc/runtime -pthread -fsyntax-only \
         "$SELFHOST_MACHINE_C"
 fi
 

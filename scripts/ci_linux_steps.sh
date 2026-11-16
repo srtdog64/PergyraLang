@@ -28,10 +28,15 @@ case "${PGY_CI_SELF_HOST_MODE:-build}" in
         ;;
     prebuilt)
         if [[ ! -x "$PWD/bin/pgy" || ! -x "$PWD/bin/pgy-self-driver" ||
-              ! -s "$PWD/bin/pgy-self-driver.machine-layer-manifest.json" ]]; then
+              ! -s "$PWD/bin/pgy-self-driver.machine-layer-manifest.json" ||
+              ! -x "$PWD/bin/pgy-self-lsp" ]]; then
             echo "ci-linux: prebuilt self-host toolchain artifact is incomplete" >&2
             exit 1
         fi
+        # Every make target below admits this toolchain instead of relinking
+        # the launcher or rebuilding the codegen seed, DRV-2 and the LSP
+        # (Makefile, self-host-compiler).
+        export PGY_SELF_HOST_COMPILER_ADMITTED=1
         ;;
     *)
         echo "ci-linux: invalid PGY_CI_SELF_HOST_MODE=${PGY_CI_SELF_HOST_MODE}" >&2
@@ -73,7 +78,8 @@ run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_B
 # the target's forced LLVM_ENABLED=1 build (same pattern as llvm-test-smoke);
 # macOS/Windows wiring waits on a Makefile LLVM_ENABLED passthrough.
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" codegen-determinism-test-smoke'
-run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" filesystem-directory-walk-test-smoke'
+# The filesystem directory walk (c and llvm) runs at the end of the
+# self-host-preparation-contract step below.
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" module-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" package-module-resolver-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" unicode-policy-test-smoke'
@@ -119,7 +125,8 @@ run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_B
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" raw-escape-contract-test-smoke'
 run 'make gate-subject-declaration-test-smoke'
 run 'make formal-semantics-test-smoke'
-run 'make air-drift-test-smoke'
+# air-drift-test-smoke is `make test-air`, which the test-all step above runs on
+# the same checkout; a second run here compiled the frontend into build/ again.
 # Evidence-lifetime meta-gate (WO-A3): registry <-> AIREvidenceKind two-way
 # correspondence, grep-based (no binary needed).
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" air-json-schema-test-smoke'
@@ -171,8 +178,8 @@ run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_B
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" ability-coherence-test-smoke'
 # Declared-but-unexecutable parallel surfaces (docs/181) stay fail-closed.
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" parallel-vision-surface-test-smoke'
-# Join-form rung 0 (docs/181 SS1): both backend voices on Linux.
-run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" parallel-join-test-smoke'
+# Join-form rung 0 (docs/181 SS1), both backend voices, runs inside the
+# redteam-repair-contract step above (its parallel-join-test-smoke prerequisite).
 run 'make perf-contract-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" perf-c-baseline-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" evidence-guard-amortization-test-smoke'
@@ -189,5 +196,3 @@ run 'PGY_BACKEND_COMPARE_SHARD_TOTAL="$CI_BACKEND_COMPARE_SHARD_TOTAL" PGY_BACKE
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" llvm-campaign-projection-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" llvm-dnd-campaign-test-smoke'
 run 'PGY_BACKEND_COMPARE_SHARD_TOTAL="$CI_BACKEND_COMPARE_SHARD_TOTAL" PGY_BACKEND_COMPARE_SHARD_INDEX="$CI_BACKEND_COMPARE_SHARD_INDEX" PGY_BACKEND_COMPARE_PRECHECK=0 make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" air-strict-backend-compare-test-smoke'
-run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" clean'
-run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" test-all'

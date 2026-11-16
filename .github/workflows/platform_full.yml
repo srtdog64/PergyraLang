@@ -30,8 +30,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
+      # The self-host LSP comes from the same codegen seed in the same make
+      # run, so platform-full-linux admits it instead of rebuilding the seed,
+      # DRV-2 and the LSP for its tooling conformance step.
       - name: Build installed Linux self-host toolchain once
-        run: make self-host-compiler
+        run: make self-host-compiler self-host-lsp
 
       - name: Upload installed Linux self-host toolchain
         uses: actions/upload-artifact@v4
@@ -43,6 +46,20 @@ jobs:
             bin/pgy
             bin/pgy-self-driver
             bin/pgy-self-driver.machine-layer-manifest.json
+            bin/pgy-self-lsp
+
+      # The DRV-2 C the codegen seed emitted above, with its receipt. The
+      # Windows toolchain compiles exactly this C instead of emitting it again,
+      # and the Windows codegen-seed shard requires its own seed to re-emit it.
+      - name: Upload the DRV-2 source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-full-drv2-source-artifact
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            .tmp/self_hosted/compiler/bootstrap/driver.c
+            .tmp/self_hosted/compiler/bootstrap/driver.source-artifact.receipt
 
   platform-full-linux:
     needs: [platform-full-linux-toolchain, formal-proofs-rocq9]
@@ -116,7 +133,12 @@ jobs:
           export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
           bash scripts/ci_self_host_platform_parity_shard_owner.sh
 
+  # The Windows driver is the DRV-2 C the Linux toolchain emitted, compiled
+  # here. Emitting it again here repeated the codegen seed bootstrap and the
+  # DRV-2 emission on the critical path; the codegen-seed parity shard runs
+  # this platform's seed and requires it to re-emit the same C.
   platform-full-windows-toolchain:
+    needs: platform-full-linux-toolchain
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -133,9 +155,27 @@ jobs:
             mingw-w64-ucrt-x86_64-python
             mingw-w64-ucrt-x86_64-gcc
 
-      - name: Build installed Windows self-host toolchain once
+      - name: Download the DRV-2 source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-full-drv2-source-artifact
+          path: .tmp/self_hosted/compiler/admitted
+
+      - name: Build the native Windows compiler once
         shell: msys2 {0}
-        run: CC=gcc make LLVM_ENABLED=0 self-host-compiler
+        run: CC=gcc make LLVM_ENABLED=0 compiler
+
+      - name: Compile the admitted DRV-2 source artifact into the installed driver
+        shell: msys2 {0}
+        env:
+          PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_MODE: adopt
+          PGY_SELFHOST_CC: gcc
+        run: |
+          PGY_BIN="$PWD/bin/pgy.exe" \
+          PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver.exe" \
+          PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_C="$PWD/.tmp/self_hosted/compiler/admitted/driver.c" \
+          PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_RECEIPT="$PWD/.tmp/self_hosted/compiler/admitted/driver.source-artifact.receipt" \
+            bash tests/self_hosted/parity/driver/self_host_compiler_build.sh
 
       - name: Upload installed Windows self-host toolchain
         uses: actions/upload-artifact@v4
@@ -200,13 +240,13 @@ jobs:
             .tmp/self_hosted/driver_rung2/device_slot_routine*
 
   platform-full-windows-self-host-parity:
-    needs: platform-full-windows-toolchain
+    needs: [platform-full-linux-toolchain, platform-full-windows-toolchain]
     runs-on: windows-latest
     timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
-        shard: [parser, semantic, codegen, driver]
+        shard: [parser, semantic, codegen, driver, codegen-seed]
     steps:
       - uses: actions/checkout@v6
 
@@ -226,6 +266,13 @@ jobs:
         with:
           name: platform-full-windows-toolchain
           path: bin
+
+      - name: Download the DRV-2 source artifact the installed driver was compiled from
+        if: matrix.shard == 'codegen-seed'
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-full-drv2-source-artifact
+          path: .tmp/self_hosted/compiler/admitted
 
       - name: Run Windows self-host parity shard
         shell: msys2 {0}

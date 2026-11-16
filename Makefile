@@ -1884,6 +1884,14 @@ PGY                 = $(BIN_DIR)/pgy$(EXEEXT)
 PGY_LSP             = $(BIN_DIR)/pgy-lsp$(EXEEXT)
 SELF_HOST_DRIVER    = $(BIN_DIR)/pgy-self-driver$(EXEEXT)
 SELF_HOST_LSP       = $(BIN_DIR)/pgy-self-lsp$(EXEEXT)
+# An admitted same-run toolchain (PGY_SELF_HOST_COMPILER_ADMITTED=1, see
+# self-host-compiler below) stays where the CI job downloaded it. A step that
+# scopes BIN_DIR still links its own launcher there, but its self-host
+# siblings are the admitted ones; nothing in that job rebuilds them.
+ifeq ($(PGY_SELF_HOST_COMPILER_ADMITTED),1)
+SELF_HOST_DRIVER    = $(REPO_BIN_DIR)/pgy-self-driver$(EXEEXT)
+SELF_HOST_LSP       = $(REPO_BIN_DIR)/pgy-self-lsp$(EXEEXT)
+endif
 ifeq ($(EXEEXT),.exe)
 RUNTIME_OBJ_EXT := .obj
 else
@@ -1907,26 +1915,32 @@ all: $(PGY) $(PGY_LSP) self-host-compiler self-host-lsp
 
 compiler: $(PGY)
 
-# A push CI job that downloaded the compiler pair the toolchain job built
-# exports PGY_SELF_HOST_COMPILER_ADMITTED=1 (scripts/ci_push_linux_steps.sh).
-# There the pair is admitted, never rebuilt: a rebuild spent 13-16 minutes of
-# a 30-minute shard and replaced the pair the job had just admitted.
+# A CI job that downloaded the toolchain its workflow's toolchain job built
+# exports PGY_SELF_HOST_COMPILER_ADMITTED=1 (scripts/ci_push_linux_steps.sh,
+# scripts/ci_linux_steps.sh). There the toolchain is admitted, never rebuilt: a
+# rebuild spent 13-16 minutes of a 30-minute shard and replaced the pair the
+# job had just admitted. The launcher it checks is the repo one, because a
+# step with a scoped BIN_DIR links its own launcher next to the admitted pair.
 ifeq ($(PGY_SELF_HOST_COMPILER_ADMITTED),1)
 self-host-compiler:
-	@test -x "$(PGY)" && test -x "$(SELF_HOST_DRIVER)" && \
+	@test -x "$(REPO_BIN_DIR)/pgy$(EXEEXT)" && test -x "$(SELF_HOST_DRIVER)" && \
 		test -s "$(SELF_HOST_DRIVER).machine-layer-manifest.json" || \
 		{ echo "self-host-compiler: the admitted compiler pair is incomplete" >&2; exit 1; }
+
+self-host-lsp:
+	@test -x "$(SELF_HOST_LSP)" || \
+		{ echo "self-host-lsp: the admitted toolchain has no self-host LSP: $(SELF_HOST_LSP)" >&2; exit 1; }
 else
 self-host-compiler: self-host-codegen-bootstrap-seed-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		PGY_SELFHOST_CC="$(CC)" \
 		"$(BASH)" tests/self_hosted/parity/driver/self_host_compiler_build.sh
-endif
 
 self-host-lsp: self-host-codegen-bootstrap-seed-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_LSP_BIN="$(abspath $(SELF_HOST_LSP))" \
 		PGY_SELFHOST_CC="$(CC)" \
 		"$(BASH)" tests/self_hosted/parity/driver/self_host_lsp_build.sh
+endif
 
 dev-compiler:
 	$(MAKE) -j$(PGY_DEV_COMPILER_JOBS) LLVM_ENABLED=0 PGY_DEBUG_SYMBOLS=0 BUILD_DIR=build-dev BIN_DIR=bin-dev compiler
@@ -1980,10 +1994,17 @@ $(CC) $(CFLAGS) -o $@ @$(BUILD_DIR)/$(notdir $@).rsp $(1)
 endef
 endif
 
-# pgy compiler driver
+# pgy compiler driver. The launcher of an admitted toolchain (see
+# self-host-compiler) is checked, never relinked: a gate in that job runs the
+# launcher the toolchain job built. A scoped BIN_DIR still links its own.
+ifeq ($(PGY_SELF_HOST_COMPILER_ADMITTED)|$(abspath $(PGY)),1|$(abspath $(REPO_BIN_DIR)/pgy$(EXEEXT)))
+$(PGY):
+	@test -x "$@" || { echo "pgy: the admitted toolchain has no launcher: $@" >&2; exit 1; }
+else
 $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+endif
 
 ifneq ($(abspath $(PGY)),$(abspath $(REPO_BIN_DIR)/pgy$(EXEEXT)))
 $(REPO_BIN_DIR)/pgy$(EXEEXT): $(PGY) | $(REPO_BIN_DIR)
@@ -2937,8 +2958,15 @@ self-host-mir-loop-flow-summary-test-smoke:
 	"$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
 	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" "$(BASH)" tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh
 
+# The MIR lowering tool is the job's shared build, and the DRV-2 driver is the
+# installed one, as in the other DRV-2 owners above: compiling the DRV-2 entry
+# from source again exceeds a 16 GB runner
+# (docs/truth/evidence/2026-11-15_weekly_driver_shard_causes.md).
 self-host-mir-machine-layer-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_machine_layer_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
+	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" PGY_BIN="$(abspath $(PGY))" \
+		PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/mir_machine_layer_smoke.sh
 
 .PHONY: self-host-mir-row-mutation-cost-test-smoke
 self-host-mir-row-mutation-cost-test-smoke: $(PGY)
@@ -3581,6 +3609,7 @@ self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-seed-test-smo
 .PHONY: self-host-driver-fixed-point-receipt-test-smoke
 self-host-driver-fixed-point-receipt-test-smoke:
 	"$(BASH)" tests/self_hosted/parity/driver/self_host_driver_fixed_point_receipt_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/driver/self_host_driver_source_artifact_receipt_smoke.sh
 
 .PHONY: self-host-fixed-point-profile-receipt-test-smoke
 self-host-fixed-point-profile-receipt-test-smoke:

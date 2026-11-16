@@ -62,6 +62,24 @@ case "$SHARD" in
         export PGY_SELFHOST_PREBUILT_DRIVER="$DRIVER"
         exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/driver/driver_rung2_body_parity.sh"
         ;;
+    codegen-seed)
+        # The installed driver of this platform is the DRV-2 C another
+        # platform's toolchain job emitted, compiled here. This shard builds
+        # this platform's codegen seed from the installed native compiler with
+        # the seed's own gates, then requires that seed to re-emit the same
+        # DRV-2 C byte for byte. Nothing is installed or replaced.
+        ARTIFACT_DIR="${PGY_CI_DRV2_SOURCE_ARTIFACT_DIR:-$ROOT_DIR/.tmp/self_hosted/compiler/admitted}"
+        [[ -s "$ARTIFACT_DIR/driver.c" && -s "$ARTIFACT_DIR/driver.source-artifact.receipt" ]] ||
+            fail "the DRV-2 source artifact is missing: $ARTIFACT_DIR"
+        PGY_SELFHOST_CODEGEN_SEED_ONLY=1 PGY_BIN="$PGY" \
+            "$BASH" "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_bootstrap.sh"
+        export PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_MODE=reemit
+        export PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_C="$ARTIFACT_DIR/driver.c"
+        export PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_RECEIPT="$ARTIFACT_DIR/driver.source-artifact.receipt"
+        export PGY_SELFHOST_COMPILER_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/compiler/reemit"
+        export PGY_SELF_DRIVER_BIN="$PGY_SELFHOST_COMPILER_BUILD_DIR/unused-pgy-self-driver"
+        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/driver/self_host_compiler_build.sh"
+        ;;
     harness-evidence)
         command -v sha256sum >/dev/null || fail "SHA-256 tool is required for installed harness provenance"
         printf '[platform-full-harness-evidence] revision=%s\n' "$(git -C "$ROOT_DIR" rev-parse HEAD)"
@@ -71,6 +89,6 @@ case "$SHARD" in
             "$ROOT_DIR/scripts/ci_test_harness_evidence_steps.sh"
         ;;
     *)
-        fail "unknown shard; expected parser, semantic, codegen, driver, or harness-evidence"
+        fail "unknown shard; expected parser, semantic, codegen, driver, codegen-seed, or harness-evidence"
         ;;
 esac

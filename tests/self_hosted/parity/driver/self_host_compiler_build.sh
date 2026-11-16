@@ -9,6 +9,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver/self_host_driver_fixed_point_receipt_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver/self_host_driver_source_artifact_receipt_owner.sh"
 pgy_prepend_windows_runtime_paths
 export PATH
 
@@ -42,6 +43,16 @@ RUNTIME_HEADER_KEY_INPUT="$BUILD_DIR/driver.runtime-headers.build.key.input"
 SMOKE_OUT="$BUILD_DIR/driver.smoke.c"
 MANIFEST_SOURCE="$BUILD_DIR/machine-layer-manifest.json"
 MANIFEST_SMOKE="$BUILD_DIR/machine-layer-manifest.smoke.json"
+SOURCE_ARTIFACT_RECEIPT_OUT="$BUILD_DIR/driver.source-artifact.receipt"
+
+# A DRV-2 source artifact that another job of the same run emitted, bound by
+# its receipt (self_host_driver_source_artifact_receipt_owner.sh). "adopt"
+# compiles exactly that C instead of emitting it again; "reemit" emits with
+# this host's codegen seed, requires the same bytes and stops, because the
+# adopting job already compiled and smoke-tested that C.
+SOURCE_ARTIFACT_MODE="${PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_MODE:-}"
+SOURCE_ARTIFACT_C="${PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_C:-}"
+SOURCE_ARTIFACT_RECEIPT="${PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_RECEIPT:-}"
 
 # The stamp owns one installed driver artifact, not just its input graph. A
 # cache directory may be reused with a different output path during isolated
@@ -51,10 +62,15 @@ case "$OUTPUT_KEY" in
     "$ROOT_DIR"/*) OUTPUT_KEY="${OUTPUT_KEY#"$ROOT_DIR"/}" ;;
 esac
 
+NATIVE_PGY="$(pgy_select_optional_exe_binary "$NATIVE_PGY")"
+# An adopted artifact has no codegen seed on this host; the native launcher
+# then tells whether this host takes Windows executable names.
+OUTPUT_PLATFORM_WITNESS="$CODEGEN_BIN"
+[[ "$SOURCE_ARTIFACT_MODE" != adopt ]] || OUTPUT_PLATFORM_WITNESS="$NATIVE_PGY"
 case "$OUTPUT" in
     *.exe) ;;
     *)
-        if pgy_binary_expects_windows_paths "$CODEGEN_BIN"; then
+        if pgy_binary_expects_windows_paths "$OUTPUT_PLATFORM_WITNESS"; then
             OUTPUT="${OUTPUT}.exe"
         fi
         ;;
@@ -63,7 +79,6 @@ case "$OUTPUT" in
     *.exe) MANIFEST_OUTPUT="${OUTPUT%.exe}.machine-layer-manifest.json" ;;
     *) MANIFEST_OUTPUT="${OUTPUT}.machine-layer-manifest.json" ;;
 esac
-NATIVE_PGY="$(pgy_select_optional_exe_binary "$NATIVE_PGY")"
 
 fail() {
     echo "[self-host-compiler-build] $*" >&2
@@ -74,9 +89,13 @@ hash_file() { pgy_selfhost_driver_receipt_hash_file "$1"; }
 
 mkdir -p "$BUILD_DIR" "$(dirname "$OUTPUT")"
 [[ -f "$ROOT_DIR/$DRIVER_SOURCE" ]] || fail "missing driver source"
-[[ -f "$CODEGEN_BIN" ]] || fail "missing Pergyra codegen seed: $CODEGEN_BIN"
+pgy_selfhost_driver_source_artifact_admit "$ROOT_DIR" "$DRIVER_SOURCE" "$SOURCE_ARTIFACT_MODE" \
+    "$SOURCE_ARTIFACT_C" "$SOURCE_ARTIFACT_RECEIPT" || fail "the DRV-2 source artifact was not admitted"
+if [[ "$SOURCE_ARTIFACT_MODE" != adopt ]]; then
+    [[ -f "$CODEGEN_BIN" ]] || fail "missing Pergyra codegen seed: $CODEGEN_BIN"
+    pgy_require_runnable_binary_here "self-host-compiler-build" "$CODEGEN_BIN" || exit 1
+fi
 [[ -f "$NATIVE_PGY" ]] || fail "missing native machine manifest owner: $NATIVE_PGY"
-pgy_require_runnable_binary_here "self-host-compiler-build" "$CODEGEN_BIN" || exit 1
 pgy_require_runnable_binary_here "self-host-compiler-build" "$NATIVE_PGY" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 pgy_selfhost_select_emitted_c_compile_profile ||
@@ -94,7 +113,12 @@ grep -Fq '"schema":"pgy.machine-layer.declaration.v1"' "$MANIFEST_SOURCE" ||
 
 runtime_header_fingerprint="$(pgy_selfhost_driver_runtime_header_fingerprint "$ROOT_DIR" "$RUNTIME_HEADER_KEY_INPUT")" || fail "runtime-header fingerprint failed"
 cc_fingerprint="$(pgy_selfhost_driver_c_compiler_fingerprint "$CC" "$CC_FINGERPRINT_KEY_INPUT")" || fail "C compiler fingerprint failed"
-prebuild_key="$(pgy_selfhost_driver_installer_prebuild_key "$ROOT_DIR" "$CODEGEN_BIN" "$MANIFEST_SOURCE" "$runtime_header_fingerprint" "$OUTPUT_KEY" "${PGY_SELFHOST_CC_PROFILE:-release}" "${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[*]}" "$cc_fingerprint" "${BASH_SOURCE[0]}" "$PREBUILD_KEY_INPUT" "$SOURCE_GRAPH_KEY_INPUT")" || fail "source-graph build key failed"
+# The prebuild key names the codegen seed, so only an ordinary build keys or
+# reuses a prior installed driver with it.
+prebuild_key=""
+if [[ -z "$SOURCE_ARTIFACT_MODE" ]]; then
+    prebuild_key="$(pgy_selfhost_driver_installer_prebuild_key "$ROOT_DIR" "$CODEGEN_BIN" "$MANIFEST_SOURCE" "$runtime_header_fingerprint" "$OUTPUT_KEY" "${PGY_SELFHOST_CC_PROFILE:-release}" "${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[*]}" "$cc_fingerprint" "${BASH_SOURCE[0]}" "$PREBUILD_KEY_INPUT" "$SOURCE_GRAPH_KEY_INPUT")" || fail "source-graph build key failed"
+fi
 
 FIXED_POINT_C="${PGY_SELFHOST_FIXED_POINT_DRIVER_C:-}"
 FIXED_POINT_GEN3_C="${PGY_SELFHOST_FIXED_POINT_DRIVER_GEN3_C:-}"
@@ -108,7 +132,11 @@ if [[ -n "${FIXED_POINT_C}${FIXED_POINT_GEN3_C}${FIXED_POINT_BIN}${FIXED_POINT_R
     cp "$FIXED_POINT_C" "$C_NEXT"
     candidate_output="$FIXED_POINT_BIN"
     echo "[self-host-compiler-build] adopting receipt-bound fixed-point driver"
-elif [[ -x "$OUTPUT" && -f "$PREBUILD_STAMP" ]] \
+elif [[ "$SOURCE_ARTIFACT_MODE" == adopt ]]; then
+    rm -f "$C_RAW" "$C_NEXT"
+    cp "$SOURCE_ARTIFACT_C" "$C_NEXT" || fail "could not stage the DRV-2 source artifact"
+    echo "[self-host-compiler-build] adopting the receipt-bound DRV-2 source artifact: $SOURCE_ARTIFACT_C"
+elif [[ -z "$SOURCE_ARTIFACT_MODE" && -x "$OUTPUT" && -f "$PREBUILD_STAMP" ]] \
     && grep -Fxq "$prebuild_key" "$PREBUILD_STAMP" \
     && pgy_selfhost_driver_validate_installed_artifact_receipt "$OUTPUT" "$OUTPUT_RECEIPT" \
     && pgy_binary_is_runnable_here "$OUTPUT"; then
@@ -133,6 +161,13 @@ else
         fail "DRV-2 is outside the Pergyra codegen subset"
     fi
     [[ -s "$C_NEXT" ]] || fail "Pergyra-built codegen emitted empty C"
+fi
+
+if [[ "$SOURCE_ARTIFACT_MODE" == reemit ]]; then
+    pgy_selfhost_driver_source_artifact_require_reemission "$C_NEXT" "$SOURCE_ARTIFACT_C" \
+        "$BUILD_DIR/driver.reemit.c" || fail "the DRV-2 source artifact is not this host's emission"
+    rm -f "$C_NEXT"
+    exit 0
 fi
 
 printf '%s\n' \
@@ -194,11 +229,15 @@ fi
 cp "$MANIFEST_SOURCE" "${MANIFEST_OUTPUT}.tmp"
 mv -f "${MANIFEST_OUTPUT}.tmp" "$MANIFEST_OUTPUT"
 mv -f "$tmp_output" "$OUTPUT"
-if [[ -n "$candidate_output" ]]; then
+if [[ -n "$candidate_output" || "$SOURCE_ARTIFACT_MODE" == adopt ]]; then
     rm -f "$STAMP" "$PREBUILD_STAMP" "$OUTPUT_RECEIPT"
 else
     printf '%s\n' "$build_key" >"$STAMP"
     printf '%s\n' "$prebuild_key" >"$PREBUILD_STAMP"
     pgy_selfhost_driver_write_installed_artifact_receipt "$OUTPUT" "$OUTPUT_RECEIPT"
 fi
+# The installed driver's C and its receipt can cross to another platform's job.
+pgy_selfhost_driver_write_source_artifact_receipt "$ROOT_DIR" "$DRIVER_SOURCE" \
+    "$C_FILE" "$SOURCE_ARTIFACT_RECEIPT_OUT" ||
+    fail "DRV-2 source artifact receipt failed"
 echo "[self-host-compiler-build] Pergyra-built DRV-2 installed: $OUTPUT"
