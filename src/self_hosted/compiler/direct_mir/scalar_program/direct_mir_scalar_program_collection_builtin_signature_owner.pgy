@@ -62,6 +62,8 @@ func DirectMirScalarProgramCollectionBuiltinSignatureExpected(
         DirectMirScalarProgramExprSetStringAdd())]; }
     if name == "SetHas" { return ["Bool", "Unknown|Unknown", ToString(
         DirectMirScalarProgramExprSetStringHas())]; }
+    if name == "SetSize" { return ["Int", "Unknown", ToString(
+        DirectMirScalarProgramExprSetStringSize())]; }
     return [];
 }
 
@@ -81,6 +83,13 @@ func DirectMirScalarProgramSetStringBuiltinSelected(
     if name == "SetNew" {
         return ArrayLength(actual_types) == 0 && expected_type ==
             CompilerAbiLayoutSetStringTypeName();
+    }
+    if name == "SetSize" {
+        return (expected_type == "" || expected_type ==
+                CompilerAbiLayoutIntTypeName()) &&
+            ArrayLength(actual_types) <= 1 &&
+            (ArrayLength(actual_types) == 0 || actual_types[0] ==
+                CompilerAbiLayoutSetStringTypeName());
     }
     if name != "SetAdd" && name != "SetHas" { return false; }
     if (name == "SetAdd" && expected_type != "" &&
@@ -110,6 +119,12 @@ func DirectMirScalarProgramSetStringBuiltinSignatureFor(
     if name == "SetNew" {
         return DirectMirScalarProgramSetStringBuiltinSignature(
             true, CompilerAbiLayoutSetStringTypeName(), no_parameters);
+    }
+    if name == "SetSize" {
+        let size_parameter_types: Array<String> = [
+            CompilerAbiLayoutSetStringTypeName()];
+        return DirectMirScalarProgramSetStringBuiltinSignature(
+            true, CompilerAbiLayoutIntTypeName(), size_parameter_types);
     }
     var return_type: String = CompilerAbiLayoutVoidTypeName();
     if name == "SetHas" { return_type = CompilerAbiLayoutBoolTypeName(); }

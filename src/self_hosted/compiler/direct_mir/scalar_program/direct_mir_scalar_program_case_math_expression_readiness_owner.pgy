@@ -11,6 +11,8 @@ func DirectMirScalarProgramCaseMathExpressionNodeReady(
         kind != DirectMirScalarProgramExprModuloInt() &&
         kind != DirectMirScalarProgramExprModuloLong() &&
         kind != DirectMirScalarProgramExprDivideLong() &&
+        kind != DirectMirScalarProgramExprRandomInt() &&
+        kind != DirectMirScalarProgramExprSeedRandom() &&
         kind != DirectMirScalarProgramExprStringReplace() { return None; }
     if facts.node_local_rows[node] != -1 || facts.node_parameter_ordinals[node] != -1 ||
         facts.node_literals[node] != "" || facts.node_callable_rows[node] != -1 {
@@ -32,6 +34,11 @@ func DirectMirScalarProgramCaseMathExpressionNodeReady(
     }
     let left: Int = facts.node_lefts[node];
     let right: Int = facts.node_rights[node];
+    if kind == DirectMirScalarProgramExprSeedRandom() {
+        return Some(left >= 0 && left < node && right == -1 &&
+            facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
+            facts.node_types[node] == CompilerAbiLayoutVoidTypeName());
+    }
     if kind == DirectMirScalarProgramExprNegateLong() {
         return Some(left >= 0 && left < node && right == -1 &&
             facts.node_types[left] == CompilerAbiLayoutLongTypeName() &&
@@ -47,7 +54,8 @@ func DirectMirScalarProgramCaseMathExpressionNodeReady(
     if left < 0 || left >= node || facts.node_types[left] !=
             CompilerAbiLayoutIntTypeName() || facts.node_types[node] !=
             CompilerAbiLayoutIntTypeName() { return Some(false); }
-    if kind == DirectMirScalarProgramExprNegateInt() || kind == DirectMirScalarProgramExprAbsInt() {
+    if kind == DirectMirScalarProgramExprNegateInt() || kind == DirectMirScalarProgramExprAbsInt() ||
+            kind == DirectMirScalarProgramExprRandomInt() {
         return Some(right == -1);
     }
     return Some(right >= 0 && right < node &&

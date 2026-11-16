@@ -7,7 +7,8 @@ func DirectMirScalarProgramCSetStringExpression(
 ) -> Option<String> {
     if kind != DirectMirScalarProgramExprSetStringNew() &&
         kind != DirectMirScalarProgramExprSetStringAdd() &&
-        kind != DirectMirScalarProgramExprSetStringHas() { return None; }
+        kind != DirectMirScalarProgramExprSetStringHas() &&
+        kind != DirectMirScalarProgramExprSetStringSize() { return None; }
     let runtime: CollectionSetRuntimeFact =
         CollectionSetRuntimeFactFromTypeName(
             CompilerAbiLayoutSetStringTypeName());
@@ -20,6 +21,9 @@ func DirectMirScalarProgramCSetStringExpression(
     }
     if left_type != CompilerAbiLayoutSetStringTypeName() {
         Die("direct MIR Set<String> C receiver type is invalid");
+    }
+    if kind == DirectMirScalarProgramExprSetStringSize() {
+        return Some(Concat(runtime.c_size_fn, Concat("(&", Concat(left, ")"))));
     }
     var symbol: String = runtime.c_has_fn;
     if kind == DirectMirScalarProgramExprSetStringAdd() {

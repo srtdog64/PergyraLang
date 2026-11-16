@@ -27,8 +27,11 @@ func DirectMirScalarProgramCBuiltinMaterialization(
     }
     if plan.program.runtime_abi.string_to_string_id != 0 {
         output = Concat(output, StringRuntimeCToStringBlock()); }
-    if plan.program.runtime_abi.bool_to_string_id != 0 { output = Concat(output,
-        DirectMirScalarProgramCBoolToStringMaterialization(runtime.bool_to_string)); }
+    // pgy_runtime.h defines pgy_bool_to_string with the same fresh-String
+    // contract; a program that includes it uses that definition.
+    if plan.program.runtime_abi.bool_to_string_id != 0 && !runtime_header_owns_print {
+        output = Concat(output,
+            DirectMirScalarProgramCBoolToStringMaterialization(runtime.bool_to_string)); }
     if plan.program.runtime_abi.string_to_upper_id != 0 {
         output = Concat(output, StringRuntimeCToUpperBlock()); }
     if plan.program.runtime_abi.string_to_lower_id != 0 {

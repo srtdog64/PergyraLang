@@ -49,7 +49,7 @@ func RenderWhileArrayCase(index: Int, base: Int, twist: Int) -> String {
     ArrayPush(lines, "func Main() -> Void {");
     ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
     ArrayPush(lines, Concat("    let limit: Int = ", Concat(ToString(4 + twist % 4), ";")));
-    ArrayPush(lines, "    let xs: Array<Int> = [];");
+    ArrayPush(lines, "    var xs: Array<Int> = [];");
     ArrayPush(lines, "    var i: Int = 0;");
     ArrayPush(lines, "    while i < limit {");
     ArrayPush(lines, "        ArrayPush(xs, base + i);");
@@ -76,7 +76,7 @@ func RenderStringCase(index: Int, base: Int, twist: Int) -> String {
     ArrayPush(lines, "func Main() -> Void {");
     ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
     ArrayPush(lines, Concat("    let twist: Int = ", Concat(ToString(twist), ";")));
-    ArrayPush(lines, "    let parts: Array<String> = [];");
+    ArrayPush(lines, "    var parts: Array<String> = [];");
     ArrayPush(lines, "    ArrayPush(parts, Tag(base));");
     ArrayPush(lines, "    ArrayPush(parts, Tag(base + twist));");
     ArrayPush(lines, "    ArrayPush(parts, ToString(StringLength(\"seed\")));");
@@ -193,7 +193,7 @@ func RenderArrayParamCase(index: Int, base: Int, twist: Int) -> String {
     ArrayPush(lines, "}");
     ArrayPush(lines, "");
     ArrayPush(lines, "func FuzzBuild(base: Int, n: Int) -> Array<Int> {");
-    ArrayPush(lines, "    let xs: Array<Int> = [];");
+    ArrayPush(lines, "    var xs: Array<Int> = [];");
     ArrayPush(lines, "    var i: Int = 0;");
     ArrayPush(lines, "    while i < n {");
     ArrayPush(lines, "        ArrayPush(xs, base + i * 2);");
@@ -232,7 +232,7 @@ func RenderPredicateCursorCase(index: Int, base: Int, twist: Int) -> String {
     ArrayPush(lines, "");
     ArrayPush(lines, "func ConsumePredicated(pos: Int, expected: Int) -> Int {");
     ArrayPush(lines, "    let hit: Bool = TokenAt(pos) == expected;");
-    ArrayPush(lines, "    let delta: Int = 0;");
+    ArrayPush(lines, "    var delta: Int = 0;");
     ArrayPush(lines, "    if hit {");
     ArrayPush(lines, "        delta = 1;");
     ArrayPush(lines, "    }");
@@ -240,9 +240,9 @@ func RenderPredicateCursorCase(index: Int, base: Int, twist: Int) -> String {
     ArrayPush(lines, "}");
     ArrayPush(lines, "");
     ArrayPush(lines, "func RunCursor(expected: Int, rounds: Int) -> Int {");
-    ArrayPush(lines, "    let branch_pos: Int = 0;");
-    ArrayPush(lines, "    let pred_pos: Int = 0;");
-    ArrayPush(lines, "    let i: Int = 0;");
+    ArrayPush(lines, "    var branch_pos: Int = 0;");
+    ArrayPush(lines, "    var pred_pos: Int = 0;");
+    ArrayPush(lines, "    var i: Int = 0;");
     ArrayPush(lines, "    while i < rounds {");
     ArrayPush(lines, "        branch_pos = ConsumeBranch(branch_pos, expected);");
     ArrayPush(lines, "        pred_pos = ConsumePredicated(pred_pos, expected);");

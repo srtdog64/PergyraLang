@@ -27,6 +27,14 @@ func DirectMirScalarProgramCCaseMathExpression(kind: Int, left: String, right: S
         symbol = runtime.case_math.abs.symbol;
         ready = runtime.case_math.abs.ok;
         ArrayPush(values, left);
+    } else if kind == DirectMirScalarProgramExprRandomInt() {
+        symbol = runtime.case_math.random.symbol;
+        ready = runtime.case_math.random.ok;
+        ArrayPush(values, left);
+    } else if kind == DirectMirScalarProgramExprSeedRandom() {
+        symbol = runtime.case_math.seed_random.symbol;
+        ready = runtime.case_math.seed_random.ok;
+        ArrayPush(values, left);
     } else if kind == DirectMirScalarProgramExprMinInt() {
         symbol = runtime.case_math.min.symbol;
         ready = runtime.case_math.min.ok;

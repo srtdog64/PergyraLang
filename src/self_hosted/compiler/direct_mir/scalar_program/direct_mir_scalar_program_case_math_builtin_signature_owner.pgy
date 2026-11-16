@@ -23,6 +23,14 @@ func DirectMirScalarProgramCaseMathBuiltinSignatureExpected(
         return ["Unknown", "Unknown|Unknown", ToString(
             DirectMirScalarProgramExprMaxInt())];
     }
+    // Native Random and SeedRandom draw from and seed the runtime generator
+    // under the random capability.
+    if name == "Random" {
+        return ["Int", "Int", ToString(DirectMirScalarProgramExprRandomInt())];
+    }
+    if name == "SeedRandom" {
+        return ["Void", "Int", ToString(DirectMirScalarProgramExprSeedRandom())];
+    }
     return [];
 }
 

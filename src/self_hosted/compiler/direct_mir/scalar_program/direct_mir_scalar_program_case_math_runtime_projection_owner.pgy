@@ -10,6 +10,8 @@ struct DirectMirScalarProgramCaseMathRuntimeProjection {
     let max: CompilerRuntimeCallAbiFact;
     let long_modulo: CompilerRuntimeCallAbiFact;
     let long_division: CompilerRuntimeCallAbiFact;
+    let random: CompilerRuntimeCallAbiFact;
+    let seed_random: CompilerRuntimeCallAbiFact;
 }
 
 func DirectMirScalarProgramCaseMathRuntimeProjectionFromIds(
@@ -26,7 +28,11 @@ func DirectMirScalarProgramCaseMathRuntimeProjectionFromIds(
         DirectMirScalarProgramCaseMathRuntimeFact(
             "math", "max", MathRuntimeCMaxFn()),
         DirectMirScalarProgramLongModuloRuntimeFact(),
-        DirectMirScalarProgramLongDivisionRuntimeFact());
+        DirectMirScalarProgramLongDivisionRuntimeFact(),
+        DirectMirScalarProgramCaseMathRuntimeFact(
+            "math", "random", MathRuntimeCRandomFn()),
+        DirectMirScalarProgramCaseMathRuntimeFact(
+            "math", "seed-random", MathRuntimeCSeedRandomFn()));
 }
 
 func DirectMirScalarProgramCaseMathRuntimeProjectionReady(
@@ -46,7 +52,11 @@ func DirectMirScalarProgramCaseMathRuntimeProjectionReady(
         DirectMirScalarProgramLongModuloRuntimeFactReady(
             projection.long_modulo, ids.long_modulo_id) &&
         DirectMirScalarProgramLongDivisionRuntimeFactReady(
-            projection.long_division, ids.long_division_id);
+            projection.long_division, ids.long_division_id) &&
+        DirectMirScalarProgramCaseMathRuntimeFactReady(
+            projection.random, ids.random_id) &&
+        DirectMirScalarProgramCaseMathRuntimeFactReady(
+            projection.seed_random, ids.seed_random_id);
 }
 
 func DirectMirScalarProgramLongDivisionRuntimeFactReady(
@@ -86,5 +96,6 @@ func DirectMirScalarProgramCaseMathRuntimeRequired(
 ) -> Bool {
     return ids.replace_id != 0 || ids.abs_id != 0 ||
         ids.min_id != 0 || ids.max_id != 0 || ids.long_modulo_id != 0 ||
-        ids.long_division_id != 0;
+        ids.long_division_id != 0 || ids.random_id != 0 ||
+        ids.seed_random_id != 0;
 }

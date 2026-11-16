@@ -2984,7 +2984,7 @@ for collection_owner_cap in \
     src/self_hosted/mir_lower/collection_ownership_binding_move_query_owner.pgy:60 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_routine_emission_owner.pgy:200 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_block_exit_emission_owner.pgy:165 \
-    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_artifact_emission_owner.pgy:184 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_artifact_emission_owner.pgy:187 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_nested_array_int_literal_operand_owner.pgy:60 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_extension_graph_owner.pgy:80 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_extension_admission_owner.pgy:223 \

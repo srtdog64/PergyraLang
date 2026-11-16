@@ -40,6 +40,7 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirSca
              DirectMirScalarProgramExprSetStringNew() && kind !=
              DirectMirScalarProgramExprSetStringAdd() && kind !=
              DirectMirScalarProgramExprSetStringHas() && kind !=
+             DirectMirScalarProgramExprSetStringSize() && kind !=
              DirectMirScalarProgramExprArrayStringIndex() && kind !=
             DirectMirScalarProgramExprArrayIntIndex() && kind !=
             DirectMirScalarProgramExprArrayLongIndex() && kind !=
@@ -64,6 +65,13 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirSca
         facts.node_parameter_ordinals[node] != -1 ||
         facts.node_literals[node] != "" ||
         facts.node_callable_rows[node] != -1 { return Some(false); }
+    if kind == DirectMirScalarProgramExprSetStringSize() {
+        let left_kind: Int = facts.node_kinds[left];
+        return Some(type_name == CompilerAbiLayoutIntTypeName() && right == -1 &&
+            facts.node_types[left] == CompilerAbiLayoutSetStringTypeName() &&
+            (left_kind == DirectMirScalarProgramExprLocal() ||
+             left_kind == DirectMirScalarProgramExprParameter()));
+    }
     if kind == DirectMirScalarProgramExprSetStringAdd() ||
             kind == DirectMirScalarProgramExprSetStringHas() {
         if right < 0 || facts.node_types[left] !=

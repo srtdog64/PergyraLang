@@ -12,16 +12,21 @@ func DirectMirScalarCfgRangeGraphShapeReady(
             range.local_row &&
         plan.block_condition_right_literals[range.header_block] ==
             range.stop_literal;
+    // The program route compares the iteration with its bound in an
+    // expression row: always for a local bound, and for a literal bound there.
+    let expression_condition: Bool = plan.program.valid &&
+        plan.block_condition_kinds[range.header_block] ==
+            DirectMirScalarCfgConditionExpression() &&
+        plan.block_condition_left_values[range.header_block] == -1 &&
+        plan.block_condition_right_values[range.header_block] == -1 &&
+        plan.block_condition_left_locals[range.header_block] == -1 &&
+        plan.block_condition_right_locals[range.header_block] == -1 &&
+        plan.block_condition_left_literals[range.header_block] == "" &&
+        plan.block_condition_right_literals[range.header_block] == "";
     if range.stop_local_ref != "" {
-        condition_ready = plan.program.valid &&
-            plan.block_condition_kinds[range.header_block] ==
-                DirectMirScalarCfgConditionExpression() &&
-            plan.block_condition_left_values[range.header_block] == -1 &&
-            plan.block_condition_right_values[range.header_block] == -1 &&
-            plan.block_condition_left_locals[range.header_block] == -1 &&
-            plan.block_condition_right_locals[range.header_block] == -1 &&
-            plan.block_condition_left_literals[range.header_block] == "" &&
-            plan.block_condition_right_literals[range.header_block] == "";
+        condition_ready = expression_condition;
+    } else if range.stop_literal != "" && range.stop_value_id == "" {
+        condition_ready = condition_ready || expression_condition;
     }
     return plan.block_succ_true[range.init_block] == range.header_block &&
         plan.block_succ_false[range.init_block] < 0 &&

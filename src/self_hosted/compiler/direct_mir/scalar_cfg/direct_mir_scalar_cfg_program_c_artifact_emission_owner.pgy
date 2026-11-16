@@ -72,9 +72,12 @@ func DirectMirScalarCfgEmitProgramC(
         plan.program.runtime_abi.compiler_artifact_begin_id != 0 ||
         plan.program.runtime_abi.compiler_artifact_commit_id != 0 ||
         plan.program.runtime_abi.compiler_artifact_abort_id != 0;
+    let random_runtime_header: Bool =
+        plan.program.runtime_abi.case_math.random_id != 0 ||
+        plan.program.runtime_abi.case_math.seed_random_id != 0;
     TextBuilderAppend(output, CompilerRuntimeValueCLocalPreamble(plan.local_types, plan.routines.parameter_types));
     if (set_string_runtime_header || compiler_artifact_header || checked_division_header ||
-            hashmap_runtime_header) && !runtime_value_header {
+            hashmap_runtime_header || random_runtime_header) && !runtime_value_header {
         TextBuilderAppend(output, "#include \"pgy_runtime.h\"\n");
     }
     let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement =
@@ -138,7 +141,7 @@ func DirectMirScalarCfgEmitProgramC(
     let runtime_header_owns_print: Bool =
         runtime_value_header || set_string_runtime_header ||
         compiler_artifact_header || checked_division_header || hashmap_runtime_header ||
-        plan.program.runtime_abi.dir_walk_id != 0 ||
+        random_runtime_header || plan.program.runtime_abi.dir_walk_id != 0 ||
         plan.program.runtime_abi.file_exists_id != 0 ||
         plan.program.runtime_abi.read_file_id != 0 || plan.program.runtime_abi.write_file_id != 0;
     TextBuilderAppend(output,

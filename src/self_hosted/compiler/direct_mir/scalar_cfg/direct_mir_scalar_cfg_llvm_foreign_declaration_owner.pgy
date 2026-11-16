@@ -35,6 +35,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     let set_new: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprSetStringNew());
     let set_add: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprSetStringAdd());
     let set_has: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprSetStringHas());
+    let set_size: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprSetStringSize());
     let owned_string_push: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprArrayStringPushOwned());
     let ownership_value_copy: Bool =
         DirectMirScalarProgramCollectionOwnershipValueCopyReached(plan);
@@ -139,6 +140,8 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         CollectionSetRuntimeLlvmAddStringRawFn(), "(ptr, ptr)\n"))); }
     if set_has { output = Concat(output, Concat("declare i1 @", Concat(
         CollectionSetRuntimeLlvmHasStringRawFn(), "(ptr, ptr)\n"))); }
+    if set_size { output = Concat(output, Concat("declare i32 @", Concat(
+        CollectionSetRuntimeLlvmSizeRawFn(), "(ptr)\n"))); }
     if collection { output = Concat(output, "declare ptr @realloc(ptr, i64)\n"); }
     // Released owned locals, collections and fresh String operands retired
     // inside an expression all free; an unused declaration costs nothing.

@@ -34,6 +34,19 @@ func DirectMirScalarProgramCIntMathMaterialization(
         output = Concat(output,
             " right) { return left > right ? left : right; }\n");
     }
+    // The program includes pgy_runtime.h for these: native Random and
+    // SeedRandom take the random capability and share the runtime generator.
+    // Int narrows to their int32_t parameter exactly as a native call does.
+    if ids.random_id != 0 {
+        output = Concat(output, Concat(prefix, Concat(projection.random.symbol,
+            Concat("(", Concat(type_name,
+            " n) { return Random((int32_t)n); }\n")))));
+    }
+    if ids.seed_random_id != 0 {
+        output = Concat(output, Concat("static void ", Concat(
+            projection.seed_random.symbol, Concat("(", Concat(type_name,
+            " seed) { SeedRandom((int32_t)seed); }\n")))));
+    }
     if output != "" { return Concat(output, "\n"); }
     return output;
 }

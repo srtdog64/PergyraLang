@@ -20,6 +20,7 @@ struct CollectionSetRuntimeFact {
 func CollectionSetRuntimeLlvmNewRawFn() -> String { return "pgy_set_new_raw_export"; }
 func CollectionSetRuntimeLlvmAddStringRawFn() -> String { return "pgy_set_add_string_raw_export"; }
 func CollectionSetRuntimeLlvmHasStringRawFn() -> String { return "pgy_set_has_string_raw_export"; }
+func CollectionSetRuntimeLlvmSizeRawFn() -> String { return "pgy_set_size_raw_export"; }
 
 func CollectionSetRuntimeFactMissing() -> CollectionSetRuntimeFact {
     return CollectionSetRuntimeFact(

@@ -16,12 +16,18 @@ func DirectMirScalarCfgProgramRangeConditionFactsFromBound(
     local_offset: Int,
     ref signature: DirectMirRoutineSignatureFact
 ) -> DirectMirScalarProgramExpressionSet {
+    // A bound is either a local the loop reads each pass or a literal; an
+    // ArrayLength or let-value bound has no admitted condition shape here.
+    let literal_bound: Bool = range.stop_literal != "" &&
+        range.stop_local_ref == "";
+    let local_bound: Bool = range.stop_local_ref != "" &&
+        range.stop_literal == "";
     if !facts.valid || facts.digest != 0 ||
         expression_row + 1 != ArrayLength(facts.graph_starts) ||
         facts.graph_global_rows[expression_row] !=
             range.branch_global_row ||
         facts.graph_counts[expression_row] != 1 ||
-        range.stop_local_ref == "" || range.stop_literal != "" ||
+        (!literal_bound && !local_bound) ||
         range.stop_value_id != "" || range.local_row < 0 ||
         range.local_row >= ArrayLength(locals.local_ref_kinds) ||
         locals.local_ref_kinds[range.local_row] !=
@@ -35,7 +41,12 @@ func DirectMirScalarCfgProgramRangeConditionFactsFromBound(
         return DirectMirScalarProgramExpressionSetInvalid(facts);
     }
     var bound_identity: String = "";
-    if facts.node_kinds[bound] ==
+    if literal_bound {
+        if facts.node_kinds[bound] != DirectMirScalarProgramExprIntLiteral() ||
+            facts.node_literals[bound] != range.stop_literal {
+            return DirectMirScalarProgramExpressionSetInvalid(facts);
+        }
+    } else if facts.node_kinds[bound] ==
             DirectMirScalarProgramExprParameter() {
         let ordinal: Int = facts.node_parameter_ordinals[bound];
         if ordinal < 0 || ordinal >= signature.param_count {
@@ -55,7 +66,7 @@ func DirectMirScalarCfgProgramRangeConditionFactsFromBound(
     } else {
         return DirectMirScalarProgramExpressionSetInvalid(facts);
     }
-    if bound_identity != range.stop_local_ref {
+    if local_bound && bound_identity != range.stop_local_ref {
         return DirectMirScalarProgramExpressionSetInvalid(facts);
     }
     var counts: Array<Int> = facts.graph_counts;

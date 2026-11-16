@@ -10,3 +10,5 @@ func DirectMirScalarProgramExprDivideInt() -> Int { return 74; }
 func DirectMirScalarProgramExprModuloLong() -> Int { return 75; }
 func DirectMirScalarProgramExprDivideLong() -> Int { return 79; }
 func DirectMirScalarProgramExprMultiplyLong() -> Int { return 81; }
+func DirectMirScalarProgramExprRandomInt() -> Int { return 156; }
+func DirectMirScalarProgramExprSeedRandom() -> Int { return 157; }

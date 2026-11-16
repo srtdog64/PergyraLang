@@ -47,6 +47,7 @@ func DirectMirScalarProgramExprIntentObservabilityCall() -> Int { return 100; }
 func DirectMirScalarProgramExprSetStringNew() -> Int { return 101; }
 func DirectMirScalarProgramExprSetStringAdd() -> Int { return 102; }
 func DirectMirScalarProgramExprSetStringHas() -> Int { return 103; }
+func DirectMirScalarProgramExprSetStringSize() -> Int { return 158; }
 func DirectMirScalarProgramExprArrayStringPushOwned() -> Int { return 104; }
 func DirectMirScalarProgramExprCompilerArtifactWrite() -> Int { return 105; }
 func DirectMirScalarProgramExprToStringBool() -> Int { return 113; }

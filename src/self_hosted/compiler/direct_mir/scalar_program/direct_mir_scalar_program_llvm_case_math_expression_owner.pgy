@@ -18,6 +18,14 @@ func DirectMirScalarProgramLlvmCaseMathExpressionAt(kind: Int, result: String, l
         output = output + "  " + result + " = sext i32 " + result + ".i32 to i64\n";
         return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
     }
+    if kind == DirectMirScalarProgramExprSeedRandom() {
+        if !runtime.case_math.seed_random.ok {
+            return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
+        }
+        let output: String = "  call void @" + runtime.case_math.seed_random.symbol +
+            "(i64 " + left + ")\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, "");
+    }
     var symbol: String = "";
     var ready: Bool = false;
     var return_type: String = "i64";
@@ -34,6 +42,10 @@ func DirectMirScalarProgramLlvmCaseMathExpressionAt(kind: Int, result: String, l
     } else if kind == DirectMirScalarProgramExprAbsInt() {
         symbol = runtime.case_math.abs.symbol;
         ready = runtime.case_math.abs.ok;
+        ArrayPush(values, left);
+    } else if kind == DirectMirScalarProgramExprRandomInt() {
+        symbol = runtime.case_math.random.symbol;
+        ready = runtime.case_math.random.ok;
         ArrayPush(values, left);
     } else if kind == DirectMirScalarProgramExprMinInt() {
         symbol = runtime.case_math.min.symbol;

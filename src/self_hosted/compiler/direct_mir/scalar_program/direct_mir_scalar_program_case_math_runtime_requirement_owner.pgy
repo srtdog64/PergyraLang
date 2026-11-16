@@ -15,12 +15,14 @@ struct DirectMirScalarProgramCaseMathRuntimeIds {
     let max_id: Int;
     let long_modulo_id: Int;
     let long_division_id: Int;
+    let random_id: Int;
+    let seed_random_id: Int;
 }
 
 func DirectMirScalarProgramCaseMathRuntimeIdsEmpty(
 ) -> DirectMirScalarProgramCaseMathRuntimeIds {
     return DirectMirScalarProgramCaseMathRuntimeIds(
-        false, 0, 0, 0, 0, 0, 0, 0);
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 func DirectMirScalarProgramCaseMathRuntimeIdsDigest(
@@ -33,6 +35,8 @@ func DirectMirScalarProgramCaseMathRuntimeIdsDigest(
     hash = DirectMirCfgHashInt(hash, fact.max_id);
     hash = DirectMirCfgHashInt(hash, fact.long_modulo_id);
     hash = DirectMirCfgHashInt(hash, fact.long_division_id);
+    hash = DirectMirCfgHashInt(hash, fact.random_id);
+    hash = DirectMirCfgHashInt(hash, fact.seed_random_id);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -48,7 +52,8 @@ func DirectMirScalarProgramCaseMathRuntimeIdsCanonicalEmpty(
 ) -> Bool {
     return !fact.valid && fact.digest == 0 && fact.replace_id == 0 &&
         fact.abs_id == 0 && fact.min_id == 0 && fact.max_id == 0 &&
-        fact.long_modulo_id == 0 && fact.long_division_id == 0;
+        fact.long_modulo_id == 0 && fact.long_division_id == 0 &&
+        fact.random_id == 0 && fact.seed_random_id == 0;
 }
 
 func DirectMirScalarProgramCaseMathRuntimeFact(
@@ -97,6 +102,10 @@ func DirectMirScalarProgramCaseMathRuntimeRequirement(
     let long_division_required: Bool =
         DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprDivideLong());
+    let random_required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprRandomInt());
+    let seed_random_required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprSeedRandom());
     let replace: CompilerRuntimeCallAbiFact =
         DirectMirScalarProgramCaseMathRuntimeFact(
             "string", "replace", StringRuntimeCStringReplaceFn());
@@ -113,7 +122,16 @@ func DirectMirScalarProgramCaseMathRuntimeRequirement(
         DirectMirScalarProgramLongModuloRuntimeFact();
     let long_division: CompilerRuntimeCallAbiFact =
         DirectMirScalarProgramLongDivisionRuntimeFact();
-    if (replace_required && (!replace.ok || replace.call_shape !=
+    let random: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramCaseMathRuntimeFact(
+            "math", "random", MathRuntimeCRandomFn());
+    let seed_random: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramCaseMathRuntimeFact(
+            "math", "seed-random", MathRuntimeCSeedRandomFn());
+    if (random_required && (!random.ok || random.call_shape != "returns_int")) ||
+        (seed_random_required && (!seed_random.ok ||
+            seed_random.call_shape != "int_to_void")) ||
+        (replace_required && (!replace.ok || replace.call_shape !=
             "string_string_string_to_string")) ||
         (abs_required && (!abs.ok || abs.call_shape != "int_to_int")) ||
         (min_required && (!min.ok || min.call_shape != "int_int_to_int")) ||
@@ -132,6 +150,9 @@ func DirectMirScalarProgramCaseMathRuntimeRequirement(
     var min_id: Int = 0; var max_id: Int = 0;
     var long_modulo_id: Int = 0;
     var long_division_id: Int = 0;
+    var random_id: Int = 0; var seed_random_id: Int = 0;
+    if random_required { random_id = random.runtime_call_abi_id; }
+    if seed_random_required { seed_random_id = seed_random.runtime_call_abi_id; }
     if replace_required { replace_id = replace.runtime_call_abi_id; }
     if abs_required { abs_id = abs.runtime_call_abi_id; }
     if min_required { min_id = min.runtime_call_abi_id; }
@@ -145,9 +166,10 @@ func DirectMirScalarProgramCaseMathRuntimeRequirement(
     let source: DirectMirScalarProgramCaseMathRuntimeIds =
         DirectMirScalarProgramCaseMathRuntimeIds(
             true, 0, replace_id, abs_id, min_id, max_id, long_modulo_id,
-            long_division_id);
+            long_division_id, random_id, seed_random_id);
     return DirectMirScalarProgramCaseMathRuntimeIds(
         true, DirectMirScalarProgramCaseMathRuntimeIdsDigest(source),
         source.replace_id, source.abs_id, source.min_id, source.max_id,
-        source.long_modulo_id, source.long_division_id);
+        source.long_modulo_id, source.long_division_id,
+        source.random_id, source.seed_random_id);
 }
