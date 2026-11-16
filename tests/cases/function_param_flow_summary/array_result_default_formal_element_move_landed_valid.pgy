@@ -1,0 +1,18 @@
+// A default struct formal returned as the one element of a fresh Array moves
+// at the call (2026-10-18). The caller grows the argument afterwards, so the
+// call takes a whole Clone of it (2026-10-22) and the result keeps its own.
+struct Holder { items: Array<Int>; }
+
+func Wrap(value: Holder) -> Array<Holder>
+{
+    return [value];
+}
+
+func Main() -> Void
+{
+    var holder: Holder = Holder { items: [1, 2] };
+    let rows: Array<Holder> = Wrap(holder);
+    ArrayPush(holder.items, 3);
+    Log(ToString(rows[0].items[0]));
+    Log(ToString(holder.items[2]));
+}

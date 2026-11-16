@@ -1,0 +1,19 @@
+// A struct whose Clone copies its Array of records only by value moves into
+// the generic Wrap and is read again: no whole copy can land, so the later
+// use stays refused (2026-10-22).
+struct Point { x: Int; }
+struct Rows { points: Array<Point>; }
+
+func Wrap<T>(value: T) -> Array<T>
+{
+    return [value];
+}
+
+func Main() -> Void
+{
+    var rows: Rows = Rows { points: [Point { x: 1 }] };
+    let wrapped: Array<Rows> = Wrap(rows);
+    ArrayPush(rows.points, Point { x: 2 });
+    Log(ToString(ArrayLength(rows.points)));
+    Log(ToString(wrapped[0].points[0].x));
+}

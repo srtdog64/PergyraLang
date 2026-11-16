@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "function_param_flow/function_param_flow_summary_internal.h"
+#include "function_param_flow/function_param_publication_internal.h"
 #include "slot_summary.h"
 #include "type_checker/type_checker_internal.h"
 #include "type_checker/type_checker_ownership_internal.h"
@@ -82,13 +83,24 @@ bool semantic_default_aggregate_formal_borrow_handoff(
  * of it. A call the caller follows with another use of the argument lends
  * it instead of moving it (2026-10-19_by_value_getter_lends_when_used_again).
  * The loan proof refuses the lend when that call or a later one changes the
- * storage. An Array formal keeps the descriptor-transfer answer. */
+ * storage. An Array formal keeps the descriptor-transfer answer. A formal of
+ * a type parameter never lends: a generic routine that returns its argument
+ * moves it at every call, whatever the call binds the type to
+ * (2026-11-16 user decision on generic formals). A formal whose published
+ * type is unknown does not lend either. */
 bool semantic_default_aggregate_formal_lends(SemanticContext *ctx, ASTNode *callee, size_t formal)
 {
     FuncParam *param = ast_func_param(callee, formal);
     if (param == NULL || param->mode != PARAM_MODE_DEFAULT || ast_func_body(callee) == NULL) return false;
     const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
     if (type_name != NULL && strcmp(type_name, "Array") == 0) return false;
+    const PendingRoutine *routine = ctx->function_param_publications != NULL
+        ? publication_routine(ctx->function_param_publications,
+            ast_node_stable_id(callee)) : NULL;
+    if (routine == NULL || routine->decl != callee || formal >= routine->count
+        || routine->types[formal] == NULL
+        || routine->types[formal]->kind == TYPE_KIND_GENERIC)
+        return false;
     FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
     if (store == NULL || store->failed) return false;
     size_t index = function_param_flow_find(store, ast_node_stable_id(callee), formal);

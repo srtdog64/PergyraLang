@@ -6,6 +6,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "type_checker_builtins_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "../function_param_flow/function_param_publication_owner.h"
@@ -227,6 +228,72 @@ static bool escaped_loan_copy_boundary_repairable(SemanticContext *ctx,
     return true;
 }
 
+/* A generic formal moved into a returned Array (`return [value]`) takes the
+ * argument's storage at each call, so the call's concrete type decides the
+ * obligation (2026-11-16 user decision on generic formals): a copy-only
+ * value, a String, and a struct, tuple, collection or payload enum move or
+ * are copied by the move owner; the caller's own type parameter passes the
+ * move on to the caller's callers. A channel, completion handle, runtime or
+ * resource handle, view, subject or object is no plain value an Array may
+ * hold, so that call is refused. */
+static void
+check_generic_element_move_actuals(SemanticContext *ctx,
+    const SemanticParamPublicationView *view)
+{
+    for (size_t b = 0; b < view->body_call_count; b++) {
+        const PendingBodyCall *edge = &view->body_calls[b];
+        const PendingRoutine *callee = &view->routines[edge->callee_index];
+        bool generic_formal = false;
+        for (size_t p = 0; p < callee->count && !generic_formal; p++)
+            generic_formal = callee->types[p] != NULL
+                && callee->types[p]->kind == TYPE_KIND_GENERIC;
+        if (!generic_formal || ast_func_body(callee->decl) == NULL)
+            continue;
+        for (size_t a = 0; a < ast_call_arg_count(edge->call); a++) {
+            size_t formal = 0;
+            if (!semantic_param_publication_formal_for_actual(ctx, edge->call,
+                    a, &formal) || formal >= callee->count) {
+                semantic_error(ctx, edge->call,
+                    "Generic element move check requires a current call argument fact");
+                return;
+            }
+            FuncParam *param = ast_func_param(callee->decl, formal);
+            if (param == NULL || param->mode != PARAM_MODE_DEFAULT
+                || callee->types[formal] == NULL
+                || callee->types[formal]->kind != TYPE_KIND_GENERIC
+                || !semantic_array_storage_default_formal_element_result_current(
+                    ctx, callee->decl, ast_func_param_stable_id(param)))
+                continue;
+            ASTNode *argument = ast_call_argument(edge->call, a);
+            SemanticPublishedValue value =
+                semantic_param_publication_value(ctx, argument);
+            const Type *type = value.ok && !value.meta ? value.type : NULL;
+            /* The caller's own type parameter carries the obligation on: the
+             * caller's formal moves in turn and its callers decide. */
+            bool plain = type != NULL
+                && (type->kind == TYPE_KIND_GENERIC
+                    || semantic_classify_ownership_type(type, ctx)
+                        == OWNERSHIP_TYPE_COPY_ONLY
+                    || type_equals(type, TYPE_STRING)
+                    || semantic_default_aggregate_value(ctx, type))
+                && !type_is_constructed_named(type, "Channel")
+                && !type_is_future_like(type)
+                && !type_is_resource_handle(type)
+                && !type_is_single_owner_runtime_handle(type)
+                && !type_is_read_view(type) && !type_is_write_view(type);
+            if (plain)
+                continue;
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                argument,
+                "'%s' cannot take a '%s' as parameter '%s': it moves the argument into the Array it returns, and an Array holds no channel, handle, view, subject or object by value",
+                ast_declaration_name(callee->decl) != NULL
+                    ? ast_declaration_name(callee->decl) : "<callee>",
+                type_name_or_unknown(type), param->name);
+        }
+    }
+}
+
 bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticParamPublicationView *view)
 {
     if (!semantic_param_publication_view_current(ctx, view) ||
@@ -253,6 +320,7 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
             row->function_type, ctx, row->normal_exit_closed);
         type_function_set_body_summary(row->function_type, ctx->current_function_body_summary);
     }
+    check_generic_element_move_actuals(ctx, view);
     /* MAY is the sole delayed derived bit. Final parameter facts seed it;
      * registered exact call edges propagate it without rechecking bodies. */
     bool changed;
@@ -453,7 +521,32 @@ semantic_check_param_summary_escapes(ASTNode *node,
                 bool transfer_current = param->mode == PARAM_MODE_DEFAULT
                     && semantic_array_storage_default_formal_result_current(
                         ctx, node, ast_func_param_stable_id(param));
-                bool landing_current = transfer_current
+                /* A default formal of a struct, tuple, collection or type
+                 * parameter returned as the one element of a fresh Array
+                 * literal (`return [value]`) moves at each call
+                 * (2026-10-18_default_aggregate_move): the caller's move
+                 * owner copies or refuses a later use of the argument. A
+                 * returned field or alias of the formal is the result's
+                 * own backing and stays refused. An Array formal keeps its
+                 * descriptor-transfer proof and a String formal its store
+                 * landing; a receiver is no call argument, so no move owner
+                 * carries it. A formal the callee also keeps, sends or
+                 * releases has no such move. */
+                unsigned moved_outward = SLOT_PARAM_SUMMARY_NONE;
+                bool moved_into_result = param->mode == PARAM_MODE_DEFAULT
+                    && !self_param
+                    && !type_is_constructed_named(param_types[i], "Array")
+                    && (param_types[i]->kind == TYPE_KIND_GENERIC
+                        || semantic_default_aggregate_value(ctx, param_types[i]))
+                    && (summary_mask & SLOT_PARAM_SUMMARY_RELEASE) == 0
+                    && semantic_default_aggregate_formal_moves(ctx, node, i)
+                    && function_param_flow_formal_outward_effects_current(
+                        ctx->function_param_flow_summaries, node, i,
+                        &moved_outward)
+                    && moved_outward == SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                    && semantic_array_storage_default_formal_element_result_current(
+                        ctx, node, ast_func_param_stable_id(param));
+                bool landing_current = transfer_current || moved_into_result
                     || (param->mode == PARAM_MODE_DEFAULT
                         && semantic_array_storage_select_default_formal_return_copies(
                             ctx, node, ast_func_param_stable_id(param),

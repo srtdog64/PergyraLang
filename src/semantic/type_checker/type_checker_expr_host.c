@@ -197,10 +197,16 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
     if (expr == NULL || method == NULL || method->type != AST_FUNC_DECL)
         return TYPE_UNKNOWN;
 
+    /* A resolved host method is no builtin. A bare call records that before
+     * it gets here; a member call `obj.Method(..)` records it here, or its
+     * result has no declared-result fact and an Array result no transfer
+     * proof. */
     if (ast_node_stable_id(method) == 0
         || !ast_call_set_semantic_callee_decl_id(
             expr, ast_node_stable_id(method)) ||
-        !ast_call_set_semantic_callee_declared_callable(expr, true)) {
+        !ast_call_set_semantic_callee_declared_callable(expr, true) ||
+        !ast_call_set_semantic_callee_builtin_kind(
+            expr, (uint32_t)BUILTIN_NOT_BUILTIN)) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_CALL_NOT_CALLABLE,

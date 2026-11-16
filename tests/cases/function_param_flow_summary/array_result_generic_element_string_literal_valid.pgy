@@ -1,0 +1,11 @@
+// A String literal bound to the moving generic formal.
+func Wrap<T>(value: T) -> Array<T>
+{
+    return [value];
+}
+
+func Main() -> Void
+{
+    let rows: Array<String> = Wrap("literal");
+    Log(rows[0]);
+}

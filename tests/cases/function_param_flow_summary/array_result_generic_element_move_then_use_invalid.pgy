@@ -1,0 +1,18 @@
+// Inside a generic body the formal moves into Wrap and is then returned
+// again; an opaque type has no whole Clone, so the second use is refused.
+func Wrap<T>(value: T) -> Array<T>
+{
+    return [value];
+}
+
+func Both<T>(value: T) -> Array<T>
+{
+    let first: Array<T> = Wrap(value);
+    return [value];
+}
+
+func Main() -> Void
+{
+    let rows: Array<Array<Int>> = Both([1, 2]);
+    Log(ToString(ArrayLength(rows)));
+}

@@ -1,0 +1,14 @@
+// An Array of Int moves into the generic Wrap and is grown afterwards: the
+// call takes a whole Clone (2026-10-22), so the wrapped one keeps length 1.
+func Wrap<T>(value: T) -> Array<T>
+{
+    return [value];
+}
+
+func Main() -> Void
+{
+    var items: Array<Int> = [1];
+    let rows: Array<Array<Int>> = Wrap(items);
+    ArrayPush(items, 2);
+    Log(ToString(ArrayLength(rows[0])));
+}

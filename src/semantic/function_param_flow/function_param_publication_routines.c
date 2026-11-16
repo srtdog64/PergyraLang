@@ -674,6 +674,81 @@ ASTNode *semantic_param_publication_declared_result(const SemanticContext *ctx,
     *result_type = value->value_type;
     return decl;
 }
+
+#define PUBLICATION_GENERIC_BINDING_LIMIT 8u
+typedef struct {
+    const char *name;
+    const Type *type;
+} PublicationGenericBinding;
+
+/* Whether `instance` is `declared` with each type parameter standing for one
+ * type throughout. A parameter inside any other type shape fails closed. */
+static bool publication_generic_instance(const Type *declared,
+    const Type *instance, PublicationGenericBinding *bound, size_t *count,
+    size_t depth)
+{
+    if (declared == NULL || instance == NULL || instance == TYPE_UNKNOWN ||
+        depth > 16) return false;
+    if (declared->kind == TYPE_KIND_GENERIC) {
+        const char *name = type_generic_param_name(declared);
+        if (name == NULL) return false;
+        for (size_t i = 0; i < *count; i++)
+            if (strcmp(bound[i].name, name) == 0)
+                return type_equals(bound[i].type, instance);
+        if (*count >= PUBLICATION_GENERIC_BINDING_LIMIT) return false;
+        bound[(*count)++] = (PublicationGenericBinding){name, instance};
+        return true;
+    }
+    if (declared->kind != TYPE_KIND_CONSTRUCTED)
+        return type_equals(declared, instance);
+    size_t args = type_constructed_arg_count(declared);
+    if (instance->kind != TYPE_KIND_CONSTRUCTED ||
+        args != type_constructed_arg_count(instance) ||
+        !type_equals(declared->data.constructed.constructor,
+            instance->data.constructed.constructor)) return false;
+    for (size_t i = 0; i < args; i++)
+        if (!publication_generic_instance(type_get_constructed_arg(declared, i),
+                type_get_constructed_arg(instance, i), bound, count, depth + 1))
+            return false;
+    return true;
+}
+
+/* A call of a generic routine publishes its instantiated result type, which
+ * the routine's own result row never equals. The declared result is current
+ * for this call when the checked call type instantiates it. A non-generic
+ * call is semantic_param_publication_declared_result's alone. */
+ASTNode *semantic_param_publication_generic_declared_result(
+    const SemanticContext *ctx, const ASTNode *call,
+    const Type **declared_type, const Type **instance_type)
+{
+    if (declared_type == NULL || instance_type == NULL) return NULL;
+    *declared_type = NULL;
+    *instance_type = NULL;
+    ASTNode *decl = semantic_param_publication_direct_callee(ctx, call);
+    PublishedNode *value = publication_result_current(ctx, call);
+    if (decl == NULL || value == NULL || value->nominal_result != NULL ||
+        value->stdlib || !value->kind_present ||
+        value->builtin != BUILTIN_NOT_BUILTIN) return NULL;
+    const PendingRoutine *row = publication_routine(
+        ctx->function_param_publications, ast_node_stable_id(decl));
+    PublicationGenericBinding bound[PUBLICATION_GENERIC_BINDING_LIMIT];
+    size_t bound_count = 0;
+    if (row == NULL || row->return_type == value->value_type ||
+        !semantic_param_publication_routine_result_current(ctx, decl,
+            row->return_type) ||
+        !publication_generic_instance(row->return_type, value->value_type,
+            bound, &bound_count, 0) || bound_count == 0) return NULL;
+    const char *name = ast_call_semantic_value_type_name(call);
+    if (name != NULL && (value->value_type->name == NULL ||
+            strcmp(name, value->value_type->name) != 0))
+        return NULL;
+    for (size_t p = 0; p < value->argument_count; p++)
+        if (!semantic_param_publication_checked_argument(ctx, call, p))
+            return NULL;
+    *declared_type = row->return_type;
+    *instance_type = value->value_type;
+    return decl;
+}
 PublishedNode *publication_checked_intrinsic(const SemanticContext *ctx,
     const ASTNode *call, uint32_t kind, const Type *type, size_t count)
 {

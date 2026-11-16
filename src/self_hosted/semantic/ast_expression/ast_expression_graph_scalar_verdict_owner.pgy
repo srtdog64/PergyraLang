@@ -3,6 +3,7 @@
 import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "../diagnostic_owner.pgy";
+import "../expression_operator_fact_owner.pgy";
 
 // Operand types checked at every node of the tree, including the arguments of
 // builtin calls such as Log(ToString(i < f)), which the root operator verdict
@@ -130,10 +131,8 @@ func SemanticExpressionGraphNumericOperandError(
         (left == "Float" || left == "Double") {
         return SemanticError1("modulo_operand_not_integer", "actual", left);
     }
-    let left_numeric: Bool = SemanticExpressionGraphNumericTypeName(left) ||
-        left == "Double" || left == "Duration";
-    let right_numeric: Bool = SemanticExpressionGraphNumericTypeName(right) ||
-        right == "Double" || right == "Duration";
+    let left_numeric: Bool = SemanticArithmeticOperandType(left);
+    let right_numeric: Bool = SemanticArithmeticOperandType(right);
     if kind >= AstExpressionNodeAdd() && kind <= AstExpressionNodeModulo() {
         if kind == AstExpressionNodeAdd() && left == "String" && right == "String" { return ""; }
         if left != "Unknown" && right != "Unknown" &&

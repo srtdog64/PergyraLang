@@ -12,6 +12,8 @@
 #include "default_aggregate_move_rule.h"
 #include "loan_copy_landing_owner.h"
 
+#include <string.h>
+
 typedef struct ArrayStorageResultVisit {
     const ASTNode *decl;
     const struct ArrayStorageResultVisit *parent;
@@ -94,6 +96,57 @@ default_formal_transfer_current(SemanticContext *ctx,
         found = source;
     }
     return found;
+}
+
+static bool
+generic_function_result_current(SemanticContext *ctx, const ASTNode *call,
+    const ArrayStorageResultVisit *parent);
+
+/* The one actual `call` passes for the formal `formal_id` of `decl`. */
+static const ASTNode *
+call_actual_for_formal(SemanticContext *ctx, const ASTNode *call,
+    const ASTNode *decl, uint32_t formal_id, size_t *formal_out)
+{
+    size_t formal = SIZE_MAX;
+    for (size_t p = 0; p < ast_func_param_count(decl); p++) {
+        if (ast_func_param_stable_id(ast_func_param(decl, p)) != formal_id)
+            continue;
+        if (formal != SIZE_MAX) return NULL;
+        formal = p;
+    }
+    if (formal == SIZE_MAX || call == NULL || call->type != AST_CALL)
+        return NULL;
+    const ASTNode *found = NULL;
+    for (size_t a = 0; a < ast_call_arg_count(call); a++) {
+        size_t mapped = 0;
+        if (!semantic_param_publication_formal_for_actual(ctx, call, a,
+                &mapped)) return NULL;
+        if (mapped != formal) continue;
+        if (found != NULL) return NULL;
+        found = ast_call_argument(call, a);
+    }
+    *formal_out = formal;
+    return found;
+}
+
+/* An actual the caller built fresh: an Array literal, or a routine call whose
+ * own result proof holds. Its descriptor only; an element facet is never
+ * granted here. A landed copy of a named value is not one: a value moved
+ * and read again stays with its own call proof. */
+static bool
+fresh_actual_descriptor_current(SemanticContext *ctx, const ASTNode *actual,
+    const ArrayStorageResultVisit *visit)
+{
+    if (actual == NULL) return false;
+    if (actual->type == AST_ARRAY_LITERAL) return true;
+    if (actual->type != AST_CALL) return false;
+    const Type *result = NULL;
+    ASTNode *callee = semantic_param_publication_declared_result(
+        ctx, actual, &result);
+    if (callee != NULL)
+        return owned_function_result_current(ctx, callee, result, visit,
+            false, actual);
+    return generic_function_result_current(ctx, actual, visit);
 }
 
 static bool
@@ -203,6 +256,92 @@ owned_function_result_current(SemanticContext *ctx, ASTNode *decl,
 {
     return owned_function_result_replay(ctx, decl, result, parent, elements,
         result_call, true, NULL, NULL);
+}
+
+/* A generic routine whose declared result is one type parameter returns, on
+ * every reachable path, its default formal of that type whole, and does
+ * nothing else with it; no other formal, the receiver included, reaches the
+ * result. The result of a call is then that call's actual. */
+static bool
+generic_identity_result_current(SemanticContext *ctx, ASTNode *decl,
+    const Type *declared, const ArrayStorageResultVisit *parent,
+    const ASTNode *call)
+{
+    for (const ArrayStorageResultVisit *at = parent; at != NULL; at = at->parent)
+        if (at->decl == decl) return false;
+    const char *param_name = type_generic_param_name(declared);
+    SlotFunctionLookup lookup = {ctx, ctx->program_root};
+    FunctionParamFlowSummaryStore *flow = function_param_flow_store_get(&lookup);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    if (param_name == NULL || flow == NULL || flow->failed
+        || !function_param_flow_program_point_index_build(flow, decl, &index)
+        || index == NULL || !function_param_flow_index_claims_current(ctx, index)
+        || index->claims == NULL) return false;
+    const FunctionParamFlowIndexClaims *claims = index->claims;
+    uint32_t returned = 0;
+    for (size_t i = 0; i < claims->count; i++) {
+        const FunctionParamFlowIndexClaim *claim = &claims->rows[i];
+        if (claim->shape == AST_DEFER_STMT || claim->shape == AST_LAMBDA_EXPR ||
+            claim->shape == AST_ASYNC_BLOCK || claim->shape == AST_PARALLEL_BLOCK ||
+            claim->shape == AST_SPAWN_EXPR || claim->shape == AST_CHANNEL_SEND ||
+            claim->shape == AST_TRANSACTION_BLOCK || claim->shape == AST_UNSAFE_BLOCK)
+            return false;
+        if (claim->shape != AST_RETURN) continue;
+        bool reachable = false;
+        if (!claim->semantic_promoted || !claim->snapshot_semantic_complete ||
+            !claim->execution_present ||
+            !semantic_param_publication_execution(ctx, claim->node, &reachable) ||
+            claim->reachable != reachable) return false;
+        if (!reachable) continue;
+        const ASTNode *value = ast_return_value(claim->node);
+        uint32_t binding = value != NULL && value->type == AST_IDENTIFIER
+            ? semantic_param_publication_binding(ctx, value) : 0;
+        if (binding == 0 || (returned != 0 && binding != returned))
+            return false;
+        returned = binding;
+    }
+    if (returned == 0) return false;
+    bool formal_found = false;
+    for (size_t p = 0; p < ast_func_param_count(decl); p++) {
+        FuncParam *param = ast_func_param(decl, p);
+        unsigned outward = SLOT_PARAM_SUMMARY_NONE;
+        if (param == NULL || !function_param_flow_formal_outward_effects_current(
+                ctx->function_param_flow_summaries, decl, p, &outward))
+            return false;
+        if (ast_func_param_stable_id(param) != returned) {
+            if ((outward & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) return false;
+            continue;
+        }
+        const char *type_name = param->type != NULL ? ast_type_name(param->type) : NULL;
+        if (param->mode != PARAM_MODE_DEFAULT || type_name == NULL
+            || strcmp(type_name, param_name) != 0
+            || outward != SLOT_PARAM_SUMMARY_RETURN_ESCAPE) return false;
+        formal_found = true;
+    }
+    size_t formal = 0;
+    const ArrayStorageResultVisit visit = {decl, parent};
+    const ASTNode *actual = formal_found
+        ? call_actual_for_formal(ctx, call, decl, returned, &formal) : NULL;
+    return actual != NULL && fresh_actual_descriptor_current(ctx, actual, &visit);
+}
+
+/* A generic routine's body facts hold for its declared result, whichever
+ * type a call binds; the call adds only its instantiated Array type. The
+ * descriptor is proved; an element facet is never granted for an instance. */
+static bool
+generic_function_result_current(SemanticContext *ctx, const ASTNode *call,
+    const ArrayStorageResultVisit *parent)
+{
+    const Type *declared = NULL, *instance = NULL;
+    ASTNode *callee = semantic_param_publication_generic_declared_result(
+        ctx, call, &declared, &instance);
+    if (callee == NULL || !type_is_constructed_named(instance, "Array"))
+        return false;
+    if (type_is_constructed_named(declared, "Array"))
+        return owned_function_result_replay(ctx, callee, declared, parent,
+            false, call, true, NULL, NULL);
+    return declared->kind == TYPE_KIND_GENERIC
+        && generic_identity_result_current(ctx, callee, declared, parent, call);
 }
 
 static bool
@@ -379,6 +518,87 @@ semantic_array_storage_default_formal_result_current(
     return reached != 0 && recorded == reached;
 }
 
+/* Declaration admission for a default formal moved into a returned Array as
+ * one element (`return [value]`, `return [Clone(value)]`). Every reachable
+ * Array return is a literal, which gives the result a fresh descriptor; the
+ * formal is that literal's only element, whole, and nothing else in it. The
+ * element's storage is the argument's, which the caller's move owner copies
+ * or refuses at a later use (2026-10-18_default_aggregate_move). A returned
+ * field, alias or call result of the formal is no such element. */
+bool
+semantic_array_storage_default_formal_element_result_current(
+    SemanticContext *ctx, ASTNode *decl, uint32_t formal_id)
+{
+    ArrayStorageDeferredPreservationStore *storage =
+        ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
+    FunctionParamFlowSummaryStore *flow =
+        ctx != NULL ? ctx->function_param_flow_summaries : NULL;
+    if (storage == NULL || decl == NULL || decl->type != AST_FUNC_DECL
+        || formal_id == 0 || flow == NULL || flow->failed
+        || !semantic_param_publication_inputs_ready(ctx))
+        return false;
+    size_t index_at = function_param_flow_program_point_index_find(
+        flow, ast_node_stable_id(decl));
+    if (index_at == SIZE_MAX)
+        return false;
+    FunctionParamFlowProgramPointIndex *index =
+        &flow->program_point_indexes[index_at];
+    if (!function_param_flow_index_claims_current(ctx, index)
+        || index->claims == NULL)
+        return false;
+    size_t reached = 0, recorded = 0, elements = 0;
+    for (size_t i = 0; i < index->claims->count; i++) {
+        const FunctionParamFlowIndexClaim *claim = &index->claims->rows[i];
+        if (claim->shape != AST_RETURN)
+            continue;
+        bool reachable = false;
+        if (!claim->semantic_promoted || !claim->snapshot_semantic_complete
+            || !claim->execution_present
+            || !semantic_param_publication_execution(
+                ctx, claim->node, &reachable)
+            || claim->reachable != reachable)
+            return false;
+        if (!reachable)
+            continue;
+        const ArrayStorageOwnedReturn *event = NULL;
+        for (size_t r = 0; r < storage->return_count; r++) {
+            const ArrayStorageOwnedReturn *candidate = &storage->returns[r];
+            if (candidate->decl != decl
+                || candidate->statement != claim->node)
+                continue;
+            if (event != NULL)
+                return false;
+            event = candidate;
+        }
+        if (event == NULL || event->decl_id != ast_node_stable_id(decl)
+            || event->statement_id != claim->id
+            || event->source != ARRAY_RESULT_LITERAL || event->value == NULL
+            || event->value->type != AST_ARRAY_LITERAL)
+            return false;
+        size_t count = ast_array_literal_count(event->value);
+        if (count > 1)
+            return false;
+        if (count == 1) {
+            ASTNode *element = ast_array_literal_element(event->value, 0);
+            uint32_t builtin = 0;
+            if (element != NULL && element->type == AST_CALL
+                && ast_call_semantic_callee_builtin_kind(element, &builtin)
+                && builtin == BUILTIN_CLONE && ast_call_arg_count(element) == 1)
+                element = ast_call_argument(element, 0);
+            if (element == NULL || element->type != AST_IDENTIFIER
+                || semantic_param_publication_binding(ctx, element)
+                    != formal_id)
+                return false;
+            elements++;
+        }
+        reached++;
+    }
+    for (size_t r = 0; r < storage->return_count; r++)
+        if (storage->returns[r].decl == decl)
+            recorded++;
+    return reached != 0 && elements != 0 && recorded == reached;
+}
+
 bool
 semantic_array_storage_select_default_formal_return_copies(
     SemanticContext *ctx, ASTNode *decl, uint32_t formal_id,
@@ -490,8 +710,9 @@ semantic_array_storage_owned_result_current(SemanticContext *ctx, const ASTNode 
     if (semantic_array_storage_independent_call_result(call, ctx)) return true;
     const Type *result = NULL;
     ASTNode *callee = semantic_param_publication_declared_result(ctx, call, &result);
-    return callee != NULL
-        && owned_function_result_current(ctx, callee, result, NULL, false, call);
+    if (callee != NULL)
+        return owned_function_result_current(ctx, callee, result, NULL, false, call);
+    return generic_function_result_current(ctx, call, NULL);
 }
 
 bool

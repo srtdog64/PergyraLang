@@ -1,0 +1,22 @@
+// The callee keeps the formal in its inout output and returns it in a fresh
+// Array. The kept one is copied where it is stored
+// (2026-10-20_formal_storage_kept_by_output_is_copied), so the result element
+// is the only holder of the argument's storage; growing one leaves the other.
+struct Holder { items: Array<Int>; }
+
+func Keep(inout kept: Array<Holder>, value: Holder) -> Array<Holder>
+{
+    ArrayPush(kept, value);
+    return [value];
+}
+
+func Main() -> Void
+{
+    var kept: Array<Holder> = [];
+    let rows: Array<Holder> = Keep(kept, Holder { items: [1] });
+    var first: Holder = rows[0];
+    ArrayPush(first.items, 2);
+    ArrayPush(first.items, 3);
+    Log(ToString(kept[0].items[0]));
+    Log(ToString(first.items[2]));
+}

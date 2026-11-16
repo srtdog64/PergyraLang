@@ -233,6 +233,18 @@ llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner)
 {
     LLVMTypeRef nested;
 
+    /* A type parameter names the type its active substitution binds, as
+     * pergyra_type_to_llvm resolves it: Array<T> specialized at Int is
+     * %PgyArray_Int, not a %PgyArray_T of the same layout under another name,
+     * which LLVM treats as a different type. */
+    for (int i = 0; inner != NULL && i < ctx->type_subst_count; i++) {
+        const char *bound = ctx->type_subst[i].type_name;
+        if (ctx->type_subst[i].param_name != NULL && bound != NULL
+            && strcmp(ctx->type_subst[i].param_name, inner) == 0
+            && strcmp(bound, inner) != 0)
+            return llvm_array_struct_type(ctx, bound);
+    }
+
     switch (pgy_classify_type(inner)) {
     case PGY_TK_INT:    return ctx->array_type_Int;
     case PGY_TK_LONG:   return ctx->array_type_Long;

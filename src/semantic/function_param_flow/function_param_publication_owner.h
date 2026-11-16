@@ -540,6 +540,11 @@ bool semantic_param_publication_instance_receiver(const SemanticContext *ctx,
     const ASTNode *call, ASTNode **receiver_out);
 ASTNode *semantic_param_publication_declared_result(const SemanticContext *ctx,
     const ASTNode *call, const Type **result_type);
+/* A generic routine's call: its declared result, which the checked call type
+ * instantiates. NULL for a non-generic call. */
+ASTNode *semantic_param_publication_generic_declared_result(
+    const SemanticContext *ctx, const ASTNode *call,
+    const Type **declared_type, const Type **instance_type);
 bool semantic_param_publication_routine_result_current(const SemanticContext *ctx,
     const ASTNode *decl, const Type *result_type);
 bool semantic_param_publication_record_assignment_replacement(SemanticContext *ctx,

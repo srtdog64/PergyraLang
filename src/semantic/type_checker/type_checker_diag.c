@@ -71,6 +71,20 @@ diag_payload_snapshot_destroy(DiagnosticPayloadSnapshot *snapshot)
     free(snapshot);
 }
 
+/* Where a diagnostic about `node` points. The parser records no position on
+ * a binary node, only on its operator token, so a binary diagnostic points
+ * at the operator instead of 0:0. */
+static void
+diagnostic_node_position(const ASTNode *node, uint32_t *line, uint32_t *col)
+{
+    *line = node != NULL ? node->line : 0;
+    *col = node != NULL ? node->column : 0;
+    if (node != NULL && node->type == AST_BINARY) {
+        *line = node->data.binary.op.line;
+        *col = node->data.binary.op.column;
+    }
+}
+
 static void
 emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
                      const char *code, const char *cause_ir,
@@ -81,6 +95,8 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
     char *message = NULL;
     va_list ap_copy;
     int len;
+    uint32_t node_line = 0, node_col = 0;
+    diagnostic_node_position(node, &node_line, &node_col);
     va_copy(ap_copy, ap);
     len = vsnprintf(NULL, 0, fmt, ap_copy);
     va_end(ap_copy);
@@ -100,8 +116,7 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
             continue;
         if (existing->level != level)
             continue;
-        if (existing->line != (node ? node->line : 0)
-            || existing->col != (node ? node->column : 0)) {
+        if (existing->line != node_line || existing->col != node_col) {
             continue;
         }
         if (existing->message != NULL && strcmp(existing->message, message) == 0) {
@@ -152,8 +167,8 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
     }
 
     d->level      = level;
-    d->line       = node ? node->line   : 0;
-    d->col        = node ? node->column : 0;
+    d->line       = node_line;
+    d->col        = node_col;
     d->message    = message;
     d->code       = code;        /* non-owning; static literal or NULL */
     d->layer      = diagnostic_layer_from_tags("semantic", cause_ir, code);

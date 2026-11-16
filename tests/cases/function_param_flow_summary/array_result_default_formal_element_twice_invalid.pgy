@@ -1,0 +1,14 @@
+// Two elements of one returned Array would share the formal's storage; no
+// move of the argument separates them, so the declaration stays refused.
+struct Holder { items: Array<Int>; }
+
+func Pair(value: Holder) -> Array<Holder>
+{
+    return [value, value];
+}
+
+func Main() -> Void
+{
+    let rows: Array<Holder> = Pair(Holder { items: [1] });
+    Log(ToString(ArrayLength(rows)));
+}

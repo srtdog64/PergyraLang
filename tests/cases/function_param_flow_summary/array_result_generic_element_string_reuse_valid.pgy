@@ -1,0 +1,15 @@
+// A String bound to the moving generic formal and read again: the Array's
+// String element is not an owned element, so neither holder releases the
+// other's text.
+func Wrap<T>(value: T) -> Array<T>
+{
+    return [value];
+}
+
+func Main() -> Void
+{
+    let text: String = Concat("a", "b");
+    let rows: Array<String> = Wrap(text);
+    Log(text);
+    Log(rows[0]);
+}

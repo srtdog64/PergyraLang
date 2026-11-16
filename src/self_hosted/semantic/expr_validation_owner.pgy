@@ -259,6 +259,14 @@ func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String
         (lt == "Float" || lt == "Double") {
         return SemanticError1("modulo_operand_not_integer", "actual", lt);
     }
+    // Arithmetic needs numeric operands of one type, as the graph owner and
+    // native semantic_check_numeric_operands require; `+` over two Strings
+    // concatenates. `true + false` is refused, not typed Bool.
+    if kind == "arith" && lt == rt &&
+        !(Substring(text, split_idx, 1) == "+" && lt == "String") &&
+        !SemanticArithmeticOperandType(lt) {
+        return SemanticError2("binop_type_mismatch", "left", lt, "right", rt);
+    }
     if lt == rt {
         return "";
     }

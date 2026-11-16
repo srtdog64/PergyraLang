@@ -178,3 +178,13 @@ func SemanticTopLevelOperatorFactsFromExpression(
         assignment_index, index_open_index
     );
 }
+
+// The operand types arithmetic admits, as native semantic_check_numeric_operands
+// does: Int, Long, Float, Double and Duration. Both operands have one of these
+// types and the same type; `+` over two Strings is concatenation, which each
+// caller admits before asking this.
+func SemanticArithmeticOperandType(type_name: String) -> Bool {
+    return type_name == "Int" || type_name == "Long" ||
+        type_name == "Float" || type_name == "Double" ||
+        type_name == "Duration";
+}

@@ -1,0 +1,12 @@
+// One generic formal held twice in the returned Array: no move of the
+// argument separates the two elements, so the declaration stays refused.
+func Pair<T>(value: T) -> Array<T>
+{
+    return [value, value];
+}
+
+func Main() -> Void
+{
+    let rows: Array<Array<Int>> = Pair([1, 2]);
+    Log(ToString(ArrayLength(rows)));
+}

@@ -296,8 +296,13 @@ move_walk_apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
             continue;
         SemanticPublishedValue value = semantic_param_publication_value(
             walk->ctx, arg);
+        /* A value of a type parameter may hold storage at every instance,
+         * so a call that moves it moves it here too (2026-11-16 user
+         * decision on generic formals); a later use needs a whole Clone,
+         * which an opaque type has not. */
         if (!value.ok || value.meta
-            || !semantic_default_aggregate_value(walk->ctx, value.type))
+            || (!semantic_default_aggregate_value(walk->ctx, value.type)
+                && value.type->kind != TYPE_KIND_GENERIC))
             continue;
         ASTNode *callee = NULL;
         size_t formal = 0;

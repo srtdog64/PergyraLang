@@ -757,6 +757,21 @@ builtin_refusal = ("PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_m
 release_lifetime_refusals = {
     "world_method_overlapping_moving_arguments_invalid": [
         (*borrow_refusal, 21, 34)],
+    # A generic formal returned in a fresh Array moves at every call
+    # (2026-11-16 user decision); these instances stay refused.
+    "array_result_generic_element_twice_invalid": [(*borrow_refusal, 3, 6)],
+    "array_result_generic_ref_element_invalid": [
+        ("PGY_SEM_TYPE_MISMATCH", "semantic:param_mode:unsupported_boundary_type", 3, 6)],
+    "array_result_generic_element_shallow_reuse_invalid": [
+        (*released_refusal, 16, 20), (*released_refusal, 17, 35)],
+    "array_result_generic_element_record_array_reuse_invalid": [
+        (*released_refusal, 14, 15), (*released_refusal, 15, 30)],
+    "array_result_generic_element_move_then_use_invalid": [(*released_refusal, 11, 13)],
+    "array_result_generic_element_channel_invalid": [(*borrow_refusal, 11, 42)],
+    "array_result_generic_element_future_invalid": [
+        ("PGY_SEM_TASK_LIFECYCLE", "semantic:task:lifecycle", 16, 41),
+        ("PGY_SEM_TASK_LIFECYCLE", "semantic:task:lifecycle", 0, 0),
+        (*borrow_refusal, 16, 41)],
     # A moved descendant remains observable when the next callee reads that
     # exact field; field-sensitive sibling admission must not hide this use.
     "default_struct_field_move_observed_descendant_invalid": [
@@ -1243,6 +1258,23 @@ paired = (
     ("array_result_nonown_default_forward_own_invalid", False),
     ("array_result_nonown_default_local_alias_own_invalid", False),
     ("array_result_nonown_default_mixed_return_own_invalid", False),
+    # A default formal moved whole into a fresh returned Array moves the
+    # argument; twice in one Array or as its field it stays refused.
+    ("array_result_default_formal_element_move_landed_valid", True),
+    ("array_result_default_formal_element_kept_landed_valid", True),
+    ("array_result_generic_element_identity_valid", True),
+    ("array_result_generic_element_string_reuse_valid", True),
+    ("array_result_generic_element_string_literal_valid", True),
+    ("array_result_generic_element_array_push_landed_valid", True),
+    ("array_result_default_formal_element_twice_invalid", False),
+    ("array_result_default_formal_field_element_invalid", False),
+    ("array_result_generic_element_twice_invalid", False),
+    ("array_result_generic_ref_element_invalid", False),
+    ("array_result_generic_element_shallow_reuse_invalid", False),
+    ("array_result_generic_element_record_array_reuse_invalid", False),
+    ("array_result_generic_element_move_then_use_invalid", False),
+    ("array_result_generic_element_channel_invalid", False),
+    ("array_result_generic_element_future_invalid", False),
     ("array_result_default_formal_conditional_copy_valid", True),
     ("array_result_default_formal_conditional_uncopyable_invalid", False),
     ("array_result_default_formal_discard_invalid", False),
@@ -2455,6 +2487,8 @@ for name, valid in paired:
             "array_result_nonown_default_forward_own_invalid": [(3, 6), (8, 6)],
             "array_result_nonown_default_local_alias_own_invalid": [(3, 6)],
             "array_result_nonown_default_mixed_return_own_invalid": [(3, 6)],
+            "array_result_default_formal_element_twice_invalid": [(5, 6)],
+            "array_result_default_formal_field_element_invalid": [(5, 6)],
             "array_result_default_formal_conditional_uncopyable_invalid": [(7, 6)],
             "array_result_default_formal_discard_invalid": [(9, 5)],
             "array_result_nonown_inout_field_own_invalid": [(3, 6)],

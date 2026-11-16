@@ -1,0 +1,17 @@
+// A generic formal returned as the one element of a fresh Array, and a fresh
+// value handed through a generic identity: the result owns its descriptor.
+func Wrap<T>(value: T) -> Array<T>
+{
+    return [value];
+}
+
+func Echo<T>(value: T) -> T
+{
+    return value;
+}
+
+func Main() -> Void
+{
+    let rows: Array<Int> = Echo(Wrap(44));
+    Log(ToString(rows[0]));
+}

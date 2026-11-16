@@ -148,6 +148,11 @@ bool semantic_array_storage_function_result_owned(SemanticContext *ctx,
  * semantic_array_storage_owned_result_current. */
 bool semantic_array_storage_default_formal_result_current(
     SemanticContext *ctx, ASTNode *decl, uint32_t formal_id);
+/* Declaration admission for one default formal returned only as the single
+ * element of returned Array literals (`return [value]`). The literal's
+ * descriptor is fresh; the element's storage moves at each call. */
+bool semantic_array_storage_default_formal_element_result_current(
+    SemanticContext *ctx, ASTNode *decl, uint32_t formal_id);
 /* An exact default Array formal returned on only some reachable exits cannot
  * carry one path-dependent transfer contract at the call boundary. Select
  * those exact return carriers for the existing whole-value Clone landing;

@@ -1,0 +1,14 @@
+// A field of the formal as the returned element is part of the formal, not
+// the formal moved whole into a fresh Array; it stays refused.
+struct Holder { items: Array<Int>; }
+
+func Rows(value: Holder) -> Array<Array<Int>>
+{
+    return [value.items];
+}
+
+func Main() -> Void
+{
+    let rows: Array<Array<Int>> = Rows(Holder { items: [1] });
+    Log(ToString(rows[0][0]));
+}

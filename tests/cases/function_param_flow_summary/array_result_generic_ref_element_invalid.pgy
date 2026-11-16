@@ -1,0 +1,13 @@
+// A borrowed generic formal returned in a container: a `ref` formal of an
+// opaque type has no boundary-visible type, so the declaration is refused.
+func WrapRef<T>(ref value: T) -> Array<T>
+{
+    return [value];
+}
+
+func Main() -> Void
+{
+    let items: Array<Int> = [1, 2];
+    let rows: Array<Array<Int>> = WrapRef(items);
+    Log(ToString(ArrayLength(rows)));
+}

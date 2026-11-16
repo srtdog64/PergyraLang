@@ -1,0 +1,18 @@
+// A completion handle bound to the moving generic formal: the Array of
+// futures it would build is not an admitted holder.
+func Inc(x: Int) -> Int
+{
+    return x + 1;
+}
+
+func Wrap<T>(value: T) -> Array<T>
+{
+    return [value];
+}
+
+async func Main() -> Void
+{
+    let pending: Future<Int> = spawn Inc(4);
+    let rows: Array<Future<Int>> = Wrap(pending);
+    Log(ToString(ArrayLength(rows)));
+}

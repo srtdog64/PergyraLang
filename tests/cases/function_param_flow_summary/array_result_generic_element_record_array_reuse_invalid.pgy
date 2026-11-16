@@ -1,0 +1,17 @@
+// An Array of records moves into the generic Wrap and is grown and read
+// again; Clone copies it only by value, so the later use stays refused.
+struct Point { x: Int; }
+
+func Wrap<T>(value: T) -> Array<T>
+{
+    return [value];
+}
+
+func Main() -> Void
+{
+    var points: Array<Point> = [Point { x: 1 }];
+    let wrapped: Array<Array<Point>> = Wrap(points);
+    ArrayPush(points, Point { x: 2 });
+    Log(ToString(ArrayLength(points)));
+    Log(ToString(wrapped[0][0].x));
+}

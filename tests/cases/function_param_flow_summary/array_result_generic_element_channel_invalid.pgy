@@ -1,0 +1,13 @@
+// A channel bound to the moving generic formal: an Array holds no channel by
+// value, so the call is refused at its concrete type.
+func Wrap<T>(value: T) -> Array<T>
+{
+    return [value];
+}
+
+func Main() -> Void
+{
+    let channel: Channel<Int> = Channel<Int>(1);
+    let rows: Array<Channel<Int>> = Wrap(channel);
+    Log(ToString(ArrayLength(rows)));
+}

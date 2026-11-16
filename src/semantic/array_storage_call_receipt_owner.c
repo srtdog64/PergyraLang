@@ -225,8 +225,13 @@ semantic_array_storage_result_birth_current(SemanticContext *ctx,
     if (birth->callee_id == 0) {
         if (!semantic_array_storage_independent_call_result(birth->call, ctx)) return false;
     } else {
-        const Type *result_type = NULL;
+        const Type *result_type = NULL, *declared_type = NULL;
         ASTNode *callee = semantic_param_publication_declared_result(ctx, birth->call, &result_type);
+        /* A generic routine's call: its result proof is over the declared
+         * result, and the birth carries the instantiated type. */
+        if (callee == NULL)
+            callee = semantic_param_publication_generic_declared_result(ctx,
+                birth->call, &declared_type, &result_type);
         if (callee == NULL || ast_node_stable_id(callee) != birth->callee_id
             || !type_equals(result_type, birth->type)) return false;
     }
