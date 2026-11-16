@@ -32,9 +32,13 @@ func DirectMirScalarProgramCHashMapExpressionAt(
     if operation == "MapNew" {
         return Some(function_name + "()");
     }
+    // Readiness admits a member receiver for reads only; its C member path
+    // ends at a local or parameter, so it is an lvalue.
     if ArrayLength(rows) == 0 ||
         (facts.node_kinds[rows[0]] != DirectMirScalarProgramExprLocal() &&
-         facts.node_kinds[rows[0]] != DirectMirScalarProgramExprParameter()) {
+         facts.node_kinds[rows[0]] != DirectMirScalarProgramExprParameter() &&
+         facts.node_kinds[rows[0]] !=
+            DirectMirScalarProgramExprLogicalRecordMember()) {
         Die("direct MIR scalar C HashMap receiver is not addressable");
     }
     let receiver: String = "&(" + arguments[0] + ")";

@@ -271,7 +271,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
                 plan.block_operation_counts[block]) {
             TextBuilderAppend(output, "  unreachable\n");
         } else if return_row == -1 {
-            // Readiness proved this is the empty exhaustive-match fallthrough.
+            // Readiness proved this is the empty exhaustive-match fallthrough
+            // or a block whose last call never returns.
             TextBuilderAppend(output, "  unreachable\n");
         } else {
             Die("direct MIR scalar program callable return is missing");

@@ -9,7 +9,7 @@ import "../scalar_program/direct_mir_scalar_program_option_int_try_admission_own
 import "../scalar_program/direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_runtime_value_lifecycle_owner.pgy";
 import "direct_mir_scalar_cfg_program_statement_admission_owner.pgy";
-import "../scalar_program/direct_mir_scalar_program_process_exit_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_diverging_call_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
 import "../direct_mir_identity_cell_store_readiness_owner.pgy";
 import "../../mir_compound_assignment_readiness_owner.pgy";
@@ -62,6 +62,9 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     var block: Int = 0;
     var unreachable_routine: Int = -1;
     var unreachable: Array<Int> = [];
+    // A terminal block that ends in a process exit or in a call to a
+    // routine that never returns needs no return row.
+    let diverging: Array<Bool> = DirectMirScalarProgramDivergingRoutines(plan);
     while block < block_count {
         let routine: Int = DirectMirScalarCfgRoutinePartitionBlockOwner(
             plan.routines, block);
@@ -87,10 +90,8 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
                 }
             } else if entry_return_type == CompilerAbiLayoutIntTypeName() {
                 let exits: Bool = return_row == -1 &&
-                    DirectMirScalarProgramBlockEndsWithProcessExit(
-                        plan.operation_kinds,
-                        plan.block_operation_starts[block],
-                        plan.block_operation_counts[block]);
+                    DirectMirScalarProgramBlockEndsWithDivergence(
+                        plan, block, diverging);
                 if terminal && !exits &&
                     !DirectMirScalarCfgProgramExpressionRowReady(
                         plan, return_row, entry_return_type, routine) {
@@ -104,10 +105,8 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
             }
         } else if terminal {
             let exits: Bool = return_row == -1 &&
-                DirectMirScalarProgramBlockEndsWithProcessExit(
-                    plan.operation_kinds,
-                    plan.block_operation_starts[block],
-                    plan.block_operation_counts[block]);
+                DirectMirScalarProgramBlockEndsWithDivergence(
+                    plan, block, diverging);
             if !exits && plan.routines.return_types[routine] == "Void" {
                 if return_row != DirectMirScalarCfgVoidReturnExpressionRow() {
                     return 6;

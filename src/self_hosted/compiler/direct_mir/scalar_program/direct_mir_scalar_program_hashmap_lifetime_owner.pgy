@@ -87,14 +87,21 @@ func DirectMirScalarProgramHashMapOwnerHandleReturnReady(
     return exits > 0;
 }
 
+// Each fresh map local is released by the owned-local cleanup on every
+// return of its routine, the entrypoint's Int return included. `Exit` ends
+// the process without that cleanup, as native `Exit` skips Main's cleanup
+// (docs/truth/decisions/2026-11-15_main_int_result_is_exit_status.md): the
+// maps still live at an `Exit` are left to the operating system, and no
+// code runs after it that could read or free them. The rule first bounded
+// cleanup to the Void entrypoint's own exits (667f11ec0), so it refused an
+// Int entrypoint and every `Exit`; those refusals are gone with that bound.
 func DirectMirScalarProgramHashMapLifetimeReadyForPlan(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
     let map_rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
     if ArrayLength(map_rows) == 0 { return true; }
     let entrypoint: Int = plan.routines.entrypoint_ordinal;
-    if entrypoint < 0 || plan.routines.block_counts[entrypoint] < 1 ||
-        plan.routines.return_types[entrypoint] != "Void" {
+    if entrypoint < 0 || plan.routines.block_counts[entrypoint] < 1 {
         return false;
     }
     let lifetime: DirectMirOwnedLocalLifetimeFact =
@@ -113,8 +120,6 @@ func DirectMirScalarProgramHashMapLifetimeReadyForPlan(
     }
     var operation: Int = 0;
     while operation < ArrayLength(plan.operation_kinds) {
-        if plan.operation_kinds[operation] ==
-                DirectMirScalarCfgOpProcessExit() { return false; }
         let result: Int = plan.operation_result_values[operation];
         if result >= 0 && result < ArrayLength(plan.value_local_rows) {
             let result_local: Int = plan.value_local_rows[result];

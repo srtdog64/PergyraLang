@@ -158,7 +158,10 @@ func DirectMirScalarCfgProgramCBlockExit(
     } else if DirectMirScalarProgramBlockEndsWithProcessExit(
             plan.operation_kinds, plan.block_operation_starts[block], plan.block_operation_counts[block]) {
         // The canonical C exit ABI does not return.
-    } else if return_row == -1 { TextBuilderAppend(output, "    abort();\n");
+    } else if return_row == -1 {
+        // Readiness proved the block unreachable or ended by a call that
+        // never returns.
+        TextBuilderAppend(output, "    abort();\n");
     } else {
         Die("direct MIR scalar program callable return is missing");
     }

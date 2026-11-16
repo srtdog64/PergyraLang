@@ -1,0 +1,87 @@
+// Which routines of a sealed GraphPlan never return to their caller, and
+// which terminal blocks end in such a call.
+//
+// The MIR reads a `Never` routine as `Void`, so divergence is derived from
+// the CFG: a routine diverges when each terminal block ends in a process
+// exit or in a discarded call to a diverging routine. The least fixed point
+// leaves a recursive routine returning, which only refuses more. A Void
+// routine keeps its implicit return row after the exit or the call; that
+// row is dead and does not make the block return. A non-Void routine whose
+// last statement calls such a routine has no return row on that block; both
+// emitters end the block as unreachable after the call.
+
+import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_process_exit_owner.pgy";
+
+func DirectMirScalarProgramBlockEndsWithDivergence(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int,
+    ref diverging: Array<Bool>
+) -> Bool {
+    if block < 0 || block >= ArrayLength(plan.block_succ_true) ||
+        plan.block_succ_true[block] >= 0 ||
+        plan.block_succ_false[block] >= 0 {
+        return false;
+    }
+    let start: Int = plan.block_operation_starts[block];
+    let count: Int = plan.block_operation_counts[block];
+    if DirectMirScalarProgramBlockEndsWithProcessExit(
+            plan.operation_kinds, start, count) { return true; }
+    if count < 1 { return false; }
+    let operation: Int = start + count - 1;
+    if plan.operation_kinds[operation] !=
+            DirectMirScalarCfgOpExpressionStatement() { return false; }
+    let row: Int = plan.program.operation_expression_rows[operation];
+    if row < 0 || row >= ArrayLength(plan.program.expressions.graph_roots) {
+        return false;
+    }
+    let root: Int = plan.program.expressions.graph_roots[row];
+    if root < 0 || root >= ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_kinds[root] !=
+            DirectMirScalarProgramExprDirectCall() { return false; }
+    let callee: Int = plan.program.expressions.node_callable_rows[root];
+    return callee >= 0 && callee < ArrayLength(diverging) && diverging[callee];
+}
+
+func DirectMirScalarProgramRoutineDiverges(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    ref diverging: Array<Bool>
+) -> Bool {
+    // A routine without a body is not known to diverge.
+    if plan.routines.block_counts[routine] < 1 { return false; }
+    var block: Int = plan.routines.block_starts[routine];
+    let end: Int = block + plan.routines.block_counts[routine];
+    while block < end {
+        if plan.block_succ_true[block] < 0 && plan.block_succ_false[block] < 0 &&
+            !DirectMirScalarProgramBlockEndsWithDivergence(
+                plan, block, diverging) {
+            return false;
+        }
+        block = block + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramDivergingRoutines(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Array<Bool> {
+    let count: Int = ArrayLength(plan.routines.roles);
+    var diverging: Array<Bool> = [];
+    var routine: Int = 0;
+    while routine < count { ArrayPush(diverging, false); routine = routine + 1; }
+    var changed: Bool = true;
+    while changed {
+        changed = false;
+        routine = 0;
+        while routine < count {
+            if !diverging[routine] &&
+                routine != plan.routines.entrypoint_ordinal &&
+                DirectMirScalarProgramRoutineDiverges(
+                    plan, routine, diverging) {
+                ArraySet(diverging, routine, true);
+                changed = true;
+            }
+            routine = routine + 1;
+        }
+    }
+    return diverging;
+}

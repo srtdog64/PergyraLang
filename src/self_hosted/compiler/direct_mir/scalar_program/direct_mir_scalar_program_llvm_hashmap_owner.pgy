@@ -43,9 +43,17 @@ func DirectMirScalarProgramLlvmHashMapExpressionAt(
             DirectMirScalarProgramExprParameter() {
         receiver = "%pgy.param." +
             ToString(facts.node_parameter_ordinals[rows[0]]) + ".local";
+    } else if facts.node_kinds[rows[0]] ==
+            DirectMirScalarProgramExprLogicalRecordMember() {
+        // Readiness admits only reads here; they see the member's buckets
+        // through a copy of its header.
+        receiver = result + ".receiver";
+        output = "  " + receiver + " = alloca " + storage_type + ", align 8\n" +
+            "  store " + storage_type + " " + operands[0] + ", ptr " +
+            receiver + ", align 8\n";
     } else { return invalid; }
     if operation == "MapSize" {
-        output = "  " + result + ".raw = call i32 @" + function_name + "(ptr " + receiver + ")\n" +
+        output = output + "  " + result + ".raw = call i32 @" + function_name + "(ptr " + receiver + ")\n" +
             "  " + result + " = sext i32 " + result + ".raw to i64\n";
         return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
     }
@@ -53,7 +61,7 @@ func DirectMirScalarProgramLlvmHashMapExpressionAt(
         let array_type: String = DirectMirScalarProgramLlvmType(facts.node_types[node]);
         if array_type == "" { return invalid; }
         let snapshot: String = result + ".keys";
-        output = "  " + snapshot + " = alloca " + array_type + ", align 8\n" +
+        output = output + "  " + snapshot + " = alloca " + array_type + ", align 8\n" +
             "  store " + array_type + " zeroinitializer, ptr " + snapshot + ", align 8\n" +
             "  call void @" + function_name + "(ptr " + receiver + ", ptr " + snapshot + ")\n" +
             "  " + result + " = load " + array_type + ", ptr " + snapshot + ", align 8\n";
@@ -61,7 +69,7 @@ func DirectMirScalarProgramLlvmHashMapExpressionAt(
     }
     var key: String = operands[1];
     if runtime.key_type == "Int" {
-        output = "  " + result + ".key = trunc i64 " + key + " to i32\n";
+        output = output + "  " + result + ".key = trunc i64 " + key + " to i32\n";
         key = result + ".key";
     }
     var arguments: String = "ptr " + receiver + ", " + runtime.key_llvm_type + " " + key;

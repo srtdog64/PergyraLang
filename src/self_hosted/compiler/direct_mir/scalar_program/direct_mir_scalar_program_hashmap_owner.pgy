@@ -81,6 +81,34 @@ func DirectMirScalarProgramHashMapArgumentRows(
     return rows;
 }
 
+// A HashMap read leaves the map unchanged, so its receiver may be a record
+// member: C takes the member's address, and LLVM reads through a stack copy
+// of the map header (the buckets stay shared). Writes need the record's own
+// storage and stay limited to a Local or Parameter receiver.
+func DirectMirScalarProgramHashMapReadOperation(operation: String) -> Bool {
+    return operation == "MapGet" || operation == "MapHas" ||
+        operation == "MapSize" || operation == "MapKeys";
+}
+
+// The member chain must end at a Local or Parameter, so the C member path
+// is an lvalue and the LLVM member value is a load of named storage. A
+// member of a call result or other temporary has no storage to read.
+func DirectMirScalarProgramHashMapMemberReceiverReady(
+    ref facts: DirectMirScalarProgramExpressionSet, receiver: Int
+) -> Bool {
+    var root: Int = receiver;
+    while facts.node_kinds[root] ==
+            DirectMirScalarProgramExprLogicalRecordMember() {
+        let parent: Int = facts.node_lefts[root];
+        if parent < 0 || parent >= root ||
+            facts.node_member_ordinals[root] < 0 { return false; }
+        root = parent;
+    }
+    return root < receiver &&
+        (facts.node_kinds[root] == DirectMirScalarProgramExprLocal() ||
+         facts.node_kinds[root] == DirectMirScalarProgramExprParameter());
+}
+
 func DirectMirScalarProgramHashMapNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Bool {
@@ -103,7 +131,11 @@ func DirectMirScalarProgramHashMapNodeReady(
     if ArrayLength(rows) > 0 {
         type_row = rows[0];
         let receiver_kind: Int = facts.node_kinds[rows[0]];
-        if receiver_kind != DirectMirScalarProgramExprLocal() &&
+        if receiver_kind == DirectMirScalarProgramExprLogicalRecordMember() {
+            if !DirectMirScalarProgramHashMapReadOperation(operation) ||
+                !DirectMirScalarProgramHashMapMemberReceiverReady(
+                    facts, rows[0]) { return false; }
+        } else if receiver_kind != DirectMirScalarProgramExprLocal() &&
             receiver_kind != DirectMirScalarProgramExprParameter() { return false; }
     }
     let runtime: CollectionHashMapLlvmFact =
