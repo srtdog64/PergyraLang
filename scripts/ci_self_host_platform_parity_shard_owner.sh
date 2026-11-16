@@ -71,7 +71,7 @@ case "$SHARD" in
         ARTIFACT_DIR="${PGY_CI_DRV2_SOURCE_ARTIFACT_DIR:-$ROOT_DIR/.tmp/self_hosted/compiler/admitted}"
         [[ -s "$ARTIFACT_DIR/driver.c" && -s "$ARTIFACT_DIR/driver.source-artifact.receipt" ]] ||
             fail "the DRV-2 source artifact is missing: $ARTIFACT_DIR"
-        PGY_SELFHOST_CODEGEN_SEED_ONLY=1 PGY_BIN="$PGY" \
+        PGY_SELFHOST_CODEGEN_SEED_ONLY=1 PGY_SELFHOST_CODEGEN_SEED_GATES=run PGY_BIN="$PGY" \
             "$BASH" "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_bootstrap.sh"
         export PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_MODE=reemit
         export PGY_SELFHOST_DRIVER_SOURCE_ARTIFACT_C="$ARTIFACT_DIR/driver.c"
@@ -79,6 +79,21 @@ case "$SHARD" in
         export PGY_SELFHOST_COMPILER_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/compiler/reemit"
         export PGY_SELF_DRIVER_BIN="$PGY_SELFHOST_COMPILER_BUILD_DIR/unused-pgy-self-driver"
         exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/driver/self_host_compiler_build.sh"
+        ;;
+    codegen-seed-gates)
+        # The toolchain job built this gen2 seed with its gates deferred. This
+        # shard admits that exact seed (prebuilt: its receipt and key must match
+        # the installed native compiler and this checkout) and runs the seed's
+        # two gates on it. A missing or stale seed fails; nothing is rebuilt.
+        SEED_DIR="$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap"
+        for seed_file in gen2.c gen2.exe codegen-seed.output.receipt codegen-seed.prebuild.key; do
+            [[ -s "$SEED_DIR/$seed_file" ]] || fail "the admitted codegen seed lacks $seed_file"
+        done
+        chmod +x "$SEED_DIR/gen2.exe"
+        export PGY_SELFHOST_CODEGEN_SEED_ONLY=1
+        export PGY_SELFHOST_CODEGEN_SEED_MODE=prebuilt
+        export PGY_SELFHOST_CODEGEN_SEED_GATES=run
+        exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_bootstrap.sh"
         ;;
     harness-evidence)
         command -v sha256sum >/dev/null || fail "SHA-256 tool is required for installed harness provenance"
@@ -89,6 +104,6 @@ case "$SHARD" in
             "$ROOT_DIR/scripts/ci_test_harness_evidence_steps.sh"
         ;;
     *)
-        fail "unknown shard; expected parser, semantic, codegen, driver, codegen-seed, or harness-evidence"
+        fail "unknown shard; expected parser, semantic, codegen, driver, codegen-seed, codegen-seed-gates, or harness-evidence"
         ;;
 esac

@@ -340,15 +340,32 @@ compare_artifact_with_owner() {
     fi
 }
 
+# The seed-only mode's two gates judge the published gen2. A toolchain job may
+# defer them (PGY_SELFHOST_CODEGEN_SEED_GATES=deferred) to a job that admits
+# this exact seed with PGY_SELFHOST_CODEGEN_SEED_MODE=prebuilt and runs them.
+# The parser AST producer serves only the call-argument gate, so it moves too.
+SEED_GATES="${PGY_SELFHOST_CODEGEN_SEED_GATES:-run}"
+case "$SEED_GATES|${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" in
+    run\|*|deferred\|1) ;;
+    *) echo "[self-host-bootstrap] PGY_SELFHOST_CODEGEN_SEED_GATES=$SEED_GATES needs run, or deferred in seed-only mode" >&2; exit 2 ;;
+esac
+run_seed_gates() {
+    if [[ "$SEED_GATES" == deferred ]]; then
+        echo "[self-host-bootstrap] seed gates deferred: a job that admits this gen2 seed with the gates on runs them"
+        return 0
+    fi
+    PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_call_argument_graph.sh"
+    PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" bash "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_nominal_array_declaration.sh"
+}
+
 if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
-    compile_parser_ast_producer
+    [[ "$SEED_GATES" == deferred ]] || compile_parser_ast_producer
     set +e
     pgy_selfhost_codegen_seed_try_reuse "$ROOT_DIR" "$B" "$PGY" "$CC" "${BASH_SOURCE[0]}"
     seed_reuse_status=$?
     set -e
     if [[ "$seed_reuse_status" -eq 0 ]]; then
-        PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_call_argument_graph.sh"
-        PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" bash "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_nominal_array_declaration.sh"
+        run_seed_gates
         echo "[self-host-bootstrap] reusing fingerprinted gen2 seed before oracle build"
         exit 0
     fi
@@ -383,9 +400,12 @@ pgy_binary_is_runnable_here "$B/gen2.exe" || { echo "[self-host-bootstrap] gen2.
 pgy_selfhost_codegen_seed_record "$ROOT_DIR" "$B" "$PGY" "$CC" "${BASH_SOURCE[0]}"
 
 if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
-    PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_call_argument_graph.sh"
-    PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" bash "$ROOT_DIR/tests/self_hosted/parity/codegen/codegen_nominal_array_declaration.sh"
-    echo "[self-host-bootstrap] seed artifacts ready: gen2 codegen and parser AST producer"
+    run_seed_gates
+    if [[ "$SEED_GATES" == deferred ]]; then
+        echo "[self-host-bootstrap] seed artifact ready: gen2 codegen; parser AST producer and gates deferred"
+    else
+        echo "[self-host-bootstrap] seed artifacts ready: gen2 codegen and parser AST producer"
+    fi
     exit 0
 fi
 

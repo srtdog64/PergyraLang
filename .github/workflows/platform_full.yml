@@ -16,7 +16,13 @@ jobs:
   formal-proofs-rocq9:
     uses: ./.github/workflows/formal_proofs.yml
 
-  platform-full-linux-toolchain:
+  # The codegen seed (native pgy, gen0 -> gen2) and the installed driver built
+  # from it are two owners in a row, as in push CI's codegen bootstrap and
+  # backend-compare toolchain jobs. Run 43817349973 ran both, with the seed's
+  # gates, in one 20-minute job and was cancelled during the DRV-2 emission.
+  # The seed's two gates (and the parser AST producer only they use) run in
+  # the codegen-seed-gates parity shard on this exact gen2.
+  platform-full-linux-codegen-seed:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -30,11 +36,76 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
-      # The self-host LSP comes from the same codegen seed in the same make
-      # run, so platform-full-linux admits it instead of rebuilding the seed,
+      - name: Build the native compiler and the codegen seed once
+        env:
+          PGY_SELFHOST_CODEGEN_SEED_GATES: deferred
+        run: make self-host-codegen-bootstrap-seed-test-smoke
+
+      - name: Upload the native compiler
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-full-linux-native
+          if-no-files-found: error
+          retention-days: 1
+          path: bin/pgy
+
+      - name: Upload the codegen seed
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-full-linux-codegen-seed
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            .tmp/self_hosted/codegen/bootstrap/gen2.c
+            .tmp/self_hosted/codegen/bootstrap/gen2.exe
+            .tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt
+            .tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key
+
+  platform-full-linux-toolchain:
+    needs: platform-full-linux-codegen-seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install toolchain dependencies
+        timeout-minutes: 10
+        run: |
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
+
+      - name: Download the native compiler
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-full-linux-native
+          path: bin
+
+      - name: Download the codegen seed
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-full-linux-codegen-seed
+          path: .tmp/self_hosted/codegen/bootstrap
+
+      # The seed is admitted only if its receipt and key match this native
+      # compiler and checkout; there is no rebuild fallback. The installed
+      # driver and the self-host LSP then come from that exact gen2, so
+      # platform-full-linux admits the LSP instead of rebuilding the seed,
       # DRV-2 and the LSP for its tooling conformance step.
-      - name: Build installed Linux self-host toolchain once
-        run: make self-host-compiler self-host-lsp
+      - name: Build the installed driver and LSP from the admitted seed
+        env:
+          PGY_BIN: ${{ github.workspace }}/bin/pgy
+          PGY_SELFHOST_CC: gcc
+        run: |
+          chmod +x bin/pgy .tmp/self_hosted/codegen/bootstrap/gen2.exe
+          PGY_SELFHOST_CODEGEN_SEED_MODE=prebuilt PGY_SELFHOST_CODEGEN_SEED_ONLY=1 \
+          PGY_SELFHOST_CODEGEN_SEED_GATES=deferred \
+            bash tests/self_hosted/parity/codegen/codegen_bootstrap.sh
+          PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver" \
+            bash tests/self_hosted/parity/driver/self_host_compiler_build.sh
+          PGY_SELF_LSP_BIN="$PWD/bin/pgy-self-lsp" \
+            bash tests/self_hosted/parity/driver/self_host_lsp_build.sh
 
       - name: Upload installed Linux self-host toolchain
         uses: actions/upload-artifact@v4
@@ -48,7 +119,7 @@ jobs:
             bin/pgy-self-driver.machine-layer-manifest.json
             bin/pgy-self-lsp
 
-      # The DRV-2 C the codegen seed emitted above, with its receipt. The
+      # The DRV-2 C the admitted seed emitted above, with its receipt. The
       # Windows toolchain compiles exactly this C instead of emitting it again,
       # and the Windows codegen-seed shard requires its own seed to re-emit it.
       - name: Upload the DRV-2 source artifact
@@ -105,7 +176,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [parser, semantic, codegen, driver, harness-evidence]
+        shard: [parser, semantic, codegen, driver, harness-evidence, codegen-seed-gates]
     steps:
       - uses: actions/checkout@v6
 
@@ -122,6 +193,13 @@ jobs:
         with:
           name: platform-full-linux-toolchain
           path: bin
+
+      - name: Download the codegen seed the toolchain job built
+        if: matrix.shard == 'codegen-seed-gates'
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-full-linux-codegen-seed
+          path: .tmp/self_hosted/codegen/bootstrap
 
       - name: Run Linux self-host parity shard
         env:
