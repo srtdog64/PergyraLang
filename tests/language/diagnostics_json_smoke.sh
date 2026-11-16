@@ -377,10 +377,12 @@ check_json "pin-helper-owner-active-view" "$PIN_HELPER_OWNER_ACTIVE_ERR" \
   'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot pass slot" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
 
 PIN_LIST_OWNER_ACTIVE_SRC="$WORK_DIR/pin_list_owner_active_view.pgy"
+# A `let` list cannot be pushed to (2026-11-08 mutable-binding decision), and
+# that refusal took the place of the pin conflict; `var` keeps the push.
 cat > "$PIN_LIST_OWNER_ACTIVE_SRC" <<'EOF'
 func Main() -> Void {
     let scores: Slot<Int> = ClaimSlot();
-    let items: List<Slot<Int>> = ListNew();
+    var items: List<Slot<Int>> = ListNew();
     pin scores as view: ReadView<Int> {
         ListPush(items, scores);
     }

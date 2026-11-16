@@ -209,102 +209,29 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
 
 #undef MIR_COPY_AST_LIST
 
-    for (size_t i = 0; i < hir->function_count; i++) {
-        if (!mir_record_decl_header(mir, hir->functions[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->type_count; i++) {
-        if (!mir_record_decl_header(mir, hir->types[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->ability_count; i++) {
-        if (!mir_record_decl_header(mir, hir->abilities[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->intent_count; i++) {
-        if (!mir_record_decl_header(mir, hir->intents[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->party_count; i++) {
-        if (!mir_record_decl_header(mir, hir->parties[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->role_count; i++) {
-        if (!mir_record_decl_header(mir, hir->roles[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->roster_count; i++) {
-        if (!mir_record_decl_header(mir, hir->rosters[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->world_count; i++) {
-        if (!mir_record_decl_header(mir, hir->worlds[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->relation_count; i++) {
-        if (!mir_record_decl_header(mir, hir->relations[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->effect_count; i++) {
-        if (!mir_record_decl_header(mir, hir->effects[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->zone_count; i++) {
-        if (!mir_record_decl_header(mir, hir->zones[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-    for (size_t i = 0; i < hir->event_count; i++) {
-        if (!mir_record_decl_header(mir, hir->events[i])) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
+    /* Declaration headers are appended in this fixed source-kind order. */
+    const struct { ASTNode *const *decls; size_t count; } decl_lists[] = {
+        {hir->functions, hir->function_count},
+        {hir->types, hir->type_count},
+        {hir->abilities, hir->ability_count},
+        {hir->intents, hir->intent_count},
+        {hir->parties, hir->party_count},
+        {hir->roles, hir->role_count},
+        {hir->rosters, hir->roster_count},
+        {hir->worlds, hir->world_count},
+        {hir->relations, hir->relation_count},
+        {hir->effects, hir->effect_count},
+        {hir->zones, hir->zone_count},
+        {hir->events, hir->event_count}
+    };
+    for (size_t l = 0; l < sizeof(decl_lists) / sizeof(decl_lists[0]); l++)
+        for (size_t i = 0; i < decl_lists[l].count; i++)
+            if (!mir_record_decl_header(mir, decl_lists[l].decls[i])) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup("out of memory");
+                mir_destroy(mir);
+                return NULL;
+            }
     if (!mir_nominal_abi_layouts_capture(mir, error_message)) {
         mir_destroy(mir);
         return NULL;

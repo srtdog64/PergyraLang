@@ -82,7 +82,7 @@ func Main() -> Void {
         Log(9);
     }
 
-    let orderedLabels: HashMap<String, Int> = MapNew();
+    var orderedLabels: HashMap<String, Int> = MapNew();
     MapSet(orderedLabels, "zeta", 1);
     MapSet(orderedLabels, "alpha", 2);
     MapSet(orderedLabels, "mid", 3);
@@ -91,7 +91,7 @@ func Main() -> Void {
         Log(113);
     }
 
-    let orderedNumbers: HashMap<Int, Int> = MapNew();
+    var orderedNumbers: HashMap<Int, Int> = MapNew();
     MapSet(orderedNumbers, 9, 90);
     MapSet(orderedNumbers, 1, 10);
     MapSet(orderedNumbers, 4, 40);
@@ -100,7 +100,7 @@ func Main() -> Void {
         Log(127);
     }
 
-    let orderedBools: HashMap<Bool, Int> = MapNew();
+    var orderedBools: HashMap<Bool, Int> = MapNew();
     MapSet(orderedBools, true, 1);
     MapSet(orderedBools, false, 0);
     let orderedBoolKeys: Array<Bool> = MapKeys(orderedBools);
@@ -108,7 +108,7 @@ func Main() -> Void {
         Log(131);
     }
 
-    let orderedSet: Set<Int> = SetNew();
+    var orderedSet: Set<Int> = SetNew();
     SetAdd(orderedSet, 9);
     SetAdd(orderedSet, 1);
     SetAdd(orderedSet, 4);
@@ -221,6 +221,16 @@ resolve_smoke_bin() {
     fi
 }
 
+# A refused compile prints the compiler's reason; an assignment from a failed
+# command substitution would otherwise end the gate silently under set -e.
+report_failed_run() {
+    echo "[stdlib-smoke] $1 failed to compile or run" >&2
+    echo "--- output ---" >&2
+    echo "$2" >&2
+    echo "--------------" >&2
+    exit 1
+}
+
 run_backend() {
     local backend="$1"
     local output
@@ -238,7 +248,9 @@ run_backend() {
     args_bin="$WORK_DIR/stable_args_${backend}"
     args_bin_arg="$(pgy_path_for_compiler "$PGY" "$args_bin")"
 
-    output="$(cd "$WORK_DIR" && "$PGY" "$stable_arg" --backend="$backend" --run 2>&1)"
+    if ! output="$(cd "$WORK_DIR" && "$PGY" "$stable_arg" --backend="$backend" --run 2>&1)"; then
+        report_failed_run "stable stdlib backend=$backend" "$output"
+    fi
 
     for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9" "113" "127" "131" "137" "149" "151" "153" "walk_root/a/one.txt" "walk_root/b/two.txt" "walk_root/root.txt"; do
         if ! grep -Fq "$expected" <<<"$output"; then
@@ -250,7 +262,9 @@ run_backend() {
         fi
     done
 
-    output="$(cd "$ROOT_DIR" && "$PGY" "$modules_arg" --backend="$backend" --run 2>&1)"
+    if ! output="$(cd "$ROOT_DIR" && "$PGY" "$modules_arg" --backend="$backend" --run 2>&1)"; then
+        report_failed_run "use-modules backend=$backend" "$output"
+    fi
 
     for expected in "2026-4-26" "true" "device/sensor"; do
         if ! grep -Fq "$expected" <<<"$output"; then
@@ -262,7 +276,9 @@ run_backend() {
         fi
     done
 
-    output="$(cd "$ROOT_DIR" && PGY_IO_ROOT="$IO_ROOT" "$PGY" "$io_root_arg" --backend="$backend" --run 2>&1)"
+    if ! output="$(cd "$ROOT_DIR" && PGY_IO_ROOT="$IO_ROOT" "$PGY" "$io_root_arg" --backend="$backend" --run 2>&1)"; then
+        report_failed_run "IO root backend=$backend" "$output"
+    fi
     for expected in "true" "rooted"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[stdlib-smoke] IO root backend=$backend missing '$expected'" >&2

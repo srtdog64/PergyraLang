@@ -100,11 +100,9 @@ move_walk_refuse_assignment_loan_change(MoveWalk *walk,
     const char *name = root != NULL && root->type == AST_IDENTIFIER
         ? ast_identifier_name(root) : NULL;
     if (name != NULL
-        && strlen(name) + strlen(loan->fields) < sizeof(display)) {
-        strcpy(display, name);
-        strcat(display, loan->fields);
+        && (size_t)snprintf(display, sizeof(display), "%s%s", name,
+               loan->fields) < sizeof(display))
         name = display;
-    }
     semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_BORROW_ESCAPE,
         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_RECLAIM_SOURCE_OR_DROP_VIEW, site,
         "Cannot change '%s' while an indexed assignment keeps its backing address.\n"

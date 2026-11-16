@@ -452,8 +452,10 @@ run_tool_fixture() {
         fi
 
         # 2. gcc the emitted C and run it.
+        # Link libm as the driver does (src/compiler/compiler.c): gcc folds a
+        # constant sqrt/pow, clang on glibc leaves the call to link.
         if ! "$CC" "${CODEGEN_C_FLAGS[@]}" "$c_file" -I"$ROOT_DIR/src" \
-            -I"$ROOT_DIR/src/runtime" -o "$self_exe" \
+            -I"$ROOT_DIR/src/runtime" -o "$self_exe" -lm \
             2>"$ABS_BUILD/${base}_${backend}_cc.log"; then
             echo "[self-host-parity:codegen] backend=$backend $base: emitted C failed to compile" >&2
             cat "$ABS_BUILD/${base}_${backend}_cc.log" >&2

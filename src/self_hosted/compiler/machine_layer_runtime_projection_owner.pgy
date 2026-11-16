@@ -1,5 +1,6 @@
 import "runtime_call_abi_row_owner.pgy";
 import "abi_layout_row_owner.pgy";
+import "../codegen/runtime_abi/result_runtime_owner.pgy";
 func CompilerRuntimeCallAbiMachineLayerManifestId() -> String {
     return "pergyra.abstract-device-slot.v1";
 }
@@ -130,19 +131,27 @@ func CompilerRuntimeCallAbiMachineLayerRemoteFutureRawCType() -> String {
     return "int32_t";
 }
 
+// The Result<Int> value is a tagged union; its payload and error lanes are
+// written only through the Result runtime fact's constructors, never by
+// assigning the union itself. The error text matches the native C route's
+// pgy_await_result_take, so an observed Err stays runtime-equal.
 func CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitHelperBlock() -> String {
     let result_type: String = CompilerAbiLayoutResultIntCValueType();
+    let result: ResultRuntimeFact = ResultRuntimeFactForType("Result<Int>");
+    if !result.ok || result.c_type != result_type {
+        Die("RemoteFuture await helper has no Result<Int> runtime fact");
+    }
     let raw_type: String =
         CompilerRuntimeCallAbiMachineLayerRemoteFutureRawCType();
     var out: String = "static ";
     out = Concat(out, Concat(result_type, " pgy_machine_await_remote_Int(PgyTaskHandle handle) {\n"));
     out = Concat(out, "    void *_pgy_raw = pgy_await(handle);\n");
-    out = Concat(out, Concat("    ", Concat(result_type, " r;\n")));
-    out = Concat(out, "    if (_pgy_raw != NULL) {\n");
-    out = Concat(out, "        r.is_ok = true;\n");
-    out = Concat(out, Concat("        r.value = *((", Concat(raw_type, " *)_pgy_raw);\n")));
-    out = Concat(out, "        free(_pgy_raw);\n");
-    out = Concat(out, "    } else {\n        r.is_ok = false;\n        r.value = 0;\n    }\n    return r;\n}\n\n");
+    out = Concat(out, "    if (_pgy_raw == NULL) {\n");
+    out = Concat(out, Concat("        return ", Concat(result.err_fn, "(\"remote operation failed\");\n")));
+    out = Concat(out, "    }\n");
+    out = Concat(out, Concat("    ", Concat(raw_type, Concat(" _pgy_value = *((", Concat(raw_type, " *)_pgy_raw);\n")))));
+    out = Concat(out, "    free(_pgy_raw);\n");
+    out = Concat(out, Concat("    return ", Concat(result.ok_fn, "(_pgy_value);\n}\n\n")));
     return out;
 }
 

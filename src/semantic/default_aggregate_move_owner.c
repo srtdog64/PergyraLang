@@ -19,8 +19,11 @@
 #include "loan_copy_landing_owner.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "../common/string_compat.h"
 
 #include "builtin_kind.h"
 #include "diag_codes.h"
@@ -84,10 +87,10 @@ bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, con
     }
     char *copy = state->arena_paths
         ? pgy_arena_strdup(&walk->path_arena, fields)
-        : malloc(strlen(fields) + 1);
+        : pergyra_strdup(fields);
     char *held = carrier == 0 ? NULL : state->arena_paths
         ? pgy_arena_strdup(&walk->path_arena, carrier_fields)
-        : malloc(strlen(carrier_fields) + 1);
+        : pergyra_strdup(carrier_fields);
     if (copy == NULL || (carrier != 0 && held == NULL)) {
         if (!state->arena_paths) {
             free(copy);
@@ -95,10 +98,6 @@ bool move_walk_state_add(MoveWalk *walk, MoveState *state, uint32_t binding, con
         }
         walk->failed = true;
         return false;
-    }
-    if (!state->arena_paths) {
-        strcpy(copy, fields);
-        if (held != NULL) strcpy(held, carrier_fields);
     }
     state->rows[state->count++] = (MovedPath){binding, copy, callee,
         callee_decl, param, lending_call, carrier, held, argument,
@@ -319,11 +318,9 @@ static bool refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *mov
         root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
     char display[512];
     const char *name = root != NULL && root->type == AST_IDENTIFIER ? ast_identifier_name(root) : NULL;
-    if (name != NULL && strlen(name) + strlen(moved->fields) < sizeof(display)) {
-        strcpy(display, name);
-        strcat(display, moved->fields);
+    if (name != NULL && (size_t)snprintf(display, sizeof(display), "%s%s", name,
+                                         moved->fields) < sizeof(display))
         name = display;
-    }
     if (moved->outward_borrow_escape) {
         semantic_error_with_hints(walk->ctx,
             PGY_CODE_SEM_BORROW_ESCAPE,

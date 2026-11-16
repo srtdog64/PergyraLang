@@ -18,6 +18,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/string_compat.h"
+
 #include "diag_codes.h"
 #include "function_param_flow/function_param_publication_internal.h"
 #include "function_param_flow/function_param_publication_owner.h"
@@ -353,9 +355,8 @@ static bool part_storage_add(MoveWalk *walk, PartStorage *storage, uint32_t bind
     for (size_t i = 0; i < storage->count; i++)
         if (storage->binding[i] == binding && strcmp(storage->fields[i], fields) == 0) return false;
     if (storage->count == PART_SOURCES) { storage->overflow = true; return false; }
-    char *copy = malloc(strlen(fields) + 1);
+    char *copy = pergyra_strdup(fields);
     if (copy == NULL) { walk->failed = true; return false; }
-    strcpy(copy, fields);
     storage->binding[storage->count] = binding;
     storage->fields[storage->count++] = copy;
     return true;

@@ -4,6 +4,7 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/portable_process_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 LABEL=numeric-payload-byte-projection
@@ -25,10 +26,21 @@ fi
 sha256sum "$PGY" "$INPUT" "$OWNER" >"$B/input.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$B/import.sha256"
 printf 'numeric payload comparisons=78322\nNUMERIC PAYLOAD BYTE PROJECTION PASS\n' >"$B/expected"
+# A C-only compiler build (LLVM_ENABLED=0, the macOS and Windows platform
+# jobs) declares the LLVM leg skipped; any other LLVM build failure stays red.
+LEGS="C/LLVM"
 for backend in c llvm; do
-    pgy_run_with_timeout 120 "$B/$backend-build.stdout" "$B/$backend-build.stderr" \
+    if ! pgy_run_with_timeout 120 "$B/$backend-build.stdout" "$B/$backend-build.stderr" \
         "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$INPUT" \
-        -o "$B/$backend.exe" || fail "$backend probe did not build"
+        -o "$B/$backend.exe"; then
+        if [[ "$backend" == llvm ]] &&
+            pgy_selfhost_log_reports_no_llvm "$B/$backend-build.stderr"; then
+            LEGS="C (llvm-leg skipped: compiler built without LLVM backend support)"
+            echo "[$LABEL] llvm-leg skipped (compiler built without LLVM backend support)"
+            continue
+        fi
+        fail "$backend probe did not build"
+    fi
     pgy_run_with_timeout 30 "$B/$backend.raw" "$B/$backend.stderr" \
         "$B/$backend.exe" || fail "$backend numeric oracle failed"
     test ! -s "$B/$backend.stderr" || fail "$backend probe wrote stderr"
@@ -38,4 +50,4 @@ done
 sha256sum --quiet -c "$B/input.sha256"
 sha256sum --quiet -c "$B/import.sha256"
 sha256sum "$B"/*.exe >"$B/binaries.sha256"
-echo "[$LABEL] C/LLVM: 78322 valid-extent comparisons, Int/Long range and malformed controls, arena topology and invalid-extent refusals PASS; full DRV-2/installed pair remain separate; evidence=$B"
+echo "[$LABEL] $LEGS: 78322 valid-extent comparisons, Int/Long range and malformed controls, arena topology and invalid-extent refusals PASS; full DRV-2/installed pair remain separate; evidence=$B"
