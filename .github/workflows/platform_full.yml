@@ -153,8 +153,10 @@ jobs:
           name: platform-full-linux-toolchain
           path: bin
 
+      # upload-artifact drops file modes. ci-linux admits the toolchain only if
+      # all three programs are executable, the self-host LSP included.
       - name: Validate executable Linux artifact permissions
-        run: chmod +x bin/pgy bin/pgy-self-driver
+        run: chmod +x bin/pgy bin/pgy-self-driver bin/pgy-self-lsp
 
       - name: Run Linux core and platform-independent contract
         env:
