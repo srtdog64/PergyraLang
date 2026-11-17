@@ -6,10 +6,10 @@ evidence.
 
 | Gate | Last observed result |
 |---|---|
-| Required CI at the published SHA | PASS: `3a0a385b7`, run 44045107368; all 33 jobs executed |
+| Required CI at the published SHA | `1ff353e89`, run 44063602879: Linux shard fails only phi C header lookup; [local correction](../evidence/2026-11-17_selfhost_string_ci_header_fix.md) passes. Last complete green is `3a0a385b7`, run 44045107368 (33 jobs). |
 | A2 phi reuse / memory | PASS on runner at `7ea3c781f`: both backends/negatives; semantic MIR consumer 796,444 KiB <=800 MiB; [publication evidence](../evidence/2026-11-17_selfhost_memory_a2_ci_publication_fix.md) |
 | A1 local integration | PASS on the [A1 source generation](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md): codegen gen2 == gen3, fresh installed driver, complete MIR-lower C parity/RSS, C/LLVM lifetime negatives and nine OOM families. Published CI is above. Native LLVM release writer failed its optimizer assertion; LLVM dev wire/golden execution passed. |
-| String allocation candidate | Local PASS: 22 normal/OOM/unchecked-control cases, three pre-malloc overflows, five direct-MIR C/LLVM families, codegen gen2 == gen3, fresh driver and fixed memory gate ([evidence](../evidence/2026-11-17_selfhost_string_allocation_boundary.md)). Full DRV-2 now fails with typed OOM; exact-candidate CI pending. |
+| Published String allocation repair | At `1ff353e89`, codegen bootstrap and 22 normal/OOM/unchecked controls pass on CI; Linux phi compilation is red. Five direct-MIR C/LLVM families and memory gate passed locally ([evidence](../evidence/2026-11-17_selfhost_string_allocation_boundary.md)); full DRV-2 still fails with typed OOM. |
 | Weekly full pipeline (`platform_full`, dispatch) | Run 43914895554 on `3ad7444db`: Linux codegen seed and toolchain, Windows toolchain, formal proofs, and the parser, semantic, codegen, codegen-seed and harness-evidence parity shards PASS; macOS C-only, both driver shards, `platform-full-linux` (15 of 99 steps) and `platform-full-windows` (2 of 48) open ([blocker](blocker.md)) |
 | SoT registry gate (`scripts/sot_registry_gate.py`) | PASS: 95 authorities, 214 derived carriers; CLOSED=70 BRIDGE=23 ACTIVE=2 |
 | Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `3a0a385b7`, run 44045107368 |

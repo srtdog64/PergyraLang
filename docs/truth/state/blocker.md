@@ -5,9 +5,9 @@ on 2026-11-17 from main `5b0d354fb`; other paused tracks are not reopened.
 
 A1 and the array OOM repair are published at `3a0a385b7`; CI 44045107368
 passed all 33 jobs ([evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md)).
-The reached String repair passed local integration ([evidence](../evidence/2026-11-17_selfhost_string_allocation_boundary.md)); publication is pending.
+String is published at `1ff353e89`; its missed phi header consumer has a [tested correction](../evidence/2026-11-17_selfhost_string_ci_header_fix.md) awaiting publication.
 Full DRV-2 still exceeds the memory boundary, now with explicit OOM / exit 134.
-Then follow the direct-MIR/owned-value dependencies of the [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
+Resume role ABI preparation only after this CI correction, then follow the [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
 
 ## Objective card
 

@@ -3,6 +3,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -57,7 +58,12 @@ for backend in c llvm; do
     [[ ! -e "$WORK/forged.$suffix" ]] || fail "$backend published forged bindings"
     grep -Eiq 'phi|predecessor' "$WORK/$backend.refuse" || fail "$backend lost the phi refusal"
 done
-"${CC:-gcc}" -std=c11 "$WORK/output.c" -o "$WORK/output-c.exe"
+c_command=("${CC:-gcc}" -std=c11 "$WORK/output.c")
+if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK/output.c"; then
+    c_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+fi
+c_command+=(-o "$WORK/output-c.exe")
+"${c_command[@]}" || fail "emitted C did not compile"
 "${PGY_SELFHOST_CLANG:-clang}" -x ir "$WORK/output.ll" -o "$WORK/output-llvm.exe" \
     >"$WORK/llvm.link" 2>&1 || { cat "$WORK/llvm.link" >&2; fail "LLVM link failed"; }
 for backend in c llvm; do
