@@ -4,9 +4,9 @@ Owner: GPT root integration (`5b0d354fb`, 2026-11-17); publication/CI: [main](ma
 
 The [role ABI](../evidence/2026-11-18_selfhost_role_ci_green.md) and bounded
 [String seed bridge](../evidence/2026-11-18_selfhost_string_temporary_seed_bridge.md) are published.
-Full frozen MIR stops at transition 1126, `SemanticExpressionGraphArenaEmpty`.
+Full frozen MIR now stops at `ArrayReverse(Array<String>)`, global row 19788.
 Active: [full MIR lifetime/transition execution](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
-Declaration-ID joins are locally verified; next is retired constructor-input lifetime.
+Nested return endpoints pass; next is the general array-reverse consumer ([record](../evidence/2026-11-18_selfhost_nested_return_transfer.md)).
 The one-process DRV-2 memory goal remains unestablished ([measurements](measurements.md)).
 
 ## Objective card

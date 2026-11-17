@@ -2,6 +2,54 @@
 import "direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_flow_owner.pgy";
 
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageInputDigest(
+    valid: Bool, ref expressions: DirectMirScalarProgramExpressionSet,
+    ref block_counts: Array<Int>, ref operation_counts: Array<Int>,
+    ref local_counts: Array<Int>, ref local_types: Array<String>,
+    ref value_locals: Array<Int>, ref block_starts: Array<Int>,
+    ref block_operations: Array<Int>, ref successors_true: Array<Int>,
+    ref successors_false: Array<Int>, ref conditions: Array<Int>,
+    ref returns: Array<Int>, ref operation_kinds: Array<Int>,
+    ref result_values: Array<Int>, ref expression_rows: Array<Int>,
+    ref secondary_rows: Array<Int>, ref left_locals: Array<Int>,
+    ref right_locals: Array<Int>, ref left_values: Array<Int>,
+    ref right_values: Array<Int>,
+    ref callers: Array<Int>, ref operations: Array<Int>, ref graphs: Array<Int>,
+    ref locals: Array<Int>, ref callables: Array<Int>, ref parameters: Array<Int>,
+    ref layouts: Array<Int>, ref call_blocks: Array<Int>
+) -> Int {
+    if !valid || !expressions.valid || expressions.digest == 0 { return 0; }
+    var hash: Long = DirectMirCfgHashInt(337L, expressions.digest);
+    hash = DirectMirScalarCfgHashInts(hash, block_counts);
+    hash = DirectMirScalarCfgHashInts(hash, operation_counts);
+    hash = DirectMirScalarCfgHashInts(hash, local_counts);
+    hash = DirectMirScalarCfgHashStrings(hash, local_types);
+    hash = DirectMirScalarCfgHashInts(hash, value_locals);
+    hash = DirectMirScalarCfgHashInts(hash, block_starts);
+    hash = DirectMirScalarCfgHashInts(hash, block_operations);
+    hash = DirectMirScalarCfgHashInts(hash, successors_true);
+    hash = DirectMirScalarCfgHashInts(hash, successors_false);
+    hash = DirectMirScalarCfgHashInts(hash, conditions);
+    hash = DirectMirScalarCfgHashInts(hash, returns);
+    hash = DirectMirScalarCfgHashInts(hash, operation_kinds);
+    hash = DirectMirScalarCfgHashInts(hash, result_values);
+    hash = DirectMirScalarCfgHashInts(hash, expression_rows);
+    hash = DirectMirScalarCfgHashInts(hash, secondary_rows);
+    hash = DirectMirScalarCfgHashInts(hash, left_locals);
+    hash = DirectMirScalarCfgHashInts(hash, right_locals);
+    hash = DirectMirScalarCfgHashInts(hash, left_values);
+    hash = DirectMirScalarCfgHashInts(hash, right_values);
+    hash = DirectMirScalarCfgHashInts(hash, callers);
+    hash = DirectMirScalarCfgHashInts(hash, operations);
+    hash = DirectMirScalarCfgHashInts(hash, graphs);
+    hash = DirectMirScalarCfgHashInts(hash, locals);
+    hash = DirectMirScalarCfgHashInts(hash, callables);
+    hash = DirectMirScalarCfgHashInts(hash, parameters);
+    hash = DirectMirScalarCfgHashInts(hash, layouts);
+    hash = DirectMirScalarCfgHashInts(hash, call_blocks);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
 func DirectMirScalarProgramOwnedArrayStringMoveExitSetCoverageReady(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,

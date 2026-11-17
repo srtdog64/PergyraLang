@@ -27,8 +27,9 @@ The last complete DRV-2 one-process source-to-C, on the String seed bridge, fail
 No C artifact is published. The earlier split MIR producer (8,625,732 KiB)
 does not establish this goal. Owned-value lifetime work is still open.
 
-The current candidate on the same frozen full MIR passes transition 1054
-and refuses at transition 1126 (3,543,780 KiB).
-This is a longer reached chain, not a successful compile or comparable cost
-measurement. Full one-process DRV-2 source-to-C was not remeasured on this
-identity-only repair; the last failed source run above remains the observed limit.
+The [nested-return candidate](../evidence/2026-11-18_selfhost_nested_return_transfer.md)
+on the same frozen full MIR peaks at 3,597,284 KiB before its next refusal
+([blocker](blocker.md)); no C artifact is emitted. Its predecessor stopped
+earlier at 3,543,780 KiB. Different prefixes are not comparable memory costs.
+Full one-process source-to-C was not remeasured after this endpoint repair;
+the last failed source run above remains the observed limit.

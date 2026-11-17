@@ -617,4 +617,36 @@ for backend in c llvm; do
         grep -Fq 'CODEGEN ERROR:' "$WORK_DIR/binding-$mode.$backend.log" || fail "$backend lost identity refusal"
     done
 done
-echo "[$LABEL] PASS refused=18+4+6 admitted=8x2+native-mir-2x2+binding-6 evidence=$WORK_REL"
+# The consumer of the returned record really retires its nested field. That
+# demand makes the producer's local row retired, rather than merely handed
+# off; the return endpoint must prove the complete typed constructor path.
+cp "$ROOT_DIR/tests/self_hosted/fixtures/direct_mir_nested_array_string_return_transfer.pgy" "$WORK_DIR/nested_transfer.pgy"
+printf '0\n0\n6\n5\n0\n' >"$WORK_DIR/nested_transfer.expected"
+"$DRIVER" --emit-mir-json-verified "$WORK_REL/nested_transfer.pgy" \
+    -o "$WORK_REL/native_nested_transfer.json" >"$WORK_DIR/nested_transfer.producer.log" 2>&1 ||
+    fail "nested return transfer MIR production failed"
+python3 - "$WORK_DIR/native_nested_transfer.json" "$WORK_DIR/nested_missing_end.json" <<'PY'
+import json
+import sys
+document = json.load(open(sys.argv[1], encoding='utf-8'))
+for name in ('EmptyResult', 'OwnedResult'):
+    routine = next(row for row in document['routines'] if row['name'] == name)
+    names = {row['binding_syntax_id']: row['name'] for row in routine['source_locals']}
+    fields = {names.get(row['binding_syntax_id']): row for row in routine['collection_ownership_facts']}
+    if fields['texts']['disposition'] != 'retired' or fields['texts']['element_ownership'] != 'retired':
+        raise SystemExit('nested control no longer reaches the retired return-transfer proof')
+    if name == 'EmptyResult':
+        fields['unused']['disposition'] = 'retired'
+        fields['unused']['element_ownership'] = 'retired'
+json.dump(document, open(sys.argv[2], 'w', encoding='utf-8'))
+PY
+for backend in c llvm; do
+    native_mir_run nested_transfer "$backend"
+    status=0
+    "$DRIVER" "--mir-json-backend=$backend" "$WORK_REL/nested_missing_end.json" \
+        -o "$WORK_REL/nested_missing_end.$backend" >"$WORK_DIR/nested_missing_end.$backend.log" 2>&1 || status=$?
+    [[ "$status" -ne 0 && ! -e "$WORK_DIR/nested_missing_end.$backend" ]] || fail "invented nested retirement was admitted on $backend"
+    grep -Fq 'stage=collection_ownership_transition' "$WORK_DIR/nested_missing_end.$backend.log" ||
+        fail "missing nested end was refused before the transition proof on $backend"
+done
+echo "[$LABEL] PASS refused=18+4+6+2 admitted=8x2+native-mir-2x2+binding-6+nested-2 evidence=$WORK_REL"

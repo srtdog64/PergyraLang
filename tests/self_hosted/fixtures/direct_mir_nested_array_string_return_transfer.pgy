@@ -1,0 +1,39 @@
+struct NestedTexts { tag: Int; texts: Array<String>; enabled: Bool; }
+struct NestedCarrier { rows: NestedTexts; count: Int; }
+struct NestedResult { label: String; carrier: NestedCarrier; spare: Array<String>; }
+
+func EmptyResult() -> NestedResult {
+    let unused: Array<String> = [];
+    let texts: Array<String> = [];
+    let spare: Array<String> = [];
+    return NestedResult("empty", NestedCarrier(NestedTexts(7, texts, true), 0), spare);
+}
+
+func OwnedResult() -> NestedResult {
+    var texts: Array<String> = [];
+    ArrayPushOwnedString(texts, "nested");
+    ArrayPushOwnedString(texts, "owned");
+    let spare: Array<String> = [];
+    return NestedResult("filled", NestedCarrier(NestedTexts(9, texts, true), 2), spare);
+}
+
+func RetireResult(inout result: NestedResult) -> Void {
+    let texts: Array<String> = result.carrier.rows.texts;
+    ArrayDropOwnedStrings(texts);
+    result.carrier.rows.texts = texts;
+    let spare: Array<String> = result.spare;
+    ArrayDropOwnedStrings(spare);
+    result.spare = spare;
+}
+
+func Main() -> Void {
+    var empty: NestedResult = EmptyResult();
+    Log(ArrayLength(empty.carrier.rows.texts));
+    RetireResult(empty);
+    Log(ArrayLength(empty.carrier.rows.texts));
+    var filled: NestedResult = OwnedResult();
+    Log(StringLength(filled.carrier.rows.texts[0]));
+    Log(StringLength(filled.carrier.rows.texts[1]));
+    RetireResult(filled);
+    Log(ArrayLength(filled.carrier.rows.texts));
+}

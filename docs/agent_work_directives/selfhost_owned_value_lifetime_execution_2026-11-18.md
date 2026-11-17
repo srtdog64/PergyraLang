@@ -67,6 +67,23 @@ not another implementation track. One edit lane, no delegated edits.
 2. Trace instruction/value identity through actual lowering, including a
    source instruction that produces zero or several operations. Retain exact
    operation-to-receipt alignment rather than reconstructing it by spelling.
+   The existing return-transfer endpoint must compose through typed record
+   fields too: semantic named-input reservation can consume an inner field's
+   local responsibility, with the caller later retiring that field. Its MIR
+   consumer currently proves only a direct field of the returned constructor.
+   Keep the existing definition, unique-use, strict-evaluation and all-exit
+   checks; replace that shallow path lookup with one typed constructor-DAG
+   query in the same endpoint owner. Neither the semantic `retired` label nor
+   a constructor occurrence alone grants a release. C/LLVM consume the same
+   checked transition; no emitter exception or new owner is needed. The
+   coverage input digest keeps its identity and moves to the existing coverage
+   issuer; the final plan imports that issuer for the same replay. The typed
+   query's two readonly parameters borrow admitted inventories for that query,
+   rather than copying storage or adding user annotations. Falsifiers:
+   nested field transfer followed by actual caller cleanup; duplicate field
+   use, hidden call retention, wrong field type and an uncovered exit. This
+   endpoint repair is a prerequisite, not migration of the legacy release
+   policy or completion of S1/S2.
 3. Fix owned-value identity, origin, recipe, disposition and end points in
    the MIR owner. Use existing SSA/local-ref and CFG facts. Include definition
    reset on loop backedges, aliases and mutually exclusive definitions.

@@ -6,9 +6,10 @@ evidence.
 
 | Gate | Last observed result |
 |---|---|
-| Required CI at the last verified published SHA | `6ff288d70`, run 44123611930 attempt 2: all 33 jobs passed, none skipped ([record](../evidence/2026-11-18_selfhost_string_seed_ci_green.md)). |
+| Required CI | Published/last wholly green revisions and the exact open job belong to [main](main.md). The candidate renderer repair passes locally. |
 | String temporary seed bridge | Published CI PASS above; actual fixed point/driver, ASan/LSan, role C/LLVM and OOM controls PASS. Memory gates PASS; full DRV-2 OOM. Optional stale caps/qualified-kind/snapshot reds retained; [scope and hashes](../evidence/2026-11-18_selfhost_string_temporary_seed_bridge.md). |
-| Declaration-ID joins (local candidate) | Full codegen bootstrap, installed driver, preserved refusals, new C/LLVM identities, String ASan/LSan, role and 44 forged hand-off rows PASS; [hashes/limits](../evidence/2026-11-18_selfhost_ownership_declaration_identity.md). Full frozen MIR still refuses at transition 1126. |
+| Declaration-ID joins | Published bootstrap, installed-driver, fixed-point join and contract jobs PASS above; [local hashes/limits](../evidence/2026-11-18_selfhost_ownership_declaration_identity.md). |
+| Nested return transfer (local candidate) | Actual installed driver, preserved ownership gates, nested C/LLVM and invented-end refusals, ASan/LSan and four memory faults PASS; [scope/hashes](../evidence/2026-11-18_selfhost_nested_return_transfer.md). Full MIR passes the old transition and stops at ArrayReverse<String>. |
 | A2 phi reuse / memory | PASS on runner at `7ea3c781f`: both backends/negatives; semantic MIR consumer 796,444 KiB <=800 MiB; [publication evidence](../evidence/2026-11-17_selfhost_memory_a2_ci_publication_fix.md) |
 | A1 local integration | PASS on the [A1 source generation](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md): codegen gen2 == gen3, fresh installed driver, complete MIR-lower C parity/RSS, C/LLVM lifetime negatives and nine OOM families. Published CI is above. Native LLVM release writer failed its optimizer assertion; LLVM dev wire/golden execution passed. |
 | Published String allocation repair | `9f5573f18`: codegen bootstrap, 22 normal/OOM/unchecked controls and the phi consumer passed on CI. Five direct-MIR C/LLVM families and the bounded memory gate passed locally ([evidence](../evidence/2026-11-17_selfhost_string_allocation_boundary.md)); full DRV-2 still fails with typed OOM. |
