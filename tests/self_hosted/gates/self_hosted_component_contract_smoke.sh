@@ -1052,7 +1052,7 @@ require_max_lines "src/self_hosted/compiler/completeness_ledger_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/completeness_impact_owner.pgy" 600
 
 require_max_lines "src/self_hosted/lib/json_bounded_fact_read.pgy" 465
-require_max_lines "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" 120
+require_max_lines "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" 140
 require_max_lines "src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy" 240
 require_max_lines "src/self_hosted/mir/declaration_callable_rows_owner.pgy" 200
 require_max_lines "src/self_hosted/mir/declaration_generic_rows_owner.pgy" 80
@@ -2202,29 +2202,12 @@ role_operator_family_lines=$((
 ))
 [[ "$role_operator_family_lines" -le 1200 ]] || \
     fail "role operator direct family exceeds 1200 LOC ($role_operator_family_lines)"
-require_responsibility_owner_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy"
-for role_override_owner_cap in \
-    direct_mir/direct_mir_role_override_plan_owner.pgy:120 \
-    direct_mir/direct_mir_role_override_target_projection_owner.pgy:110 \
-    direct_mir/direct_mir_role_override_emission_owner.pgy:220; do
-    role_override_owner="${role_override_owner_cap%%:*}"
-    role_override_cap="${role_override_owner_cap##*:}"
-    require_max_lines \
-        "src/self_hosted/compiler/$role_override_owner" "$role_override_cap"
-done
 require_max_lines \
     "tests/self_hosted/parity/domain/role_override_mir_replacement.sh" 380
 require_max_lines \
-    "tests/self_hosted/parity/domain/role_override_mir_mutations.py" 100
-role_override_family_lines=$((
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_override_plan_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_override_target_projection_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_override_emission_owner.pgy)
-))
-[[ "$role_override_family_lines" -le 1250 ]] || \
-    fail "role override direct family exceeds 1250 LOC ($role_override_family_lines)"
+    "tests/self_hosted/parity/domain/role_override_mir_mutations.py" 150
+require_max_lines \
+    "tests/self_hosted/parity/domain/role_receiver_artifact_abi_probe.py" 150
 # Inspect both build-mode graphs independently of an admitted CI environment,
 # then the admitted graph. Compiler generation remains forbidden in this gate.
 check_replacement_frontier_build_graph
@@ -2582,7 +2565,7 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_operation_shape_owner.pgy" 15
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_hash_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_hash_owner.pgy" 40
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_inventory_owner.pgy" 130
 require_max_lines \
@@ -2999,10 +2982,10 @@ for collection_owner_cap in \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_option_int_instruction_abi_owner.pgy:60 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_option_int_parameter_abi_owner.pgy:60 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_type_owner.pgy:120 \
-    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_signature_projection_owner.pgy:139 \
+    src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_signature_projection_owner.pgy:160 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_scalar_type_family_owner.pgy:40 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_type_family_owner.pgy:80 \
-    src/self_hosted/compiler/direct_mir/direct_mir_routine_signature_schema_owner.pgy:103 \
+    src/self_hosted/compiler/direct_mir/direct_mir_routine_signature_schema_owner.pgy:110 \
     src/self_hosted/compiler/direct_mir/direct_mir_routine_signature_projection_owner.pgy:140 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_routine_partition_schema_owner.pgy:40 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_routine_partition_projection_owner.pgy:85 \

@@ -103,10 +103,11 @@ func DirectMirRoutineLocalParameterOrdinalAtName(
     var row: Int = 0;
     while row < ArrayLength(fact.names) {
         if fact.names[row] == name {
-            if (fact.carriages[row] != "value" &&
-                    fact.carriages[row] != "value-result") ||
-                fact.resources[row] != "none" ||
-                fact.pass_shapes[row] != "direct" { return -1; }
+            let direct: Bool = (fact.carriages[row] == "value" ||
+                fact.carriages[row] == "value-result") && fact.pass_shapes[row] == "direct";
+            let identity: Bool = fact.carriages[row] == "mutable-identity" &&
+                fact.pass_shapes[row] == "indirect";
+            if (!direct && !identity) || fact.resources[row] != "none" { return -1; }
             return row;
         }
         row = row + 1;

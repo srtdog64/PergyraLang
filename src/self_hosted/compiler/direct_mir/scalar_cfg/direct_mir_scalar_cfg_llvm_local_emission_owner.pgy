@@ -1,4 +1,5 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "../direct_mir_identity_cell_store_readiness_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_llvm_option_int_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_llvm_option_string_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_llvm_option_bool_owner.pgy";
@@ -195,8 +196,12 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
                     plan.local_types[row]);
             let readonly_hashmap: Bool = carriage == "readonly-ref" &&
                 hashmap.ok;
+            let identity_parameter: Bool = carriage == "mutable-identity" &&
+                DirectMirIdentityCellCallParameterReady(plan, routine, parameter_ordinal) &&
+                plan.local_types[row] == plan.routines.parameter_types[
+                    plan.routines.parameter_starts[routine] + parameter_ordinal];
             if carriage != "value" && carriage != "value-result" &&
-                !owned_parameter && !readonly_hashmap {
+                !owned_parameter && !readonly_hashmap && !identity_parameter {
                 Die("direct MIR scalar CFG LLVM parameter local is invalid");
             }
             var parameter_value: String = Concat(

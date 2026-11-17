@@ -10,6 +10,7 @@ struct DirectMirRoutineMethodSignatureProjection {
     let valid: Bool;
     let receiver_type: String;
     let receiver_owner_row: Int;
+    let receiver_erased: Bool;
     let source_parameter_offset: Int;
     let parameters: DirectMirRoutineParameterSetFact;
 }
@@ -17,7 +18,7 @@ struct DirectMirRoutineMethodSignatureProjection {
 func DirectMirRoutineMethodSignatureProjectionInvalid(
 ) -> DirectMirRoutineMethodSignatureProjection {
     return DirectMirRoutineMethodSignatureProjection(
-        false, "", -1, 0, DirectMirRoutineParameterSetFactInvalid());
+        false, "", -1, false, 0, DirectMirRoutineParameterSetFactInvalid());
 }
 
 func DirectMirRoutineMethodSignatureFromBounds(
@@ -63,6 +64,6 @@ func DirectMirRoutineMethodSignatureFromBounds(
             ToInt(routines.source_syntax_ids[row]), source_offset);
     if !DirectMirRoutineParameterSetFactReady(parameters) { return invalid; }
     return DirectMirRoutineMethodSignatureProjection(
-        true, target.type_name, target.declaration_row, source_offset,
+        true, target.type_name, target.declaration_row, target.erased, source_offset,
         parameters);
 }

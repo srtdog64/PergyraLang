@@ -146,7 +146,10 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                 ArrayPush(local_ref_kinds, DirectMirScalarCfgLocalRefValue());
                 ArrayPush(local_ref_value_ids, local_identity);
                 ArrayPush(local_ref_syntax_ids, -1);
-                if parameter_ordinal >= 0 {
+                // A receiver is an existing identity pointer, not an initial
+                // value definition. Its first field store may have no SSA use.
+                if parameter_ordinal >= 0 &&
+                    parameters.carriages[parameter_ordinal] != "mutable-identity" {
                     ArrayPushOwnedString(value_names, Concat(local_name, ".0"));
                     ArrayPush(value_local_rows, local_row);
                     ArrayPush(value_definition_blocks, 0);

@@ -22,6 +22,7 @@ func DirectMirScalarCfgProgramRoutineIdentityFromOwners(
     var names: Array<String> = []; var return_types: Array<String> = [];
     var receiver_carriages: Array<String> = [];
     var receiver_owner_rows: Array<Int> = [];
+    var receiver_erasures: Array<Bool> = [];
     var parameter_counts: Array<Int> = [];
     var parameter_starts: Array<Int> = [];
     var parameter_types: Array<String> = [];
@@ -62,6 +63,7 @@ func DirectMirScalarCfgProgramRoutineIdentityFromOwners(
             ArrayPush(return_types, signature.return_type);
             ArrayPush(receiver_carriages, signature.receiver_carriage);
             ArrayPush(receiver_owner_rows, signature.receiver_owner_row);
+            ArrayPush(receiver_erasures, signature.receiver_erased);
             ArrayPush(parameter_counts, signature.param_count);
             ArrayPush(parameter_starts, ArrayLength(parameter_types));
             if !DirectMirScalarCfgProgramAppendParameterTypes(
@@ -80,7 +82,7 @@ func DirectMirScalarCfgProgramRoutineIdentityFromOwners(
         identity_valid && ArrayLength(roles) == ArrayLength(instances.source_rows),
         roles, source_rows,
         source_syntax_ids, instance_keys, names, return_types,
-        receiver_carriages, receiver_owner_rows, parameter_counts,
+        receiver_carriages, receiver_owner_rows, receiver_erasures, parameter_counts,
         parameter_starts, parameter_types, parameter_carriages,
         signature_digests, cfg_digests
     );

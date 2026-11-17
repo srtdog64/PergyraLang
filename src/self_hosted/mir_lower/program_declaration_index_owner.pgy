@@ -19,6 +19,25 @@ struct MirProgramDeclarationIndex {
     let enum_variants: MirProgramEnumVariantIndex;
     let zone_authorities: SelfMirDeclarationZoneAuthorityRows;
 }
+
+// Source identities are evidence, not permissive integer conversions. The
+// selected declaration span remains the authority; absence grants no identity.
+func MirProgramDeclarationSourceSyntaxIdAt(
+    json: String, json_extent: Int,
+    ref declarations: MirProgramDeclarationIndex, row: Int
+) -> Option<String> {
+    if !declarations.valid || row < 0 ||
+        row >= ArrayLength(declarations.starts) ||
+        row >= ArrayLength(declarations.ends) { return None; }
+    let source: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        json, json_extent, declarations.starts[row], declarations.ends[row],
+        "source_syntax_id");
+    if !IsSome(source) { return None; }
+    let text: String = UnwrapOption(source);
+    if !MirProgramDeclarationFieldIdentityPositiveDecimal(text) ||
+        ToString(ToInt(text)) != text { return None; }
+    return source;
+}
 func MirProgramDeclarationIndexCursorAtEnd(
     json: String, json_extent: Int, cursor: Int, array_end: Int
 ) -> Bool {

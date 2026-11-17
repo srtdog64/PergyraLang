@@ -23,7 +23,7 @@ func Main() -> Void with caps env, io_read, io_write {
     if !DirectMirScalarProgramRouteAdmissionReady(admission) || !admission.route.claimed {
         DirectMirScalarProgramRouteAdmissionDie(admission);
     }
-    let projection: String = CompilerTargetCpuCProjection();
+    var projection: String = CompilerTargetCpuCProjection();
     if args[2] == "llvm" { projection = CompilerTargetCpuLlvmProjection(); }
     else if args[2] != "c" { Die("invalid backend"); }
     let target: CompilerTargetProjectionFact = CompilerTargetProjectionFactFromOwner(projection);

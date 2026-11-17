@@ -19,6 +19,7 @@ struct DirectMirRoutineSignatureFact {
     let source_parameter_offset: Int;
     let receiver_carriage: String;
     let receiver_owner_row: Int;
+    let receiver_erased: Bool;
     let receiver_type: String;
     let return_type: String;
     let param_count: Int;
@@ -27,7 +28,7 @@ struct DirectMirRoutineSignatureFact {
 }
 
 func InvalidDirectMirRoutineSignatureFact() -> DirectMirRoutineSignatureFact {
-    return DirectMirRoutineSignatureFact(false, 0, 0 - 1, "", "", 0, 0, "", -1, "", "", 0,
+    return DirectMirRoutineSignatureFact(false, 0, 0 - 1, "", "", 0, 0, "", -1, false, "", "", 0,
         DirectMirRoutineParameterSetFactInvalid(),
         InvalidDirectMirRoutineParamFact()
     );
@@ -41,6 +42,8 @@ func DirectMirRoutineSignatureFactDigest(ref fact: DirectMirRoutineSignatureFact
     hash = DirectMirCfgHashInt(hash, fact.source_parameter_offset);
     hash = DirectMirCfgHashString(hash, fact.receiver_carriage);
     hash = DirectMirCfgHashInt(hash, fact.receiver_owner_row);
+    if fact.receiver_erased { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
     hash = DirectMirCfgHashString(hash, fact.receiver_type);
     hash = DirectMirCfgHashString(hash, fact.return_type);
     hash = DirectMirCfgHashInt(hash, fact.param_count);
@@ -54,7 +57,7 @@ func DirectMirRoutineSignatureFactWithDigest(
     return DirectMirRoutineSignatureFact(
         fact.valid, digest, fact.row, fact.name, fact.kind,
         fact.source_syntax_id, fact.source_parameter_offset,
-        fact.receiver_carriage, fact.receiver_owner_row,
+        fact.receiver_carriage, fact.receiver_owner_row, fact.receiver_erased,
         fact.receiver_type, fact.return_type,
         fact.param_count, fact.parameters, fact.param
     );
@@ -62,14 +65,15 @@ func DirectMirRoutineSignatureFactWithDigest(
 
 func DirectMirRoutineSignatureFactReady(ref fact: DirectMirRoutineSignatureFact) -> Bool {
     var receiver_ready: Bool = (fact.kind == "function" || fact.kind == "intent") &&
-        fact.source_parameter_offset == 0 && fact.receiver_carriage == "none" &&
+        fact.source_parameter_offset == 0 && fact.receiver_carriage == "none" && !fact.receiver_erased &&
         fact.receiver_owner_row == -1 && fact.receiver_type == "";
     if fact.kind == "method" {
         var receiver_pass: String = "direct";
         if fact.receiver_carriage == "mutable-identity" {
             receiver_pass = "indirect";
         }
-        receiver_ready = (fact.receiver_carriage == "value" ||
+        receiver_ready = (!fact.receiver_erased || fact.receiver_carriage == "mutable-identity") &&
+            (fact.receiver_carriage == "value" ||
             fact.receiver_carriage == "mutable-identity") &&
             fact.receiver_owner_row >= -1 && fact.receiver_type != "" &&
             (fact.source_parameter_offset == 0 ||

@@ -58,6 +58,11 @@ func DirectMirScalarProgramDirectCallFactFromGraph(
     if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(callables, callable_ordinal) {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
+    // A role body is not a free function. Its binding authority cannot be
+    // manufactured by passing a concrete receiver as argument zero.
+    if routine_instances.signatures[callable_ordinal].receiver_erased {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
+    }
     let callable_row: Int = callable_ordinal - 1;
     if sequence.arena.call_target_names[chain.call_node] !=
             callables.source_names[callable_row] ||

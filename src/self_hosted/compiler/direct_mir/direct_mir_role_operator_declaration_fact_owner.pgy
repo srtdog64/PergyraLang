@@ -65,13 +65,8 @@ func DirectMirRoleOperatorMethodDeclarationFromTable(
         !IsSome(method_id) || !MirProgramDeclarationFieldIdentityPositiveDecimal(UnwrapOption(method_id)) ||
         UnwrapOption(name) != expected_name || !IsSome(return_type) ||
         UnwrapOption(return_type) == "" || !IsSome(callable_kind) ||
-        UnwrapOption(callable_kind) != "function" || !contract.valid ||
-        contract.callable_kind != "function" ||
-        ArrayLength(contract.requires_bases) != 0 ||
-        contract.within_zone != "" || contract.causes_name != "" ||
-        ArrayLength(contract.authorized_by_names) != 0 ||
-        contract.caps_present || ArrayLength(contract.cap_names) != 0 ||
-        contract.effects_present || ArrayLength(contract.effect_names) != 0 ||
+        UnwrapOption(callable_kind) != "function" ||
+        !MirDeclarationMethodContractPlainFunction(contract) ||
         !DirectMirExactObjectArrayCount(params, 2) {
         return invalid;
     }

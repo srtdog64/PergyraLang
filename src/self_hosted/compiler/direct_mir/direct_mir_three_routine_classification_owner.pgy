@@ -28,8 +28,6 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
         InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
     var mixed_shape: DirectMirThreeRoutineMixedConstructedMemberShapeFact =
         InvalidDirectMirThreeRoutineMixedConstructedMemberShapeFact();
-    var role_override: DirectMirRoleOverrideProgramIdentity =
-        InvalidDirectMirRoleOverrideProgramIdentity();
     var kind: String = "";
     if DirectMirArrayArgumentLegacyRouteClaimed(admitted) &&
         declarations == 0 && specialization_count == 0 &&
@@ -65,12 +63,6 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
         kind = DirectMirThreeRoutineMixedConstructedGenericMember();
     } else if declarations == 2 && specialization_count == 0 &&
         generic_routine_count == 0 &&
-        DirectMirRoleOverrideFamilyClaimed(admitted) {
-        role_override =
-            DirectMirRoleOverrideProgramIdentityFromAdmitted(admitted);
-        kind = DirectMirThreeRoutineRoleOverride();
-    } else if declarations == 2 && specialization_count == 0 &&
-        generic_routine_count == 0 &&
         DirectMirStructArgumentProgramEnvelopeReady(admitted) {
         kind = DirectMirThreeRoutineStructArgument();
     } else {
@@ -79,14 +71,14 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
     let fact: DirectMirThreeRoutineClassificationFact =
         DirectMirThreeRoutineClassificationFact(
             true, 0, kind, declarations,
-            specialization_count, generic_routine_count, role_override,
+            specialization_count, generic_routine_count,
             constructed_shape, mixed_shape
         );
     let verified: DirectMirThreeRoutineClassificationFact =
         DirectMirThreeRoutineClassificationFact(
             fact.valid, DirectMirThreeRoutineClassificationFactDigest(fact),
             fact.kind, fact.declaration_count, fact.specialization_count,
-            fact.generic_routine_count, fact.role_override_program,
+            fact.generic_routine_count,
             fact.constructed_member_shape,
             fact.mixed_constructed_member_shape
         );

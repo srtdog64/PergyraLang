@@ -45,6 +45,7 @@ func DirectMirRoutineSignatureWithGenericEnvelopeAt(
     }
     var receiver_type: String = "";
     var receiver_owner: Int = -1;
+    var receiver_erased: Bool = false;
     var source_parameter_offset: Int = 0;
     var parameters: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFactInvalid();
     if routines.kinds[row] == "method" {
@@ -56,6 +57,7 @@ func DirectMirRoutineSignatureWithGenericEnvelopeAt(
         if !method.valid { return InvalidDirectMirRoutineSignatureFact(); }
         receiver_type = method.receiver_type;
         receiver_owner = method.receiver_owner_row;
+        receiver_erased = method.receiver_erased;
         source_parameter_offset = method.source_parameter_offset;
         parameters = method.parameters;
     } else if routines.kinds[row] == "intent" {
@@ -89,7 +91,7 @@ func DirectMirRoutineSignatureWithGenericEnvelopeAt(
         true, 0, row, symbol, routines.kinds[row],
         ToInt(routines.source_syntax_ids[row]), source_parameter_offset,
         routines.receiver_carriages[row],
-        receiver_owner, receiver_type,
+        receiver_owner, receiver_erased, receiver_type,
         return_type, param_count, parameters, param
     );
     let verified: DirectMirRoutineSignatureFact =

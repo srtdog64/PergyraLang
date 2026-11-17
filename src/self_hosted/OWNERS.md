@@ -3623,22 +3623,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   four-field Array storage projection. It owns internal linkage and allocator
   spelling for the selected target; family emitters retain element-specific
   input/output and nominal ABI projection but may not re-own flow constants.
-- `src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy`
-  -- exact declaration, routine, SyntaxNodeId, literal, construction, and
-  subject-bound call identity for the bounded three-routine direct role
-  override family. It admits from carried MIR facts without source, AST,
-  fixture-name, or row-order recovery.
-- `src/self_hosted/compiler/direct_mir/direct_mir_role_override_plan_owner.pgy` -- one
-  target-neutral sealed plan preserving the ordinary subject call and the
-  separately emitted role body, nominal ABI evidence, and direct mutable
-  subject carriage.
-- `src/self_hosted/compiler/direct_mir/direct_mir_role_override_target_projection_owner.pgy`
-  -- one target-bound ABI projection derived from the sealed plan. It owns the
-  C/LLVM field type and alignment plus subject and erased-role receiver types;
-  target emitters cannot reopen or hard-code those facts.
-- `src/self_hosted/compiler/direct_mir/direct_mir_role_override_emission_owner.pgy` --
-  final runtime-free C/textual-LLVM consumers and target-exclusive composition
-  boundary. Neither target reopens MIR or silently rebinds the ordinary call.
+- `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_role_declaration_owner.pgy`
+  -- represented role/ability methods and impl ranges joined to the admitted
+  routine signature and concrete identity cell. The general routine partition
+  carries receiver erasure to the C/LLVM emitters. Malformed claimed role facts
+  terminate dispatch; ordinary calls cannot manufacture a role binding.
 - `src/self_hosted/compiler/direct_mir/direct_mir_role_operator_declaration_fact_owner.pgy`
   -- exact role/ability/impl/method declaration admission from the carried MIR
   rows, including method identity, target type, signature, and role range

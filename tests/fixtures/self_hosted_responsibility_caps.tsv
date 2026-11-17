@@ -14,7 +14,6 @@ src/self_hosted/semantic/diagnostic_owner.pgy|680
 src/self_hosted/compiler/direct_mir/direct_mir_composite_intent_program_plan_owner.pgy|900
 src/self_hosted/compiler/direct_mir/direct_mir_composite_intent_program_llvm_emission_owner.pgy|860
 # Receiver identity is one authority; the separate family aggregate stays 1250.
-src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy|800
 # Grown past the 600 stage default while the bootstrap red hid this gate;
 # pinned at the closure checkpoint size until each owner is split.
 src/self_hosted/semantic/ast_collection/ast_collection_aggregate_release_transition_owner.pgy|710

@@ -1,13 +1,13 @@
 # Current blocker
 
-Owner: GPT root integration. The user resumed the self-compile memory plan
-on 2026-11-17 from main `5b0d354fb`; other paused tracks are not reopened.
+Owner: GPT root integration. Resumed from `5b0d354fb` on 2026-11-17;
+other paused tracks are not reopened. Publication/CI belong to [main](main.md).
 
-A1 and the array OOM repair are published at `3a0a385b7`; CI 44045107368
-passed all 33 jobs ([evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md)).
-String is published at `1ff353e89`; its missed phi header consumer has a [tested correction](../evidence/2026-11-17_selfhost_string_ci_header_fix.md) awaiting publication.
-Full DRV-2 still exceeds the memory boundary, now with explicit OOM / exit 134.
-Resume role ABI preparation only after this CI correction, then follow the [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
+The general role ABI candidate [passed its installed-driver checks](../evidence/2026-11-17_selfhost_memory_role_receiver_migration.md).
+The full fixed MIR now stops at `collection_ownership_transition`, ordinal
+1054, `AstMatchCasePatternFactFromText`. Next: publish/observe CI, then the
+[memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md)'s owned-value/retire S1/S2 and existing transition reader.
+The one-process DRV-2 memory goal remains unestablished ([measurements](measurements.md)).
 
 ## Objective card
 

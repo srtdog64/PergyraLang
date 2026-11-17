@@ -8,11 +8,12 @@ struct MirProgramRoutineReceiverTargetCapture {
     let valid: Bool;
     let type_name: String;
     let declaration_row: Int;
+    let erased: Bool;
 }
 
 func MirProgramRoutineReceiverTargetInvalid(
 ) -> MirProgramRoutineReceiverTargetCapture {
-    return MirProgramRoutineReceiverTargetCapture(false, "", -1);
+    return MirProgramRoutineReceiverTargetCapture(false, "", -1, false);
 }
 
 // A role owns method identity, but its `for_type` owns the runtime receiver
@@ -33,7 +34,7 @@ func CaptureMirProgramRoutineReceiverTarget(
     }
     if owner_nominal_kind != "role" {
         return MirProgramRoutineReceiverTargetCapture(
-            true, owner, owner_declaration_row);
+            true, owner, owner_declaration_row, false);
     }
     let raw_target: Option<String> = MirObjectUniqueStringFactAtBounds(
         json, json_extent, declarations.starts[owner_declaration_row],
@@ -63,5 +64,5 @@ func CaptureMirProgramRoutineReceiverTarget(
         }
     }
     return MirProgramRoutineReceiverTargetCapture(
-        true, target.canonical_name, target_row);
+        true, target.canonical_name, target_row, true);
 }

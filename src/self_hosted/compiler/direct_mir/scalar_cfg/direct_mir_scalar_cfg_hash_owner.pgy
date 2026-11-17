@@ -2,6 +2,17 @@
 
 import "../../../air/mir_cfg_identity_owner.pgy";
 
+func DirectMirScalarCfgHashBools(hash: Long, ref values: Array<Bool>) -> Long {
+    hash = DirectMirCfgHashInt(hash, ArrayLength(values));
+    var row: Int = 0;
+    while row < ArrayLength(values) {
+        if values[row] { hash = DirectMirCfgHashInt(hash, 1); }
+        else { hash = DirectMirCfgHashInt(hash, 0); }
+        row = row + 1;
+    }
+    return hash;
+}
+
 func DirectMirScalarCfgHashInts(hash: Long, ref values: Array<Int>) -> Long {
     hash = DirectMirCfgHashInt(hash, ArrayLength(values));
     var row: Int = 0;

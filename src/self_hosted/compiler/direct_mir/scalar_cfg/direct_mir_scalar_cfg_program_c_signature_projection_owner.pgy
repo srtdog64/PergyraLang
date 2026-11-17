@@ -74,6 +74,11 @@ func DirectMirScalarCfgProgramCSignature(ref plan: DirectMirScalarCfgGraphPlan,
     let start: Int = plan.routines.parameter_starts[routine];
     while ordinal < plan.routines.parameter_counts[routine] {
         if ordinal > 0 { output = Concat(output, ", "); }
+        if ordinal == 0 && plan.routines.receiver_erasures[routine] {
+            output = Concat(output, "void *pgy_param_0_erased");
+            ordinal = ordinal + 1;
+            continue;
+        }
         let value_result: Bool = DirectMirScalarProgramParameterValueResultAt(
             plan, routine, ordinal);
         let parameter_row: Int = start + ordinal;
@@ -139,5 +144,19 @@ func DirectMirScalarCfgProgramCSignature(ref plan: DirectMirScalarCfgGraphPlan,
     // -Wall -Werror; the attribute carries to the definition.
     if prototype { return Concat(output, " __attribute__((unused));\n"); }
     return output;
+}
+
+// The erased ABI carries the same admitted identity pointer. Binding it here
+// preserves mutation of the caller's cell; no target value is copied.
+func DirectMirScalarCfgProgramCRoleReceiverBinding(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    if !plan.routines.receiver_erasures[routine] { return ""; }
+    let parameter: Int = plan.routines.parameter_starts[routine];
+    let target: String = DirectMirIdentityCellCType(
+        plan.program.logical_record.identity_cells,
+        plan.routines.parameter_types[parameter]);
+    if target == "" { Die("direct MIR erased receiver target ABI is missing"); }
+    return "    ${target} *pgy_param_0 = (${target} *)pgy_param_0_erased;\n";
 }
 

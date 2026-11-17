@@ -8,7 +8,6 @@ import "direct_mir_generic_struct_value_flow_projection_owner.pgy";
 import "direct_mir_inferred_generic_scalar_projection_owner.pgy";
 import "direct_mir_constructed_generic_member_projection_owner.pgy";
 import "direct_mir_constructed_record_array_member_projection_owner.pgy";
-import "direct_mir_role_override_emission_owner.pgy";
 
 func CompileAdmittedDirectMirThreeRoutine(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -59,12 +58,6 @@ func CompileAdmittedDirectMirThreeRoutine(
     if classification.kind == DirectMirThreeRoutineGenericNominal() {
         return CompileAdmittedDirectMirGenericStructValueFlow(
             admitted, classification, is_llvm, formatted_print, line_format
-        );
-    }
-    if classification.kind == DirectMirThreeRoutineRoleOverride() {
-        return CompileAdmittedDirectMirRoleOverride(
-            classification.role_override_program, target_projection,
-            is_llvm, formatted_print
         );
     }
     if classification.kind == DirectMirThreeRoutineStructArgument() {

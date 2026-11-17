@@ -213,9 +213,15 @@ func OwnedResultProbePlan(layers: Int, mode: String) -> DirectMirScalarCfgGraphP
         blockOperationCounts[0] = 1;
         blockOperationCounts[1] = 1;
     }
+    var receiverErasures: Array<Bool> = [];
+    var receiverRow: Int = 0;
+    while receiverRow < ArrayLength(roles) {
+        ArrayPush(receiverErasures, false);
+        receiverRow = receiverRow + 1;
+    }
     let partition: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgRoutinePartitionFact(true, 1, 0, roles, sourceRows,
-            syntaxIds, keys, names, returnTypes, keys, zeros, parameterCounts,
+            syntaxIds, keys, names, returnTypes, keys, zeros, receiverErasures, parameterCounts,
             parameterStarts, parameterTypes, parameterCarriages,
             parameterFlowMasks, parameterArrayPreserved, zeros, zeros,
             localStarts, localCounts, zeros, zeros, blockStarts, blockCounts,

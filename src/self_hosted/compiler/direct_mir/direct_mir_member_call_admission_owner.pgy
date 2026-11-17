@@ -29,7 +29,7 @@ func DirectMirMemberCallFromGraph(
     let signature: DirectMirRoutineSignatureFact =
         DirectMirRoutineInstanceSignatureAt(routine_instances, ordinal);
     if !DirectMirRoutineSignatureFactReady(signature) ||
-        signature.kind != "method" {
+        signature.kind != "method" || signature.receiver_erased {
         return invalid;
     }
     let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, call);

@@ -15,6 +15,7 @@ struct DirectMirScalarCfgProgramRoutineIdentity {
     let return_types: Array<String>;
     let receiver_carriages: Array<String>;
     let receiver_owner_rows: Array<Int>;
+    let receiver_erasures: Array<Bool>;
     let parameter_counts: Array<Int>;
     let parameter_starts: Array<Int>;
     let parameter_types: Array<String>;

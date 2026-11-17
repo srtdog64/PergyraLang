@@ -161,6 +161,10 @@ command -v "$CC" >/dev/null || fail "missing C compiler"
 command -v "$CLANG" >/dev/null || fail "missing clang"
 pgy_selfhost_select_emitted_c_compile_profile || fail "invalid emitted-C profile"
 mkdir -p "$WORK"
+if [[ -d "$WORK/general-negatives" ]]; then
+    rm -f "$WORK/general-negatives"/*.negative.json
+    rmdir "$WORK/general-negatives" || fail "unexpected files in the owned negative-fixture directory"
+fi
 rm -f "$WORK"/*
 
 while IFS='|' read -r owner cap; do
@@ -169,20 +173,11 @@ while IFS='|' read -r owner cap; do
     [[ "$source_size_lines" -le "$cap" ]] ||
         fail "$owner exceeds $cap lines"
 done <<'OWNERS'
-src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy|800
-src/self_hosted/compiler/direct_mir/direct_mir_role_override_plan_owner.pgy|120
-src/self_hosted/compiler/direct_mir/direct_mir_role_override_target_projection_owner.pgy|110
-src/self_hosted/compiler/direct_mir/direct_mir_role_override_emission_owner.pgy|220
+src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_role_declaration_owner.pgy|400
 src/self_hosted/codegen/emission/implicit_receiver_c_parameter_owner.pgy|60
 src/self_hosted/codegen/emission/function_emit.pgy|500
 src/self_hosted/codegen/emission/function_prototype_block_owner.pgy|270
 OWNERS
-family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_role_override_program_identity_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_role_override_plan_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_role_override_target_projection_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir/direct_mir_role_override_emission_owner.pgy")" || fail "role override family measurement failed"
-[[ "$family_lines" -le 1250 ]] || fail "role override owner family exceeds 1250 lines"
 
 (cd "$ROOT_DIR" && "$DRIVER" --ast "$SOURCE_REL") \
     >"$WORK/direct.ast" 2>"$WORK/direct.ast.err"
@@ -234,42 +229,48 @@ project llvm "$MIR" "$WORK/direct-mir.ll"
 [[ "$(hash_file "$MIR")" == "$mir_hash" ]] || fail "projection mutated MIR"
 compile_run c "$WORK/direct-mir.c" direct-mir-c mir
 compile_run llvm "$WORK/direct-mir.ll" direct-mir-llvm mir
-grep -Fq 'OverrideTarget_Name(OverrideTarget *self)' "$WORK/direct-mir.c" ||
-    fail "direct C lost the subject receiver"
-grep -Fq 'OverrideSurface_Name(void *self)' "$WORK/direct-mir.c" ||
-    fail "direct C lost the erased role receiver"
-cp "$WORK/direct-mir.c" "$WORK/direct-mir-role-slot.c"
-printf '\nconst char *(*pgy_role_slot)(void *) = OverrideSurface_Name;\n' \
-    >>"$WORK/direct-mir-role-slot.c"
-"$CC" -x c -std=c11 -Wall -Wextra -Werror \
-    "$WORK/direct-mir-role-slot.c" -o "$WORK/direct-mir-role-slot.exe" \
-    >"$WORK/direct-mir-role-slot.build" 2>&1 || {
-        cat "$WORK/direct-mir-role-slot.build" >&2
-        fail "direct C role slot does not preserve its erased receiver ABI"
-    }
-grep -Fq 'OverrideTarget_Name(&target)' "$WORK/direct-mir.c" ||
-    fail "direct C did not call the subject method"
-! grep -Fq 'OverrideSurface_Name(&target)' "$WORK/direct-mir.c" ||
-    fail "direct C rebound the ordinary call to the override"
-grep -Fq 'call ptr @OverrideTarget_Name(ptr %pgy.subject)' "$WORK/direct-mir.ll" ||
-    fail "direct LLVM did not call the subject method"
-! grep -Fq 'call ptr @OverrideSurface_Name(ptr %pgy.subject)' "$WORK/direct-mir.ll" ||
-    fail "direct LLVM rebound the ordinary call to the override"
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/domain/role_receiver_artifact_abi_probe.py" \
+    "$WORK/direct-mir.c" "$WORK/direct-mir-role-slot.c" --cc "$CC" \
+    --labels override --main-output base
 
 for variant in declaration-order routine-order both-orders; do
     project c "$WORK/$variant.positive.json" "$WORK/$variant.c"
     project llvm "$WORK/$variant.positive.json" "$WORK/$variant.ll"
-    cmp -s "$WORK/direct-mir.c" "$WORK/$variant.c" ||
-        fail "$variant changed direct C"
-    cmp -s "$WORK/direct-mir.ll" "$WORK/$variant.ll" ||
-        fail "$variant changed direct LLVM"
+    compile_run c "$WORK/$variant.c" "$variant-c" mir
+    compile_run llvm "$WORK/$variant.ll" "$variant-llvm" mir
 done
 negative_count=0
 for input in "$WORK"/*.negative.json; do
     reject_mir "$input"
     negative_count=$((negative_count + 1))
 done
-[[ "$negative_count" -eq 16 ]] || fail "expected 16 MIR negatives, got $negative_count"
+[[ "$negative_count" -eq 17 ]] || fail "expected 17 MIR negatives, got $negative_count"
+
+GENERAL_REL="tests/self_hosted/fixtures/direct_mir_role_receiver_generality.pgy"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$GENERAL_REL") \
+    >"$WORK/general.mir.json" 2>"$WORK/general.mir.err"
+for target in c llvm; do
+    artifact="$WORK/general.$target"
+    [[ "$target" != llvm ]] || artifact="$WORK/general.ll"
+    project "$target" "$WORK/general.mir.json" "$artifact"
+    compile_run "$target" "$artifact" "general-$target" mir 33
+done
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/domain/role_receiver_artifact_abi_probe.py" \
+    "$WORK/general.c" "$WORK/general-role-slots.c" --cc "$CC" \
+    --labels first second --main-output 33 --mutators 2 \
+    --llvm-artifact "$WORK/general.ll" --clang "$CLANG"
+mkdir -p "$WORK/general-negatives"
+"$PYTHON_BIN" "$MUTATOR" "$WORK/general.mir.json" "$WORK/general-negatives" --generality
+for input in "$WORK/general-negatives"/*.negative.json; do
+    reject_mir "$input"
+    if [[ "$input" == *impl-* ]]; then
+        for target in c llvm; do
+            grep -Fq 'owner=role-declaration' "$WORK/rejected-$target-${input##*/}.out" \
+                "$WORK/rejected-$target-${input##*/}.err" ||
+                fail "$target lost the role declaration refusal owner"
+        done
+    fi
+done
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-c-artifact-verified \
     "$SOURCE_REL" "$WORK_REL/direct-source.c") \
@@ -364,4 +365,4 @@ reject_source native-bad-c "$WORK/native-bad.c" "$PGY" --native-pipeline \
 reject_source native-bad-llvm "$WORK/native-bad.ll" "$PGY" --native-pipeline \
     "$BAD_REL" --emit-llvm -o "$WORK_REL/native-bad.ll"
 
-echo "[$LABEL] PASS: AST/MIR parity; 8 role C/LLVM runtime legs + 3 receiver runtimes + 14 source negatives; 3 permutations + 16 MIR negatives"
+echo "[$LABEL] PASS: general role C/LLVM execution, erased slots and caller-cell mutation; AST/MIR parity, permutations and source/MIR negatives"

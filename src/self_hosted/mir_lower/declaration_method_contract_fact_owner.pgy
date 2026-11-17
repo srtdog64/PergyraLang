@@ -25,6 +25,20 @@ struct MirDeclarationMethodContractFact {
     effect_names: Array<String>;
 }
 
+func MirDeclarationMethodContractPlainFunction(
+    ref contract: MirDeclarationMethodContractFact
+) -> Bool {
+    return contract.valid && contract.callable_kind == "function" &&
+        ArrayLength(contract.requires_bases) == 0 &&
+        ArrayLength(contract.requires_actual_starts) == 0 &&
+        ArrayLength(contract.requires_actual_counts) == 0 &&
+        ArrayLength(contract.requires_actual_names) == 0 &&
+        contract.within_zone == "" && contract.causes_name == "" &&
+        ArrayLength(contract.authorized_by_names) == 0 &&
+        !contract.caps_present && ArrayLength(contract.cap_names) == 0 &&
+        !contract.effects_present && ArrayLength(contract.effect_names) == 0;
+}
+
 func MirDeclarationMethodContractEmpty(
     diagnostic: String
 ) -> MirDeclarationMethodContractFact {

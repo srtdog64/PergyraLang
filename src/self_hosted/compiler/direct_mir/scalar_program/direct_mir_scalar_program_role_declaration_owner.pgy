@@ -1,16 +1,390 @@
-// The scalar program route checks neither a role's override identities nor
-// its erased receiver ABI, so a program with a role declaration is the role
-// override route's to admit.
-import "../../../mir_lower/program_declaration_index_owner.pgy";
+// Join represented role contracts to admitted callable/receiver identities.
+// This validates an erased identity ABI, not missing source-level ability facts.
+import "../direct_mir_routine_instance_inventory_owner.pgy";
+import "../direct_mir_exact_json_array_cardinality_owner.pgy";
+import "../direct_mir_scalar_graph_admission_owner.pgy";
+import "../../../mir_lower/declaration_method_contract_fact_owner.pgy";
 
-func DirectMirScalarProgramRoleDeclarationPresent(
-    ref declarations: MirProgramDeclarationIndex
-) -> Bool {
+struct DirectMirScalarProgramRoleMethodDeclaration {
+    let valid: Bool;
+    let source_syntax_id: Int;
+    let name: String;
+    let return_type: String;
+    let explicit_receiver: Bool;
+    let parameter_names: Array<String>;
+    let parameter_types: Array<String>;
+    let plain_contract: Bool;
+}
+
+struct DirectMirScalarProgramRoleDeclarationAssessment {
+    let supported: Bool;
+    let terminal: Bool;
+    let stage: String;
+    let name: String;
+}
+
+func DirectMirScalarProgramRoleMethodDeclarationInvalid(
+) -> DirectMirScalarProgramRoleMethodDeclaration {
+    let strings: Array<String> = [];
+    return DirectMirScalarProgramRoleMethodDeclaration(
+        false, 0, "", "", false, strings, strings, false);
+}
+
+func DirectMirScalarProgramRoleMethodDeclarationFromTable(
+    ref method: JsonObjectFactTable
+) -> DirectMirScalarProgramRoleMethodDeclaration {
+    let invalid: DirectMirScalarProgramRoleMethodDeclaration =
+        DirectMirScalarProgramRoleMethodDeclarationInvalid();
+    let name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.json_extent, method.start, method.end, "name");
+    let result: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.json_extent, method.start, method.end, "return");
+    let source: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        method.json, method.json_extent, method.start, method.end, "source_syntax_id");
+    let contract: MirDeclarationMethodContractFact =
+        MirDeclarationMethodContractFactFromBounds(
+            method.json, method.json_extent, method.start, method.end);
+    let params: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(method, "params");
+    let count: Int = JsonArrayObjectFactCount(params);
+    if !JsonObjectFactTableReady(method) || JsonObjectFactCount(method) != 6 ||
+        !IsSome(name) || UnwrapOption(name) == "" ||
+        !IsSome(result) || UnwrapOption(result) == "" || !contract.valid ||
+        !IsSome(source) || !MirProgramDeclarationFieldIdentityPositiveDecimal(UnwrapOption(source)) ||
+        ToString(ToInt(UnwrapOption(source))) != UnwrapOption(source) ||
+        !DirectMirExactObjectArrayCount(params, count) { return invalid; }
+    var names: Array<String> = [];
+    var types: Array<String> = [];
+    var explicit_receiver: Bool = false;
     var row: Int = 0;
-    while row < MirProgramDeclarationIndexCount(declarations) {
-        if declarations.kinds[row] == "role" ||
-            declarations.nominal_kinds[row] == "role" { return true; }
+    while row < count {
+        let param: JsonObjectFactTable = JsonArrayObjectFactAt(params, row);
+        let param_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+            param.json, param.json_extent, param.start, param.end, "name");
+        if JsonObjectFactCount(param) != 2 || !IsSome(param_name) ||
+            UnwrapOption(param_name) == "" { return invalid; }
+        let parameter_name: String = UnwrapOption(param_name);
+        if parameter_name == "self" {
+            if row != 0 || !DirectMirObjectFieldKindEquals(param, "type", "null") { return invalid; }
+            explicit_receiver = true;
+        } else {
+            let param_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+                param.json, param.json_extent, param.start, param.end, "type");
+            if !IsSome(param_type) || UnwrapOption(param_type) == "" { return invalid; }
+            var prior: Int = 0;
+            while prior < ArrayLength(names) {
+                if names[prior] == parameter_name { return invalid; }
+                prior = prior + 1;
+            }
+            ArrayPush(names, parameter_name);
+            ArrayPush(types, UnwrapOption(param_type));
+        }
         row = row + 1;
     }
-    return false;
+    return DirectMirScalarProgramRoleMethodDeclaration(
+        true, ToInt(UnwrapOption(source)), UnwrapOption(name), UnwrapOption(result),
+        explicit_receiver, names, types, MirDeclarationMethodContractPlainFunction(contract));
+}
+
+// Both source spellings normalize to the same leading receiver parameter.
+// Non-receiver parameter names are local; their types and result are ABI.
+func DirectMirScalarProgramRoleMethodPrototypeMatches(
+    implementation: DirectMirScalarProgramRoleMethodDeclaration,
+    prototype: DirectMirScalarProgramRoleMethodDeclaration
+) -> Bool {
+    if !implementation.valid || !prototype.valid ||
+        !implementation.plain_contract || !prototype.plain_contract ||
+        implementation.source_syntax_id == prototype.source_syntax_id ||
+        implementation.name != prototype.name || implementation.return_type != prototype.return_type ||
+        ArrayLength(implementation.parameter_types) != ArrayLength(prototype.parameter_types) { return false; }
+    var row: Int = 0;
+    while row < ArrayLength(implementation.parameter_types) {
+        if implementation.parameter_types[row] != prototype.parameter_types[row] { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramRoleMethodRoutineJoined(
+    ref method: DirectMirScalarProgramRoleMethodDeclaration,
+    role_row: Int, ref routines: MirProgramRoutineIndex,
+    ref instances: DirectMirRoutineInstanceInventory
+) -> Bool {
+    var found: Int = -1;
+    var ordinal: Int = 0;
+    while ordinal < ArrayLength(instances.signatures) {
+        if instances.signatures[ordinal].source_syntax_id == method.source_syntax_id {
+            if found >= 0 { return false; }
+            found = ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    if found < 0 { return false; }
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(instances, found);
+    let source_row: Int = instances.source_rows[found];
+    let cell_row: Int = DirectMirIdentityCellRow(instances.identity_cells, signature.receiver_type);
+    var offset: Int = 1;
+    if method.explicit_receiver { offset = 0; }
+    if !DirectMirRoutineSignatureFactReady(signature) || !signature.receiver_erased ||
+        signature.kind != "method" || cell_row < 0 ||
+        signature.receiver_owner_row != instances.identity_cells.declaration_rows[cell_row] ||
+        signature.name != CompilerSymbolCQualifiedName(routines.declarations.names[role_row], method.name) ||
+        routines.owners[source_row] != routines.declarations.names[role_row] ||
+        routines.source_module_paths[source_row] != routines.declarations.source_module_paths[role_row] ||
+        signature.source_parameter_offset != offset || signature.return_type != method.return_type ||
+        signature.param_count != ArrayLength(method.parameter_types) + 1 { return false; }
+    ordinal = 0;
+    while ordinal < ArrayLength(method.parameter_types) {
+        if signature.parameters.names[ordinal + 1] != method.parameter_names[ordinal] ||
+            signature.parameters.type_names[ordinal + 1] != method.parameter_types[ordinal] { return false; }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}
+
+// Ordinary nominal declaration rows omit params in pgy.mir.v1. Their joined
+// routine signature owns the complete prototype; absence never means arity 0.
+func DirectMirScalarProgramRoleOverridePrototypeJoined(
+    method: DirectMirScalarProgramRoleMethodDeclaration,
+    ref prototype: JsonObjectFactTable, target_row: Int,
+    ref routines: MirProgramRoutineIndex, ref instances: DirectMirRoutineInstanceInventory
+) -> Bool {
+    let name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        prototype.json, prototype.json_extent, prototype.start, prototype.end, "name");
+    let source: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        prototype.json, prototype.json_extent, prototype.start, prototype.end, "source_syntax_id");
+    let result: Option<String> = MirObjectUniqueStringFactAtBounds(
+        prototype.json, prototype.json_extent, prototype.start, prototype.end, "return");
+    let contract: MirDeclarationMethodContractFact = MirDeclarationMethodContractFactFromBounds(
+        prototype.json, prototype.json_extent, prototype.start, prototype.end);
+    if JsonObjectFactCount(prototype) != 5 || !IsSome(name) || UnwrapOption(name) != method.name ||
+        !IsSome(source) || !MirProgramDeclarationFieldIdentityPositiveDecimal(UnwrapOption(source)) ||
+        ToString(ToInt(UnwrapOption(source))) != UnwrapOption(source) ||
+        !IsSome(result) || UnwrapOption(result) != method.return_type ||
+        !MirDeclarationMethodContractPlainFunction(contract) { return false; }
+    var found: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(instances.signatures) {
+        if instances.signatures[row].source_syntax_id == ToInt(UnwrapOption(source)) {
+            if found >= 0 { return false; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 || ToInt(UnwrapOption(source)) == method.source_syntax_id { return false; }
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(instances, found);
+    let source_row: Int = instances.source_rows[found];
+    if !DirectMirRoutineSignatureFactReady(signature) || signature.receiver_erased ||
+        signature.kind != "method" || signature.receiver_owner_row != target_row ||
+        signature.name != CompilerSymbolCQualifiedName(routines.declarations.names[target_row], method.name) ||
+        routines.owners[source_row] != routines.declarations.names[target_row] ||
+        routines.source_module_paths[source_row] != routines.declarations.source_module_paths[target_row] ||
+        signature.return_type != method.return_type ||
+        signature.param_count != ArrayLength(method.parameter_types) + 1 { return false; }
+    row = 0;
+    while row < ArrayLength(method.parameter_types) {
+        if signature.parameters.type_names[row + 1] != method.parameter_types[row] { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramRoleImplsJoined(
+    ref role_table: JsonObjectFactTable,
+    ref methods: Array<DirectMirScalarProgramRoleMethodDeclaration>,
+    ref routines: MirProgramRoutineIndex, target_row: Int,
+    ref instances: DirectMirRoutineInstanceInventory
+) -> Bool {
+    let impls: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(role_table, "impls");
+    let impl_count: Int = JsonArrayObjectFactCount(impls);
+    if !DirectMirExactObjectArrayCount(impls, impl_count) { return false; }
+    var covered: Array<Bool> = [];
+    var row: Int = 0;
+    while row < ArrayLength(methods) { ArrayPush(covered, false); row = row + 1; }
+    var abilities: Array<String> = [];
+    var impl_row: Int = 0;
+    var previous_end: Int = 0;
+    while impl_row < impl_count {
+        let implementation: JsonObjectFactTable = JsonArrayObjectFactAt(impls, impl_row);
+        let impl_ability: JsonObjectFactTable = JsonObjectFactObjectTable(implementation, "ability");
+        let base: Option<String> = MirObjectUniqueStringFactAtBounds(
+            impl_ability.json, impl_ability.json_extent, impl_ability.start, impl_ability.end, "base");
+        let start_text: Option<String> = MirObjectUniqueNumberFactAtBounds(
+            implementation.json, implementation.json_extent, implementation.start, implementation.end, "method_start");
+        let count_text: Option<String> = MirObjectUniqueNumberFactAtBounds(
+            implementation.json, implementation.json_extent, implementation.start, implementation.end, "method_count");
+        if JsonObjectFactCount(implementation) != 3 || JsonObjectFactCount(impl_ability) != 2 ||
+            !IsSome(base) || UnwrapOption(base) == "" || !DirectMirObjectArrayEmpty(impl_ability, "actuals") ||
+            !IsSome(start_text) || !IsSome(count_text) { return false; }
+        let start: Int = ToInt(UnwrapOption(start_text));
+        let count: Int = ToInt(UnwrapOption(count_text));
+        if start < previous_end || count <= 0 || start > ArrayLength(methods) ||
+            count > ArrayLength(methods) - start || ToString(start) != UnwrapOption(start_text) ||
+            ToString(count) != UnwrapOption(count_text) { return false; }
+        previous_end = start + count;
+        let ability_name: String = UnwrapOption(base);
+        row = 0;
+        while row < ArrayLength(abilities) {
+            if abilities[row] == ability_name { return false; }
+            row = row + 1;
+        }
+        ArrayPush(abilities, ability_name);
+        var ability_row: Int = -1;
+        row = 0;
+        while row < MirProgramDeclarationIndexCount(routines.declarations) {
+            if routines.declarations.names[row] == ability_name &&
+                routines.declarations.kinds[row] == "ability" && routines.declarations.nominal_kinds[row] == "ability" {
+                if ability_row >= 0 { return false; }
+                ability_row = row;
+            }
+            row = row + 1;
+        }
+        if ability_row < 0 { return false; }
+        let ability_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            routines.source_json, routines.source_json_extent,
+            routines.declarations.starts[ability_row], routines.declarations.ends[ability_row]);
+        let prototypes: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(ability_table, "methods");
+        if JsonObjectFactCount(ability_table) != 7 || !DirectMirObjectArrayEmpty(ability_table, "fields") ||
+            !DirectMirExactObjectArrayCount(prototypes, count) { return false; }
+        row = 0;
+        while row < count {
+            let prototype_table: JsonObjectFactTable = JsonArrayObjectFactAt(prototypes, row);
+            let prototype: DirectMirScalarProgramRoleMethodDeclaration =
+                DirectMirScalarProgramRoleMethodDeclarationFromTable(prototype_table);
+            var match_row: Int = -1;
+            var candidate: Int = start;
+            while candidate < start + count {
+                if DirectMirScalarProgramRoleMethodPrototypeMatches(methods[candidate], prototype) {
+                    if match_row >= 0 { return false; }
+                    match_row = candidate;
+                }
+                candidate = candidate + 1;
+            }
+            if match_row < 0 || covered[match_row] { return false; }
+            covered[match_row] = true;
+            row = row + 1;
+        }
+        impl_row = impl_row + 1;
+    }
+    // Uncovered methods are direct overrides, joined to a target declaration.
+    let target: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        routines.source_json, routines.source_json_extent,
+        routines.declarations.starts[target_row], routines.declarations.ends[target_row]);
+    let target_methods: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(target, "methods");
+    let target_count: Int = JsonArrayObjectFactCount(target_methods);
+    if !DirectMirExactObjectArrayCount(target_methods, target_count) { return false; }
+    row = 0;
+    while row < ArrayLength(methods) {
+        if !covered[row] {
+            var matches: Int = 0;
+            var candidate: Int = 0;
+            while candidate < target_count {
+                let prototype_table: JsonObjectFactTable = JsonArrayObjectFactAt(target_methods, candidate);
+                if DirectMirScalarProgramRoleOverridePrototypeJoined(methods[row], prototype_table,
+                        target_row, routines, instances) { matches = matches + 1; }
+                candidate = candidate + 1;
+            }
+            if matches != 1 { return false; }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramRoleDeclarationsAssess(
+    ref routines: MirProgramRoutineIndex, ref instances: DirectMirRoutineInstanceInventory
+) -> DirectMirScalarProgramRoleDeclarationAssessment {
+    var role_count: Int = 0;
+    var row: Int = 0;
+    while row < MirProgramDeclarationIndexCount(routines.declarations) {
+        if routines.declarations.kinds[row] == "role" || routines.declarations.nominal_kinds[row] == "role" { role_count = role_count + 1; }
+        row = row + 1;
+    }
+    if role_count == 0 { return DirectMirScalarProgramRoleDeclarationAssessment(true, false, "ready", ""); }
+    var declaration_ids: Array<String> = [];
+    row = 0;
+    while row < MirProgramDeclarationIndexCount(routines.declarations) {
+        let source: Option<String> = MirProgramDeclarationSourceSyntaxIdAt(
+            routines.source_json, routines.source_json_extent, routines.declarations, row);
+        if !IsSome(source) { return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "source-identity", ""); }
+        ArrayPush(declaration_ids, UnwrapOption(source));
+        row = row + 1;
+    }
+    var seen_methods: Array<Int> = [];
+    row = 0;
+    while row < MirProgramDeclarationIndexCount(routines.declarations) {
+        if routines.declarations.kinds[row] != "role" && routines.declarations.nominal_kinds[row] != "role" {
+            row = row + 1;
+            continue;
+        }
+        let name: String = routines.declarations.names[row];
+        if routines.declarations.kinds[row] != "role" || routines.declarations.nominal_kinds[row] != "role" {
+            return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "declaration-schema", name);
+        }
+        var prior: Int = 0;
+        while prior < ArrayLength(declaration_ids) {
+            if prior != row && declaration_ids[prior] == declaration_ids[row] {
+                return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "source-identity", name);
+            }
+            prior = prior + 1;
+        }
+        let role_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            routines.source_json, routines.source_json_extent,
+            routines.declarations.starts[row], routines.declarations.ends[row]);
+        let method_table: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(role_table, "methods");
+        let count: Int = JsonArrayObjectFactCount(method_table);
+        if name == "" || JsonObjectFactCount(role_table) != 9 || !DirectMirObjectArrayEmpty(role_table, "fields") ||
+            !DirectMirExactObjectArrayCount(method_table, count) || count == 0 {
+            return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "declaration-schema", name);
+        }
+        var methods: Array<DirectMirScalarProgramRoleMethodDeclaration> = [];
+        var method_row: Int = 0;
+        var target_row: Int = -1;
+        while method_row < count {
+            let selected: JsonObjectFactTable = JsonArrayObjectFactAt(method_table, method_row);
+            let method: DirectMirScalarProgramRoleMethodDeclaration = DirectMirScalarProgramRoleMethodDeclarationFromTable(selected);
+            if !method.valid || !method.plain_contract {
+                return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "method-contract", name);
+            }
+            // The signature owner already resolved for_type. Consume that join.
+            var signature_row: Int = 0;
+            while signature_row < ArrayLength(instances.signatures) {
+                if instances.signatures[signature_row].source_syntax_id == method.source_syntax_id {
+                    let cell_row: Int = DirectMirIdentityCellRow(instances.identity_cells, instances.signatures[signature_row].receiver_type);
+                    if cell_row < 0 { return DirectMirScalarProgramRoleDeclarationAssessment(false, false, "receiver-unsupported", name); }
+                    if target_row >= 0 && target_row != instances.signatures[signature_row].receiver_owner_row {
+                        return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "receiver-join", name);
+                    }
+                    target_row = instances.signatures[signature_row].receiver_owner_row;
+                }
+                signature_row = signature_row + 1;
+            }
+            if !DirectMirScalarProgramRoleMethodRoutineJoined(method, row, routines, instances) {
+                return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "method-routine-join", name);
+            }
+            prior = 0;
+            while prior < ArrayLength(seen_methods) {
+                if seen_methods[prior] == method.source_syntax_id { return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "method-identity", name); }
+                prior = prior + 1;
+            }
+            prior = 0;
+            while prior < ArrayLength(declaration_ids) {
+                if ToInt(declaration_ids[prior]) == method.source_syntax_id { return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "method-identity", name); }
+                prior = prior + 1;
+            }
+            ArrayPush(seen_methods, method.source_syntax_id);
+            ArrayPush(methods, method);
+            method_row = method_row + 1;
+        }
+        var owned_routines: Int = 0;
+        prior = 0;
+        while prior < ArrayLength(instances.signatures) {
+            if routines.owners[instances.source_rows[prior]] == name { owned_routines = owned_routines + 1; }
+            prior = prior + 1;
+        }
+        if owned_routines != count || target_row < 0 || !DirectMirScalarProgramRoleImplsJoined(role_table, methods, routines, target_row, instances) {
+            return DirectMirScalarProgramRoleDeclarationAssessment(false, true, "impl-method-join", name);
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarProgramRoleDeclarationAssessment(true, false, "ready", "");
 }

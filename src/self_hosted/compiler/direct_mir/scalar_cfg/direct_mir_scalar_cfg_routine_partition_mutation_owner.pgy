@@ -17,7 +17,7 @@ func DirectMirScalarCfgRoutinePartitionMutationRejected(
         DirectMirScalarCfgRoutinePartitionFact(
             fact.valid, 0, fact.entrypoint_ordinal, fact.roles,
             fact.source_rows, fact.source_syntax_ids, fact.instance_keys, fact.names,
-            fact.return_types, fact.receiver_carriages, fact.receiver_owner_rows,
+            fact.return_types, fact.receiver_carriages, fact.receiver_owner_rows, fact.receiver_erasures,
             fact.parameter_counts, fact.parameter_starts,
             fact.parameter_types, fact.parameter_carriages,
             fact.parameter_flow_masks, fact.parameter_array_preserved,
@@ -31,7 +31,7 @@ func DirectMirScalarCfgRoutinePartitionMutationRejected(
             changed.valid, DirectMirScalarCfgRoutinePartitionDigest(changed),
             changed.entrypoint_ordinal, changed.roles, changed.source_rows,
             changed.source_syntax_ids, changed.instance_keys, changed.names, changed.return_types,
-            changed.receiver_carriages, changed.receiver_owner_rows,
+            changed.receiver_carriages, changed.receiver_owner_rows, changed.receiver_erasures,
             changed.parameter_counts, changed.parameter_starts,
             changed.parameter_types, changed.parameter_carriages,
             changed.parameter_flow_masks,

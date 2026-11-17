@@ -30,7 +30,7 @@ func DirectMirScalarProgramRouteAdmissionOwnerStageReady(
 ) -> Bool {
     if owner == "scalar-program-route" {
         return stage == "ready" || stage == "routine-count" || stage == "routine-instance" ||
-            stage == "declaration-index" || stage == "role-declaration" ||
+            stage == "declaration-index" || stage == "role-receiver-unsupported" ||
             stage == "opaque-readonly-zone" ||
             stage == "logical-record" || stage == "referenced-enum" ||
             stage == "payload-free-enum" ||
@@ -40,6 +40,18 @@ func DirectMirScalarProgramRouteAdmissionOwnerStageReady(
     }
     if owner == "identity-cell" {
         return stage == "declaration-inventory" || stage == "field-type-join";
+    }
+    if owner == "role-declaration" {
+        return stage == "source-identity" || stage == "declaration-schema" ||
+            stage == "method-contract" || stage == "receiver-join" ||
+            stage == "method-routine-join" || stage == "method-identity" ||
+            stage == "impl-method-join";
+    }
+    if owner == "role-declaration" {
+        return stage == "source-identity" || stage == "declaration-schema" ||
+            stage == "method-contract" || stage == "receiver-join" ||
+            stage == "method-routine-join" || stage == "method-identity" ||
+            stage == "impl-method-join";
     }
     if owner == "callable-route-envelope" {
         return stage == "signature" || stage == "parameter-count" ||
@@ -97,16 +109,16 @@ func DirectMirScalarProgramRouteAdmissionAccepted(
         true, route, "scalar-program-route", "ready", -1, "", -1, "", "");
 }
 
-// An identity-cell refusal is outside every direct-MIR route: a dispatcher
-// refuses it at once and never offers it to a later route.
+// Malformed claimed identity/role facts cannot be rescued by a legacy route.
 func DirectMirScalarProgramRouteAdmissionEndsDispatch(ref admission: DirectMirScalarProgramRouteAdmission) -> Bool {
-    return admission.valid && !admission.route.claimed && admission.owner == "identity-cell";
+    return admission.valid && !admission.route.claimed &&
+        (admission.owner == "identity-cell" || admission.owner == "role-declaration");
 }
 
 func DirectMirScalarProgramRouteAdmissionRefusal(ref admission: DirectMirScalarProgramRouteAdmission) -> CodegenRouteRefusal {
     if !DirectMirScalarProgramRouteAdmissionReady(admission) || admission.route.claimed {
         Die("direct MIR scalar program route admission receipt is invalid"); }
-    if DirectMirScalarProgramRouteAdmissionEndsDispatch(admission) { return CodegenRouteRefusal(
+    if admission.owner == "identity-cell" { return CodegenRouteRefusal(
         admission.owner, admission.stage, "direct MIR identity cell declaration inventory is invalid"); }
     return CodegenRouteRefusal(admission.owner, admission.stage, Concat(
         "direct MIR scalar program route rejected: owner=", Concat(admission.owner,
@@ -141,8 +153,14 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
         "scalar-program-route", "routine-count", -1, "", -1, "", ""); }
     if !JsonArrayObjectFactTableReady(admitted.document.declarations) { return DirectMirScalarProgramRouteAdmissionRejected(
         "scalar-program-route", "declaration-index", -1, "", -1, "", ""); }
-    if DirectMirScalarProgramRoleDeclarationPresent(admitted.routines.declarations) { return DirectMirScalarProgramRouteAdmissionRejected(
-        "scalar-program-route", "role-declaration", -1, "", -1, "", ""); }
+    let roles: DirectMirScalarProgramRoleDeclarationAssessment =
+        DirectMirScalarProgramRoleDeclarationsAssess(admitted.routines, routine_instances);
+    if !roles.supported {
+        if roles.terminal { return DirectMirScalarProgramRouteAdmissionRejected(
+            "role-declaration", roles.stage, -1, "", -1, roles.name, ""); }
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "role-receiver-unsupported", -1, "", -1, roles.name, "");
+    }
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
         DirectMirScalarProgramReferencedEnumFactFromAdmitted(admitted, routine_instances);
     if !DirectMirScalarProgramReferencedEnumFactReady(referenced_enum) {

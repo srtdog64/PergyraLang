@@ -1,0 +1,46 @@
+// Two distinct receiver identities share an ability and retain caller storage.
+ability ReceiverMark {
+    func Label() -> String;
+    func Observe(self) -> Int;
+    func Change(self, replacement: Int) -> Int;
+}
+
+subject FirstCell {
+    var value: Int;
+    func Read(self) -> Int { return self.value; }
+}
+
+subject SecondCell {
+    var value: Int;
+    func Read(self) -> Int { return self.value; }
+}
+
+role FirstMarker for FirstCell {
+    impl ability ReceiverMark {
+        func Label(self) -> String { return "first"; }
+        func Observe(self) -> Int { return self.value; }
+        func Change(self, replacement: Int) -> Int {
+            self.value = replacement;
+            return self.value;
+        }
+    }
+}
+
+role SecondMarker for SecondCell {
+    impl ability ReceiverMark {
+        func Label() -> String { return "second"; }
+        func Observe(self) -> Int { return self.value; }
+        func Change(self, replacement: Int) -> Int {
+            self.value = replacement;
+            return self.value;
+        }
+    }
+}
+
+func ObserveFirst(target: FirstCell) -> Int { return target.Read(); }
+
+func Main() -> Void {
+    var first: FirstCell = FirstCell(11);
+    var second: SecondCell = SecondCell(22);
+    Log(ObserveFirst(first) + second.Read());
+}

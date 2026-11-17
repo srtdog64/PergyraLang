@@ -235,7 +235,7 @@ func DirectMirRoutineInstanceSignatureFromClosure(
     var signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(true, 0,
         row, name, source.kind, source.source_syntax_id,
         source.source_parameter_offset, source.receiver_carriage,
-        source.receiver_owner_row, source.receiver_type,
+        source.receiver_owner_row, source.receiver_erased, source.receiver_type,
         UnwrapOption(return_type), source.param_count, parameters, parameters.first);
     signature = DirectMirRoutineSignatureFactWithDigest(signature, DirectMirRoutineSignatureFactDigest(signature));
     if !DirectMirRoutineSignatureFactReady(signature) {

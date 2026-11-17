@@ -75,9 +75,10 @@ struct DirectMirScalarCfgGraphPlan {
 func DirectMirScalarCfgGraphPlanRefused() -> DirectMirScalarCfgGraphPlan {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
+    let bools: Array<Bool> = [];
     let routines: DirectMirScalarCfgRoutinePartitionFact = DirectMirScalarCfgRoutinePartitionFact(
         false, 0, -1, ints, ints, ints, strings, strings, strings, strings,
-        ints, ints, ints, strings, strings, ints, ints, ints, ints,
+        ints, bools, ints, ints, strings, strings, ints, ints, ints, ints,
         ints, ints, ints, ints, ints, ints, ints, ints, ints, ints);
     return DirectMirScalarCfgGraphPlan(false, "", 0, 0, 0, 0, "", 0, routines,
         strings, strings, ints, strings, ints, strings, strings, ints, ints,

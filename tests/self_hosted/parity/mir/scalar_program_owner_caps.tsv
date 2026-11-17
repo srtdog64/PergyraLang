@@ -1,6 +1,6 @@
 # Scalar-program owner path|hard line cap. This file is the sole shared cap SoT.
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_fact_owner.pgy|117
-src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_admission_owner.pgy|336
+src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_admission_owner.pgy|355
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_callable_route_envelope_owner.pgy|140
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_control_flow_route_owner.pgy|60
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_builtin_route_owner.pgy|75
@@ -408,4 +408,4 @@ src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_scope
 src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_graph_shape_owner.pgy|35
 src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_block_exit_emission_owner.pgy|165
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_expression_source_range_owner.pgy|45
-src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_role_declaration_owner.pgy|20
+src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_role_declaration_owner.pgy|400

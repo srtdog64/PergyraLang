@@ -18,6 +18,7 @@ struct DirectMirScalarCfgRoutinePartitionFact {
     var return_types: Array<String>;
     let receiver_carriages: Array<String>;
     let receiver_owner_rows: Array<Int>;
+    let receiver_erasures: Array<Bool>;
     let parameter_counts: Array<Int>;
     let parameter_starts: Array<Int>;
     let parameter_types: Array<String>;
@@ -88,6 +89,7 @@ func DirectMirScalarCfgRoutinePartitionDigest(
     hash = DirectMirScalarCfgHashStrings(hash, fact.return_types);
     hash = DirectMirScalarCfgHashStrings(hash, fact.receiver_carriages);
     hash = DirectMirScalarCfgHashInts(hash, fact.receiver_owner_rows);
+    hash = DirectMirScalarCfgHashBools(hash, fact.receiver_erasures);
     hash = DirectMirScalarCfgHashInts(hash, fact.parameter_counts);
     hash = DirectMirScalarCfgHashInts(hash, fact.parameter_starts);
     hash = DirectMirScalarCfgHashStrings(hash, fact.parameter_types);
@@ -137,6 +139,7 @@ func DirectMirScalarCfgRoutinePartitionReady(
         count != ArrayLength(fact.names) || count != ArrayLength(fact.return_types) ||
         count != ArrayLength(fact.receiver_carriages) ||
         count != ArrayLength(fact.receiver_owner_rows) ||
+        count != ArrayLength(fact.receiver_erasures) ||
         count != ArrayLength(fact.parameter_counts) ||
         count != ArrayLength(fact.parameter_starts) ||
         count != ArrayLength(fact.signature_digests) ||
@@ -167,6 +170,8 @@ func DirectMirScalarCfgRoutinePartitionReady(
         if fact.source_rows[row] < 0 || fact.source_syntax_ids[row] <= 0 ||
             fact.names[row] == "" || fact.return_types[row] == "" ||
             fact.parameter_counts[row] < 0 ||
+            (fact.receiver_erasures[row] &&
+             fact.receiver_carriages[row] != "mutable-identity") ||
             fact.signature_digests[row] == 0 || fact.cfg_digests[row] == 0 ||
             (fact.receiver_carriages[row] == "none" &&
              fact.receiver_owner_rows[row] != -1) ||
@@ -245,7 +250,7 @@ func DirectMirScalarCfgSingleRoutinePartitionFromOwners(
             true, 0, 0, [DirectMirScalarCfgRoutineRoleEntrypoint()],
             [routine_row], [signature.source_syntax_id], [""], [signature.name],
             [signature.return_type], [signature.receiver_carriage],
-            [signature.receiver_owner_row], [signature.param_count], [0],
+            [signature.receiver_owner_row], [signature.receiver_erased], [signature.param_count], [0],
             parameter_types, parameter_carriages,
             parameter_flow_masks, parameter_array_preserved,
             [signature.digest], [DirectMirCfgDigestFromIndex(index)],
@@ -256,7 +261,7 @@ func DirectMirScalarCfgSingleRoutinePartitionFromOwners(
         fact.valid, DirectMirScalarCfgRoutinePartitionDigest(fact),
         fact.entrypoint_ordinal, fact.roles, fact.source_rows,
         fact.source_syntax_ids, fact.instance_keys, fact.names, fact.return_types,
-        fact.receiver_carriages, fact.receiver_owner_rows,
+        fact.receiver_carriages, fact.receiver_owner_rows, fact.receiver_erasures,
         fact.parameter_counts, fact.parameter_starts, fact.parameter_types,
         fact.parameter_carriages, fact.parameter_flow_masks,
         fact.parameter_array_preserved,
