@@ -1,0 +1,100 @@
+// C call-temporary projection: admitted types, names and materialized syntax.
+import "expression_c_text_materialization_owner.pgy";
+import "expr_semantic_type_owner.pgy";
+import "../../mir_lower/owned_string_temporary_lifetime_owner.pgy";
+
+// Project admitted types; the MIR owner alone grants retirement.
+func CodegenStringTemporaryPlanForCall(
+    ref graph: SemanticExpressionGraphFacts, ref view: SemanticCallSpineView,
+    env: CodegenTypeEnv, result_type: String
+) -> MirOwnedStringTemporaryPlan {
+    var argument_types: Array<String> = [];
+    var operand_types: Array<String> = [];
+    var ordinal: Int = 0;
+    while ordinal < ArrayLength(view.argument_nodes) {
+        let value: Int = view.argument_nodes[ordinal];
+        let type_name: Option<String> = CodegenExpressionTypeFromGraph(graph, value, env);
+        var carried_type: String = "";
+        if IsSome(type_name) { carried_type = UnwrapOption(type_name); }
+        ArrayPush(argument_types, carried_type);
+        var operand_type: String = "";
+        if carried_type == "String" {
+            let producer: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, value);
+            if producer.ok && ArrayLength(producer.argument_nodes) > 0 {
+                let first: Option<String> = CodegenExpressionTypeFromGraph(
+                    graph, producer.argument_nodes[0], env);
+                if IsSome(first) { operand_type = UnwrapOption(first); }
+            }
+        }
+        ArrayPush(operand_types, operand_type);
+        ordinal = ordinal + 1;
+    }
+    let plan: MirOwnedStringTemporaryPlan = MirOwnedStringTemporaryPlanForCall(
+        graph, view, argument_types, operand_types, result_type);
+    if !MirOwnedStringTemporaryPlanReady(graph, view, argument_types,
+            operand_types, result_type, plan) {
+        Die("String temporary value-retire plan is invalid");
+    }
+    return plan;
+}
+
+// A declaration must not capture an operand whose initializer executes later.
+func CodegenCallTemporaryName(stem: String, call_symbol: String,
+    prefix: String, ref rendered: Array<String>) -> String {
+    var name: String = stem;
+    var collision: Bool = true;
+    while collision {
+        collision = StringIndexOf(call_symbol, name) >= 0 ||
+            StringIndexOf(prefix, name) >= 0;
+        var row: Int = 0;
+        while !collision && row < ArrayLength(rendered) {
+            collision = StringIndexOf(rendered[row], name) >= 0;
+            row = row + 1;
+        }
+        if collision { name = name + "_"; }
+    }
+    return name;
+}
+
+// Only serialize the supplied plan: this layer never chooses a release right.
+func CodegenCOrderedCallText(call_symbol: String, ref bindings: Array<String>,
+    ref arguments: Array<String>, ref releases: Array<String>,
+    result_name: String, result_type: String
+) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(128);
+    let retires: Bool = ArrayLength(releases) > 0;
+    TextBuilderAppend(output, "({ ");
+    var row: Int = 0;
+    while row < ArrayLength(bindings) {
+        TextBuilderAppend(output, bindings[row]);
+        row = row + 1;
+    }
+    if retires && result_type != "Void" {
+        TextBuilderAppend(output, "__auto_type ");
+        TextBuilderAppend(output, result_name);
+        TextBuilderAppend(output, " = ");
+    }
+    TextBuilderAppend(output, call_symbol);
+    TextBuilderAppend(output, "(");
+    row = 0;
+    while row < ArrayLength(arguments) {
+        if row > 0 { TextBuilderAppend(output, ", "); }
+        TextBuilderAppend(output, arguments[row]);
+        row = row + 1;
+    }
+    TextBuilderAppend(output, "); ");
+    row = 0;
+    while row < ArrayLength(releases) {
+        TextBuilderAppend(output, releases[row]);
+        row = row + 1;
+    }
+    if retires && result_type != "Void" {
+        TextBuilderAppend(output, result_name);
+        TextBuilderAppend(output, "; ");
+    }
+    TextBuilderAppend(output, "})");
+    let text: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return text;
+}

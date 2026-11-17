@@ -3,6 +3,7 @@
  *
  * The lookups and MIR JSON spellings declared in call_handoff_rule.h. */
 #include <stddef.h>
+#include <string.h>
 
 #include "call_handoff_rule.h"
 
@@ -197,4 +198,28 @@ pgy_call_handoff_divergence_name(PgyCallHandoffDivergenceId value)
     case 12: return "SELF_STRUCT_LITERAL_INPUT_UNSEEN";
     default: return NULL;
     }
+}
+
+bool
+pgy_call_handoff_string_result_fresh(const char *source_name, int arity,
+    const char *first_argument_type)
+{
+    if (source_name == NULL || first_argument_type == NULL) return false;
+    if (strcmp(source_name, "Concat") == 0 && arity == 2) return true;
+    if (strcmp(source_name, "StringConcat") == 0 && arity == 2) return true;
+    if (strcmp(source_name, "Substring") == 0 && arity == 3) return true;
+    if (strcmp(source_name, "SubstringWithLen") == 0 && arity == 4) return true;
+    if (strcmp(source_name, "CharAtN") == 0 && arity == 3) return true;
+    if (strcmp(source_name, "StringTrim") == 0 && arity == 1) return true;
+    if (strcmp(source_name, "ToUpper") == 0 && arity == 1) return true;
+    if (strcmp(source_name, "ToLower") == 0 && arity == 1) return true;
+    if (strcmp(source_name, "StringReplace") == 0 && arity == 3) return true;
+    if (strcmp(source_name, "StringJoin") == 0 && arity == 2) return true;
+    if (strcmp(source_name, "Clone") == 0 && arity == 1 && strcmp(first_argument_type, "String") == 0) return true;
+    if (strcmp(source_name, "ToString") == 0 && arity == 1 && strcmp(first_argument_type, "Int") == 0) return true;
+    if (strcmp(source_name, "ToString") == 0 && arity == 1 && strcmp(first_argument_type, "Long") == 0) return true;
+    if (strcmp(source_name, "ToString") == 0 && arity == 1 && strcmp(first_argument_type, "Float") == 0) return true;
+    if (strcmp(source_name, "ToString") == 0 && arity == 1 && strcmp(first_argument_type, "Double") == 0) return true;
+    if (strcmp(source_name, "ToString") == 0 && arity == 1 && strcmp(first_argument_type, "Bool") == 0) return true;
+    return false;
 }

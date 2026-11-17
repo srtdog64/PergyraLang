@@ -1,0 +1,25 @@
+// All heap results here are single-use operands of nonretaining builtins.
+func Main() -> Void {
+    var row: Int = 0;
+    var total: Int = 0;
+    while row < 4096 {
+        total = total + StringLength(Concat(ToString(row), Substring("fixed", 1, 3)));
+        if StringContains(Concat("prefix", ToString(row)), Substring("fix", 0, 2)) {
+            total = total + 1;
+        }
+        total = total + StringLength(StringTrim(Concat(" ", "mark ")));
+        total = total + StringLength(SubstringWithLen("abcdef", 6, 1, 3));
+        total = total + StringLength(CharAtN("xy", 2, 1));
+        total = total + StringLength(Substring("x", 10, 0));
+        total = total + StringLength(CharAtN("x", 1, 5));
+        if false && StringContains(Concat("unreached", ToString(row)), "x") {
+            Exit(90);
+        }
+        if true || StringContains(Concat("unreached", ToString(row)), "x") {
+            total = total + 1;
+        }
+        row = row + 1;
+    }
+    Print(Concat("void", "-consumer\n"));
+    Log(total);
+}

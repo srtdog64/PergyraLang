@@ -1001,6 +1001,8 @@ require_max_lines \
     "src/self_hosted/codegen/emission/expr_semantic_struct_call_emit_owner.pgy" 100
 require_max_lines "src/self_hosted/codegen/emission/expr_array_storage_release_emit_owner.pgy" 50
 require_max_lines "src/self_hosted/codegen/emission/call_argument_order_owner.pgy" 200
+require_max_lines "src/self_hosted/codegen/emission/call_temporary_materialization_owner.pgy" 120
+require_max_lines "src/self_hosted/mir_lower/owned_string_temporary_lifetime_owner.pgy" 160
 require_max_lines \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" 100
 require_max_lines \

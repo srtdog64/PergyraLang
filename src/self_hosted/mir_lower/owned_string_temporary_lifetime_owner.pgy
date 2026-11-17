@@ -1,0 +1,134 @@
+// Bounded MIR value-retire plan for independent String call operands.
+// The installed seed bridge consumes it; no local/return ownership is inferred.
+import "../semantic/ast_builtin_argument_retention_call_fact_owner.pgy";
+import "../semantic/call_handoff_rule_projection_owner.pgy";
+
+struct MirOwnedStringTemporaryPlan {
+    let valid: Bool;
+    let consumer: Int;
+    let recipe: String;
+    let retired_arguments: Array<Int>;
+    let retired_values: Array<Int>;
+}
+
+func MirOwnedStringTemporaryConsumerIdentity(
+    ref graph: SemanticExpressionGraphFacts,
+    ref call: SemanticCallSpineView
+) -> String {
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if !graph.ok || !call.ok || !graph.arena.shape_ready ||
+        ArrayLength(graph.arena.consumer_rows) != count ||
+        ArrayLength(graph.arena.consumer_multiplicities) != count ||
+        !graph.arena.identities.builtin_argument_retention_calls_sealed ||
+        graph.arena.identities.builtin_argument_retention_call_sealed_count !=
+            ArrayLength(graph.arena.identities.builtin_argument_retention_calls) {
+        return "";
+    }
+    let row: Int = SemanticBuiltinArgumentRetentionGraphRowForCall(
+        graph, call.call_node);
+    if row < 0 { return ""; }
+    let retention: SemanticBuiltinArgumentRetentionRow =
+        SemanticBuiltinArgumentRetentionRowAt(
+            graph.arena.identities.builtin_argument_retention_calls[row].retention_row);
+    if !retention.valid || !SemanticAstCollectionOwnershipBuiltinCall(
+            graph, call.call_node, retention.source_name) {
+        return "";
+    }
+    return retention.builtin_identity;
+}
+
+func MirOwnedStringTemporaryArgumentEligible(
+    ref graph: SemanticExpressionGraphFacts,
+    ref call: SemanticCallSpineView,
+    ref argument_types: Array<String>,
+    ref producer_operand_types: Array<String>,
+    result_type: String, retention_identity: String, ordinal: Int
+) -> Bool {
+    if retention_identity == "" || ordinal < 0 ||
+        ordinal >= ArrayLength(call.argument_nodes) ||
+        ordinal >= ArrayLength(argument_types) ||
+        ordinal >= ArrayLength(producer_operand_types) ||
+        argument_types[ordinal] != "String" ||
+        !SemanticBuiltinArgumentBorrowedForIdentity(retention_identity, ordinal) {
+        return false;
+    }
+    let consumer_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call.call_node);
+    if !IsSome(consumer_name) || result_type == "" ||
+        (result_type != "Void" && result_type != "Int" &&
+         result_type != "Long" && result_type != "Bool" &&
+         result_type != "Float" && result_type != "Double" &&
+         (result_type != "String" || ArrayLength(argument_types) == 0 ||
+          !SemanticCallHandoffStringResultFresh(UnwrapOption(consumer_name),
+            ArrayLength(call.argument_nodes), argument_types[0]))) {
+        return false;
+    }
+    let value: Int = call.argument_nodes[ordinal];
+    if value < 0 || value >= ArrayLength(graph.arena.consumer_multiplicities) ||
+        graph.arena.consumer_multiplicities[value] != 1 {
+        return false;
+    }
+    let producer: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, value);
+    if !producer.ok { return false; }
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(graph, producer.call_node);
+    return IsSome(name) && SemanticAstCollectionOwnershipBuiltinCall(
+        graph, producer.call_node, UnwrapOption(name)) &&
+        SemanticCallHandoffStringResultFresh(UnwrapOption(name),
+            ArrayLength(producer.argument_nodes), producer_operand_types[ordinal]);
+}
+
+func MirOwnedStringTemporaryPlanForCall(
+    ref graph: SemanticExpressionGraphFacts, ref call: SemanticCallSpineView,
+    ref argument_types: Array<String>, ref producer_operand_types: Array<String>,
+    result_type: String
+) -> MirOwnedStringTemporaryPlan {
+    var arguments: Array<Int> = [];
+    var values: Array<Int> = [];
+    if !call.ok || ArrayLength(argument_types) != ArrayLength(call.argument_nodes) ||
+        ArrayLength(producer_operand_types) != ArrayLength(call.argument_nodes) {
+        return MirOwnedStringTemporaryPlan(false, call.call_node, "String.storage", arguments, values);
+    }
+    let retention: String = MirOwnedStringTemporaryConsumerIdentity(graph, call);
+    var ordinal: Int = 0;
+    while ordinal < ArrayLength(call.argument_nodes) {
+        if MirOwnedStringTemporaryArgumentEligible(graph, call, argument_types,
+                producer_operand_types, result_type, retention, ordinal) {
+            ArrayPush(arguments, ordinal);
+            ArrayPush(values, call.argument_nodes[ordinal]);
+        }
+        ordinal = ordinal + 1;
+    }
+    return MirOwnedStringTemporaryPlan(true, call.call_node, "String.storage", arguments, values);
+}
+
+// Check the entire eligible set, including absent, duplicate and relocated ends.
+// An unknown origin stays unproved; an invented release never does.
+func MirOwnedStringTemporaryPlanReady(
+    ref graph: SemanticExpressionGraphFacts, ref call: SemanticCallSpineView,
+    ref argument_types: Array<String>, ref producer_operand_types: Array<String>,
+    result_type: String, ref plan: MirOwnedStringTemporaryPlan
+) -> Bool {
+    if !plan.valid || !call.ok || plan.consumer != call.call_node ||
+        plan.recipe != "String.storage" ||
+        ArrayLength(argument_types) != ArrayLength(call.argument_nodes) ||
+        ArrayLength(producer_operand_types) != ArrayLength(call.argument_nodes) ||
+        ArrayLength(plan.retired_arguments) != ArrayLength(plan.retired_values) {
+        return false;
+    }
+    let retention: String = MirOwnedStringTemporaryConsumerIdentity(graph, call);
+    var row: Int = 0;
+    var ordinal: Int = 0;
+    while ordinal < ArrayLength(call.argument_nodes) {
+        if MirOwnedStringTemporaryArgumentEligible(graph, call, argument_types,
+                producer_operand_types, result_type, retention, ordinal) {
+            if row >= ArrayLength(plan.retired_arguments) ||
+                plan.retired_arguments[row] != ordinal ||
+                plan.retired_values[row] != call.argument_nodes[ordinal] {
+                return false;
+            }
+            row = row + 1;
+        }
+        ordinal = ordinal + 1;
+    }
+    return row == ArrayLength(plan.retired_arguments);
+}

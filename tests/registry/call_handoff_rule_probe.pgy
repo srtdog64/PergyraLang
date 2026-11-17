@@ -64,6 +64,32 @@ func Main() -> Void {
     CallHandoffProbeNames("elements", SemanticCallHandoffElementsCount());
     CallHandoffProbeNames("action", SemanticCallHandoffActionCount());
     CallHandoffProbeNames("divergence", SemanticCallHandoffDivergenceCount());
+    if !SemanticCallHandoffStringResultFresh("Concat", 2, "String") ||
+        !SemanticCallHandoffStringResultFresh("ToString", 1, "Int") ||
+        SemanticCallHandoffStringResultFresh("ToString", 1, "String") ||
+        SemanticCallHandoffStringResultFresh("Clone", 1, "Array<String>") {
+        Exit(1);
+    }
+    let producers: Array<String> = ["Concat", "Substring", "ToString", "Clone", "UserConcat"];
+    let types: Array<String> = ["String", "Int", "Long", "Bool", "Unknown"];
+    var producer: Int = 0;
+    while producer < ArrayLength(producers) {
+        var arity: Int = 1;
+        while arity <= 4 {
+            var type_row: Int = 0;
+            while type_row < ArrayLength(types) {
+                var fresh: Int = 0;
+                if SemanticCallHandoffStringResultFresh(producers[producer], arity, types[type_row]) {
+                    fresh = 1;
+                }
+                Log("result " + ToString(producer) + " " + ToString(arity) +
+                    " " + ToString(type_row) + " " + ToString(fresh));
+                type_row = type_row + 1;
+            }
+            arity = arity + 1;
+        }
+        producer = producer + 1;
+    }
 }
 
 func CallHandoffProbeName(vocabulary: String, index: Int) -> String {

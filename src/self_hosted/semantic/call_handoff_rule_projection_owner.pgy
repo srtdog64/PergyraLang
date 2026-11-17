@@ -288,3 +288,27 @@ func SemanticCallHandoffDivergenceFlag(value: Int) -> Int {
     if value == 6 { return 8; }
     return 0;
 }
+
+
+// Requires a canonical builtin and concrete String result.
+func SemanticCallHandoffStringResultFresh(
+    source_name: String, arity: Int, first_argument_type: String
+) -> Bool {
+    if source_name == "Concat" && arity == 2 { return true; }
+    if source_name == "StringConcat" && arity == 2 { return true; }
+    if source_name == "Substring" && arity == 3 { return true; }
+    if source_name == "SubstringWithLen" && arity == 4 { return true; }
+    if source_name == "CharAtN" && arity == 3 { return true; }
+    if source_name == "StringTrim" && arity == 1 { return true; }
+    if source_name == "ToUpper" && arity == 1 { return true; }
+    if source_name == "ToLower" && arity == 1 { return true; }
+    if source_name == "StringReplace" && arity == 3 { return true; }
+    if source_name == "StringJoin" && arity == 2 { return true; }
+    if source_name == "Clone" && arity == 1 && first_argument_type == "String" { return true; }
+    if source_name == "ToString" && arity == 1 && first_argument_type == "Int" { return true; }
+    if source_name == "ToString" && arity == 1 && first_argument_type == "Long" { return true; }
+    if source_name == "ToString" && arity == 1 && first_argument_type == "Float" { return true; }
+    if source_name == "ToString" && arity == 1 && first_argument_type == "Double" { return true; }
+    if source_name == "ToString" && arity == 1 && first_argument_type == "Bool" { return true; }
+    return false;
+}

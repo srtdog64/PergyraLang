@@ -1,16 +1,17 @@
 # Gates
 
-Owner: GPT root integration. Checked 2026-11-17. Local results are from WSL
+Owner: GPT root integration. Checked 2026-11-18. Local results are from WSL
 trees (`/root/mg-main` builds the integration head); a local PASS is not CI
 evidence.
 
 | Gate | Last observed result |
 |---|---|
-| Required CI at the published SHA | `9f5573f18`, run 44073079061: all 33 jobs passed, none skipped ([record](../evidence/2026-11-17_selfhost_string_ci_green.md)). |
+| Required CI at the published SHA | `9049e547e`, run 44099172008: all 33 jobs passed, none skipped ([record](../evidence/2026-11-18_selfhost_role_ci_green.md)). |
+| String temporary seed bridge (local candidate) | Actual codegen fixed point, installed driver, ASan/LSan retirement/mutation gate, role C/LLVM and String OOM controls PASS. Memory gates PASS; full DRV-2 OOM. Optional stale caps/qualified-kind/snapshot reds retained; [scope and hashes](../evidence/2026-11-18_selfhost_string_temporary_seed_bridge.md). |
 | A2 phi reuse / memory | PASS on runner at `7ea3c781f`: both backends/negatives; semantic MIR consumer 796,444 KiB <=800 MiB; [publication evidence](../evidence/2026-11-17_selfhost_memory_a2_ci_publication_fix.md) |
 | A1 local integration | PASS on the [A1 source generation](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md): codegen gen2 == gen3, fresh installed driver, complete MIR-lower C parity/RSS, C/LLVM lifetime negatives and nine OOM families. Published CI is above. Native LLVM release writer failed its optimizer assertion; LLVM dev wire/golden execution passed. |
 | Published String allocation repair | `9f5573f18`: codegen bootstrap, 22 normal/OOM/unchecked controls and the phi consumer passed on CI. Five direct-MIR C/LLVM families and the bounded memory gate passed locally ([evidence](../evidence/2026-11-17_selfhost_string_allocation_boundary.md)); full DRV-2 still fails with typed OOM. |
-| Role receiver dependency candidate | Local PASS: current-source codegen fixed point, installed-driver role C/LLVM runtime/ABI tests, 46 MIR refusals, String controls and reached owned-string/intent probe consumers. Full frozen MIR reaches collection transition 1054; [record and preserved baseline reds](../evidence/2026-11-17_selfhost_memory_role_receiver_migration.md). Exact candidate CI pending. |
+| Role receiver dependency | Published CI PASS at `9049e547e`; local fixed point, installed role C/LLVM tests, 46 MIR refusals and String/intent controls passed. Full frozen MIR reaches collection transition 1054; [local limits](../evidence/2026-11-17_selfhost_memory_role_receiver_migration.md). |
 | Weekly full pipeline (`platform_full`, dispatch) | Run 43914895554 on `3ad7444db`: Linux codegen seed and toolchain, Windows toolchain, formal proofs, and the parser, semantic, codegen, codegen-seed and harness-evidence parity shards PASS; macOS C-only, both driver shards, `platform-full-linux` (15 of 99 steps) and `platform-full-windows` (2 of 48) open ([blocker](blocker.md)) |
 | SoT registry gate (`scripts/sot_registry_gate.py`) | PASS: 95 authorities, 214 derived carriers; CLOSED=70 BRIDGE=23 ACTIVE=2 |
 | Driver fixed point (gen2 == gen3), oracle/seed/join | PASS on CI at `9f5573f18`, run 44073079061 |

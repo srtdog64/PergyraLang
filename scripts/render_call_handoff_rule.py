@@ -27,6 +27,7 @@ MACROS = {
     "PGY_CALL_HANDOFF_SELF_HOST_EFFECT_DIVERGENCE": 3,
     "PGY_CALL_HANDOFF_ROW": 6,
     "PGY_CALL_HANDOFF_DIVERGENCE_ROW": 7,
+    "PGY_CALL_HANDOFF_STRING_RESULT": 3,
 }
 AXES = ("ORIGIN", "LATER", "CONTEXT", "ELEMENTS")
 NATIVE_SUMMARY_BITS = (
@@ -83,6 +84,7 @@ class Rule:
     effect_divergences: list[tuple[str, int, int]]
     rows: list[Row]
     divergence_rows: list[Row]
+    string_results: list[tuple[str, int, str]]
 
     @property
     def all_members(self) -> int:
@@ -173,7 +175,7 @@ def member_mask(rule: Rule, text: str, line: int, empty: str, full: str | None) 
 
 
 def load(path: Path) -> Rule:
-    rule = Rule([], [], [], {a: [] for a in AXES}, [], set(), [], [], {}, [], [], [])
+    rule = Rule([], [], [], {a: [] for a in AXES}, [], set(), [], [], {}, [], [], [], [])
     kind_names: list[str] = []
     divergence_names: list[str] = []
     for macro, f, line in parse_calls(path):
@@ -196,6 +198,18 @@ def load(path: Path) -> Rule:
             declare(rule.actions, f[0], "action", line)
             if f[1] == "DIVERGENCE_ONLY":
                 rule.divergence_only.add(f[0])
+        elif macro == "PGY_CALL_HANDOFF_STRING_RESULT":
+            if (re.fullmatch(r"[A-Z][A-Za-z0-9]*", f[0]) is None or
+                    re.fullmatch(r"[1-9][0-9]*", f[1]) is None or int(f[1]) > 2147483647):
+                raise ValueError(f"line {line}: invalid String result identity or arity")
+            if f[2] not in ("ANY", "String", "Int", "Long", "Float", "Double", "Bool"):
+                raise ValueError(f"line {line}: invalid String result specialization")
+            result_row = (f[0], int(f[1]), f[2])
+            if any(n == result_row[0] and a == result_row[1] and
+                   (t == result_row[2] or t == "ANY" or result_row[2] == "ANY")
+                   for n, a, t in rule.string_results):
+                raise ValueError(f"line {line}: overlapping String result contract")
+            rule.string_results.append(result_row)
         elif macro == "PGY_CALL_HANDOFF_DIVERGENCE":
             if f[1] not in ("NATIVE", "SELF_HOST") or f[2] not in ("ROW", "PROJECTION", "INPUT"):
                 raise ValueError(f"line {line}: divergence needs NATIVE|SELF_HOST and ROW|PROJECTION|INPUT")
@@ -367,7 +381,7 @@ def render_c(rule: Rule) -> str:
     out = [f"/* {HEADER}", f" * {SOURCE}", " *"]
     out += divergence_comment(rule, " * ")
     out += [" */", "#ifndef PGY_CALL_HANDOFF_RULE_H", "#define PGY_CALL_HANDOFF_RULE_H", "",
-            '#include "slot_summary.h"', "", "enum {"]
+            '#include <stdbool.h>', '#include "slot_summary.h"', "", "enum {"]
     for i, m in enumerate(rule.members):
         out.append(f"    PGY_CALL_HANDOFF_MEMBER_{m} = 1u << {i},")
     moving = bits(i for i, flag in enumerate(rule.moving) if flag)
@@ -424,7 +438,9 @@ def render_c(rule: Rule) -> str:
             " * divergence by its declaration index. NULL outside the vocabulary. */"]
     for fn, param, _ in name_functions(rule):
         out.append(f"const char *{fn}({param});")
-    out += ["", "#endif", ""]
+    out += ["", "/* Requires a canonical builtin and concrete String result. */",
+            "bool pgy_call_handoff_string_result_fresh(const char *source_name, int arity,",
+            "    const char *first_argument_type);", "", "#endif", ""]
     return "\n".join(out)
 
 
@@ -432,7 +448,7 @@ def render_c_source(rule: Rule) -> str:
     """The C owner of the lookups and spellings the header declares."""
     out = [f"/* {HEADER}", f" * {SOURCE}", " *",
            " * The lookups and MIR JSON spellings declared in call_handoff_rule.h. */",
-           "#include <stddef.h>", "", '#include "call_handoff_rule.h"', ""]
+           "#include <stddef.h>", "#include <string.h>", "", '#include "call_handoff_rule.h"', ""]
 
     def definition(return_type: str, name: str, params: tuple[str, ...]) -> None:
         out.extend([return_type, f"{name}({params[0]}", *params[1:], "{"])
@@ -516,7 +532,15 @@ def render_c_source(rule: Rule) -> str:
         for i, n in enumerate(names):
             out.append(f"    case {i}: return \"{n}\";")
         out += ["    default: return NULL;", "    }", "}"]
-    out.append("")
+    out += ["", "bool", "pgy_call_handoff_string_result_fresh(const char *source_name, int arity,",
+            "    const char *first_argument_type)", "{",
+            "    if (source_name == NULL || first_argument_type == NULL) return false;"]
+    for name, arity, operand in rule.string_results:
+        condition = f'strcmp(source_name, "{name}") == 0 && arity == {arity}'
+        if operand != "ANY":
+            condition += f' && strcmp(first_argument_type, "{operand}") == 0'
+        out.append(f"    if ({condition}) return true;")
+    out += ["    return false;", "}", ""]
     return "\n".join(out)
 
 
@@ -677,6 +701,16 @@ def render_pgy(rule: Rule) -> str:
             "    return common_answer;",
             "}", ""]
     out += render_pgy_names(rule)
+    out += ["", "// Requires a canonical builtin and concrete String result.",
+            "func SemanticCallHandoffStringResultFresh(",
+            "    source_name: String, arity: Int, first_argument_type: String",
+            ") -> Bool {"]
+    for name, arity, operand in rule.string_results:
+        condition = f'source_name == "{name}" && arity == {arity}'
+        if operand != "ANY":
+            condition += f' && first_argument_type == "{operand}"'
+        out.append(f"    if {condition} {{ return true; }}")
+    out += ["    return false;", "}", ""]
     return "\n".join(out)
 
 

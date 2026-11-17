@@ -82,6 +82,17 @@ expect_refused divergence-without-slice \
     "must name a later slice"
 expect_refused dropped-origin '/^PGY_CALL_HANDOFF_AXIS(ORIGIN, BORROWED)$/d' "unknown origin BORROWED"
 expect_refused unknown-macro "\$a PGY_CALL_HANDOFF_ROWS(ANY, ANY, ANY, ANY, ANY, REFUSE)" "unknown macro"
+expect_refused duplicate-string-result "\$a PGY_CALL_HANDOFF_STRING_RESULT(Concat, 2, ANY)" \
+    "overlapping String result contract"
+expect_refused noncanonical-string-arity \
+    's/^PGY_CALL_HANDOFF_STRING_RESULT(Concat, 2, ANY)$/PGY_CALL_HANDOFF_STRING_RESULT(Concat, 02, ANY)/' \
+    "invalid String result identity or arity"
+expect_refused overflowing-string-arity \
+    's/^PGY_CALL_HANDOFF_STRING_RESULT(Concat, 2, ANY)$/PGY_CALL_HANDOFF_STRING_RESULT(Concat, 2147483648, ANY)/' \
+    "invalid String result identity or arity"
+expect_refused unknown-string-specialization \
+    's/^PGY_CALL_HANDOFF_STRING_RESULT(Clone, 1, String)$/PGY_CALL_HANDOFF_STRING_RESULT(Clone, 1, Address)/' \
+    "invalid String result specialization"
 
 # Decision cells: the probe checks the named cells of the native rendering,
 # then both renderings dump every cell and the dumps must be equal.

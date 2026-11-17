@@ -88,19 +88,19 @@ func SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
 }
 
 // The owning consumer must validate CallFactsReady once before repeated use.
-func SemanticAstBuiltinArgumentRetentionFactRowForCall(
-    ref surfaces: SemanticAstExpressionSurfaceFacts, call_node: Int
+func SemanticBuiltinArgumentRetentionGraphRowForCall(
+    ref graph: SemanticExpressionGraphFacts, call_node: Int
 ) -> Int {
     var low: Int = 0;
-    var high: Int = ArrayLength(surfaces.expression_graph.arena.identities.builtin_argument_retention_calls);
+    var high: Int = ArrayLength(graph.arena.identities.builtin_argument_retention_calls);
     while low < high {
         let middle: Int = low + (high - low) / 2;
-        if surfaces.expression_graph.arena.identities.builtin_argument_retention_calls[middle]
+        if graph.arena.identities.builtin_argument_retention_calls[middle]
                 .call_node < call_node { low = middle + 1; }
         else { high = middle; }
     }
-    if low >= ArrayLength(surfaces.expression_graph.arena.identities.builtin_argument_retention_calls) ||
-        surfaces.expression_graph.arena.identities
+    if low >= ArrayLength(graph.arena.identities.builtin_argument_retention_calls) ||
+        graph.arena.identities
             .builtin_argument_retention_calls[low].call_node != call_node {
         return -1;
     }
@@ -111,8 +111,8 @@ func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     call_node: Int
 ) -> Option<String> {
-    let low: Int = SemanticAstBuiltinArgumentRetentionFactRowForCall(
-        surfaces, call_node);
+    let low: Int = SemanticBuiltinArgumentRetentionGraphRowForCall(
+        surfaces.expression_graph, call_node);
     if low < 0 { return None; }
     let retention: SemanticBuiltinArgumentRetentionRow =
         SemanticBuiltinArgumentRetentionRowAt(surfaces.expression_graph.arena.identities
@@ -142,8 +142,8 @@ func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     call_node: Int, root_start: Int, owner_node_id: Int, lane: Int
 ) -> Option<String> {
-    let fact_row: Int = SemanticAstBuiltinArgumentRetentionFactRowForCall(
-        surfaces, call_node);
+    let fact_row: Int = SemanticBuiltinArgumentRetentionGraphRowForCall(
+        surfaces.expression_graph, call_node);
     if fact_row < 0 || root_start < 0 || call_node < root_start ||
         lane < AstExpressionLaneAtom() ||
         lane > AstExpressionLaneAuxiliary() {

@@ -30,6 +30,7 @@ struct SemanticExpressionGraphArena {
     shape_ready: Bool;
     // Sealed arenas only: each node's first consuming row, or -1.
     consumer_rows: Array<Int>;
+    consumer_multiplicities: Array<Int>;
     // Body ownership attaches one row per expression node after admission:
     // 1 means the compiler must materialize an independent Clone here.
     // Empty before that body-owned overlay is published.
@@ -86,7 +87,7 @@ func SemanticExpressionGraphArenaEmpty() -> SemanticExpressionGraphArena {
         node_texts, call_target_kinds, call_target_names,
         call_return_type_names,
         SemanticExpressionIdentityRowsUnknown(0), place_kinds, false,
-        consumer_rows, compiler_clone_kinds
+        consumer_rows, [], compiler_clone_kinds
     );
 }
 
@@ -136,7 +137,7 @@ func SemanticExpressionGraphArenaFromTopology(
         call_return_type_names,
         SemanticExpressionIdentityRowsUnknown(
             AstExpressionArenaNodeCount(topology)
-        ), place_kinds, false, unsealed_consumer_rows,
+        ), place_kinds, false, unsealed_consumer_rows, [],
         compiler_clone_kinds
     );
 }
@@ -158,7 +159,7 @@ func SemanticExpressionGraphArenaFromTopologyWithIdentities(
     return SemanticExpressionGraphArena(
         topology, node_texts, call_target_kinds, call_target_names,
         call_return_type_names, identities, place_kinds, false,
-        unsealed_consumer_rows, compiler_clone_kinds
+        unsealed_consumer_rows, [], compiler_clone_kinds
     );
 }
 

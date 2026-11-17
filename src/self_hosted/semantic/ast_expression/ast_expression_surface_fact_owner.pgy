@@ -349,9 +349,15 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
     if !sealed.arena.shape_ready {
         sealed.arena.shape_ready = SemanticExpressionGraphArenaShapeReady(sealed.arena, 0);
     }
-    if sealed.arena.shape_ready && ArrayLength(sealed.arena.consumer_rows) !=
-        SemanticExpressionGraphArenaNodeCount(sealed.arena) {
-        sealed.arena.consumer_rows = SemanticExpressionGraphConsumerRows(sealed.arena.topology);
+    if sealed.arena.shape_ready &&
+        (ArrayLength(sealed.arena.consumer_rows) !=
+            SemanticExpressionGraphArenaNodeCount(sealed.arena) ||
+         ArrayLength(sealed.arena.consumer_multiplicities) !=
+            SemanticExpressionGraphArenaNodeCount(sealed.arena)) {
+        let consumers: SemanticExpressionGraphConsumers =
+            SemanticExpressionGraphConsumersFromTopology(sealed.arena.topology);
+        sealed.arena.consumer_rows = consumers.first_rows;
+        sealed.arena.consumer_multiplicities = consumers.multiplicities;
     }
     var failure_node_id: Int = facts.failure_node_id;
     var failure_lane: String = facts.failure_lane;

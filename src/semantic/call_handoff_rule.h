@@ -19,6 +19,7 @@
 #ifndef PGY_CALL_HANDOFF_RULE_H
 #define PGY_CALL_HANDOFF_RULE_H
 
+#include <stdbool.h>
 #include "slot_summary.h"
 
 enum {
@@ -146,5 +147,9 @@ const char *pgy_call_handoff_context_name(PgyCallHandoffContext value);
 const char *pgy_call_handoff_elements_name(PgyCallHandoffElements value);
 const char *pgy_call_handoff_action_name(PgyCallHandoffAction value);
 const char *pgy_call_handoff_divergence_name(PgyCallHandoffDivergenceId value);
+
+/* Requires a canonical builtin and concrete String result. */
+bool pgy_call_handoff_string_result_fresh(const char *source_name, int arity,
+    const char *first_argument_type);
 
 #endif

@@ -1,0 +1,92 @@
+import "../../../src/self_hosted/mir_lower/owned_string_temporary_lifetime_owner.pgy";
+
+func RetirePlanRetentionRow(name: String) -> Int {
+    var row: Int = 0;
+    while row < SemanticBuiltinArgumentRetentionCount() {
+        if SemanticBuiltinArgumentRetentionRowAt(row).source_name == name { return row; }
+        row = row + 1;
+    }
+    Exit(80);
+    return -1;
+}
+
+// The exact topology of StringLength(Concat("left", "right")). The actual
+// semantic seal's consumer owner issues the multiplicity used by the plan.
+func RetirePlanGraph() -> SemanticExpressionGraphFacts {
+    let leaf: Int = AstExpressionNodeLeaf();
+    let call: Int = AstExpressionNodeCall();
+    let arg: Int = AstExpressionNodeCallArgument();
+    let literal: Int = AstExpressionNodeStringLiteral();
+    let topology: AstExpressionArena = AstExpressionArena(
+        [leaf, call, leaf, call, literal, arg, literal, arg, arg],
+        ["StringLength", "StringLength()", "Concat", "Concat()", "\"left\"",
+         "Concat(\"left\")", "\"right\"", "Concat(\"left\", \"right\")",
+         "StringLength(Concat(\"left\", \"right\"))"],
+        [-1, 0, -1, 2, -1, 3, -1, 5, 1], [-1, -1, -1, -1, -1, 4, -1, 6, 7]);
+    let empty: Array<String> = ["", "", "", "", "", "", "", "", ""];
+    let zeros: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let absent: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
+    let identities: SemanticExpressionIdentityRows = SemanticExpressionIdentityRows(
+        zeros, zeros, zeros, zeros, absent,
+        [SemanticAstBuiltinArgumentRetentionCallFact(1, 10, 0, 0, RetirePlanRetentionRow("StringLength")),
+         SemanticAstBuiltinArgumentRetentionCallFact(3, 10, 0, 1, RetirePlanRetentionRow("Concat"))],
+        true, 2);
+    let direct: Int = SemanticCallTargetDirect();
+    var arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopologyWithIdentities(
+        topology, topology.node_texts, [0, direct, 0, direct, 0, 0, 0, 0, 0],
+        ["", "StringLength", "", "Concat", "", "", "", "", ""],
+        ["", "Int", "", "String", "", "", "", "", ""], identities, zeros);
+    let consumers: SemanticExpressionGraphConsumers = SemanticExpressionGraphConsumersFromTopology(topology);
+    arena.shape_ready = true;
+    arena.consumer_rows = consumers.first_rows;
+    arena.consumer_multiplicities = consumers.multiplicities;
+    return SemanticExpressionGraphFacts(true, [8], [true], arena);
+}
+
+func Main() -> Void {
+    var graph: SemanticExpressionGraphFacts = RetirePlanGraph();
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, 8);
+    let types: Array<String> = ["String"];
+    let operands: Array<String> = ["String"];
+    let plan: MirOwnedStringTemporaryPlan = MirOwnedStringTemporaryPlanForCall(
+        graph, call, types, operands, "Int");
+    if !MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", plan) ||
+        ArrayLength(plan.retired_values) != 1 || plan.retired_values[0] != 7 { Exit(1); }
+    let duplicate: MirOwnedStringTemporaryPlan =
+        MirOwnedStringTemporaryPlan(true, 1, "String.storage", [0, 0], [7, 7]);
+    let missing: MirOwnedStringTemporaryPlan =
+        MirOwnedStringTemporaryPlan(true, 1, "String.storage", [], []);
+    let premature: MirOwnedStringTemporaryPlan =
+        MirOwnedStringTemporaryPlan(true, 7, "String.storage", [0], [7]);
+    let wrong_recipe: MirOwnedStringTemporaryPlan =
+        MirOwnedStringTemporaryPlan(true, 1, "Array.storage", [0], [7]);
+    if MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", duplicate) { Exit(2); }
+    if MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", missing) { Exit(3); }
+    if MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", premature) { Exit(4); }
+    if MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", wrong_recipe) { Exit(5); }
+    // A static/borrowed operand, a declared namesake and a multiply used node
+    // grant no retirement; each forged release must fail at the same owner.
+    graph.arena.topology.node_kinds[7] = AstExpressionNodeStringLiteral();
+    if MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", plan) { Exit(6); }
+    graph = RetirePlanGraph();
+    graph.arena.identities.binding_kinds[2] = SemanticExpressionBindingDeclaredCallable();
+    graph.arena.identities.binding_syntax_ids[2] = 41;
+    if MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", plan) { Exit(7); }
+    graph = RetirePlanGraph();
+    graph.arena.consumer_multiplicities[7] = 2;
+    if MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", plan) { Exit(8); }
+    graph = RetirePlanGraph();
+    graph.arena.identities.binding_kinds[0] = SemanticExpressionBindingDeclaredCallable();
+    graph.arena.identities.binding_syntax_ids[0] = 42;
+    if MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", plan) { Exit(11); }
+    graph = RetirePlanGraph();
+    graph.arena.identities.builtin_argument_retention_calls_sealed = false;
+    if MirOwnedStringTemporaryPlanReady(graph, call, types, operands, "Int", plan) { Exit(9); }
+    // Two operand slots of one consumer must count as two uses.
+    let repeated: AstExpressionArena = AstExpressionArena(
+        [AstExpressionNodeStringLiteral(), AstExpressionNodeAdd()],
+        ["\"x\"", "\"x\" + \"x\""], [-1, 0], [-1, 0]);
+    let counts: SemanticExpressionGraphConsumers = SemanticExpressionGraphConsumersFromTopology(repeated);
+    if counts.first_rows[0] != 1 || counts.multiplicities[0] != 2 { Exit(10); }
+    Log("STRING TEMPORARY RETIRE PLAN PASS");
+}

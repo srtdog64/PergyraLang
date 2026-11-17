@@ -147,6 +147,13 @@ dump(void)
     for (int i = 0; i < PGY_CALL_HANDOFF_DIVERGENCE_ID_COUNT; i++)
         printf("name divergence %d %s\n", i,
             pgy_call_handoff_divergence_name((PgyCallHandoffDivergenceId)i));
+    const char *producers[] = {"Concat", "Substring", "ToString", "Clone", "UserConcat"};
+    const char *types[] = {"String", "Int", "Long", "Bool", "Unknown"};
+    for (int producer = 0; producer < 5; producer++)
+        for (int arity = 1; arity <= 4; arity++)
+            for (int type = 0; type < 5; type++)
+                printf("result %d %d %d %d\n", producer, arity, type,
+                    pgy_call_handoff_string_result_fresh(producers[producer], arity, types[type]));
 }
 
 int
@@ -155,6 +162,12 @@ main(int argc, char **argv)
     check_join();
     check_rule();
     check_divergences();
+    EXPECT(pgy_call_handoff_string_result_fresh("Concat", 2, "String"), true);
+    EXPECT(pgy_call_handoff_string_result_fresh("ToString", 1, "Int"), true);
+    EXPECT(pgy_call_handoff_string_result_fresh("ToString", 1, "String"), false);
+    EXPECT(pgy_call_handoff_string_result_fresh("Clone", 1, "Array<String>"), false);
+    EXPECT(pgy_call_handoff_string_result_fresh(NULL, 1, "Int"), false);
+    EXPECT(pgy_call_handoff_string_result_fresh("Concat", 2, NULL), false);
     if (failures != 0) return 1;
     if (argc == 2 && strcmp(argv[1], "--dump") == 0) dump();
     return 0;

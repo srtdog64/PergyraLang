@@ -13,6 +13,7 @@ import "expression_c_text_materialization_owner.pgy";
 import "../../semantic/ast_expression/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
 import "../../hir/ast_expression_graph_owner.pgy";
+import "call_temporary_materialization_owner.pgy";
 
 func CodegenOperandIsLiteral(kind: Option<Int>) -> Bool {
     return IsSome(kind) && AstExpressionNodeIsScalarLeaf(UnwrapOption(kind)) &&
@@ -113,7 +114,16 @@ func RewriteSemanticOrderedCall(
 ) -> String {
     let receiver_bound: Bool = CodegenCallReceiverNeedsBinding(
         graph, view, prefix_argument, receiver_node);
-    let arguments_ordered: Bool = CodegenCallArgumentsNeedOrder(graph, view);
+    var result_type: String = "";
+    var retirement: MirOwnedStringTemporaryPlan = MirOwnedStringTemporaryPlan(
+        true, view.call_node, "String.storage", [], []);
+    if MirOwnedStringTemporaryConsumerIdentity(graph, view) != "" {
+        let result: Option<String> = SemanticExpressionGraphCallReturnTypeName(graph, view.call_node);
+        if IsSome(result) { result_type = UnwrapOption(result); }
+        retirement = CodegenStringTemporaryPlanForCall(graph, view, env, result_type);
+    }
+    let retires: Bool = ArrayLength(retirement.retired_arguments) > 0;
+    let arguments_ordered: Bool = CodegenCallArgumentsNeedOrder(graph, view) || retires;
     if !receiver_bound && !arguments_ordered {
         let args: String = RewriteSemanticCallArguments(
             graph, view, modes, param_types, param_offset, prefix_argument,
@@ -123,14 +133,23 @@ func RewriteSemanticOrderedCall(
     let readonly_string_temporary_ready: Bool =
         SemanticCallReadonlyStringTemporaryReady(
             graph, view, modes, param_types);
+    var rendered: Array<String> = [];
+    var rendered_row: Int = 0;
+    while rendered_row < ArrayLength(view.argument_nodes) {
+        let parameter: Int = rendered_row + param_offset;
+        var mode: String = "default";
+        if parameter < ParamModeCsvCount(modes) { mode = ParamModeCsvAt(modes, parameter); }
+        ArrayPush(rendered, RewriteSemanticCallArgumentWithReadonlyStringTemporary(
+            graph, view.argument_nodes[rendered_row], CsvAt(param_types, parameter),
+            mode, env, readonly_string_temporary_ready, false));
+        rendered_row = rendered_row + 1;
+    }
     var bindings: Array<String> = [];
     var arguments: Array<String> = [];
+    var releases: Array<String> = [];
     if receiver_bound {
-        var receiver_name: String = Concat("__pgy_recv_", ToString(view.call_node));
-        // Only avoids collisions in emitted C.
-        while StringIndexOf(prefix_argument, receiver_name) >= 0 {
-            receiver_name = Concat(receiver_name, "_");
-        }
+        let receiver_name: String = CodegenCallTemporaryName(
+            "__pgy_recv_" + ToString(view.call_node), call_symbol, prefix_argument, rendered);
         ArrayPush(bindings, Concat("__auto_type ", Concat(receiver_name,
             Concat(" = (", Concat(prefix_argument, "); ")))));
         ArrayPush(arguments, receiver_name);
@@ -138,52 +157,41 @@ func RewriteSemanticOrderedCall(
         ArrayPush(arguments, prefix_argument);
     }
     var i: Int = 0;
+    var retire_row: Int = 0;
     while i < ArrayLength(view.argument_nodes) {
         let param_index: Int = i + param_offset;
         var mode: String = "default";
         if param_index < ParamModeCsvCount(modes) {
             mode = ParamModeCsvAt(modes, param_index);
         }
-        let argument: String =
-            RewriteSemanticCallArgumentWithReadonlyStringTemporary(
-                graph, view.argument_nodes[i], CsvAt(param_types, param_index),
-                mode, env, readonly_string_temporary_ready, false);
+        let argument: String = rendered[i];
+        let retire: Bool = retire_row < ArrayLength(retirement.retired_arguments) &&
+            retirement.retired_arguments[retire_row] == i;
+        if retire && CodegenCallArgumentIsAddress(mode) &&
+            (mode != "ref" ||
+             !AbiLayoutCReadonlyRefPassesDirect(CsvAt(param_types, param_index))) {
+            Die("String temporary retirement cannot consume an address argument");
+        }
         // Arguments that need no ordering (at most one has an effect) stay
         // in the call, after the receiver binding.
-        if !arguments_ordered || CodegenCallArgumentIsAddress(mode) {
+        if !arguments_ordered || (CodegenCallArgumentIsAddress(mode) && !retire) {
             ArrayPush(arguments, argument);
         } else {
-            var name: String = Concat("__pgy_arg_", Concat(
-                ToString(view.call_node), Concat("_", ToString(i))));
-            // Only avoids collisions in emitted C; no source binding is
-            // recovered from the spelling.
-            while StringIndexOf(argument, name) >= 0 {
-                name = Concat(name, "_");
-            }
+            let name: String = CodegenCallTemporaryName(
+                "__pgy_arg_" + ToString(view.call_node) + "_" + ToString(i),
+                call_symbol, prefix_argument, rendered);
             ArrayPush(bindings, Concat("__auto_type ", Concat(name,
                 Concat(" = (", Concat(argument, "); ")))));
             ArrayPush(arguments, name);
+            if retire {
+                ArrayPush(releases, "free((void *)" + name + "); ");
+                retire_row = retire_row + 1;
+            }
         }
         i = i + 1;
     }
-    let result_allocator: Allocator = AllocatorResult();
-    let output: TextBuilder = TextBuilderNew(128);
-    TextBuilderAppend(output, "({ ");
-    i = 0;
-    while i < ArrayLength(bindings) {
-        TextBuilderAppend(output, bindings[i]);
-        i = i + 1;
-    }
-    TextBuilderAppend(output, call_symbol);
-    TextBuilderAppend(output, "(");
-    i = 0;
-    while i < ArrayLength(arguments) {
-        if i > 0 { TextBuilderAppend(output, ", "); }
-        TextBuilderAppend(output, arguments[i]);
-        i = i + 1;
-    }
-    TextBuilderAppend(output, "); })");
-    let text: String = TextBuilderFinish(output, result_allocator);
-    AllocatorDestroy(result_allocator);
-    return text;
+    let result_name: String = CodegenCallTemporaryName(
+        "__pgy_call_result_" + ToString(view.call_node), call_symbol, prefix_argument, rendered);
+    return CodegenCOrderedCallText(call_symbol, bindings, arguments, releases,
+        result_name, result_type);
 }

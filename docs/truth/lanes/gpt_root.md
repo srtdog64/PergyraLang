@@ -8,7 +8,7 @@ User resumed implementation and CI follow-through on 2026-11-17, from
 - Edits: `D:\PergyraLang`; validation: existing WSL `/root/mg-main`.
   Unrelated worktrees, dirty files and recovery copies remain preserved.
 - Plan: [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
-  Active slice: [A1 execution](../../agent_work_directives/selfhost_memory_a1_execution_2026-11-17.md).
+  Active slice: [String seed bridge](../../agent_work_directives/selfhost_string_temporary_retire_execution_2026-11-17.md).
 - A2 frozen MIR comparisons remain separate from current source entrypoints.
   A1 source/executable identities: [evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md);
   reached String OOM boundary: [evidence](../evidence/2026-11-17_selfhost_string_allocation_boundary.md).

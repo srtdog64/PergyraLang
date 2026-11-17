@@ -1,0 +1,28 @@
+// Retained String roots, aliases and user results grant no temporary drop.
+struct StringRetained {
+    let value: String;
+}
+
+func StringRetainedResult(value: String) -> StringRetained {
+    return StringRetained(value);
+}
+
+func StringBorrowedResult(value: String) -> String {
+    return value;
+}
+
+func Main() -> Void {
+    let original: String = Concat("kept", "-owner");
+    let alias: String = ToString(original);
+    let held: StringRetained = StringRetainedResult(Concat("kept", "-result"));
+    let constructed: StringRetained = StringRetained(Concat("kept", "-constructor"));
+    Log(StringLength(ToString(original)));
+    Log(alias);
+    Log(held.value);
+    Log(constructed.value);
+    Log(original);
+    Log(StringLength(StringBorrowedResult(original)));
+    Log(StringLength(Clone(original)));
+    Log(original);
+    Log(StringLength("static"));
+}

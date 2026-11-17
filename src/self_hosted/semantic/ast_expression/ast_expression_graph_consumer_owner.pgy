@@ -12,20 +12,36 @@ func SemanticExpressionGraphRowConsumes(ref topology: AstExpressionArena, row: I
     return (left_match && arity >= 1) || (right_match && arity >= 2);
 }
 
-// For every node, the first later row that consumes it, or -1.
-func SemanticExpressionGraphConsumerRows(ref topology: AstExpressionArena) -> Array<Int> {
+struct SemanticExpressionGraphConsumers {
+    let first_rows: Array<Int>;
+    let multiplicities: Array<Int>;
+}
+
+// Issue first-use identity and exact operand-slot multiplicity together. A
+// repeated slot counts twice even when both slots belong to the same row.
+func SemanticExpressionGraphConsumersFromTopology(
+    ref topology: AstExpressionArena
+) -> SemanticExpressionGraphConsumers {
     let count: Int = AstExpressionArenaNodeCount(topology);
     var rows: Array<Int> = [];
-    while ArrayLength(rows) < count { ArrayPush(rows, -1); }
+    var multiplicities: Array<Int> = [];
+    while ArrayLength(rows) < count {
+        ArrayPush(rows, -1); ArrayPush(multiplicities, 0);
+    }
     var row: Int = 0;
     while row < count {
         let left: Int = topology.left_children[row];
         let right: Int = topology.right_children[row];
-        if left >= 0 && left < row && rows[left] < 0 &&
-            SemanticExpressionGraphRowConsumes(topology, row, left) { rows[left] = row; }
-        if right >= 0 && right < row && rows[right] < 0 &&
-            SemanticExpressionGraphRowConsumes(topology, row, right) { rows[right] = row; }
+        let arity: Int = AstExpressionNodeArity(topology.node_kinds[row]);
+        if arity >= 1 && left >= 0 && left < row {
+            if rows[left] < 0 { rows[left] = row; }
+            multiplicities[left] = multiplicities[left] + 1;
+        }
+        if arity >= 2 && right >= 0 && right < row {
+            if rows[right] < 0 { rows[right] = row; }
+            multiplicities[right] = multiplicities[right] + 1;
+        }
         row = row + 1;
     }
-    return rows;
+    return SemanticExpressionGraphConsumers(rows, multiplicities);
 }

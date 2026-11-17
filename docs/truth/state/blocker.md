@@ -3,10 +3,10 @@
 Owner: GPT root integration. Resumed from `5b0d354fb` on 2026-11-17;
 other paused tracks are not reopened. Publication/CI belong to [main](main.md).
 
-The general role ABI candidate [passed its installed-driver checks](../evidence/2026-11-17_selfhost_memory_role_receiver_migration.md).
+The general role ABI is [published with all 33 CI jobs green](../evidence/2026-11-18_selfhost_role_ci_green.md).
 The full fixed MIR now stops at `collection_ownership_transition`, ordinal
-1054, `AstMatchCasePatternFactFromText`. Next: publish/observe CI, then the
-[memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md)'s owned-value/retire S1/S2 and existing transition reader.
+1054, `AstMatchCasePatternFactFromText`. Active: the decision-authorized
+[String seed bridge](../../agent_work_directives/selfhost_string_temporary_retire_execution_2026-11-17.md), then the memory plan's full S1/S2 and transition reader.
 The one-process DRV-2 memory goal remains unestablished ([measurements](measurements.md)).
 
 ## Objective card
@@ -38,8 +38,8 @@ The one-process DRV-2 memory goal remains unestablished ([measurements](measurem
 4. Compiler temporaries released at last use
    ([decision](../decisions/2026-11-16_compiler_temporaries_are_released_at_last_use.md)):
    DRV-2 source-to-C still fails the bound ([measurements](measurements.md)); direct MIR refuses routines at
-   semantic 31, mir_lower 52, codegen 59; DRV-2 stops at `role-declaration`
-   ([DM2](../evidence/2026-11-17_direct_mir_dm2_driver_and_fuzz_failure_set.md)).
+   semantic 31, mir_lower 52, codegen 59 in DM2; the current full frozen MIR
+   [passes roles and stops at collection transition 1054](../evidence/2026-11-17_selfhost_memory_role_receiver_migration.md).
 5. Weekly pipeline (run 43914895554): W1 fixed the let/var fixtures, the
    DAG floor and the rule header; open are direct MIR (driver shard 91
    failures, fuzz variant 1), `dnd_tavern_campaign` (S5), and line caps

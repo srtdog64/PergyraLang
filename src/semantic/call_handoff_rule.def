@@ -48,6 +48,9 @@
  *   PGY_CALL_HANDOFF_SELF_HOST_EFFECT_DIVERGENCE(divergence, effect code, members | NONE)
  *   PGY_CALL_HANDOFF_ROW(kinds, origins, later, contexts, elements, action)
  *   PGY_CALL_HANDOFF_DIVERGENCE_ROW(divergence, kinds, origins, later, contexts, elements, action)
+ *   PGY_CALL_HANDOFF_STRING_RESULT(source_name, arity, first_argument_type)
+ *     An independent heap-or-null String; ANY covers every admitted first
+ *     argument type. Result provenance does not grant argument nonretention.
  * A list joins names with `|`; ANY is every value of the axis.
  */
 
@@ -59,6 +62,25 @@ PGY_CALL_HANDOFF_MEMBER(GROW, MOVING)
 PGY_CALL_HANDOFF_MEMBER(KEEP, MOVING)
 PGY_CALL_HANDOFF_MEMBER(RELEASE, MOVING)
 PGY_CALL_HANDOFF_MEMBER(UNPROVED, MOVING)
+
+/* Use only after proving the canonical builtin identity and concrete String
+ * result/operand types. Declared namesakes have no allocation grant. */
+PGY_CALL_HANDOFF_STRING_RESULT(Concat, 2, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(StringConcat, 2, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(Substring, 3, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(SubstringWithLen, 4, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(CharAtN, 3, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(StringTrim, 1, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(ToUpper, 1, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(ToLower, 1, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(StringReplace, 3, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(StringJoin, 2, ANY)
+PGY_CALL_HANDOFF_STRING_RESULT(Clone, 1, String)
+PGY_CALL_HANDOFF_STRING_RESULT(ToString, 1, Int)
+PGY_CALL_HANDOFF_STRING_RESULT(ToString, 1, Long)
+PGY_CALL_HANDOFF_STRING_RESULT(ToString, 1, Float)
+PGY_CALL_HANDOFF_STRING_RESULT(ToString, 1, Double)
+PGY_CALL_HANDOFF_STRING_RESULT(ToString, 1, Bool)
 
 /* The join: a class set is the first kind it matches. */
 PGY_CALL_HANDOFF_KIND(UNPROVED, UNPROVED, ALL)
