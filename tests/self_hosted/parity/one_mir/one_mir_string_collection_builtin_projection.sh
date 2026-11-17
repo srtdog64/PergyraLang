@@ -6,6 +6,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-string-collection-builtin"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -37,7 +38,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "42F24FB5CE4CDF6DB212303806B817710B44D441AD71BCCEED87530EA862A002" ]] ||
+[[ "$mir_sha" == "F4BC0181F4C6F485A065E753153215B053BF1C79E0DF66B5F903106A31E4E43D" ]] ||
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_string_collection_builtin_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"
@@ -90,6 +91,10 @@ require_text "$WORK_DIR/base.c" 'offsetof(pgy_as, allocator)'
 require_text "$WORK_DIR/base.ll" '%pgy.array.string = type { ptr, i64, i64, ptr }'
 expected_base=$'yes\n3\nbb\na|bb|c\n43\n1\n2\nleft\nleft/right'
 expected_semantic=$'no\n3\nbbbb\na|bbbb|c\n8\n1\n2\nleft\nleft/right'
+pgy_selfhost_select_linked_runtime_compile_profile || fail "runtime compiler profile is invalid"
+"$CLANG" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" \
+    -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/runtime.o" \
+    >"$WORK_DIR/runtime.compile.log" 2>&1 || fail "LLVM runtime did not compile"
 for stem in base display-only semantic-change; do
     c_command=("$CC" -std=c11 "$WORK_DIR/$stem.c")
     if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/$stem.c"; then
@@ -97,7 +102,8 @@ for stem in base display-only semantic-change; do
     fi
     c_command+=(-o "$WORK_DIR/$stem.c.exe")
     "${c_command[@]}" || fail "C compile failed: $stem"
-    "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" ||
+    "$CLANG" -x ir "$WORK_DIR/$stem.ll" -x none "$WORK_DIR/runtime.o" -pthread -lm \
+        -o "$WORK_DIR/$stem.llvm.exe" ||
         fail "LLVM compile failed: $stem"
     expected="$expected_base"; [[ "$stem" == semantic-change ]] && expected="$expected_semantic"
     c_out="$("$WORK_DIR/$stem.c.exe" | sed 's/\r$//')" || fail "C execution failed: $stem"

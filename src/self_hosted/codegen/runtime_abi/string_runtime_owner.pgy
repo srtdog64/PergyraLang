@@ -5,6 +5,22 @@
 import "collection_runtime_owner.pgy";
 import "string_runtime_symbol_owner.pgy";
 
+// Allocating String operations never return NULL or a partial value. Their
+// callers keep the existing malloc/free ownership and the public signatures.
+func StringRuntimeCAllocationBlock() -> String {
+    let allocate: String = StringRuntimeCAllocateFn();
+    let add: String = StringRuntimeCExtentAddFn();
+    let multiply: String = StringRuntimeCExtentMultiplyFn();
+    var block: String = "#ifndef PGY_EMITTED_STRING_ALLOCATION_RUNTIME\n#define PGY_EMITTED_STRING_ALLOCATION_RUNTIME\n#include <stddef.h>\n#include <stdlib.h>\n#include \"pgy_runtime_panic_contract.h\"\n";
+    block = Concat(block, "static inline size_t ${add}(size_t a, size_t b) {\n");
+    block = Concat(block, "    if (b > (size_t)-1 - a) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n    return a + b;\n}\n");
+    block = Concat(block, "static inline size_t ${multiply}(size_t a, size_t b) {\n");
+    block = Concat(block, "    if (a != 0 && b > (size_t)-1 / a) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n    return a * b;\n}\n");
+    block = Concat(block, "static inline char *${allocate}(size_t length) {\n");
+    block = Concat(block, "    size_t bytes = ${add}(length, 1);\n    char *result = (char *)malloc(bytes);\n");
+    return Concat(block, "    if (result == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n    return result;\n}\n#endif\n\n");
+}
+
 func StringRuntimeCStringLogBlock() -> String {
     var block: String = "";
     block = Concat(block, Concat("static void ", Concat(StringRuntimeCLogFn(), "(const char *s)\n{\n")));
@@ -48,36 +64,37 @@ func StringRuntimeCPrintBlock() -> String {
 }
 
 func StringRuntimeCConcatBlock() -> String {
-    var block: String = "";
+    var block: String = StringRuntimeCAllocationBlock();
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCConcatFn(), "(const char *a, const char *b)\n{\n")));
     block = Concat(block, "    size_t la = strlen(a);\n    size_t lb = strlen(b);\n");
-    block = Concat(block, "    char *r = (char *)malloc(la + lb + 1);\n");
+    block = Concat(block, "    char *r = ${StringRuntimeCAllocateFn()}(${StringRuntimeCExtentAddFn()}(la, lb));\n");
     block = Concat(block, "    memcpy(r, a, la);\n    memcpy(r + la, b, lb);\n    r[la + lb] = '\\0';\n");
     block = Concat(block, "    return r;\n}\n\n");
     return block;
 }
 
 func StringRuntimeCToStringBlock() -> String {
-    var block: String = "";
+    var block: String = StringRuntimeCAllocationBlock();
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCToStringFn(), "(long long v)\n{\n")));
-    block = Concat(block, "    char *r = (char *)malloc(24);\n");
+    // Preserve the existing 24-byte signed-decimal buffer, including NUL.
+    block = Concat(block, "    char *r = ${StringRuntimeCAllocateFn()}(23);\n");
     block = Concat(block, "    sprintf(r, \"%lld\", v);\n    return r;\n}\n\n");
     return block;
 }
 
 func StringRuntimeCToUpperBlock() -> String {
-    var block: String = "";
+    var block: String = StringRuntimeCAllocationBlock();
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCToUpperFn(), "(const char *s)\n{\n")));
-    block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
+    block = Concat(block, "    size_t n = strlen(s);\n    char *r = ${StringRuntimeCAllocateFn()}(n);\n");
     block = Concat(block, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'a' && c <= 'z') ? (char)(c - 32) : c; }\n");
     block = Concat(block, "    r[n] = '\\0';\n    return r;\n}\n\n");
     return block;
 }
 
 func StringRuntimeCToLowerBlock() -> String {
-    var block: String = "";
+    var block: String = StringRuntimeCAllocationBlock();
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCToLowerFn(), "(const char *s)\n{\n")));
-    block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
+    block = Concat(block, "    size_t n = strlen(s);\n    char *r = ${StringRuntimeCAllocateFn()}(n);\n");
     block = Concat(block, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c; }\n");
     block = Concat(block, "    r[n] = '\\0';\n    return r;\n}\n\n");
     return block;
@@ -92,25 +109,24 @@ func StringRuntimeCStringLengthBlock() -> String {
 }
 
 func StringRuntimeCSubstringBlock() -> String {
-    var block: String = "";
+    var block: String = StringRuntimeCAllocationBlock();
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCSubstringFn(), "(const char *s, long long start, long long len)\n{\n")));
-    block = Concat(block, "    if (s == NULL) { char *e = (char *)malloc(1); if (e != NULL) e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    if (s == NULL) { char *e = ${StringRuntimeCAllocateFn()}(0); e[0] = '\\0'; return e; }\n");
     block = Concat(block, "    size_t raw_len = strlen(s);\n");
-    block = Concat(block, "    if (raw_len >= 9223372036854775807ULL || start < 0 || len <= 0 || (size_t)start >= raw_len) { char *e = (char *)malloc(1); if (e != NULL) e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    if (raw_len >= 9223372036854775807ULL || start < 0 || len <= 0 || (size_t)start >= raw_len) { char *e = ${StringRuntimeCAllocateFn()}(0); e[0] = '\\0'; return e; }\n");
     block = Concat(block, "    long long source_len = (long long)raw_len;\n");
     block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n");
-    block = Concat(block, "    char *r = (char *)malloc((size_t)len + 1);\n    if (r == NULL) return r;\n");
+    block = Concat(block, "    char *r = ${StringRuntimeCAllocateFn()}((size_t)len);\n");
     block = Concat(block, "    memcpy(r, s + start, (size_t)len);\n    r[len] = '\\0';\n");
     return Concat(block, "    return r;\n}\n\n");
 }
 
 func StringRuntimeCSubstringWithLenBlock() -> String {
-    var block: String = "";
+    var block: String = StringRuntimeCAllocationBlock();
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCSubstringWithLenFn(), "(const char *s, long long source_len, long long start, long long len)\n{\n")));
-    block = Concat(block, "    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) { char *e = (char *)malloc(1); if (e != NULL) e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) { char *e = ${StringRuntimeCAllocateFn()}(0); e[0] = '\\0'; return e; }\n");
     block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n");
-    block = Concat(block, "    char *bounded = (char *)malloc((size_t)len + 1);\n");
-    block = Concat(block, "    if (bounded == NULL) return bounded;\n");
+    block = Concat(block, "    char *bounded = ${StringRuntimeCAllocateFn()}((size_t)len);\n");
     block = Concat(block, "    memcpy(bounded, s + start, (size_t)len);\n    bounded[len] = '\\0';\n");
     return Concat(block, "    return bounded;\n}\n\n");
 }
@@ -128,13 +144,13 @@ func StringRuntimeCStringIndexOfBlock() -> String {
 func StringRuntimeCStringTrimBlock() -> String {
     var block: String = Concat("static char *", Concat(
         StringRuntimeCStringTrimFn(), "(const char *s)\n{\n"));
-    block = Concat(block, "    if (s == NULL) { char *e = (char *)malloc(1); if (e != NULL) e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    if (s == NULL) { char *e = ${StringRuntimeCAllocateFn()}(0); e[0] = '\\0'; return e; }\n");
     block = Concat(block, "    while (*s == ' ' || *s == '\\t' || *s == '\\n' || *s == '\\r') { s++; }\n");
     block = Concat(block, "    size_t len = strlen(s);\n");
     block = Concat(block, "    while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\\t' || s[len-1] == '\\n' || s[len-1] == '\\r')) { len--; }\n");
-    block = Concat(block, "    char *r = (char *)malloc(len + 1);\n    if (r == NULL) return r;\n");
+    block = Concat(block, "    char *r = ${StringRuntimeCAllocateFn()}(len);\n");
     block = Concat(block, "    memcpy(r, s, len);\n    r[len] = '\\0';\n");
-    return Concat(block, "    return r;\n}\n\n");
+    return Concat(StringRuntimeCAllocationBlock(), Concat(block, "    return r;\n}\n\n"));
 }
 
 func StringRuntimeCCharAtNBlock() -> String {
@@ -144,10 +160,10 @@ func StringRuntimeCCharAtNBlock() -> String {
     block = Concat(block,
         "    char *r;\n    if (s != NULL && i >= 0 && i < len) {\n");
     block = Concat(block,
-        "        r = (char *)malloc(2);\n        if (r != NULL) { r[0] = s[i]; r[1] = '\\0'; return r; }\n    }\n");
+        "        r = ${StringRuntimeCAllocateFn()}(1);\n        r[0] = s[i]; r[1] = '\\0'; return r;\n    }\n");
     block = Concat(block,
-        "    r = (char *)malloc(1);\n    if (r != NULL) r[0] = '\\0';\n    return r;\n}\n\n");
-    return block;
+        "    r = ${StringRuntimeCAllocateFn()}(0);\n    r[0] = '\\0';\n    return r;\n}\n\n");
+    return Concat(StringRuntimeCAllocationBlock(), block);
 }
 
 func StringRuntimeCCharCodeBlock() -> String {
@@ -234,8 +250,8 @@ func StringRuntimeCStringCoreBlock(
     if !runtime_header_owns_bool_to_string {
         block = Concat(block, Concat("static char *", Concat(StringRuntimeCBoolToStringFn(), "(_Bool v)\n{\n")));
         block = Concat(block, "    const char *s = v ? \"true\" : \"false\";\n");
-        block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
-        block = Concat(block, "    if (r != NULL) { memcpy(r, s, n + 1); }\n    return r;\n}\n\n");
+        block = Concat(block, "    size_t n = strlen(s);\n    char *r = ${StringRuntimeCAllocateFn()}(n);\n");
+        block = Concat(block, "    memcpy(r, s, n + 1);\n    return r;\n}\n\n");
     }
     block = Concat(block, StringRuntimeCStringContainsBlock());
     block = Concat(block, StringRuntimeCSubIndexOfWithLenBlock());
@@ -251,7 +267,8 @@ func StringRuntimeCStringCoreBlock(
     block = Concat(block, Concat("    if (fl == 0) { return ", Concat(StringRuntimeCConcatFn(), "(s, \"\"); }\n")));
     block = Concat(block, "    size_t tl = strlen(to);\n    size_t cnt = 0;\n    const char *p = s;\n");
     block = Concat(block, "    while ((p = strstr(p, from)) != NULL) { cnt++; p += fl; }\n");
-    block = Concat(block, "    char *r = (char *)malloc(strlen(s) + cnt * (tl > fl ? tl - fl : 0) + 1);\n");
+    block = Concat(block, "    size_t length = ${StringRuntimeCExtentAddFn()}(strlen(s), ${StringRuntimeCExtentMultiplyFn()}(cnt, tl > fl ? tl - fl : 0));\n");
+    block = Concat(block, "    char *r = ${StringRuntimeCAllocateFn()}(length);\n");
     block = Concat(block, "    char *w = r;\n    const char *q = s;\n");
     block = Concat(block, "    while (*q) {\n        if (strncmp(q, from, fl) == 0) { memcpy(w, to, tl); w += tl; q += fl; }\n");
     block = Concat(block, "        else { *w++ = *q++; }\n    }\n    *w = '\\0';\n    return r;\n}\n\n");
@@ -275,21 +292,21 @@ func StringRuntimeCToIntBlock() -> String {
 }
 
 func StringRuntimeCSplitBlock() -> String {
-    var block: String = "";
+    var block: String = StringRuntimeCAllocationBlock();
     block = Concat(block, Concat("static pgy_as ", Concat(StringRuntimeCSplitFn(), "(const char *s, const char *sep)\n{\n")));
     block = Concat(block, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n")));
     block = Concat(block, "    size_t sl = strlen(sep);\n");
-    block = Concat(block, "    if (sl == 0) { char *only = (char *)malloc(strlen(s) + 1); strcpy(only, s); ");
+    block = Concat(block, "    if (sl == 0) { char *only = ${StringRuntimeCAllocateFn()}(strlen(s)); strcpy(only, s); ");
     block = Concat(block, Concat(CollectionRuntimeCPushFn(2),
         "(&a, only); return a; }\n"));
     block = Concat(block, "    const char *start = s;\n    const char *p;\n");
     block = Concat(block, "    while ((p = strstr(start, sep)) != NULL) {\n");
     block = Concat(block, "        size_t len = (size_t)(p - start);\n");
-    block = Concat(block, "        char *part = (char *)malloc(len + 1);\n");
+    block = Concat(block, "        char *part = ${StringRuntimeCAllocateFn()}(len);\n");
     block = Concat(block, "        memcpy(part, start, len); part[len] = '\\0';\n");
     block = Concat(block, Concat("        ", Concat(CollectionRuntimeCPushFn(2), "(&a, part);\n")));
     block = Concat(block, "        start = p + sl;\n    }\n");
-    block = Concat(block, "    char *last = (char *)malloc(strlen(start) + 1);\n");
+    block = Concat(block, "    char *last = ${StringRuntimeCAllocateFn()}(strlen(start));\n");
     block = Concat(block, "    strcpy(last, start);\n");
     block = Concat(block, Concat("    ", Concat(CollectionRuntimeCPushFn(2), "(&a, last);\n")));
     block = Concat(block, "    return a;\n}\n\n");
@@ -297,13 +314,13 @@ func StringRuntimeCSplitBlock() -> String {
 }
 
 func StringRuntimeCStringJoinBlock() -> String {
-    var block: String = "";
+    var block: String = StringRuntimeCAllocationBlock();
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCStringJoinFn(), "(pgy_as a, const char *sep)\n{\n")));
     block = Concat(block, "    size_t sl = strlen(sep);\n    size_t total = 0;\n");
     block = Concat(block, "    long long count = pgy_as_len(a);\n");
-    block = Concat(block, "    for (long long i = 0; i < count; i++) { total += strlen(pgy_as_get(a, i)); }\n");
-    block = Concat(block, "    if (count > 1) { total += sl * (size_t)(count - 1); }\n");
-    block = Concat(block, "    char *r = (char *)malloc(total + 1);\n    char *p = r;\n");
+    block = Concat(block, "    for (long long i = 0; i < count; i++) { total = ${StringRuntimeCExtentAddFn()}(total, strlen(pgy_as_get(a, i))); }\n");
+    block = Concat(block, "    if (count > 1) { total = ${StringRuntimeCExtentAddFn()}(total, ${StringRuntimeCExtentMultiplyFn()}(sl, (size_t)(count - 1))); }\n");
+    block = Concat(block, "    char *r = ${StringRuntimeCAllocateFn()}(total);\n    char *p = r;\n");
     block = Concat(block, "    for (long long i = 0; i < count; i++) {\n");
     block = Concat(block, "        if (i > 0) { memcpy(p, sep, sl); p += sl; }\n");
     block = Concat(block, "        const char *item = pgy_as_get(a, i);\n        size_t el = strlen(item);\n        memcpy(p, item, el); p += el;\n    }\n");

@@ -10,7 +10,8 @@ User resumed implementation and CI follow-through on 2026-11-17, from
 - Plan: [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
   Active slice: [A1 execution](../../agent_work_directives/selfhost_memory_a1_execution_2026-11-17.md).
 - A2 frozen MIR comparisons remain separate from current source entrypoints.
-  A1 source/executable identities and limits: [evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md).
+  A1 source/executable identities: [evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md);
+  reached String OOM boundary: [evidence](../evidence/2026-11-17_selfhost_string_allocation_boundary.md).
 - Current measurements and gate logs are under WSL
   `.tmp/selfhost-memory-20261117/`; they are not semantic authority.
 - No timeout/memory increase, smaller correctness input, weaker negative,

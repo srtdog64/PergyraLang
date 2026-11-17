@@ -3,10 +3,10 @@
 Owner: GPT root integration. The user resumed the self-compile memory plan
 on 2026-11-17 from main `5b0d354fb`; other paused tracks are not reopened.
 
-A2 is published through `7ea3c781f`; CI run 44024724037 passed after
-the [publication fixes](../evidence/2026-11-17_selfhost_memory_a2_ci_publication_fix.md).
-A1 and the reached array OOM repair passed local integration; exact-candidate
-CI and full DRV-2 memory remain open ([evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md)).
+A1 and the array OOM repair are published at `3a0a385b7`; CI 44045107368
+passed all 33 jobs ([evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md)).
+The reached String repair passed local integration ([evidence](../evidence/2026-11-17_selfhost_string_allocation_boundary.md)); publication is pending.
+Full DRV-2 still exceeds the memory boundary, now with explicit OOM / exit 134.
 Then follow the direct-MIR/owned-value dependencies of the [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
 
 ## Objective card
@@ -37,7 +37,7 @@ Then follow the direct-MIR/owned-value dependencies of the [memory plan](../../a
    MIR statement text. `semantic.hashmap_collection_ownership` stays ACTIVE.
 4. Compiler temporaries released at last use
    ([decision](../decisions/2026-11-16_compiler_temporaries_are_released_at_last_use.md)):
-   DRV-2 source-to-C needs about 23 GB; direct MIR refuses routines at
+   DRV-2 source-to-C still fails the bound ([measurements](measurements.md)); direct MIR refuses routines at
    semantic 31, mir_lower 52, codegen 59; DRV-2 stops at `role-declaration`
    ([DM2](../evidence/2026-11-17_direct_mir_dm2_driver_and_fuzz_failure_set.md)).
 5. Weekly pipeline (run 43914895554): W1 fixed the let/var fixtures, the

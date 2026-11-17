@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-string-equality-concat"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -36,7 +37,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/program.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/program.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "85E6A08A02F7C6DB568455793D7EF777847C17C9A56366782DFB38B6D8014538" ]] ||
+[[ "$mir_sha" == "8B64AD6AF1BACE171912EC061B9FE00B3B66BF66EBA2B26B360D238B2C3B3BF9" ]] ||
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_string_equality_concat_mutations.py" \
     "$WORK_DIR/program.json" "$WORK_DIR"
@@ -83,7 +84,12 @@ require_text "$WORK_DIR/base.c" 'strcmp('
 require_text "$WORK_DIR/base.ll" 'define internal ptr @pgy_concat'
 require_text "$WORK_DIR/base.ll" 'call i32 @strcmp'
 for stem in base display-only semantic-fail; do
-    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" || fail "C compile failed: $stem"
+    c_command=("$CC" -std=c11 "$WORK_DIR/$stem.c")
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/$stem.c"; then
+        c_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    fi
+    c_command+=(-o "$WORK_DIR/$stem.c.exe")
+    "${c_command[@]}" || fail "C compile failed: $stem"
     "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" || fail "LLVM compile failed: $stem"
     expected="concat_eq_ok"; [[ "$stem" == semantic-fail ]] && expected="concat_eq_fail"
     c_out="$("$WORK_DIR/$stem.c.exe" | tr -d '\r')" || fail "C execution failed: $stem"

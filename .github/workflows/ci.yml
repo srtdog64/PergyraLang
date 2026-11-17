@@ -465,6 +465,9 @@ jobs:
       - name: Run self-host codegen fixed point and breadth
         run: make LLVM_ENABLED=1 self-host-codegen-bootstrap-test-smoke
 
+      - name: Reject failed String allocations in the Pergyra-built emitter
+        run: bash tests/self_hosted/parity/codegen/string_allocation_failure.sh
+
       - name: Publish the exact native seed compiler
         uses: actions/upload-artifact@v4
         with:

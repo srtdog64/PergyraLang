@@ -6,6 +6,10 @@
 // line cap.
 import "collection_runtime_owner.pgy";
 
+func StringRuntimeCAllocateFn() -> String { return "pgy_str_alloc"; }
+func StringRuntimeCExtentAddFn() -> String { return "pgy_str_extent_add"; }
+func StringRuntimeCExtentMultiplyFn() -> String { return "pgy_str_extent_multiply"; }
+
 func StringRuntimeCConcatFn() -> String {
     return "pgy_concat";
 }

@@ -1,0 +1,39 @@
+// All allocating branches of the AST-C String runtime use the same OOM boundary.
+func Main() -> Void with caps env {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Log("String allocation case required"); Exit(1); }
+    let selected: Int = ToInt(args[0]);
+    var actual: String = "";
+    var expected: String = "";
+    if selected == 0 { actual = Concat("left", "right"); expected = "leftright"; }
+    else if selected == 1 { actual = ToString(selected + 16); expected = "17"; }
+    else if selected == 2 { actual = ToUpper("aB"); expected = "AB"; }
+    else if selected == 3 { actual = ToLower("aB"); expected = "ab"; }
+    else if selected == 4 { actual = Substring("abc", 1, 1); expected = "b"; }
+    else if selected == 5 { actual = Substring("abc", -1, 0); }
+    else if selected == 6 { actual = SubstringWithLen("abc", 3, 1, 1); expected = "b"; }
+    else if selected == 7 { actual = SubstringWithLen("abc", 3, -1, 0); }
+    else if selected == 8 { actual = StringTrim(" a "); expected = "a"; }
+    else if selected == 9 { actual = StringTrim("  "); }
+    else if selected == 10 { actual = CharAtN("abc", 3, 1); expected = "b"; }
+    else if selected == 11 { actual = CharAtN("abc", 3, 7); }
+    else if selected == 12 { actual = ToString(selected == 12); expected = "true"; }
+    else if selected == 13 { actual = StringReplace("a-b", "-", "+"); expected = "a+b"; }
+    else if selected == 14 { actual = StringReplace("abc", "", "x"); expected = "abc"; }
+    else if selected == 15 {
+        let parts: Array<String> = Split("a,b", ","); actual = parts[0]; expected = "a";
+    } else if selected == 16 {
+        let parts: Array<String> = Split("abc", ""); actual = parts[0]; expected = "abc";
+    } else if selected == 17 {
+        let parts: Array<String> = Split("abc", ","); actual = parts[0]; expected = "abc";
+    } else if selected == 18 {
+        let parts: Array<String> = ["a", "b"]; actual = StringJoin(parts, "-"); expected = "a-b";
+    } else if selected == 19 {
+        let parts: Array<String> = []; actual = StringJoin(parts, "-");
+    } else if selected == 20 {
+        let parts: Array<String> = [""]; actual = StringJoin(parts, "-");
+    } else if selected == 21 { actual = StringTrim(""); }
+    else { Log("unknown String allocation case"); Exit(1); }
+    if actual != expected { Log("String allocation changed the value"); Exit(1); }
+    Log("string-allocation-ok");
+}

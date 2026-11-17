@@ -80,3 +80,36 @@
   instead of storing through NULL. Exercise each array family and preserve
   ordinary output; prove the new codegen seed's gen2 == gen3 and run the same
   complete DRV-2 input again. An explicit OOM still leaves the memory goal open.
+
+## String allocation follow-up after publication
+
+- Parent: published `3a0a385b7`, CI 44045107368 passed all 33 jobs. Its full DRV-2
+  repeat still failed at the unchanged boundary. GDB now shows malloc
+  returning NULL (rax=0), followed immediately by a String-concat store in
+  `SemanticAstCollectionExclusiveCopyLandingFor`; this is not evidence of
+  a freed JSON fragment. Logs: `a1-final-drv2*` in the existing run directory.
+- Objective/priority remain safe explicit resource failure before memory
+  reduction. Existing owner: `codegen/runtime_abi/string_runtime_owner.pgy`;
+  C identities stay with `string_runtime_symbol_owner.pgy`. All 22 allocating
+  String branches have been enumerated on one fixed input: normal values
+  passed, forced malloc failure caused SIGSEGV in all 22.
+- Complete consumers: AST `program_emit.pgy`, direct-MIR scalar-CFG concat,
+  and scalar-program builtin, String-window, trim and collection materializers.
+  The first integration missed builtin/window/trim and failed at C linking;
+  the allocating block producers must supply their own allocation dependency.
+  Each of the ten independently selected allocating blocks carries the same
+  guarded definition from the existing owner. Core's Bool/Replace already
+  compose Concat. The C guard emits one implementation per translation unit;
+  consumers neither reconstruct this dependency nor own another allocator.
+- Preserve public String signatures, valid empty results and malloc/free
+  ownership. Check byte extents before arithmetic and reject NULL using
+  the existing OOM panic. No NULL result, partial String, silent empty
+  fallback, larger allowance, manual caller drop or new annotation.
+- Gates: all 22 values, forced allocation failures and guard-removal controls
+  through the real Pergyra codegen seed, plus pre-malloc extent overflows;
+  direct-MIR C/LLVM consumer execution; codegen fixed point,
+  fresh driver, same full DRV-2 input and exact-commit CI. The fault matrix
+  is Linux-specific; it is not a Windows allocation-failure claim.
+- Retiring owned values is still the memory reduction mechanism. An OOM
+  diagnostic alone does not satisfy the full one-process memory target.
+  Executed results and inherited limits: [record](../truth/evidence/2026-11-17_selfhost_string_allocation_boundary.md).
