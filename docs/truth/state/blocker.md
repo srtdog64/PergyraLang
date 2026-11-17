@@ -1,6 +1,7 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-17 on main `a1cb26a93`.
+Owner: Claude root lane. Checked 2026-11-17 on main `757f02f76`. Work is
+paused here by the user (direction under review); no track is running.
 
 ## Objective card
 
@@ -16,45 +17,43 @@ Owner: Claude root lane. Checked 2026-11-17 on main `a1cb26a93`.
 
 1. Required CI on the commit carrying this file ([gates](gates.md)).
 2. Memory: four legs, LLVM IR at -O0, 3143 inputs: only endless recursion
-   ([evidence](../evidence/2026-11-16_llvm_legs_at_o0.md)), and one native
-   LLVM report not confirmed under the mismatched ASan runtime.
-3. One hand-off rule for both front ends
-   ([decision](../decisions/2026-11-16_one_handoff_rule_for_both_front_ends.md)):
-   S0, S1 and S2 done; both front ends publish call hand-off rows in MIR
-   JSON and the self-host reader refuses forged rows
-   ([evidence](../evidence/2026-11-16_s2_call_handoff_rows.md)). S3, the
-   self-host alias closure (`grown_handoff`), is next.
-   `semantic.hashmap_collection_ownership` stays ACTIVE until S6.
+   ([evidence](../evidence/2026-11-16_llvm_legs_at_o0.md)). The `--mir-json`
+   route admits MIR that lacks a match temporary or loop binding row (the
+   direct backend refuses it); a fix is on the DM3 branch, unverified. The
+   three driver-shard "admitted negatives" were stale probes.
+3. One hand-off rule ([decision](../decisions/2026-11-16_one_handoff_rule_for_both_front_ends.md)):
+   S0-S4 landed ([S3](../evidence/2026-11-17_s3_formal_alias_closure.md),
+   [S4](../evidence/2026-11-17_s4_native_array_formal_class.md)). S5a (one
+   later-use definition, Unproved moves) is an unlanded branch. Before S6
+   deletes the backend sharing guard, `alias_read_after` must move or be
+   refused: with the guard off it double-frees. S5c (`seed`, owned-element
+   Clone) needs compiler Clones carried in direct MIR: 174 chosen, 0 in
+   MIR statement text. `semantic.hashmap_collection_ownership` stays ACTIVE.
 4. Compiler temporaries released at last use
    ([decision](../decisions/2026-11-16_compiler_temporaries_are_released_at_last_use.md)):
-   the one-process DRV-2 source-to-C compile needs about 23 GB. Direct MIR
-   must admit the compiler's own entry first; DM1 cut refused routines to
-   semantic 31, mir_lower 52, codegen 59
-   ([evidence](../evidence/2026-11-16_direct_mir_dm1_coverage_families.md)).
-   DRV-2 stops at route stage `role-declaration`: the role receiver ABI row
-   and override identity live only in `direct_mir_role_override_*`.
-5. Weekly pipeline run 43914895554 on `3ad7444db`, the first in weeks whose
-   `platform-full-linux` reached its gates: let/var debt in weekly-only
-   fixtures, the type-resolution DAG floor (1453 < 2000), bodies in
-   `call_handoff_rule.h`, direct MIR `stage=builtin-call` (driver shard
-   `valid_array_builtins`, fuzz generator), `dnd_tavern_campaign` (S5),
-   and line caps: 32 semantic TUs over 599 and 2 headers over 600, deferred
-   until S5-S7 rewrite those owners.
-6. Self-host front end still differs from native: `x = values`
-   reassignment from a ref formal, generic `ref value: T`, reserved words
-   as zone/role/effect names, and no generic own/ref rule in the graph
-   checker (later refusals catch the falsifiers).
+   DRV-2 source-to-C needs about 23 GB; direct MIR refuses routines at
+   semantic 31, mir_lower 52, codegen 59; DRV-2 stops at `role-declaration`
+   ([DM2](../evidence/2026-11-17_direct_mir_dm2_driver_and_fuzz_failure_set.md)).
+5. Weekly pipeline (run 43914895554): W1 fixed the let/var fixtures, the
+   DAG floor and the rule header; open are direct MIR (driver shard 91
+   failures, fuzz variant 1), `dnd_tavern_campaign` (S5), and line caps
+   (32 semantic TUs, 2 headers, 6 test includes, 39 owners).
+6. Front ends differ: native admits a `let` field write through a world,
+   zone slot and subject path; `x = values` from a ref formal; generic
+   `ref value: T`; reserved zone/role/effect names. F2 branch, unlanded.
+   A `List` passed to a `ref` formal is refused even for `ListSize`.
 
-## Done 2026-11-16 and 2026-11-17
+## Unlanded branches at the pause
 
-- `a2b78e746`, `7cf0c6be1`: generic moves; self-host reserved names.
-- `577f9b722`, `add4254c5`, `a1cb26a93`: hand-off rule and MIR rows; DM1.
-- `f01cb5758`, `4a9c2c0a9`: macOS `timeout`; emitted-C feature macros.
+`s5a-one-later-use`, `dm3-direct-mir`, `f2-front-end-rules`: wip, not
+verified as a whole; read each branch's last commit before reuse.
+
+## Done 2026-11-17
+
+- `add4254c5`, `a1cb26a93`, `f2a13fd61`, `ea0783975`, `757f02f76`: S2,
+  DM1, S3, DM2, S4; `17bbed4f8` W1; `e7014caad` native List mutator check.
 
 ## Falsifiers kept
 
-- `direct_mir_array_string_cleanup_fact_owner.sh`: refusals 14+4, record
-  and loop takes refused, glibc heap checks.
-- `native_unsafe_negative_refusal_smoke.sh`: 39 refusals, 17 admissions.
-- `self-host-call-handoff-row-reader-test-smoke`: 44 forged rows refused.
-- `direct_mir_general_emitter_coverage_owner.sh`: 5 positives on 5 legs.
+- `direct_mir_array_string_cleanup_fact_owner.sh`: refused 18+4, admitted
+  8x2, heap checks; `self-host-call-handoff-row-reader-test-smoke`: 44.
