@@ -33,4 +33,28 @@ TIME_BIN="$(type -P time)" || fail "GNU time is required for peak RSS"
 peak="$(tr -d '\r\n' <"$WORK/peak-rss-kib")"
 case "$peak" in ''|*[!0-9]*) fail "peak RSS was not measured" ;; esac
 [[ "$peak" -le 819200 ]] || fail "peak RSS ${peak}KiB exceeds 800MiB"
-echo "[selfhost-compile-memory] PASS: complete semantic MIR consumer peak=${peak}KiB <=800MiB; evidence=$REL"
+"$PYTHON" "$BOUNDARY" --receipt "$WORK/source-c.receipt.json" -- \
+    "$TIME_BIN" -f '%M' -o "$WORK/source-c.peak-rss-kib" \
+    "$DRIVER" --emit-c-artifact-verified src/self_hosted/mir_lower/main.pgy \
+    "$REL/source-c.c" >"$WORK/source-c.log" 2>&1 || {
+        tail -n 30 "$WORK/source-c.log" >&2; fail "the complete MIR-lower source input was refused";
+    }
+"$PYTHON" "$BOUNDARY" --validate-receipt "$WORK/source-c.receipt.json"
+[[ -s "$WORK/source-c.c" ]] || fail "source-to-C published no C"
+source_peak="$(tr -d '\r\n' <"$WORK/source-c.peak-rss-kib")"
+case "$source_peak" in ''|*[!0-9]*) fail "source-to-C peak RSS was not measured" ;; esac
+[[ "$source_peak" -le 8388608 ]] || fail "source-to-C peak RSS ${source_peak}KiB exceeds 8GiB"
+"$PYTHON" "$BOUNDARY" --receipt "$WORK/source-mir.receipt.json" -- \
+    "$DRIVER" --emit-mir-json-verified src/self_hosted/mir_lower/main.pgy \
+    -o "$REL/source-mir.json" >"$WORK/source-mir.log" 2>&1 || {
+        tail -n 30 "$WORK/source-mir.log" >&2; fail "the complete MIR-lower JSON input was refused";
+    }
+"$PYTHON" "$BOUNDARY" --receipt "$WORK/source-mir-c.receipt.json" -- \
+    "$DRIVER" --mir-json "$REL/source-mir.json" -o "$REL/source-mir.c" \
+    >"$WORK/source-mir-c.log" 2>&1 || {
+        tail -n 30 "$WORK/source-mir-c.log" >&2; fail "the complete MIR-lower JSON consumer failed";
+    }
+"$PYTHON" "$BOUNDARY" --validate-receipt "$WORK/source-mir.receipt.json"
+"$PYTHON" "$BOUNDARY" --validate-receipt "$WORK/source-mir-c.receipt.json"
+cmp "$WORK/source-c.c" "$WORK/source-mir.c" || fail "source-to-C and MIR-to-C bytes differ"
+echo "[selfhost-compile-memory] PASS: semantic MIR consumer ${peak}KiB <=800MiB; complete MIR-lower source-to-C ${source_peak}KiB <=8GiB; source/MIR C bytes equal; evidence=$REL"

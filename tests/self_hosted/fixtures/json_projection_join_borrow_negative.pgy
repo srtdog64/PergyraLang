@@ -1,0 +1,9 @@
+func Main() -> Void {
+    var fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, "borrowed");
+    var result: String = fragments[0];
+    // A fresh value on one branch cannot erase the other branch's live loan.
+    if ArrayLength(fragments) > 1 { result = StringJoin(fragments, ""); }
+    ArrayDropOwnedStrings(fragments);
+    Log(result);
+}

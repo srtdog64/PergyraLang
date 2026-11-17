@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let fragments: Array<String> = ["static"];
+    // Independent static bytes are not an owned allocation that may be freed.
+    ArrayDropOwnedStrings(fragments);
+}

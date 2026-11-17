@@ -8,9 +8,9 @@ User resumed implementation and CI follow-through on 2026-11-17, from
 - Edits: `D:\PergyraLang`; validation: existing WSL `/root/mg-main`.
   Unrelated worktrees, dirty files and recovery copies remain preserved.
 - Plan: [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
-  Active slice: [A2 execution](../../agent_work_directives/selfhost_memory_a2_execution_2026-11-17.md).
-- Fixed middle-size input is the semantic MIR emitted at the clean checkpoint;
-  each candidate consumes the same bytes for output and RSS comparison.
+  Active slice: [A1 execution](../../agent_work_directives/selfhost_memory_a1_execution_2026-11-17.md).
+- A2 frozen MIR comparisons remain separate from current source entrypoints.
+  A1 source/executable identities and limits: [evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md).
 - Current measurements and gate logs are under WSL
   `.tmp/selfhost-memory-20261117/`; they are not semantic authority.
 - No timeout/memory increase, smaller correctness input, weaker negative,

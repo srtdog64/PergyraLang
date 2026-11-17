@@ -29,19 +29,23 @@ func MirJsonInstructionWriterInvalidAssignments(
     return invalid;
 }
 
+func MirJsonInstructionWriterProjection(source: String) -> DriverRung2MirProjection
+    with caps io_read {
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    return DriverRung2MirProjectionFromAnalysisObserved(
+        artifact, analysis, SelfHostMachineLayerDeclarationEmpty(), false);
+}
+
 func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
     if ArrayLength(args) != 4 {
         Die("MIR JSON instruction writer probe requires source, String output, file output, and invalid output paths");
     }
 
-    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(args[0]);
-    let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeTyped(artifact, true);
     let projection: DriverRung2MirProjection =
-        DriverRung2MirProjectionFromAnalysisObserved(
-            artifact, analysis, SelfHostMachineLayerDeclarationEmpty(), false
-        );
+        MirJsonInstructionWriterProjection(args[0]);
     let string_json: String = SelfMirProgramJson(projection.facts);
     if string_json == "" { Die("String MIR JSON projection failed"); }
     WriteFile(args[1], string_json);
@@ -54,12 +58,20 @@ func Main() -> Void with caps env, io_read, io_write {
     // admitted domain facts, never on empty text masking invalid rows.
     let invalid_assignments: SelfMirProgramFacts =
         MirJsonInstructionWriterInvalidAssignments(projection.facts);
+    if SelfMirProgramJson(invalid_assignments) != "" {
+        Die("String MIR JSON projection accepted invalid domain assignments");
+    }
     if SelfMirProgramJsonWriteFile(invalid_assignments, args[3]) ||
         ReadFile(args[3]) != "writer-preopen-sentinel" {
         Die("invalid domain assignments passed the pre-open boundary");
     }
-    let invalid: SelfMirProgramFacts =
-        MirJsonInstructionWriterInvalidFacts(projection.facts);
+    // Each mutation consumes its own facts; it cannot corrupt or move the
+    // verified facts used by the preceding positive and negative cases.
+    let fresh: DriverRung2MirProjection = MirJsonInstructionWriterProjection(args[0]);
+    let invalid: SelfMirProgramFacts = MirJsonInstructionWriterInvalidFacts(fresh.facts);
+    if SelfMirProgramJson(invalid) != "" {
+        Die("String MIR JSON projection accepted invalid instruction rows");
+    }
     if SelfMirProgramJsonWriteFile(invalid, args[3]) {
         Die("sequential MIR JSON writer accepted invalid instruction rows");
     }

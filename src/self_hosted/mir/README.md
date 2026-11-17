@@ -32,7 +32,10 @@ graph -> pgy.mir.v1` producer used by DRV-2.
 - `artifact_lower_owner.pgy`: declaration/routine assembly and deterministic
   instruction-ID canonicalization.
 - `program_verify_owner.pgy`: structural range/topology/fact verifier.
-- `json_projection_owner.pgy`: verified fact graph to MIR JSON projection.
+- `program_json_memory_projection.pgy`: verified facts to one flat owned
+  fragment buffer, joined once and retired; generated with its five row
+  dependencies from the sequential file writers by
+  `scripts/render_mir_json_memory_projection.py`.
 
 The self-host producer also emits the `resource_flow_symbol_count` and
 `resource_flow_symbols` routine fields explicitly.  This producer owns the

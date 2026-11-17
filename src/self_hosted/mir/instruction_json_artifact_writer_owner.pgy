@@ -1,13 +1,27 @@
-// Sequential pgy.mir.v1 instruction artifact projection.
-//
-// SelfMirProgramFacts remains the semantic owner.  This file owns only the
-// file framing for instruction-local rows whose expression graphs and lists
-// are unbounded.  The String projection remains a bounded parity oracle; the
-// production artifact path must not materialize a complete instruction or
-// expression-graph String.
+// MIR JSON instruction schema, streamed to an artifact transaction.
+// The pure memory specialization is generated from these same row writers.
 
-import "json_projection_owner.pgy";
+import "program_verify_owner.pgy";
+import "intent_execution_json_projection_owner.pgy";
+import "expression_graph_kind_name_owner.pgy";
+import "expression_graph_digest_owner.pgy";
+import "match_json_projection_owner.pgy";
+import "destructure_json_projection_owner.pgy";
+import "destructure_type_json_projection_owner.pgy";
+import "generic_specialization_json_projection_owner.pgy";
+import "declaration_json_projection_owner.pgy";
+import "runtime_call_abi_json_projection_owner.pgy";
+import "abi_layout_json_projection_owner.pgy";
+import "machine_layer_json_projection_owner.pgy";
+import "json_projection_support_owner.pgy";
+import "routine_param_json_projection_owner.pgy";
+import "instruction_abi_receipt_json_projection_owner.pgy";
+import "collection_ownership_receipt_json_projection_owner.pgy";
 import "expression_identity_json_projection_owner.pgy";
+import "domain_runtime_assignment_json_owner.pgy";
+import "local_ref_json_projection_owner.pgy";
+import "../lib/json_emit.pgy";
+import "parallel_capture_json_projection_owner.pgy";
 import "../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
 
 func SelfMirJsonOptionalStringWriteFile(

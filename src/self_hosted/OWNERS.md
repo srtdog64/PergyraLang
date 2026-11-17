@@ -1794,8 +1794,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   kept outside the production verifier.
 - `src/self_hosted/mir/instruction_validation_owner.pgy` -- detailed MIR
   instruction-row shape diagnostics consumed by the program verifier.
-- `src/self_hosted/mir/json_projection_owner.pgy` -- verified `pgy.mir.v1`
-  projection; it cannot read AST provenance.
+- `src/self_hosted/mir/program_json_memory_projection.pgy` -- pure
+  `pgy.mir.v1` projection generated from the sequential file schema owners
+  by `scripts/render_mir_json_memory_projection.py`; one flat owned output
+  buffer is joined and retired. Its five generated row dependencies own no
+  independent schema and cannot read AST provenance.
 - `src/self_hosted/mir/routine_param_json_projection_owner.pgy` -- the one
   routine-parameter JSON row shared by whole-string and streaming projection,
   including the complete physical ABI receipt when the type requires one.

@@ -3,10 +3,11 @@
 Owner: GPT root integration. The user resumed the self-compile memory plan
 on 2026-11-17 from main `5b0d354fb`; other paused tracks are not reopened.
 
-A2 has local fixed-input and negative evidence; publication and exact-SHA
-CI are pending. Then execute A1, followed by the direct-MIR and owned-value
-dependencies in the [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
-Results: [A2 evidence](../evidence/2026-11-17_selfhost_memory_a2_phi_reuse.md).
+A2 is published through `7ea3c781f`; CI run 44024724037 passed after
+the [publication fixes](../evidence/2026-11-17_selfhost_memory_a2_ci_publication_fix.md).
+A1 and the reached array OOM repair passed local integration; exact-candidate
+CI and full DRV-2 memory remain open ([evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md)).
+Then follow the direct-MIR/owned-value dependencies of the [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
 
 ## Objective card
 

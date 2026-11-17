@@ -5,7 +5,7 @@
 // machine projection, verifier, and JSON owner used by the driver.  No source
 // text scan or backend operation inference is involved.
 
-import "../../mir/json_projection_owner.pgy";
+import "../../mir/program_json_memory_projection.pgy";
 import "../../mir/cfg_instruction_mutation_owner.pgy";
 import "../../mir/generic_specialization_occurrence_owner.pgy";
 import "../../mir/instruction_scalar_mutation_owner.pgy";

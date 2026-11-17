@@ -1,0 +1,14 @@
+func Joined(use_copy: Bool) -> String {
+    var fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, "hello");
+    ArrayPushOwnedString(fragments, "world");
+    var result: String = "empty";
+    if use_copy { result = StringJoin(fragments, "-"); }
+    ArrayDropOwnedStrings(fragments);
+    return result;
+}
+
+func Main() -> Void {
+    Log(Joined(true));
+    Log(Joined(false));
+}

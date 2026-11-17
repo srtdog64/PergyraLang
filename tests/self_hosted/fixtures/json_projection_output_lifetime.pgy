@@ -1,0 +1,32 @@
+import "../../../src/self_hosted/lib/json_emit.pgy";
+
+func ProjectionRetainedCopy() -> String {
+    var fragments: Array<String> = [];
+    JsonProjectionAppend(fragments, "[\"borrowed 한글\",");
+    // An empty pooled literal isolates sink ownership from legacy escaper
+    // substring allocations. Full wire parity separately exercises escaping.
+    if !JsonStringLiteralAppend(fragments, "") {
+        Log("literal projection failed"); Exit(1);
+    }
+    JsonProjectionAppend(fragments, ",");
+    let empty: String = Concat("\"", "\"");
+    JsonOwnedFragmentAppend(fragments, empty);
+    JsonProjectionAppend(fragments, "]");
+    let result: String = StringJoin(fragments, "");
+    ArrayDropOwnedStrings(fragments);
+    return result;
+}
+
+func Main() -> Void {
+    var iteration: Int = 0;
+    while iteration < 100 {
+        let result: String = ProjectionRetainedCopy();
+        if result != "[\"borrowed 한글\",\"\",\"\"]" {
+            Log("retained projection changed"); Exit(1);
+        }
+        let owned: Array<String> = [result];
+        ArrayDropOwnedStrings(owned);
+        iteration = iteration + 1;
+    }
+    Log("JSON PROJECTION LIFETIME PASS");
+}

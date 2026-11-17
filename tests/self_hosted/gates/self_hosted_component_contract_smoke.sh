@@ -24,6 +24,7 @@ bash "$SCRIPT_DIR/self_hosted_component_checker_smoke.sh"
 # the Never primitive reached src/semantic/type_system.c and the projection
 # stayed behind for three days without a gate noticing.
 python3 "$ROOT_DIR/scripts/render_native_primitive_type_projection.py" --check
+python3 "$ROOT_DIR/scripts/render_mir_json_memory_projection.py" --check
 
 fail() {
     echo "[self-host-component-contract] $*" >&2
@@ -243,7 +244,12 @@ for mir_producer_owner in \
     domain_runtime_assignment_json_owner.pgy \
     program_verify_owner.pgy \
     program_assignment_target_graph_contract_owner.pgy \
-    json_projection_owner.pgy \
+    program_json_memory_projection.pgy \
+    instruction_json_memory_projection.pgy \
+    expression_identity_json_memory_projection.pgy \
+    local_ref_json_memory_projection.pgy \
+    runtime_call_abi_json_memory_projection.pgy \
+    intent_execution_json_memory_projection.pgy \
     instruction_json_artifact_writer_owner.pgy \
     instruction_abi_receipt_json_projection_owner.pgy \
     program_json_artifact_writer_owner.pgy; do

@@ -1,6 +1,7 @@
 # 자기 컴파일 메모리 해결 계획 (2026-11-17)
 
-- 상태: PROPOSAL. 사용자가 직접 진행한다. 구현 후보이지 착지 승인이 아니다.
+- 상태: IN PROGRESS. 2026-11-17 사용자가 구현과 CI 검증을 다시 요청했다.
+  현재 조각과 실행 근거는 [현재 상태](../truth/state/blocker.md)에서 확인한다.
 - 기준 리비전: `integrate/track-a` `757f02f76` (S4까지). 줄 번호와 수치는 각 근거
   문서의 기준 리비전 것이다. 손대기 전에 현재 소스로 다시 확인한다.
 - 이 문서는 조정용이다. 결정은 [임시 값 해제 결정](../truth/decisions/2026-11-16_compiler_temporaries_are_released_at_last_use.md)이,
@@ -174,8 +175,8 @@ MIR로 만드는 첫 세대 드라이버는 여전히 크게 든다. 그 다음 
 - 설치 드라이버 빌드: `tests/self_hosted/parity/driver/self_host_compiler_build.sh`,
   `driver_bootstrap.sh`(CI 고정점).
 - source→C 경로: `src/self_hosted/compiler/driver/driver_rung2_owner.pgy`
-  (`CompileSourceToCVerified`), `src/self_hosted/mir/json_projection_owner.pgy`,
-  `src/self_hosted/mir/program_json_artifact_writer_owner.pgy`, `src/self_hosted/lib/json_emit.pgy`.
+  (`CompileSourceToCVerified`), `src/self_hosted/mir/program_json_artifact_writer_owner.pgy`,
+  `src/self_hosted/mir/program_json_memory_projection.pgy`, `src/self_hosted/lib/json_emit.pgy`.
 - phi binding: `src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy`,
   `ssa_identity_owner.pgy`, `routine_definition_dominance_fact_owner.pgy`, `mir_cfg_graph_owner.pgy`.
 - direct MIR 해제: `src/self_hosted/compiler/owned_storage_release_plan_owner.pgy`,

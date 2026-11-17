@@ -1,7 +1,5 @@
-// Bounded pgy.mir.v1 artifact projection from the verified MIR fact owner.
-// The schema and row renderers stay shared with the String projection; this
-// owner only removes the redundant whole-program materialization at a file
-// boundary.
+// MIR JSON program schema and its atomic artifact publication boundary.
+// Pure memory projection is generated from the same sequential row writers.
 
 import "instruction_json_artifact_writer_owner.pgy";
 import "artifact_transaction_owner.pgy";
@@ -313,20 +311,9 @@ func SelfMirJsonRoutineWriteFile(
     return true;
 }
 
-func SelfMirProgramJsonWriteArtifactVerified(
-    facts: SelfMirProgramFacts,
-    output_path: String
-) -> SelfMirArtifactCommitOutcome {
-    let output: Int = SelfMirArtifactBegin(output_path);
-    if output < 0 {
-        return SelfMirArtifactRejectedOutcome(
-            output_path,
-            ArtifactBeginTemp,
-            SelfMirArtifactCommitInvalidHandleStatus(),
-            true
-        );
-    }
-
+func SelfMirProgramJsonRowsWriteFile(
+    facts: SelfMirProgramFacts, output: Int
+) -> Bool {
     CompilerArtifactWrite(output, "{\"schema\":\"pgy.mir.v1\",\"decls\":[");
     var declaration_i: Int = 0;
     while declaration_i < ArrayLength(facts.declarations.names) {
@@ -376,18 +363,31 @@ func SelfMirProgramJsonWriteArtifactVerified(
     while routine_i < ArrayLength(facts.routines.names) {
         if routine_i > 0 { CompilerArtifactWrite(output, ","); }
         if !SelfMirJsonRoutineWriteFile(facts, routine_i, output) {
-            return SelfMirArtifactAbort(
-                output,
-                output_path,
-                ArtifactWriteChunks,
-                SelfMirArtifactCommitWriteFailedStatus()
-            );
+            return false;
         }
         routine_i = routine_i + 1;
     }
     CompilerArtifactWrite(output, "]");
-    SelfMirIntentExecutionJsonWriteFile(facts.intent_execution, output);
+    if !SelfMirIntentExecutionJsonWriteFile(facts.intent_execution, output) {
+        return false;
+    }
     CompilerArtifactWrite(output, "}");
+    return true;
+}
+
+func SelfMirProgramJsonWriteArtifactVerified(
+    facts: SelfMirProgramFacts, output_path: String
+) -> SelfMirArtifactCommitOutcome {
+    let output: Int = SelfMirArtifactBegin(output_path);
+    if output < 0 {
+        return SelfMirArtifactRejectedOutcome(
+            output_path, ArtifactBeginTemp,
+            SelfMirArtifactCommitInvalidHandleStatus(), true);
+    }
+    if !SelfMirProgramJsonRowsWriteFile(facts, output) {
+        return SelfMirArtifactAbort(output, output_path, ArtifactWriteChunks,
+            SelfMirArtifactCommitWriteFailedStatus());
+    }
     return SelfMirArtifactCommit(output, output_path);
 }
 

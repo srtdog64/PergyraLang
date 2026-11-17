@@ -186,3 +186,27 @@ func JsonEmitFieldBool(key: String, value: Bool) -> String {
     }
     return JsonEmitFieldRaw(key, raw);
 }
+
+// Pure retained output. Each element is copied before any producer lifetime
+// ends; the final StringJoin copies again before this buffer is retired.
+func JsonProjectionAppend(inout fragments: Array<String>, value: String) -> Void {
+    ArrayPushOwnedString(fragments, value);
+}
+
+func JsonStringLiteralAppend(inout fragments: Array<String>, value: String) -> Bool {
+    let length: Int = StringLength(value);
+    if length < 0 || length > 536870909 { return false; }
+    let transient: Allocator = AllocatorPool(length * 4 + 8);
+    let literal: String = JsonStringLiteralWithAllocator(value, transient);
+    ArrayPushOwnedString(fragments, literal);
+    AllocatorDestroy(transient);
+    return true;
+}
+
+func JsonOwnedFragmentAppend(
+    inout fragments: Array<String>, own fragment: String
+) -> Void {
+    let owned_fragment: Array<String> = [fragment];
+    ArrayPushOwnedString(fragments, owned_fragment[0]);
+    ArrayDropOwnedStrings(owned_fragment);
+}

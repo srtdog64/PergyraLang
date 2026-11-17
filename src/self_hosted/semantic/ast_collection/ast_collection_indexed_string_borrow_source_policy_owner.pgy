@@ -52,6 +52,9 @@ func SemanticAstIndexedStringBorrowSourceForRoot(
     if !IsSome(kind) {
         return SemanticAstIndexedStringBorrowUnknownSource();
     }
+    // Static String bytes do not borrow any collection storage. This is not
+    // an ownership/free grant; the value may still be a borrowed literal.
+    if UnwrapOption(kind) == AstExpressionNodeStringLiteral() { return 0; }
     if UnwrapOption(kind) == AstExpressionNodeLeaf() {
         let alias: SemanticAstLocalBindingIdentity =
             SemanticAstScopedLocalBindingIdentityForGraphLeaf(

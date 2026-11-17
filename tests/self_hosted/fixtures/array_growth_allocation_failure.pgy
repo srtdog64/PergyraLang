@@ -1,0 +1,51 @@
+// Every emitted array push must report OOM before publishing failed backing.
+struct CodegenAstTextNode { indent: Int; text: String; parent: Int; kind: Int; }
+struct GrowthCell { value: Int; }
+
+func Main() -> Void with caps env {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Log("array growth case required"); Exit(1); }
+    let selected: Int = ToInt(args[0]);
+    var i: Int = 0;
+    if selected == 0 {
+        var values: Array<Int> = [];
+        while i < 10 { ArrayPush(values, 17); i = i + 1; }
+        if values[9] != 17 { Log("Int push changed"); Exit(1); }
+    } else if selected == 1 {
+        var values: Array<Long> = [];
+        while i < 10 { ArrayPush(values, 17L); i = i + 1; }
+        if values[9] != 17L { Log("Long push changed"); Exit(1); }
+    } else if selected == 2 {
+        var values: Array<String> = [];
+        while i < 10 { ArrayPush(values, "seventeen"); i = i + 1; }
+        if values[9] != "seventeen" { Log("String push changed"); Exit(1); }
+    } else if selected == 3 {
+        var values: Array<String> = [];
+        while i < 10 { ArrayPushOwnedString(values, "seventeen"); i = i + 1; }
+        if values[9] != "seventeen" { Log("owned String push changed"); Exit(1); }
+    } else if selected == 4 {
+        var values: Array<Bool> = [];
+        while i < 10 { ArrayPush(values, true); i = i + 1; }
+        if !values[9] { Log("Bool push changed"); Exit(1); }
+    } else if selected == 5 {
+        var values: Array<Float> = [];
+        while i < 10 { ArrayPush(values, 17.0); i = i + 1; }
+        if values[9] != 17.0 { Log("Float push changed"); Exit(1); }
+    } else if selected == 6 {
+        var values: Array<Double> = [];
+        let value: Double = 17.0;
+        while i < 10 { ArrayPush(values, value); i = i + 1; }
+        if values[9] != value { Log("Double push changed"); Exit(1); }
+    } else if selected == 7 {
+        var values: Array<CodegenAstTextNode> = [];
+        while i < 10 { ArrayPush(values, CodegenAstTextNode(17, "node", -1, 0)); i = i + 1; }
+        if values[9].indent != 17 { Log("AST node push changed"); Exit(1); }
+    } else if selected == 8 {
+        var values: Array<GrowthCell> = [];
+        while i < 10 { ArrayPush(values, GrowthCell(17)); i = i + 1; }
+        if values[9].value != 17 { Log("record push changed"); Exit(1); }
+    } else {
+        Log("unknown array growth case"); Exit(1);
+    }
+    Log("array-grow-ok");
+}

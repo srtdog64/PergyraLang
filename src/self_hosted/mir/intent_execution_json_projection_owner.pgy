@@ -119,10 +119,10 @@ func SelfMirIntentExecutionJson(ref plan: MirIntentExecutionPlan) -> String {
     ]);
 }
 
-func SelfMirIntentExecutionJsonWriteFile(ref plan: MirIntentExecutionPlan, output: Int) -> Void {
-    if !plan.present { return; }
+func SelfMirIntentExecutionJsonWriteFile(ref plan: MirIntentExecutionPlan, output: Int) -> Bool {
+    if !plan.present { return true; }
     CompilerArtifactWrite(output, ",\"intent_execution\":{\"schema\":");
-    JsonStringLiteralWriteFile(output, plan.schema);
+    if !JsonStringLiteralWriteFile(output, plan.schema) { return false; }
     CompilerArtifactWrite(output, ",\"plan_digest\":");
     JsonOwnedFragmentWriteFile(output, ToString(plan.plan_digest));
     CompilerArtifactWrite(output, ",\"steps\":[");
@@ -146,7 +146,7 @@ func SelfMirIntentExecutionJsonWriteFile(ref plan: MirIntentExecutionPlan, outpu
             c = c + 1;
         }
         CompilerArtifactWrite(output, "],\"where_zone_name\":");
-        JsonStringLiteralWriteFile(output, plan.steps.where_zone_names[row]);
+        if !JsonStringLiteralWriteFile(output, plan.steps.where_zone_names[row]) { return false; }
         CompilerArtifactWrite(output, ",\"where_zone_syntax_id\":");
         JsonOwnedFragmentWriteFile(output, ToString(plan.steps.where_zone_syntax_ids[row]));
         CompilerArtifactWrite(output, "}");
@@ -160,4 +160,5 @@ func SelfMirIntentExecutionJsonWriteFile(ref plan: MirIntentExecutionPlan, outpu
         row = row + 1;
     }
     CompilerArtifactWrite(output, "]}");
+    return true;
 }
