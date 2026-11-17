@@ -1,9 +1,23 @@
 // Canonical scalar-CFG local-slot kinds and explicit identity lookup.
+import "../../../mir_lower/collection_ownership_binding_move_fact_owner.pgy";
+import "../../../mir/local_ref_identity_owner.pgy";
 
 func DirectMirScalarCfgLocalRefValue() -> Int { return 1; }
 func DirectMirScalarCfgLocalRefIteration() -> Int { return 2; }
 func DirectMirScalarCfgLocalRefForEach() -> Int { return 3; }
 func DirectMirScalarCfgLocalRefMatchBinding() -> Int { return 4; }
+
+// Normalize the admitted no-wire declaration before any ownership consumer.
+func DirectMirScalarCfgDeclarationIdentity(
+    ref names: Array<String>, ref syntax_ids: Array<Int>,
+    declared_count: Int, name: String
+) -> String {
+    let binding: Int = MirCollectionOwnershipBindingForLocalName(
+        names, syntax_ids, name, declared_count);
+    if binding < 0 { Die("direct MIR ownership local declaration identity is invalid"); }
+    if binding == 0 { Die("direct MIR ownership local declaration identity is missing"); }
+    return SelfMirLocalRef("declaration", binding, 0);
+}
 
 func DirectMirScalarCfgLocalIdentityRow(
     ref identities: Array<String>, wanted: String

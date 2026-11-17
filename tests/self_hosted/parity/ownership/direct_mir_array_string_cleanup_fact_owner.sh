@@ -525,4 +525,96 @@ for backend in c llvm; do
     done
 done
 
-echo "[$LABEL] PASS refused=18+4 admitted=8x2+native-mir-2x2 evidence=$WORK_REL"
+# The source spelling is deliberately reused in disjoint scopes. The wire
+# owns two declaration identities; the transition join must keep them apart.
+timeout 120 "$PGY" --native-pipeline --backend=c \
+    tests/self_hosted/fixtures/scalar_local_declaration_identity_probe.pgy \
+    -o "$WORK_DIR/declaration-identity.exe" >"$WORK_DIR/declaration-identity.build" 2>&1
+timeout 20 "$WORK_DIR/declaration-identity.exe" >"$WORK_DIR/declaration-identity.run" 2>&1
+[[ "$(tr -d '\r\n' <"$WORK_DIR/declaration-identity.run")" == 'declaration:17:0' ]] ||
+    fail "declared-prefix identity normalization failed"
+for mode in missing ambiguous invalid range; do
+    status=0
+    timeout 20 "$WORK_DIR/declaration-identity.exe" "$mode" >"$WORK_DIR/declaration-$mode.run" 2>&1 || status=$?
+    [[ "$status" == 1 ]] || fail "$mode declaration identity was not refused"
+    reason=invalid
+    [[ "$mode" != missing ]] || reason=missing
+    grep -Fq "declaration identity is $reason" "$WORK_DIR/declaration-$mode.run" || fail "$mode lost its identity reason"
+done
+cat >"$WORK_DIR/binding_shadow.pgy" <<'EOF'
+func Main() -> Void {
+    if StringLength("scope") > 0 {
+        var labels: Array<String> = [];
+        ArrayPush(labels, Concat("inner", "-one"));
+        Log(labels[0]);
+    }
+    var labels: Array<String> = [];
+    ArrayPush(labels, Concat("outer", "-two"));
+    Log(labels[0]);
+}
+EOF
+cat >"$WORK_DIR/binding_noncolliding.pgy" <<'EOF'
+func Main() -> Void {
+    let labels: Array<String> = ["borrowed"];
+    Log(labels[0]);
+}
+EOF
+printf 'inner-one\nouter-two\n' >"$WORK_DIR/binding_shadow.expected"
+printf 'borrowed\n' >"$WORK_DIR/binding_noncolliding.expected"
+for name in binding_shadow binding_noncolliding; do
+    "$PGY" --native-pipeline --mir-json "$WORK_REL/$name.pgy" \
+        >"$WORK_DIR/native_$name.json" 2>"$WORK_DIR/native_$name.err" || fail "$name native MIR failed"
+    "$DRIVER" --emit-mir-json-verified "$WORK_REL/$name.pgy" \
+        -o "$WORK_REL/native_${name}_self.json" >"$WORK_DIR/$name.self.log" 2>&1 || fail "$name self MIR failed"
+    cp "$WORK_DIR/$name.expected" "$WORK_DIR/${name}_self.expected"
+    for backend in c llvm; do
+        # Native shadow MIR currently fails the earlier block-inventory
+        # admission. Exercise the reached join with the self-host producer;
+        # the noncolliding native control still covers no-wire normalization.
+        if [[ "$name" == binding_noncolliding ]]; then native_mir_run "$name" "$backend"; fi
+        native_mir_run "${name}_self" "$backend"
+    done
+done
+python3 - "$WORK_DIR/native_binding_shadow_self.json" "$WORK_DIR" <<'PY'
+import json
+from pathlib import Path
+import sys
+source, work = Path(sys.argv[1]), Path(sys.argv[2])
+noncolliding = json.loads((work / 'native_binding_noncolliding_self.json').read_text())
+plain = next(row for row in noncolliding['routines'] if row['name'] == 'Main')
+if not plain['collection_ownership_facts'] or any('local_ref' in row
+        for block in plain['blocks'] for row in block['instructions']):
+    raise SystemExit('noncolliding control did not reach ownership identity normalization without wire LocalRefs')
+for mode in ('missing', 'duplicate', 'spelling'):
+    document = json.loads(source.read_text())
+    main = next(row for row in document['routines'] if row['name'] == 'Main')
+    bindings = [row for row in main['source_locals'] if row['name'] == 'labels']
+    if len(bindings) != 2 or bindings[0]['binding_syntax_id'] == bindings[1]['binding_syntax_id']:
+        raise SystemExit('shadow probe did not produce distinct declaration identities')
+    instructions = [row for block in main['blocks'] for row in block['instructions']]
+    if mode == 'missing':
+        for row in instructions:
+            row.pop('local_ref', None)
+            row.pop('expr0_local_refs', None)
+    elif mode == 'duplicate':
+        first = f"declaration:{bindings[0]['binding_syntax_id']}:0"
+        second = f"declaration:{bindings[1]['binding_syntax_id']}:0"
+        declaration = next(row for row in instructions if row.get('local_ref') == second
+                           and row.get('source_type') == 'AST_LET_DECL')
+        declaration['local_ref'] = first
+    else:
+        bindings[0]['name'] = 'forged'
+    (work / f'binding-{mode}.json').write_text(json.dumps(document))
+PY
+for backend in c llvm; do
+    for mode in missing duplicate spelling; do
+        artifact="$WORK_REL/binding-$mode.$backend"
+        if "$DRIVER" "--mir-json-backend=$backend" "$WORK_REL/binding-$mode.json" \
+            -o "$artifact" >"$WORK_DIR/binding-$mode.$backend.log" 2>&1; then
+            fail "$backend admitted $mode declaration identity"
+        fi
+        [[ ! -e "$ROOT_DIR/$artifact" ]] || fail "$backend published $mode identity artifact"
+        grep -Fq 'CODEGEN ERROR:' "$WORK_DIR/binding-$mode.$backend.log" || fail "$backend lost identity refusal"
+    done
+done
+echo "[$LABEL] PASS refused=18+4+6 admitted=8x2+native-mir-2x2+binding-6 evidence=$WORK_REL"

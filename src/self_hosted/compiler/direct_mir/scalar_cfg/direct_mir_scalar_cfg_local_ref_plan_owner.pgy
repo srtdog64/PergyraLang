@@ -16,6 +16,7 @@ import "../scalar_program/direct_mir_scalar_program_logical_record_fact_owner.pg
 import "../scalar_program/direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
 import "direct_mir_scalar_cfg_match_binding_local_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 
 struct DirectMirScalarCfgLocalRefPlan {
     let valid: Bool;
@@ -141,6 +142,14 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                 Die("direct MIR scalar CFG value LocalRef ownership is invalid");
             }
             if local_row < 0 {
+                // Ownership consumers use declaration identity even when the
+                // noncolliding wire form omits explicit LocalRefs.
+                if !wire.required && parameter_ordinal < 0 &&
+                    ArrayLength(index.collection_ownership_facts.binding_syntax_ids) > 0 {
+                    local_identity = DirectMirScalarCfgDeclarationIdentity(
+                        index.source_local_names, index.source_local_binding_syntax_ids,
+                        index.declared_source_local_count, local_name);
+                }
                 local_row = ArrayLength(local_names);
                 ArrayPush(local_names, local_name);
                 ArrayPush(local_ref_kinds, DirectMirScalarCfgLocalRefValue());

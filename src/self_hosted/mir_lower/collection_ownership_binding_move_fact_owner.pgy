@@ -17,13 +17,14 @@ struct MirCollectionOwnershipBindingMoveFacts {
 func MirCollectionOwnershipBindingForLocalName(
     ref local_names: Array<String>,
     ref local_binding_syntax_ids: Array<Int>,
-    local_name: String
+    local_name: String, declared_count: Int
 ) -> Int {
     if ArrayLength(local_names) != ArrayLength(local_binding_syntax_ids) ||
-        local_name == "" { return 0 - 1; }
+        local_name == "" || declared_count < 0 ||
+        declared_count > ArrayLength(local_names) { return 0 - 1; }
     var found: Int = 0;
     var row: Int = 0;
-    while row < ArrayLength(local_binding_syntax_ids) {
+    while row < declared_count {
         let binding: Int = local_binding_syntax_ids[row];
         if binding <= 0 || local_names[row] == "" { return 0 - 1; }
         if local_name == local_names[row] {
@@ -72,7 +73,7 @@ func BuildMirCollectionOwnershipBindingMoveFacts(
             var binding: Int = 0;
             if declaration {
                 binding = MirCollectionOwnershipBindingForLocalName(
-                    local_names, local_binding_syntax_ids, local_name);
+                    local_names, local_binding_syntax_ids, local_name, ArrayLength(local_names));
             }
             // A mutable local takes later versions from its assignments and
             // from the phi that joins them; each is still that binding's value.
@@ -80,7 +81,7 @@ func BuildMirCollectionOwnershipBindingMoveFacts(
             if routines.instruction_kinds[instruction] == "def" &&
                 routines.instruction_source_types[instruction] == "AST_ASSIGNMENT" {
                 version = MirCollectionOwnershipBindingForLocalName(
-                    local_names, local_binding_syntax_ids, local_name);
+                    local_names, local_binding_syntax_ids, local_name, ArrayLength(local_names));
             }
             if routines.instruction_kinds[instruction] == "phi" && ArrayLength(uses) > 0 {
                 var operand: Int = 0;

@@ -1,0 +1,20 @@
+import "../../../src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+
+func Main() -> Void with caps env {
+    let args: Array<String> = Args();
+    var names: Array<String> = ["value", "synthetic"];
+    var ids: Array<Int> = [17, 0];
+    var count: Int = 1;
+    var wanted: String = "value";
+    if ArrayLength(args) > 0 {
+        let mode: String = args[0];
+        if mode == "missing" { wanted = "absent";
+        } else if mode == "ambiguous" {
+            names = ["value", "value"]; ids = [17, 18]; count = 2;
+        } else if mode == "invalid" { count = 2;
+        } else if mode == "range" { count = 3;
+        } else { Exit(2); }
+    }
+    // The synthetic suffix is not a declared source binding and grants no ID.
+    Log(DirectMirScalarCfgDeclarationIdentity(names, ids, count, wanted));
+}

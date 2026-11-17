@@ -1,7 +1,9 @@
 // Exact source binding to scalar-program local-row join.
 
 import "../scalar_cfg/direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 import "../../../mir_lower/routine_fact_index_schema_owner.pgy";
+import "../../../mir/local_ref_identity_owner.pgy";
 
 func DirectMirCollectionOwnershipBindingLocalRow(
     ref index: MirRoutineFactIndex,
@@ -16,7 +18,9 @@ func DirectMirCollectionOwnershipBindingLocalRow(
         index.declared_source_local_count >
             ArrayLength(index.source_local_binding_syntax_ids) ||
         local_start < 0 || local_end < local_start ||
-        local_end > ArrayLength(storage.values.local_names) {
+        local_end > ArrayLength(storage.values.local_names) ||
+        ArrayLength(storage.values.local_names) != ArrayLength(storage.values.local_ref_kinds) ||
+        ArrayLength(storage.values.local_names) != ArrayLength(storage.values.local_ref_value_ids) {
         return -1;
     }
     var source_name: String = "";
@@ -33,11 +37,14 @@ func DirectMirCollectionOwnershipBindingLocalRow(
         source_row = source_row + 1;
     }
     if source_name == "" { return -1; }
+    let identity: String = SelfMirLocalRef("declaration", binding_syntax_id, 0);
     var matched: Int = -1;
     var local_row: Int = local_start;
     while local_row < local_end {
-        if storage.values.local_names[local_row] == source_name {
-            if matched >= 0 { return -1; }
+        if storage.values.local_ref_value_ids[local_row] == identity {
+            if matched >= 0 || storage.values.local_ref_kinds[local_row] !=
+                    DirectMirScalarCfgLocalRefValue() ||
+                storage.values.local_names[local_row] != source_name { return -1; }
             matched = local_row;
         }
         local_row = local_row + 1;

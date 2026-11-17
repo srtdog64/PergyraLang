@@ -1,12 +1,12 @@
 # Current blocker
 
-Owner: GPT root integration. Resumed from `5b0d354fb` on 2026-11-17;
-other paused tracks are not reopened. Publication/CI belong to [main](main.md).
+Owner: GPT root integration (`5b0d354fb`, 2026-11-17); publication/CI: [main](main.md).
 
-The general role ABI is [published with all 33 CI jobs green](../evidence/2026-11-18_selfhost_role_ci_green.md).
-The full fixed MIR now stops at `collection_ownership_transition`, ordinal
-1054, `AstMatchCasePatternFactFromText`. Active: the decision-authorized
-[String seed bridge](../../agent_work_directives/selfhost_string_temporary_retire_execution_2026-11-17.md), then the memory plan's full S1/S2 and transition reader.
+The [role ABI](../evidence/2026-11-18_selfhost_role_ci_green.md) and bounded
+[String seed bridge](../evidence/2026-11-18_selfhost_string_temporary_seed_bridge.md) are published.
+Full frozen MIR stops at transition 1126, `SemanticExpressionGraphArenaEmpty`.
+Active: [full MIR lifetime/transition execution](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
+Declaration-ID joins are locally verified; next is retired constructor-input lifetime.
 The one-process DRV-2 memory goal remains unestablished ([measurements](measurements.md)).
 
 ## Objective card
