@@ -69,7 +69,7 @@ func DirectMirScalarProgramExprNegateLong() -> Int { return 132; }
 func DirectMirScalarProgramExprCheckedAddInt() -> Int { return 133; }
 func DirectMirScalarProgramExprCheckedMulInt() -> Int { return 134; }
 func DirectMirScalarProgramExprArrayIntSort() -> Int { return 135; }
-func DirectMirScalarProgramExprArrayIntReverse() -> Int { return 136; }
+func DirectMirScalarProgramExprArrayReverse() -> Int { return 136; }
 func DirectMirScalarProgramExprIdentityCellConstructor() -> Int { return 137; }
 func DirectMirScalarProgramExprIdentityCellMember() -> Int { return 138; }
 

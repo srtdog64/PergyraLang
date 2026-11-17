@@ -52,7 +52,7 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
         ArrayPush(definitions, -1); ArrayPush(blocked, false); ArrayPush(modes, 0); ArrayPush(local_recipes, -1);
         local_row = local_row + 1;
     }
-    var graph_logs: Array<Bool> = [];
+    var graph_observations: Array<Bool> = [];
     var graph_returns: Array<Bool> = [];
     var graph_definitions: Array<Int> = [];
     var return_clones: Array<Bool> = [];
@@ -61,7 +61,7 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
     while local_row < ArrayLength(blocked) { ArrayPush(transferred, false); local_row = local_row + 1; }
     var graph: Int = 0;
     while graph < ArrayLength(plan.program.expressions.graph_roots) {
-        ArrayPush(graph_logs, false); ArrayPush(graph_returns, false);
+        ArrayPush(graph_observations, false); ArrayPush(graph_returns, false);
         ArrayPush(graph_definitions, -1); ArrayPush(return_clones, false);
         graph = graph + 1;
     }
@@ -78,8 +78,9 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
             }
         }
         graph = plan.program.operation_expression_rows[operation];
-        if graph >= 0 && plan.operation_kinds[operation] == DirectMirScalarCfgOpExpressionLog() {
-            graph_logs[graph] = true;
+        if graph >= 0 && (plan.operation_kinds[operation] == DirectMirScalarCfgOpExpressionLog() ||
+                plan.operation_kinds[operation] == DirectMirScalarCfgOpExpressionStatement()) {
+            graph_observations[graph] = true;
         }
         if graph >= 0 && value >= 0 && value < ArrayLength(plan.value_local_rows) {
             graph_definitions[graph] = plan.value_local_rows[value];
@@ -213,6 +214,11 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
                     } else if kind == DirectMirScalarProgramExprArrayStringPushOwned() && edge == 0 &&
                         plan.local_types[origins[child]] == CompilerAbiLayoutArrayStringTypeName() {
                         // The sealed collection transition retains descriptor ownership.
+                    } else if edge == 0 && node == plan.program.expressions.graph_roots[graph] &&
+                        graph_observations[graph] && !return_carrier && target < 0 &&
+                        DirectMirScalarProgramArrayTransformNodeReady(plan.program.expressions, node) {
+                        // A discarded transform observes the existing descriptor;
+                        // retaining it requires a separate transfer proof.
                     } else if !DirectMirOwnedLocalBorrowingNode(kind) &&
                         call_carriage == "" {
                         blocked[origins[child]] = true;
@@ -226,7 +232,7 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
         let root: Int = plan.program.expressions.graph_roots[graph];
         if origins[root] >= 0 {
             if return_carrier { transferred[origins[root]] = true; }
-            else if !graph_logs[graph] { blocked[origins[root]] = true; }
+            else if !graph_observations[graph] { blocked[origins[root]] = true; }
         }
         graph = graph + 1;
     }

@@ -10,7 +10,7 @@ func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
             DirectMirScalarProgramArrayTransformKind(signature.expression_kind) {
         var abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(signature.expression_kind);
         if DirectMirScalarProgramArrayTransformKind(signature.expression_kind) {
-            abi = DirectMirScalarProgramArrayTransformRuntimeFact(signature.expression_kind);
+            abi = DirectMirScalarProgramArrayTransformRuntimeFact(signature.expression_kind, signature.return_type);
         }
         return abi.ok && signature.runtime_call_abi_id == abi.runtime_call_abi_id && carried == 0;
     }

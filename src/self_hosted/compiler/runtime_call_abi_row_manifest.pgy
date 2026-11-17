@@ -3,6 +3,44 @@
 import "runtime_call_abi_row_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 
+func CompilerRuntimeCallAbiRowsReady() -> Bool {
+    return CompilerRuntimeCallAbiRowFactCount() > 0 &&
+        CompilerRuntimeCallAbiRowFactAt(0) == CompilerRuntimeCallAbiRowDomainFact() &&
+        CompilerRuntimeCallAbiRowFactAt(CompilerRuntimeCallAbiRowFactCount() - 1) == CompilerRuntimeCallAbiRowCallShapeFact() &&
+        CompilerRuntimeCallAbiConcreteRowCount() > 0 &&
+        CompilerRuntimeCallAbiRowAt(CompilerRuntimeCallAbiConcreteRowCount()) == "" &&
+        CompilerRuntimeCallAbiRowFor("collection", "array-int.new") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("collection", "array-long.new") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-long.new", CollectionRuntimeCNewFn(7), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("option-result", "option-int.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("option-result", "option-long.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-long.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindLong()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("option-result", "option-float.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-float.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("option-result", "option-double.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-double.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindDouble()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("math", "abs") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("checked-arithmetic", "float-to-int") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "float-to-int", CheckedArithmeticRuntimeCFloatToIntegerFn("Int"), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("checked-arithmetic", "float-to-long") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "float-to-long", CheckedArithmeticRuntimeCFloatToIntegerFn("Long"), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("checked-arithmetic", "long-modulo") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "long-modulo", CheckedArithmeticRuntimeCLongModuloFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("checked-arithmetic", "long-division") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "long-division", CheckedArithmeticRuntimeCLongDivisionFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("checked-arithmetic", "int-division") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "int-division", CheckedArithmeticRuntimeCIntDivisionFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("string", "concat") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "file-exists") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "exit") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "compiler-artifact-write") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-write", HostIORuntimeCCompilerArtifactWriteFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "compiler-artifact-begin") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-begin", HostIORuntimeCCompilerArtifactBeginFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "compiler-artifact-commit") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-commit", HostIORuntimeCCompilerArtifactCommitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "compiler-artifact-abort") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-abort", HostIORuntimeCCompilerArtifactAbortFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "Slot<Int>.Claim") == "native-resource|Slot<Int>.Claim|pgy_claim_Int|function|mir_abi_resource_row|returns_container" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "SecureSlot<String>.Write") == "native-resource|SecureSlot<String>.Write|pgy_secure_write_String|function|mir_abi_resource_row|container_ptr_value_token_ptr_to_void" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "Slot<Int>.PinRead") == "native-resource|Slot<Int>.PinRead|pgy_pin_read_Int|function|mir_abi_resource_row|container_ptr_to_pinned_view" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "SecureSlot<String>.UnpinCleanup") == "native-resource|SecureSlot<String>.UnpinCleanup|pgy_secure_unpin_cleanup_String|function|mir_abi_resource_row|pinned_view_ptr_to_void" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<Int>.Claim") == "native-resource|DeviceSlot<Int>.Claim|pgy_claim_device_Int|function|mir_abi_resource_row|returns_container" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<String>.Write") == "native-resource|DeviceSlot<String>.Write|pgy_device_write_String|function|mir_abi_resource_row|container_ptr_value_to_void" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<String>.SubmitRead") == "native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row|container_ptr_to_task_handle" &&
+        CompilerRuntimeCallAbiRowFor("selfhost-c-text-builder", "new") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "new", TextBuilderRuntimeCNewFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("selfhost-c-text-builder", "finish") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "finish", TextBuilderRuntimeCFinishFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("selfhost-c-text-builder", "allocator.pool") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "allocator.pool", TextBuilderRuntimeCAllocatorPoolFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("task", TaskRuntimeIsCancelledOperation()) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("task", TaskRuntimeIsCancelledOperation(), TaskRuntimeIsCancelledSymbol(), CompilerRuntimeCallAbiMaterialTargetLibrary()));
+}
+
 func CompilerRuntimeCallAbiManifestRowAt(index: Int) -> String {
     return Concat(Concat(ToString(index), "|"), CompilerRuntimeCallAbiRowAt(index));
 }

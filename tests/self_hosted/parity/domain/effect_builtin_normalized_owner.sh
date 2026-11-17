@@ -15,7 +15,7 @@ sha256sum "$PGY" "$SOURCE" >"$WORK/inputs.sha256"
 timeout 240 "$PGY" --native-pipeline --backend=c --opt=dev "$SOURCE" -o "$WORK/probe.exe" >"$WORK/compile.log" 2>&1
 timeout 10 "$WORK/probe.exe" >"$WORK/raw" 2>"$WORK/err"
 tr -d '\r' <"$WORK/raw" >"$WORK/actual"
-for ((i=0; i<16; i++)); do printf 'true\n'; done >"$WORK/expected"
+for ((i=0; i<30; i++)); do printf 'true\n'; done >"$WORK/expected"
 [[ ! -s "$WORK/err" ]]
 cmp "$WORK/expected" "$WORK/actual"
-echo '[effect-builtin-normalized] 16 ABI/type/storage/negative controls PASS'
+echo '[effect-builtin-normalized] 30 ABI/type/storage/negative controls PASS'

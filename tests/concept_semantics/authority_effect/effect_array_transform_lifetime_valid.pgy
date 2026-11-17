@@ -1,0 +1,16 @@
+// These locals keep the one descriptor owner; every result is discarded.
+// Their storage must be reclaimed automatically at the routine boundary.
+func Main() -> Void with effects local {
+    var values: Array<Int> = [1, 2, 3];
+    ArrayReverse(values); Log(values[0]); Log(ArrayLength(values));
+    var flags: Array<Bool> = [true, false];
+    ArrayReverse(flags); Log(flags[0]); Log(flags[1]);
+    var words: Array<String> = ["a", "bb", "ccc"];
+    ArrayReverse(words); Log(StringLength(words[0])); Log(StringLength(words[2]));
+    var singleton: Array<Int> = [9];
+    ArrayReverse(singleton); Log(singleton[0]);
+    var one_flag: Array<Bool> = [true];
+    ArrayReverse(one_flag); Log(one_flag[0]);
+    var empty: Array<String> = [];
+    ArrayReverse(empty); Log(ArrayLength(empty));
+}

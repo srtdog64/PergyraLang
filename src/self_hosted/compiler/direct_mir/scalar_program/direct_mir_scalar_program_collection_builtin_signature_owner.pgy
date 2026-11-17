@@ -5,7 +5,7 @@ func DirectMirScalarProgramCollectionBuiltinSignatureExpected(
 ) -> Array<String> {
     if name == "ArrayDrop" { return ["Void", "Unknown", ToString(DirectMirScalarProgramExprArrayDropStorage())]; }
     if name == "ArraySort" { return ["Unknown", "Unknown", ToString(DirectMirScalarProgramExprArrayIntSort())]; }
-    if name == "ArrayReverse" { return ["Unknown", "Unknown", ToString(DirectMirScalarProgramExprArrayIntReverse())]; }
+    if name == "ArrayReverse" { return ["Unknown", "Unknown", ToString(DirectMirScalarProgramExprArrayReverse())]; }
     if name == "StringContains" {
         return ["Bool", "String|String", ToString(
             DirectMirScalarProgramExprStringContains())];

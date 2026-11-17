@@ -33,3 +33,19 @@ on the same frozen full MIR peaks at 3,597,284 KiB before its next refusal
 earlier at 3,543,780 KiB. Different prefixes are not comparable memory costs.
 Full one-process source-to-C was not remeasured after this endpoint repair;
 the last failed source run above remains the observed limit.
+
+The array-transform v2 driver on that same full frozen MIR peaks at
+3,921,780 KiB, then refuses transition routine 1437 with no C artifact.
+Its source generation is `69690e47a07b87df6f7742e6c8498bc7fe286bbe66ff782866961bc0bf9f9b22`;
+driver SHA256 `5e9572fcd1a14070f06fa40b33458f0a40eaadc3d6fe4a064d73832441d680d2`.
+The 14 GiB/1,800 s boundary is unchanged and the process group drained.
+Parent/GNU clocks disagree, so no wall-time comparison is claimed.
+This is another admission prefix, not successful full self-compilation.
+
+The v5 Pergyra-built driver on the complete one-process DRV-2 source-to-C
+input exits 134 with explicit allocation failure under the same 14 GiB
+`RLIMIT_AS` and 1,800 s limit. GNU time reports 14,077,584 KiB peak RSS;
+no C artifact exists, and the owned process group drained. This is 4,616 KiB
+above the prior failed prefix, not evidence of a memory win. The wrapper and
+GNU clocks disagree; no wall-time comparison is claimed. See the
+[array-transform run record](../evidence/2026-11-18_selfhost_array_transform_lifetime.md).

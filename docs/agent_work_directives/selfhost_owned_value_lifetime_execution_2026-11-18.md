@@ -84,6 +84,47 @@ not another implementation track. One edit lane, no delegated edits.
    use, hidden call retention, wrong field type and an uncovered exit. This
    endpoint repair is a prerequisite, not migration of the legacy release
    policy or completion of S1/S2.
+   The next reached prerequisite is the array-transform signature/ABI seam.
+   The full fixed MIR has two builtin reverse calls, on local Array<Int> and
+   Array<String>; the latter refuses. The existing runtime already exports
+   typed String and Bool reversals. Keep expression identity 136, select its
+   concrete ABI from the admitted argument type in the existing transform
+   owner, and migrate signature, readiness, C helper emission, LLVM body and
+   foreign-declaration consumers together. The ABI row owner issues one typed
+   row input; no provisional Int ABI may stand in for an unknown argument.
+   Preserve the existing proven-local receiver boundary and allocation/element
+   ownership. Unknown types and forged ABI identities fail closed; no fresh
+   allocation, Clone, new route or release authority follows from reversal.
+   Move the manifest-only sample readiness check to its sole existing manifest
+   consumer. The existing array-transform component owns its typed C/LLVM
+   projections from explicit admitted facts; orchestration only consumes
+   them. Keep caps and owner count unchanged. Acceptance: Int
+   controls plus String/Bool even/odd/empty/single-element and owned-element
+   cleanup on C/LLVM; forged identities refuse without artifacts; then retry
+   the same full MIR and installed-driver/memory/CI chain.
+   The executable family test also reaches the existing String storage-sharing
+   consumer: a checked transform returns the same descriptor, not a new holder.
+   Propagate that alias through the expression DAG at this existing consumer;
+   its eventual binding, constructor, call or return still decides retention.
+   A discarded/observed result does not retain it. Keep returns through this
+   new alias conservatively shared until a return-transfer owner proves them,
+   and keep the existing sharing guard, preservation proof and release rights.
+   Falsifiers include retaining the transform result in another local, record,
+   callee or return; the family is not a global readonly receiver exemption.
+   The added internal `ref` parameters borrow the existing admitted ABI and
+   expression inventories for this projection; they add no annotation or
+   Clone to the canonical input. Replace that explicit carriage only when
+   readonly ABI inference preserves the same inventory identity and lifetime.
+   The existing owned-local lifetime owner recognizes a checked transform
+   only as a nonretaining root observation when its result is discarded.
+   It does not propagate an origin through a retaining constructor: that
+   would grant cleanup before the existing recipe proves transfer. A binding,
+   call or return remains conservatively blocked until that proof exists.
+   The first full family heap probe found 28 bytes in five Int/Bool allocations, including the pre-existing
+   Int alias control. Do not call that full probe leak-free or hide that
+   control; check isolated new typed lifetimes as well as the unchanged
+   conservative alias behavior. No release right follows from the transform
+   alone; the original literal/recipe and actual retaining uses still decide.
 3. Fix owned-value identity, origin, recipe, disposition and end points in
    the MIR owner. Use existing SSA/local-ref and CFG facts. Include definition
    reset on loop backedges, aliases and mutually exclusive definitions.

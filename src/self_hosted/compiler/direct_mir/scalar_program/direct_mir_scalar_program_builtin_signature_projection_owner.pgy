@@ -86,10 +86,6 @@ func DirectMirScalarProgramBuiltinSignatureFactFromName(name: String) -> DirectM
         let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(normalized_kind);
         if !abi.ok { return invalid; } runtime_call_abi_id = abi.runtime_call_abi_id;
     }
-    if DirectMirScalarProgramArrayTransformKind(normalized_kind) {
-        let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(normalized_kind);
-        if !abi.ok { return invalid; } runtime_call_abi_id = abi.runtime_call_abi_id;
-    }
     if DirectMirScalarProgramTaskExpressionKind(normalized_kind) {
         let abi: CompilerRuntimeCallAbiFact =
             DirectMirScalarProgramTaskRuntimeFact();
@@ -150,13 +146,7 @@ func DirectMirScalarProgramBuiltinSignatureFactForCall(
         if name == "ArrayDrop" || array_value.valid { return array_value; }
     }
     if DirectMirScalarProgramArrayTransformKind(fact.expression_kind) {
-        if ArrayLength(actual_types) > 1 || (ArrayLength(actual_types) == 1 &&
-                actual_types[0] != CompilerAbiLayoutArrayIntTypeName()) {
-            return DirectMirScalarProgramBuiltinSignatureFactInvalid();
-        }
-        let parameters: Array<String> = [CompilerAbiLayoutArrayIntTypeName()];
-        return DirectMirScalarProgramBuiltinSignatureFact(true, fact.registry_row, fact.name,
-            CompilerAbiLayoutArrayIntTypeName(), parameters, fact.expression_kind, fact.runtime_call_abi_id);
+        return DirectMirScalarProgramArrayTransformSignatureForCall(fact, actual_types);
     }
     if DirectMirScalarProgramHashMapOperation(fact.expression_kind) != "" {
         return DirectMirScalarProgramHashMapSignatureForCall(fact, actual_types, expected_type);

@@ -1,13 +1,13 @@
 # Current blocker
 
-Owner: GPT root integration (`5b0d354fb`, 2026-11-17); publication/CI: [main](main.md).
-
-The [role ABI](../evidence/2026-11-18_selfhost_role_ci_green.md) and bounded
-[String seed bridge](../evidence/2026-11-18_selfhost_string_temporary_seed_bridge.md) are published.
-Full frozen MIR now stops at `ArrayReverse(Array<String>)`, global row 19788.
+Owner: GPT root integration; published revision/CI: [main](main.md).
+The last full frozen MIR stops at collection transition routine 1437,
+`SemanticAstSignatureTypeTextChildren`. A diagnostic found five transition
+failures before unrelated statement admission at routine 1672; the census is incomplete.
 Active: [full MIR lifetime/transition execution](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
-Nested return endpoints pass; next is the general array-reverse consumer ([record](../evidence/2026-11-18_selfhost_nested_return_transfer.md)).
-The one-process DRV-2 memory goal remains unestablished ([measurements](measurements.md)).
+Typed reverse, retaining-alias refusals and isolated C/LLVM heap checks pass
+on the v5 driver. The unchanged one-process full DRV-2 bound fails with OOM,
+exit 134 and no C artifact ([measurements](measurements.md)).
 
 ## Objective card
 
@@ -38,8 +38,8 @@ The one-process DRV-2 memory goal remains unestablished ([measurements](measurem
 4. Compiler temporaries released at last use
    ([decision](../decisions/2026-11-16_compiler_temporaries_are_released_at_last_use.md)):
    DRV-2 source-to-C still fails the bound ([measurements](measurements.md)); direct MIR refuses routines at
-   semantic 31, mir_lower 52, codegen 59 in DM2; the current full frozen MIR
-   [passes roles and stops at collection transition 1054](../evidence/2026-11-17_selfhost_memory_role_receiver_migration.md).
+   semantic 31, mir_lower 52, codegen 59 in DM2. The current full frozen MIR
+   blocker is named above; earlier [role-prefix measurements](../evidence/2026-11-17_selfhost_memory_role_receiver_migration.md) are historical.
 5. Weekly pipeline (run 43914895554): W1 fixed the let/var fixtures, the
    DAG floor and the rule header; open are direct MIR (driver shard 91
    failures, fuzz variant 1), `dnd_tavern_campaign` (S5), and line caps
@@ -56,5 +56,5 @@ verified as a whole; read each branch's last commit before reuse.
 
 ## Falsifiers kept
 
-- `direct_mir_array_string_cleanup_fact_owner.sh`: refused 18+4, admitted
-  8x2, heap checks; `self-host-call-handoff-row-reader-test-smoke`: 44.
+- `direct_mir_array_string_cleanup_fact_owner.sh`: refused 18+4+6+2,
+  admitted 8x2 plus retained/nested cases; call-handoff row reader: 44.

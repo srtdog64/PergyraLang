@@ -92,6 +92,7 @@ effect_scalar_composition_valid|valid|
 effect_checked_arithmetic_valid|valid|
 effect_collection_local_valid|valid|
 effect_array_transform_valid|valid|
+effect_array_transform_lifetime_valid|valid|
 effect_map_local_valid|valid|
 clock_wrong_effect|nondeterministic|Stamp
 effect_transitive_rejected|nondeterministic|Main
@@ -195,7 +196,8 @@ effect_unclassified_call|2
 effect_scalar_composition_valid|4,7
 effect_checked_arithmetic_valid|2147483647,2147395600,-40
 effect_collection_local_valid|2,3
-effect_array_transform_valid|1,3,3,1,1,0,9
+effect_array_transform_valid|1,3,3,1,1,0,9,4,3,2,1,1,3,2,1,0,6,false,false,false,true,false,false,true,0,true,4,3,2,3
+effect_array_transform_lifetime_valid|3,3,false,true,3,1,9,true,0
 effect_map_local_valid|1,4
 EXECUTION_CASES
 echo "[effect-admission] admission: $admission_checks checks / $admission_failures failures"

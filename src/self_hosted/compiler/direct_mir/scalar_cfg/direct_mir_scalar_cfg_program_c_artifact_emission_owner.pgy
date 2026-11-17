@@ -98,17 +98,6 @@ func DirectMirScalarCfgEmitProgramC(
     TextBuilderAppend(output,
         DirectMirScalarProgramCArrayIntValueResultPreamble(
             plan.program.array_int_value_result, array_int_runtime, target));
-    let array_sort: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprArrayIntSort());
-    let array_reverse: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprArrayIntReverse());
-    if array_sort || array_reverse {
-        let abi: DirectMirArrayIntAbiProjection = DirectMirScalarProgramArrayIntValueResultTargetFromFact(plan.program.array_int_value_result, target);
-        TextBuilderAppend(output, CollectionRuntimeCIntSortBlock(
-            abi.c_array_type, CollectionRuntimeCIntSortFn(),
-            abi.storage.length_field, array_sort));
-        TextBuilderAppend(output, CollectionRuntimeCArrayReverseBlock(
-            abi.c_array_type, "int32_t", CollectionRuntimeCReverseFn(1),
-            abi.storage.length_field, array_reverse));
-    }
     TextBuilderAppend(output,
         DirectMirScalarProgramCArrayBoolPreamble(
             plan.program.array_bool_abi, target));
@@ -117,6 +106,9 @@ func DirectMirScalarCfgEmitProgramC(
     }
     let array_string_projection: Option<DirectMirArrayStringAbiProjection> = DirectMirScalarProgramArrayStringAbiProjectionFromFact(plan.program.array_string_abi, target);
     TextBuilderAppend(output, DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime, array_string_projection)); TextBuilderAppend(output, DirectMirScalarProgramCHashMapPreamble(plan));
+    TextBuilderAppend(output, DirectMirScalarProgramCArrayTransformMaterialization(
+        plan.program.expressions, plan.program.array_int_value_result, plan.program.array_bool_abi,
+        plan.program.array_string_abi, target, array_string_projection));
     TextBuilderAppend(output, DirectMirScalarProgramCSlicePreamble(
         plan.program.expressions, plan.program.array_string_abi, array_string_projection));
     TextBuilderAppend(output, DirectMirScalarProgramCOptionResultPreamble(plan, target));

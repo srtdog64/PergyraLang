@@ -1,0 +1,21 @@
+// Returning a transformed descriptor must not retire its backing in Build.
+// The caller can still read it; cleanup remains unproved at this boundary.
+struct IntBox { values: Array<Int>; }
+struct BoolBox { values: Array<Bool>; }
+
+func BuildInt() -> IntBox {
+    var values: Array<Int> = [1, 2, 3];
+    return IntBox(ArrayReverse(values));
+}
+
+func BuildBool() -> BoolBox {
+    var values: Array<Bool> = [true, false];
+    return BoolBox(ArrayReverse(values));
+}
+
+func Main() -> Void {
+    let ints: IntBox = BuildInt();
+    let bools: BoolBox = BuildBool();
+    Log(ints.values[0]);
+    Log(bools.values[0]);
+}

@@ -11,10 +11,12 @@ func DirectMirScalarProgramCStringCollectionExpression(kind: Int, left_type: Str
         return Some("(free(" + left + ".data), memset(&" + left + ", 0, sizeof(" + left + ")))" );
     }
     if DirectMirScalarProgramArrayTransformKind(kind) {
-        let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(kind);
-        if !abi.ok || left_type != CompilerAbiLayoutArrayIntTypeName() { return None; }
+        let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(kind, left_type);
+        if !abi.ok { return None; }
         var callee: String = CollectionRuntimeCIntSortFn();
-        if kind == DirectMirScalarProgramExprArrayIntReverse() { callee = CollectionRuntimeCIntReverseFn(); }
+        if kind == DirectMirScalarProgramExprArrayReverse() {
+            callee = CollectionRuntimeCReverseFn(CollectionRuntimeKindCode(CollectionRuntimeKindFromTypeName(left_type)));
+        }
         return Some(Concat(callee, Concat("(", Concat(left, ")"))));
     }
     if kind == DirectMirScalarProgramExprProcessArgs() {

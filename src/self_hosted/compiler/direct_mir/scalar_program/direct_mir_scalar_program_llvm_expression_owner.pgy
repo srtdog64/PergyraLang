@@ -179,16 +179,11 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             if !cell.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); }
             value = cell.value; node_instructions = cell.instructions;
         } else if DirectMirScalarProgramArrayTransformKind(kind) {
-            let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(kind);
-            let storage: DirectMirArrayStorageAbiProjection = DirectMirArrayStorageAbiProjectionFromTarget(target);
-            if !abi.ok || left_address == "" || !DirectMirArrayStorageAbiProjectionReadyFor(
-                    storage, CompilerTargetCpuLlvmProjection()) {
-                return DirectMirScalarProgramLlvmExpression(false, "", "", "");
-            }
-            node_instructions = "  " + result + ".data = extractvalue %pgy.array.int " + left + ", " + ToString(storage.data_index) + "\n";
-            node_instructions = node_instructions + "  " + result + ".length = extractvalue %pgy.array.int " + left + ", " + ToString(storage.length_index) + "\n";
-            node_instructions = node_instructions + "  call void @" + abi.symbol + "(ptr " + result + ".data, i64 " + result + ".length)\n";
-            // Only the elements change; keep the admitted descriptor and its identity.
+            let emitted: Option<String> = DirectMirScalarProgramLlvmArrayTransformExpression(
+                kind, expressions.node_types[node], DirectMirScalarProgramLlvmType(expressions.node_types[node]),
+                target, array_string_abi, array_string_projection, left, left_address, result);
+            if !IsSome(emitted) { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); }
+            node_instructions = UnwrapOption(emitted);
             value = left;
         } else if kind == DirectMirScalarProgramExprNegateLong() {
             value = result; node_instructions = "  " + result + " = sub i64 0, " + left + "\n";

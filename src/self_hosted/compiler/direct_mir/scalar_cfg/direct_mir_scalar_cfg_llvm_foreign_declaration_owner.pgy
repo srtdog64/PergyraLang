@@ -110,8 +110,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         if !abi.ok { Die("compound remainder runtime ABI is missing"); }
         output = output + "declare i64 @${abi.symbol}(i64, i64)\n";
     }
-    let reached: Array<Int> = [DirectMirScalarProgramExprCheckedAddInt(), DirectMirScalarProgramExprCheckedMulInt(), DirectMirScalarProgramExprDivideInt(),
-        DirectMirScalarProgramExprArrayIntSort(), DirectMirScalarProgramExprArrayIntReverse()];
+    let reached: Array<Int> = [DirectMirScalarProgramExprCheckedAddInt(), DirectMirScalarProgramExprCheckedMulInt(), DirectMirScalarProgramExprDivideInt()];
     var reached_index: Int = 0;
     while reached_index < ArrayLength(reached) {
         let kind: Int = reached[reached_index];
@@ -119,15 +118,12 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
             (kind == DirectMirScalarProgramExprDivideInt() && MirCompoundAssignmentHasOperation(plan, 4)) {
             var abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(kind);
             var signature: String = "i32"; var arguments: String = "(i32, i32)\n";
-            if DirectMirScalarProgramArrayTransformKind(kind) {
-                abi = DirectMirScalarProgramArrayTransformRuntimeFact(kind);
-                signature = "void"; arguments = "(ptr, i64)\n";
-            }
             if !abi.ok { Die("direct MIR effect builtin runtime ABI is missing"); }
             output = Concat(output, Concat("declare ", Concat(signature, Concat(" @", Concat(abi.symbol, arguments)))));
         }
         reached_index = reached_index + 1;
     }
+    output = Concat(output, DirectMirScalarProgramLlvmArrayTransformDeclarations(plan.program.expressions));
     if needs_strlen { output = Concat(output, "declare i64 @strlen(ptr)\n"); }
     if needs_malloc { output = Concat(output, "declare ptr @malloc(i64)\n"); }
     if needs_memcpy { output = Concat(output, "declare ptr @memcpy(ptr, ptr, i64)\n"); }

@@ -1,41 +1,165 @@
-// In-place Array<Int> transforms consume admitted storage and raw runtime ABI.
+// In-place array transforms consume a concretely typed storage/ABI row.
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "../../runtime_call_abi_structured_fact_owner.pgy";
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "../../../codegen/runtime_abi/collection_runtime_owner.pgy";
 
 func DirectMirScalarProgramArrayTransformKind(kind: Int) -> Bool {
     return kind == DirectMirScalarProgramExprArrayIntSort() ||
-        kind == DirectMirScalarProgramExprArrayIntReverse();
+        kind == DirectMirScalarProgramExprArrayReverse();
 }
 
-func DirectMirScalarProgramArrayTransformRuntimeFact(kind: Int) -> CompilerRuntimeCallAbiFact {
-    var operation: String = ""; var symbol: String = "";
+func DirectMirScalarProgramArrayTransformRuntimeFact(kind: Int, type_name: String) -> CompilerRuntimeCallAbiFact {
+    let collection: Option<String> = CollectionRuntimeBuiltinKindFromTypeName(type_name);
+    if !IsSome(collection) { return CompilerRuntimeCallAbiFactMissing(); }
+    var operation: String = "";
     if kind == DirectMirScalarProgramExprArrayIntSort() {
-        operation = "array-int.sort-data"; symbol = CollectionRuntimeLlvmIntSortFn();
-    } else if kind == DirectMirScalarProgramExprArrayIntReverse() {
-        operation = "array-int.reverse-data"; symbol = CollectionRuntimeLlvmIntReverseFn();
+        operation = "sort";
+    } else if kind == DirectMirScalarProgramExprArrayReverse() {
+        operation = "reverse";
     } else { return CompilerRuntimeCallAbiFactMissing(); }
     let fact: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFactFromRowInput(
-        CompilerRuntimeCallAbiRowInput("collection", operation, symbol,
-            CompilerRuntimeCallAbiMaterialTargetLibrary()));
+        CompilerRuntimeCallAbiArrayTransformRowInput(operation,
+            CollectionRuntimeKindCode(UnwrapOption(collection))));
     if !fact.ok || fact.call_shape != "data_count_to_void" {
         return CompilerRuntimeCallAbiFactMissing();
     }
     return fact;
 }
 
+func DirectMirScalarProgramArrayTransformSignatureForCall(
+    ref signature: DirectMirScalarProgramBuiltinSignatureFact,
+    ref actual_types: Array<String>
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    if ArrayLength(actual_types) != 1 { return DirectMirScalarProgramBuiltinSignatureFactInvalid(); }
+    let type_name: String = Concat("", actual_types[0]);
+    let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(
+        signature.expression_kind, type_name);
+    if !abi.ok { return DirectMirScalarProgramBuiltinSignatureFactInvalid(); }
+    let parameters: Array<String> = [type_name];
+    return DirectMirScalarProgramBuiltinSignatureFact(true, signature.registry_row,
+        signature.name, type_name, parameters, signature.expression_kind, abi.runtime_call_abi_id);
+}
+
 func DirectMirScalarProgramArrayTransformNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Bool {
     let abi: CompilerRuntimeCallAbiFact =
-        DirectMirScalarProgramArrayTransformRuntimeFact(facts.node_kinds[node]);
+        DirectMirScalarProgramArrayTransformRuntimeFact(facts.node_kinds[node], facts.node_types[node]);
     let left: Int = facts.node_lefts[node];
     return abi.ok && facts.node_runtime_call_abi_ids[node] == abi.runtime_call_abi_id &&
-        facts.node_types[node] == CompilerAbiLayoutArrayIntTypeName() &&
         left >= 0 && left < node && facts.node_rights[node] == -1 &&
-        facts.node_types[left] == CompilerAbiLayoutArrayIntTypeName() &&
+        facts.node_types[left] == facts.node_types[node] &&
         facts.node_kinds[left] == DirectMirScalarProgramExprLocal() &&
         facts.node_local_rows[node] == -1 && facts.node_parameter_ordinals[node] == -1 &&
         facts.node_member_ordinals[node] == -1 && facts.node_callable_rows[node] == -1 &&
         facts.node_literals[node] == "" &&
         ArrayLength(DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node)) == 0;
+}
+
+// Both targets project the same checked in-place operation. No descriptor is
+// allocated, replaced or retired, and no element ownership changes here.
+func DirectMirScalarProgramCArrayTransformMaterialization(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref int_abi: DirectMirScalarProgramArrayIntValueResultFact,
+    ref bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
+    ref string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    target: CompilerTargetProjectionFact,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>
+) -> String {
+    var output: String = "";
+    var emitted: Array<Int> = [];
+    var node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        let kind: Int = expressions.node_kinds[node];
+        if DirectMirScalarProgramArrayTransformKind(kind) {
+            let type_name: String = expressions.node_types[node];
+            let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(kind, type_name);
+            if !abi.ok { Die("direct MIR C array transform ABI is missing"); }
+            var seen: Bool = false; var prior: Int = 0;
+            while prior < ArrayLength(emitted) {
+                if emitted[prior] == abi.runtime_call_abi_id { seen = true; }
+                prior = prior + 1;
+            }
+            if !seen {
+                let element_kind: Int = CollectionRuntimeKindCode(CollectionRuntimeKindFromTypeName(type_name));
+                let storage: DirectMirArrayStorageAbiProjection = DirectMirArrayStorageAbiProjectionFromTarget(target);
+                if !DirectMirArrayStorageAbiProjectionReadyFor(storage, CompilerTargetCpuCProjection()) {
+                    Die("direct MIR C array transform storage is missing");
+                }
+                var c_type: String = ""; var length: String = storage.length_field;
+                if element_kind == 1 {
+                    let projection: DirectMirArrayIntAbiProjection = DirectMirScalarProgramArrayIntValueResultTargetFromFact(int_abi, target);
+                    c_type = projection.c_array_type; length = projection.storage.length_field;
+                } else if element_kind == 2 {
+                    if !IsSome(projection_opt) { Die("direct MIR C array transform String projection is missing"); }
+                    let projection: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
+                    c_type = DirectMirScalarProgramCArrayStringCarrierType(string_abi, projection);
+                    length = projection.storage.length_field;
+                } else if element_kind == 4 && bool_abi.present && DirectMirScalarProgramArrayBoolAbiFactReady(bool_abi) {
+                    c_type = CompilerAbiLayoutArrayBoolCValueType();
+                } else { Die("direct MIR C array transform type is not admitted"); }
+                if kind == DirectMirScalarProgramExprArrayIntSort() {
+                    output = output + CollectionRuntimeCIntSortBlock(c_type, CollectionRuntimeCIntSortFn(), length, true);
+                } else {
+                    output = output + CollectionRuntimeCArrayReverseBlock(c_type, "__typeof__(*a.data)", CollectionRuntimeCReverseFn(element_kind), length, true);
+                }
+                ArrayPush(emitted, abi.runtime_call_abi_id);
+            }
+        }
+        node = node + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmArrayTransformDeclarations(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    var output: String = "";
+    var emitted: Array<Int> = [];
+    var node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        let kind: Int = expressions.node_kinds[node];
+        if DirectMirScalarProgramArrayTransformKind(kind) {
+            let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(kind, expressions.node_types[node]);
+            if !abi.ok { Die("direct MIR array transform declaration ABI is missing"); }
+            var seen: Bool = false; var prior: Int = 0;
+            while prior < ArrayLength(emitted) {
+                if emitted[prior] == abi.runtime_call_abi_id { seen = true; }
+                prior = prior + 1;
+            }
+            if !seen {
+                output = output + "declare void @" + abi.symbol + "(ptr, i64)\n";
+                ArrayPush(emitted, abi.runtime_call_abi_id);
+            }
+        }
+        node = node + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmArrayTransformExpression(
+    kind: Int, type_name: String, llvm_type: String,
+    target: CompilerTargetProjectionFact,
+    ref string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>,
+    left: String, left_address: String, result: String
+) -> Option<String> {
+    let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(kind, type_name);
+    var storage: DirectMirArrayStorageAbiProjection = DirectMirArrayStorageAbiProjectionFromTarget(target);
+    var array_type: String = llvm_type;
+    if type_name == CompilerAbiLayoutArrayStringTypeName() {
+        let projection: DirectMirArrayStringAbiProjection = DirectMirScalarProgramLlvmArrayStringStorageProjection(
+            string_abi, projection_opt, "direct MIR LLVM array transform");
+        storage = projection.storage; array_type = projection.llvm_value_type;
+    }
+    if !abi.ok || array_type == "" || left_address == "" || !DirectMirArrayStorageAbiProjectionReadyFor(
+            storage, CompilerTargetCpuLlvmProjection()) { return None(); }
+    var output: String = "  " + result + ".data = extractvalue " + array_type + " " + left + ", " + ToString(storage.data_index) + "\n";
+    output = output + "  " + result + ".length = extractvalue " + array_type + " " + left + ", " + ToString(storage.length_index) + "\n";
+    output = output + "  call void @" + abi.symbol + "(ptr " + result + ".data, i64 " + result + ".length)\n";
+    return Some(output);
 }

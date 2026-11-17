@@ -19,13 +19,21 @@ import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_kind_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir_scalar_program_value_result_union_owner.pgy";
+import "direct_mir_scalar_program_array_transform_owner.pgy";
 
 func DirectMirScalarProgramArrayStringLocalNode(
     ref expressions: DirectMirScalarProgramExpressionSet, node: Int, target_local: Int
 ) -> Bool {
-    return node >= 0 && node < ArrayLength(expressions.node_kinds) &&
-        expressions.node_kinds[node] == DirectMirScalarProgramExprLocal() &&
-        expressions.node_local_rows[node] == target_local;
+    // A checked in-place transform returns this same descriptor. Follow its
+    // alias to the eventual consumer rather than granting another owner.
+    var source: Int = node;
+    while source >= 0 && source < ArrayLength(expressions.node_kinds) &&
+            DirectMirScalarProgramArrayTransformNodeReady(expressions, source) {
+        source = expressions.node_lefts[source];
+    }
+    return source >= 0 && source < ArrayLength(expressions.node_kinds) &&
+        expressions.node_kinds[source] == DirectMirScalarProgramExprLocal() &&
+        expressions.node_local_rows[source] == target_local;
 }
 
 // 1 when this graph shares the local, 2 when only a call argument whose
@@ -75,6 +83,7 @@ func DirectMirScalarProgramArrayStringGraphShares(
             if DirectMirScalarProgramArrayStringLocalNode(plan.program.expressions,
                     plan.program.expressions.node_lefts[node], target_local) &&
                 !DirectMirArrayStorageReceiverObserves(kind, true) &&
+                !DirectMirScalarProgramArrayTransformNodeReady(plan.program.expressions, node) &&
                 kind != DirectMirScalarProgramExprArrayStringPushOwned() &&
                 kind != DirectMirScalarProgramExprArrayStringDropOwned() { return 1; }
         }
@@ -125,7 +134,11 @@ func DirectMirScalarProgramArrayStringRoutineShares(
             var graph: Int = plan.program.block_condition_expression_rows[block];
             if lane == 1 { graph = plan.program.block_return_expression_rows[block]; }
             let found: Int = DirectMirScalarProgramArrayStringGraphShares(
-                plan, routine, graph, target_local, false, preserving, proved);
+                plan, routine, graph, target_local,
+                lane == 1 && graph >= 0 &&
+                    DirectMirScalarProgramArrayTransformKind(plan.program.expressions.node_kinds[
+                        plan.program.expressions.graph_roots[graph]]),
+                preserving, proved);
             if found == 1 { return 1; }
             if found == 2 { code = 2; }
             lane = lane + 1;
