@@ -1,7 +1,12 @@
 # Current blocker
 
-Owner: Claude root lane. Checked 2026-11-17 on main `757f02f76`. Work is
-paused here by the user (direction under review); no track is running.
+Owner: GPT root integration. The user resumed the self-compile memory plan
+on 2026-11-17 from main `5b0d354fb`; other paused tracks are not reopened.
+
+A2 has local fixed-input and negative evidence; publication and exact-SHA
+CI are pending. Then execute A1, followed by the direct-MIR and owned-value
+dependencies in the [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
+Results: [A2 evidence](../evidence/2026-11-17_selfhost_memory_a2_phi_reuse.md).
 
 ## Objective card
 
@@ -13,7 +18,7 @@ paused here by the user (direction under review); no track is running.
 - Forbidden: a larger job or gate timeout, a reduced canonical input, a
   skipped backend, a weakened negative, per-program-shape route admission.
 
-## Open, in dependency order
+## Retained obligations (not parallel implementation tracks)
 
 1. Required CI on the commit carrying this file ([gates](gates.md)).
 2. Memory: four legs, LLVM IR at -O0, 3143 inputs: only endless recursion
@@ -47,11 +52,6 @@ paused here by the user (direction under review); no track is running.
 
 `s5a-one-later-use`, `dm3-direct-mir`, `f2-front-end-rules`: wip, not
 verified as a whole; read each branch's last commit before reuse.
-
-## Done 2026-11-17
-
-- `add4254c5`, `a1cb26a93`, `f2a13fd61`, `ea0783975`, `757f02f76`: S2,
-  DM1, S3, DM2, S4; `17bbed4f8` W1; `e7014caad` native List mutator check.
 
 ## Falsifiers kept
 

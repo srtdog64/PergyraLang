@@ -24,6 +24,13 @@ func MirPhiPredecessorBindingFactFromOwners(
     ref index: MirRoutineFactIndex,
     ref phi: MirRoutinePhiFact
 ) -> MirPhiPredecessorBindingFact {
+    return MirPhiPredecessorBindingFactWithDominanceReplay(index, phi, false);
+}
+
+func MirPhiPredecessorBindingFactWithDominanceReplay(
+    ref index: MirRoutineFactIndex,
+    ref phi: MirRoutinePhiFact, verify_reuse: Bool
+) -> MirPhiPredecessorBindingFact {
     if !phi.valid || phi.predecessor_count < 2 ||
         ArrayLength(phi.incoming_results) < 2 ||
         ArrayLength(phi.incoming_results) !=
@@ -42,6 +49,10 @@ func MirPhiPredecessorBindingFactFromOwners(
     if ArrayLength(predecessors) != phi.predecessor_count {
         return MirPhiPredecessorBindingFactEmpty();
     }
+    var dominance_queries: MirRoutineDominanceQueryFacts =
+        MirRoutineDominanceQueryFactsEmpty(verify_reuse);
+    var dominance_queue: Array<Int> = [];
+    let parameter_result: String = Concat(phi.local_name, ".0");
     var incoming_rows: Array<Int> = [];
     var selected_counts: Array<Int> = [];
     var incoming: Int = 0;
@@ -69,10 +80,11 @@ func MirPhiPredecessorBindingFactFromOwners(
                 (!MirRoutineResultDefinitionFactReady(definition) ||
                  definition.block_id !=
                     phi.incoming_definition_blocks[candidate] ||
-                 !MirRoutineBlockDominates(
-                    index, definition.block_id, predecessor))) ||
+                 !MirRoutineBlockDominatesInQuery(
+                    index, definition.block_id, predecessor,
+                    dominance_queries, dominance_queue))) ||
                 (parameter_entry && phi.incoming_results[candidate] !=
-                    Concat(phi.local_name, ".0")) {
+                    parameter_result) {
                 candidate = candidate + 1;
                 continue;
             }
@@ -87,11 +99,12 @@ func MirPhiPredecessorBindingFactFromOwners(
                             index, later_name
                         );
                     if MirRoutineResultDefinitionFactReady(later) &&
-                        MirRoutineBlockDominates(
-                            index, later.block_id, predecessor
+                        MirRoutineBlockDominatesInQuery(
+                            index, later.block_id, predecessor,
+                            dominance_queries, dominance_queue
                         ) && (parameter_entry ||
-                         MirRoutineDefinitionStrictlyPrecedes(
-                            index, definition, later)) {
+                         MirRoutineDefinitionStrictlyPrecedesInQuery(
+                            index, definition, later, dominance_queries, dominance_queue)) {
                         shadowed = true;
                     }
                 }

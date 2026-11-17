@@ -2255,7 +2255,7 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/mir_lower/routine_definition_dominance_fact_owner.pgy" 70
+    "src/self_hosted/mir_lower/routine_definition_dominance_fact_owner.pgy" 150
 require_max_lines \
     "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" 60
 require_max_lines \

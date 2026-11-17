@@ -48,6 +48,17 @@ func MirRoutineGraphDistancesAvoiding(
     start: Int,
     blocked: Int
 ) -> Array<Int> {
+    var queue: Array<Int> = [];
+    return MirRoutineGraphDistancesAvoidingUsingQueue(
+        block_succ_true, block_succ_false, start, blocked, queue);
+}
+
+// One query invocation may retain its queue capacity between traversals. The
+// returned distances are independent of this scratch buffer.
+func MirRoutineGraphDistancesAvoidingUsingQueue(
+    ref block_succ_true: Array<Int>, ref block_succ_false: Array<Int>,
+    start: Int, blocked: Int, inout queue: Array<Int>
+) -> Array<Int> {
     let block_count: Int = ArrayLength(block_succ_true);
     var distances: Array<Int> = [];
     var row: Int = 0;
@@ -55,10 +66,11 @@ func MirRoutineGraphDistancesAvoiding(
         ArrayPush(distances, 0 - 1);
         row = row + 1;
     }
+    while ArrayLength(queue) > 0 { ArrayPop(queue); }
     if start < 0 || start >= block_count || start == blocked {
         return distances;
     }
-    var queue: Array<Int> = [start];
+    ArrayPush(queue, start);
     ArraySet(distances, start, 0);
     var cursor: Int = 0;
     while cursor < ArrayLength(queue) {

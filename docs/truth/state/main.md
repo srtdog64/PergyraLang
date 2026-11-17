@@ -1,17 +1,16 @@
 # Main and CI
 
-Owner: Claude root lane (taken over 2026-11-10,
-[decision](../decisions/2026-11-10_root_lane_taken_over_all_work_lands_on_main.md)).
-Checked 2026-11-17.
+Owner: GPT root integration for the user's 2026-11-17 memory-plan request.
+Other paused work and recovery branches remain preserved. Checked 2026-11-17.
 
 | Item | Observed value |
 |---|---|
-| Published main | fast-forwarded to the commit that carries this file; S4 `757f02f76` lands with it, on top of `ea0783975` |
-| Work branch | `integrate/track-a`, worktree `C:\Users\user\pgy-wt\ci-win`; parallel tracks land on it as squash commits, then main fast-forwards |
-| Open tracks | none running: paused 2026-11-17 by the user while the direction is reviewed; unlanded wip branches are listed in [blocker](blocker.md) |
+| Published main before A2 | `5b0d354fb37b901495e4b9c2d27cfe57ec0197cc`; CI run 44010239826 pending only self-host bootstrap at last check |
+| Work branch | `main`, `D:\PergyraLang`; tracked A2 edits named in its evidence, plus unrelated untracked folder preserved |
+| Active work | one memory-plan edit scope; local A2 verified, commit/push and exact-SHA CI pending, then A1 |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |
 | Linux validation | WSL `Ubuntu-C-WSL`: `/root/mg-main` builds the integration head |
-| Last CI with Linux jobs executed | `f2a13fd61` green (one infrastructure apt failure rerun) |
+| Last completed required CI observed | `ea0783975` green, run 44001627208; bootstrap and installed-driver jobs executed |
 
 The gate results are in [gates](gates.md) and the open items in
 [blocker](blocker.md).

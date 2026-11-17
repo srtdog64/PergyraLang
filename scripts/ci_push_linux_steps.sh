@@ -63,6 +63,8 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/codegen/entrypoint_exit_status_leg_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_general_emitter_coverage_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_general_emitter_builtin_rows_owner.sh'
+    run 'bash tests/self_hosted/parity/mir/phi_dominance_reuse_owner.sh'
+    run 'bash tests/self_hosted/parity/driver/selfhost_compile_memory_owner.sh'
     run 'bash tests/self_hosted/parity/one_mir/one_mir_string_case_math_projection.sh'
     run 'bash tests/self_hosted/parity/semantic/default_route_method_receiver_order_owner.sh'
     run 'bash tests/self_hosted/parity/driver/parent_relative_output_path_owner.sh'

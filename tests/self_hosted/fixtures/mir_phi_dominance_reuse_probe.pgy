@@ -1,0 +1,118 @@
+import "../../../src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy";
+
+func CanonicalNamesReady() -> Bool {
+    let names: Array<String> = ["x.0", "x.1", "x.01", "x.2147483647",
+        "x.2147483648", "x.-1", "x.+1", "x.1 ", "xy.1", "x.",
+        "x.1.2", "x.000", "x.999999999999999999999999999999999"];
+    let expected: Array<Bool> = [true, true, false, true, false, false,
+        false, false, false, false, false, false, false];
+    var row: Int = 0;
+    while row < ArrayLength(names) {
+        if MirSsaNameMatches(names[row], "x", true) != expected[row] {
+            return false;
+        }
+        row = row + 1;
+    }
+    return !MirSsaNameMatches("x.0", "x", false) &&
+        !MirSsaNameMatches(".1", "", true) &&
+        MirSsaNameMatches("변수.7", "변수", false) &&
+        MirSsaNameMatches("x.1.2", "x.1", false);
+}
+
+func ReusableTraversalReady() -> Bool {
+    let successors: Array<Int> = [1, 2, 1, 4, -1];
+    let alternatives: Array<Int> = [3, -1, -1, -1, -1];
+    var queue: Array<Int> = [99, 98];
+    let first: Array<Int> = MirRoutineGraphDistancesAvoidingUsingQueue(
+        successors, alternatives, 0, 1, queue);
+    let second: Array<Int> = MirRoutineGraphDistancesAvoidingUsingQueue(
+        successors, alternatives, 0, 3, queue);
+    // Resetting the workspace must not change an earlier retained proof.
+    if first[0] != 0 || first[1] != -1 || first[2] != -1 ||
+        first[3] != 1 || first[4] != 2 || second[0] != 0 ||
+        second[1] != 1 || second[2] != 2 || second[3] != -1 ||
+        second[4] != -1 { return false; }
+    let blocked_entry: Array<Int> = MirRoutineGraphDistancesAvoidingUsingQueue(
+        successors, alternatives, 0, 0, queue);
+    var row: Int = 0;
+    while row < ArrayLength(blocked_entry) {
+        if blocked_entry[row] != -1 { return false; }
+        row = row + 1;
+    }
+    return ArrayLength(queue) == 0;
+}
+
+func Main() -> Void {
+    if !CanonicalNamesReady() { Die("canonical SSA name mismatch"); }
+    if !ReusableTraversalReady() { Die("dominance traversal workspace mismatch"); }
+    let args: Array<String> = Args();
+    if ArrayLength(args) < 1 { Die("probe requires a MIR artifact"); }
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(
+        ReadFile(args[0]));
+    if !routines.valid { Die("probe MIR index invalid"); }
+    var phi_count: Int = 0;
+    var routine: Int = 0;
+    while routine < ArrayLength(routines.starts) {
+        let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, routine);
+        let uses: MirRoutineInstructionUseFacts =
+            BuildMirRoutineInstructionUseFacts(routines, routine);
+        if !index.valid || !uses.valid { Die("probe routine invalid"); }
+        var queries: MirRoutineDominanceQueryFacts =
+            MirRoutineDominanceQueryFactsEmpty(true);
+        var queue: Array<Int> = [];
+        let count: Int = ArrayLength(index.block_starts);
+        var dominator: Int = -1;
+        while dominator <= count {
+            var block: Int = -1;
+            while block <= count {
+                let expected: Bool = MirRoutineBlockDominates(index, dominator, block);
+                if MirRoutineBlockDominatesInQuery(index, dominator, block, queries, queue) != expected ||
+                    MirRoutineBlockDominatesInQuery(index, dominator, block, queries, queue) != expected {
+                    Die("dominance answer changed");
+                }
+                block = block + 1;
+            }
+            dominator = dominator + 1;
+        }
+        if ArrayLength(args) > 1 && args[1] == "corrupt" {
+            var forged: Array<Int> = [];
+            var row: Int = 0;
+            while row < count { ArrayPush(forged, 0); row = row + 1; }
+            let proofs: Array<MirRoutineDominanceQueryProof> =
+                [MirRoutineDominanceQueryProof(0, forged)];
+            queries = MirRoutineDominanceQueryFacts(proofs, true);
+            MirRoutineBlockDominatesInQuery(index, 0, 1, queries, queue);
+            Die("corrupted proof accepted");
+        }
+        var block: Int = 0;
+        while block < count {
+            var row: Int = 0;
+            while row < index.instruction_facts.block_phi_prefix_counts[block] {
+                let phi: MirRoutinePhiFact = MirRoutinePhiFactAt(
+                    index, routines, uses, routine, block, row);
+                let ordinary: MirPhiPredecessorBindingFact =
+                    MirPhiPredecessorBindingFactFromOwners(index, phi);
+                let replayed: MirPhiPredecessorBindingFact =
+                    MirPhiPredecessorBindingFactWithDominanceReplay(index, phi, true);
+                if !MirPhiPredecessorBindingFactReady(ordinary, phi.predecessor_count) ||
+                    !MirPhiPredecessorBindingFactReady(replayed, phi.predecessor_count) {
+                    Die("probe phi invalid");
+                }
+                var incoming: Int = 0;
+                while incoming < phi.predecessor_count {
+                    if ordinary.predecessor_blocks[incoming] != replayed.predecessor_blocks[incoming] ||
+                        ordinary.incoming_rows[incoming] != replayed.incoming_rows[incoming] {
+                        Die("phi binding changed under replay");
+                    }
+                    incoming = incoming + 1;
+                }
+                phi_count = phi_count + 1;
+                row = row + 1;
+            }
+            block = block + 1;
+        }
+        routine = routine + 1;
+    }
+    if phi_count == 0 { Die("probe reached no phi"); }
+    Log("MIR PHI REUSE PASS");
+}

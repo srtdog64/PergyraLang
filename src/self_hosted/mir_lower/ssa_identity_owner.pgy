@@ -9,17 +9,26 @@ func MirSsaNameMatches(
     local_name: String,
     allow_zero: Bool
 ) -> Bool {
-    let prefix: String = Concat(local_name, ".");
-    if StringLength(local_name) == 0 ||
-        StringLength(value) <= StringLength(prefix) ||
-        Substring(value, 0, StringLength(prefix)) != prefix {
+    let local_length: Int = StringLength(local_name);
+    let value_length: Int = StringLength(value);
+    if local_length == 0 || value_length <= local_length + 1 ||
+        !SubEqualsWithLen(value, value_length, 0, local_length, local_name) ||
+        CharCode(value, value_length, local_length) != 46 {
         return false;
     }
-    let version: String = Substring(
-        value,
-        StringLength(prefix),
-        StringLength(value) - StringLength(prefix)
-    );
-    return (ToInt(version) > 0 || (allow_zero && version == "0")) &&
-        ToString(ToInt(version)) == version;
+    var cursor: Int = local_length + 1;
+    if CharCode(value, value_length, cursor) == 48 {
+        return allow_zero && cursor + 1 == value_length;
+    }
+    // Canonical versions are positive Int decimals: no sign, padding or
+    // overflow. Compare in the admitted window instead of allocating copies.
+    var version: Int = 0;
+    while cursor < value_length {
+        let digit: Int = CharCode(value, value_length, cursor) - 48;
+        if digit < 0 || digit > 9 ||
+            version > (2147483647 - digit) / 10 { return false; }
+        version = version * 10 + digit;
+        cursor = cursor + 1;
+    }
+    return version > 0;
 }

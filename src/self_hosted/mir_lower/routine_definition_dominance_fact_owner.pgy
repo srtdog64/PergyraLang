@@ -3,22 +3,53 @@
 import "routine_result_definition_fact_owner.pgy";
 import "mir_cfg_graph_owner.pgy";
 
-func MirRoutineBlockDominates(
+// Scratch proof reuse for one phi and one immutable routine index. It never
+// survives the selecting call. Verification replays each reused answer.
+struct MirRoutineDominanceQueryProof {
+    dominator: Int;
+    avoiding: Array<Int>;
+}
+
+struct MirRoutineDominanceQueryFacts {
+    proofs: Array<MirRoutineDominanceQueryProof>;
+    verify_reuse: Bool;
+}
+
+func MirRoutineDominanceQueryFactsEmpty(verify: Bool) -> MirRoutineDominanceQueryFacts {
+    let proofs: Array<MirRoutineDominanceQueryProof> = [];
+    return MirRoutineDominanceQueryFacts(proofs, verify);
+}
+
+func MirRoutineDominanceInputsReady(
     ref index: MirRoutineFactIndex,
     dominator: Int,
     block: Int
 ) -> Bool {
     let count: Int = ArrayLength(index.block_starts);
-    if !index.valid || dominator < 0 || block < 0 ||
-        dominator >= count || block >= count ||
-        !index.block_reachable[dominator] || !index.block_reachable[block] {
-        return false;
-    }
+    return index.valid && dominator >= 0 && block >= 0 &&
+        dominator < count && block < count &&
+        index.block_reachable[dominator] && index.block_reachable[block];
+}
+
+func MirRoutineBlockDominatesFromAvoiding(
+    ref index: MirRoutineFactIndex, dominator: Int, block: Int,
+    ref avoiding: Array<Int>
+) -> Bool {
+    if !MirRoutineDominanceInputsReady(index, dominator, block) { return false; }
     if dominator == block { return true; }
-    return !MirRoutineGraphCanReachAvoiding(
-        index.block_succ_true, index.block_succ_false,
-        0, block, dominator
-    );
+    return ArrayLength(avoiding) == ArrayLength(index.block_starts) &&
+        avoiding[block] < 0;
+}
+
+func MirRoutineBlockDominates(
+    ref index: MirRoutineFactIndex, dominator: Int, block: Int
+) -> Bool {
+    var avoiding: Array<Int> = [];
+    if MirRoutineDominanceInputsReady(index, dominator, block) && dominator != block {
+        avoiding = MirRoutineGraphDistancesAvoiding(
+            index.block_succ_true, index.block_succ_false, 0, dominator);
+    }
+    return MirRoutineBlockDominatesFromAvoiding(index, dominator, block, avoiding);
 }
 
 func MirRoutineDefinitionStrictlyPrecedes(
@@ -26,15 +57,63 @@ func MirRoutineDefinitionStrictlyPrecedes(
     ref earlier: MirRoutineResultDefinitionFact,
     ref later: MirRoutineResultDefinitionFact
 ) -> Bool {
+    let order: Option<Bool> = MirRoutineDefinitionOrderWithoutTraversal(earlier, later);
+    if IsSome(order) { return UnwrapOption(order); }
+    return MirRoutineBlockDominates(index, earlier.block_id, later.block_id);
+}
+
+func MirRoutineBlockDominatesInQuery(
+    ref index: MirRoutineFactIndex, dominator: Int, block: Int,
+    inout queries: MirRoutineDominanceQueryFacts, inout queue: Array<Int>
+) -> Bool {
+    if !MirRoutineDominanceInputsReady(index, dominator, block) || dominator == block {
+        let empty: Array<Int> = [];
+        return MirRoutineBlockDominatesFromAvoiding(index, dominator, block, empty);
+    }
+    var row: Int = 0;
+    while row < ArrayLength(queries.proofs) {
+        if queries.proofs[row].dominator == dominator {
+            let avoiding: Array<Int> = queries.proofs[row].avoiding;
+            let answer: Bool = MirRoutineBlockDominatesFromAvoiding(
+                index, dominator, block, avoiding);
+            if queries.verify_reuse &&
+                answer != MirRoutineBlockDominates(index, dominator, block) {
+                Die("MIR phi dominance reuse diverged");
+            }
+            return answer;
+        }
+        row = row + 1;
+    }
+    let avoiding: Array<Int> = MirRoutineGraphDistancesAvoidingUsingQueue(
+        index.block_succ_true, index.block_succ_false, 0, dominator, queue);
+    let answer: Bool = MirRoutineBlockDominatesFromAvoiding(index, dominator, block, avoiding);
+    ArrayPush(queries.proofs, MirRoutineDominanceQueryProof(dominator, avoiding));
+    return answer;
+}
+
+func MirRoutineDefinitionOrderWithoutTraversal(
+    ref earlier: MirRoutineResultDefinitionFact,
+    ref later: MirRoutineResultDefinitionFact
+) -> Option<Bool> {
     if !MirRoutineResultDefinitionFactReady(earlier) ||
         !MirRoutineResultDefinitionFactReady(later) ||
-        earlier.global_row == later.global_row {
-        return false;
-    }
+        earlier.global_row == later.global_row { return Some(false); }
     if earlier.block_id == later.block_id {
-        return earlier.block_instruction_row < later.block_instruction_row;
+        return Some(earlier.block_instruction_row < later.block_instruction_row);
     }
-    return MirRoutineBlockDominates(index, earlier.block_id, later.block_id);
+    return None;
+}
+
+func MirRoutineDefinitionStrictlyPrecedesInQuery(
+    ref index: MirRoutineFactIndex,
+    ref earlier: MirRoutineResultDefinitionFact,
+    ref later: MirRoutineResultDefinitionFact,
+    inout queries: MirRoutineDominanceQueryFacts, inout queue: Array<Int>
+) -> Bool {
+    let order: Option<Bool> = MirRoutineDefinitionOrderWithoutTraversal(earlier, later);
+    if IsSome(order) { return UnwrapOption(order); }
+    return MirRoutineBlockDominatesInQuery(
+        index, earlier.block_id, later.block_id, queries, queue);
 }
 
 func MirRoutineDefinitionDominatesInstruction(
