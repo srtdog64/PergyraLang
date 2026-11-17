@@ -14,14 +14,15 @@ cd "$ROOT_DIR"
 fail() { echo "[selfhost-compile-memory] $*; evidence=$REL" >&2; exit 1; }
 [[ "$(uname -s)" == Linux ]] || fail "the RSS gate requires Linux"
 pgy_require_runnable_binary_here selfhost-compile-memory "$DRIVER" || exit 1
-[[ -x /usr/bin/time ]] || fail "GNU time is required for peak RSS"
+TIME_BIN="$(type -P time)" || fail "GNU time is required for peak RSS"
+"$TIME_BIN" --version >"$WORK/time-version" 2>&1 || fail "GNU time is required for peak RSS"
 "$PYTHON" "$BOUNDARY" --receipt "$WORK/producer.receipt.json" -- \
     "$DRIVER" --emit-mir-json-verified src/self_hosted/semantic/main.pgy \
     -o "$REL/input.json" >"$WORK/producer.log" 2>&1 || {
         tail -n 30 "$WORK/producer.log" >&2; fail "the complete semantic input was refused";
     }
 "$PYTHON" "$BOUNDARY" --receipt "$WORK/consumer.receipt.json" -- \
-    /usr/bin/time -f '%M' -o "$WORK/peak-rss-kib" \
+    "$TIME_BIN" -f '%M' -o "$WORK/peak-rss-kib" \
     "$DRIVER" --mir-json "$REL/input.json" -o "$REL/output.c" \
     >"$WORK/consumer.log" 2>&1 || {
         tail -n 30 "$WORK/consumer.log" >&2; fail "the MIR consumer failed";
