@@ -193,8 +193,8 @@ handoff_note_site(HandoffWalk *walk, const ASTNode *argument, bool constructor,
 }
 
 /* The class row of a callee formal the walk read, once per formal. An Array
- * formal's class is its descriptor bit and release alone
- * (NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY). */
+ * formal whose moved descriptor no keep explains counts the move as GROW
+ * (NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY, default_aggregate_move_rule.c). */
 static void
 handoff_note_class(HandoffWalk *walk, const ASTNode *callee, size_t formal,
     unsigned members)
@@ -219,6 +219,7 @@ handoff_note_class(HandoffWalk *walk, const ASTNode *callee, size_t formal,
         .parameter_index = (uint32_t)formal,
         .members = members,
         .divergence = type_name != NULL && strcmp(type_name, "Array") == 0
+                && (members & PGY_CALL_HANDOFF_MEMBER_GROW) != 0u
             ? PGY_CALL_HANDOFF_DIVERGENCE_ID_NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY
             : -1,
     };

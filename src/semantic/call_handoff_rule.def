@@ -115,9 +115,12 @@ PGY_CALL_HANDOFF_ACTION(KEEP_ROW_STATE, DIVERGENCE_ONLY)
  * (default_aggregate_call_move_owner.c). The rule copies it whole. */
 PGY_CALL_HANDOFF_DIVERGENCE(NATIVE_KEEP_REUSE_REFUSED, NATIVE, ROW, S5)
 PGY_CALL_HANDOFF_DIVERGENCE(NATIVE_UNPROVED_REUSE_REFUSED, NATIVE, ROW, S5)
-/* Native, inputs. An Array formal's class is read from the descriptor bit
- * alone (array_storage_unproved), so Return, Keep and Grow all count as
- * GROW and an Array formal never lends (default_aggregate_move_rule.c). */
+/* Native, inputs. Whether an Array formal moves is read from the descriptor
+ * bit (array_storage_unproved) and a release; its summary adds Read, and,
+ * once the descriptor moves, Keep and Return (slice S4). A moved descriptor
+ * with no Keep in the summary still counts as GROW, so a Return that moves
+ * the descriptor is GROW, and an Array formal never lends
+ * (default_aggregate_move_rule.c). */
 PGY_CALL_HANDOFF_DIVERGENCE(NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY, NATIVE, INPUT, S4)
 /* A ref or inout formal of the caller handed to a moving formal is refused
  * instead of copied (default_aggregate_call_move_owner.c, "Borrowed

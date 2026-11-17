@@ -232,40 +232,56 @@ func DirectMirScalarProgramOperationInCycle(
     return false;
 }
 
-// A local defined from a member path of a by-value formal names storage the
-// caller's aggregate still holds; the record that took it releases it once.
-// The callee releases nothing it was handed (decision 2026-11-15). Only a
-// by-value carriage counts: an inout, ref or owner-handle formal does not.
-func DirectMirScalarProgramArrayStringByValueFormalMember(
+// A local defined from a by-value formal, from a member path of one, or from
+// another such local names storage the callee was handed: the caller still
+// holds it and releases it, a record the caller built releases it once, or
+// the caller handed it off and nobody releases it (decision 2026-11-15). The
+// callee releases nothing it was handed. Only a by-value carriage counts: an
+// inout, ref or owner-handle formal does not. A local with another definition
+// as well keeps it unreleased too: the leak is the fail-closed side.
+func DirectMirScalarProgramArrayStringByValueFormalStorage(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, target_local: Int
 ) -> Bool {
-    var operation: Int = plan.routines.operation_starts[routine];
-    let end: Int = operation + plan.routines.operation_counts[routine];
-    while operation < end {
-        let value: Int = plan.operation_result_values[operation];
-        let graph: Int = plan.program.operation_expression_rows[operation];
-        if plan.operation_kinds[operation] == DirectMirScalarCfgOpExpressionDefinition() && graph >= 0 &&
-            value >= 0 && value < ArrayLength(plan.value_local_rows) &&
-            plan.value_local_rows[value] == target_local {
-            var node: Int = plan.program.expressions.graph_roots[graph];
-            var members: Int = 0;
-            while node >= 0 && plan.program.expressions.node_kinds[node] ==
-                    DirectMirScalarProgramExprLogicalRecordMember() {
-                members = members + 1;
-                node = plan.program.expressions.node_lefts[node];
-            }
-            if members > 0 && node >= 0 && plan.program.expressions.node_kinds[node] ==
-                    DirectMirScalarProgramExprParameter() {
-                let ordinal: Int = plan.program.expressions.node_parameter_ordinals[node];
-                if ordinal >= 0 && ordinal < plan.routines.parameter_counts[routine] {
-                    let carriage: String = plan.routines.parameter_carriages[
-                        plan.routines.parameter_starts[routine] + ordinal];
-                    if carriage == "value" &&
-                        !DirectMirScalarProgramParameterValueResultAt(plan, routine, ordinal) { return true; }
+    var pending: Array<Int> = [target_local];
+    var visited: HashMap<String, Int> = MapNew();
+    MapSet(visited, ToString(target_local), 1);
+    var cursor: Int = 0;
+    let end: Int = plan.routines.operation_starts[routine] + plan.routines.operation_counts[routine];
+    while cursor < ArrayLength(pending) {
+        let local_row: Int = pending[cursor];
+        var operation: Int = plan.routines.operation_starts[routine];
+        while operation < end {
+            let value: Int = plan.operation_result_values[operation];
+            let graph: Int = plan.program.operation_expression_rows[operation];
+            if plan.operation_kinds[operation] == DirectMirScalarCfgOpExpressionDefinition() && graph >= 0 &&
+                value >= 0 && value < ArrayLength(plan.value_local_rows) &&
+                plan.value_local_rows[value] == local_row {
+                var node: Int = plan.program.expressions.graph_roots[graph];
+                while node >= 0 && plan.program.expressions.node_kinds[node] ==
+                        DirectMirScalarProgramExprLogicalRecordMember() {
+                    node = plan.program.expressions.node_lefts[node];
+                }
+                if node >= 0 && plan.program.expressions.node_kinds[node] ==
+                        DirectMirScalarProgramExprParameter() {
+                    let ordinal: Int = plan.program.expressions.node_parameter_ordinals[node];
+                    if ordinal >= 0 && ordinal < plan.routines.parameter_counts[routine] {
+                        let carriage: String = plan.routines.parameter_carriages[
+                            plan.routines.parameter_starts[routine] + ordinal];
+                        if carriage == "value" &&
+                            !DirectMirScalarProgramParameterValueResultAt(plan, routine, ordinal) { return true; }
+                    }
+                }
+                if node >= 0 && plan.program.expressions.node_kinds[node] == DirectMirScalarProgramExprLocal() {
+                    let source: Int = plan.program.expressions.node_local_rows[node];
+                    if source >= 0 && !MapHas(visited, ToString(source)) {
+                        MapSet(visited, ToString(source), 1);
+                        ArrayPush(pending, source);
+                    }
                 }
             }
+            operation = operation + 1;
         }
-        operation = operation + 1;
+        cursor = cursor + 1;
     }
     return false;
 }

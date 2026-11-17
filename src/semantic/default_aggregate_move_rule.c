@@ -31,22 +31,33 @@ bool semantic_default_aggregate_value(SemanticContext *ctx, const Type *type)
 /* The effect class of a default-mode formal with a body (study 2.1, native
  * column), read from its final summary. A summary that is missing or not
  * final is UNPROVED. For an Array formal the descriptor-transfer owner
- * answers exactly: element values that escape (Strings are immutable) are
- * the String owners' concern, so only a release and the descriptor bit
- * count, and that bit cannot tell a return from a growth (divergence
- * NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY). Any other aggregate also counts the
- * descriptor bit: a store through its access paths that changes the
- * storage it shares with the caller. */
+ * answers whether the call moves it: element values that escape (Strings are
+ * immutable) are the String owners' concern, so only a release and the
+ * descriptor bit decide. The summary names the rest of the class (slice S4):
+ * a read, and, once the descriptor moves, the call or channel escape that
+ * keeps it (a constructor field among them) and the return that hands it
+ * back. A moved descriptor that no keep explains still counts as GROW: the
+ * bit cannot tell a return from a growth (divergence
+ * NATIVE_ARRAY_FORMAL_DESCRIPTOR_ONLY). Either way the class moves exactly
+ * when the bit or a release says so, so no move decision changes. Any other
+ * aggregate also counts the descriptor bit: a store through its access paths
+ * that changes the storage it shares with the caller. */
 static unsigned
 formal_class_of_entry(const FuncParam *param, unsigned mask,
     const FunctionParamFlowSummaryStore *store, size_t index)
 {
-    unsigned descriptor = store->entries[index].array_storage_unproved
-        ? PGY_CALL_HANDOFF_MEMBER_GROW : 0u;
+    bool moved = store->entries[index].array_storage_unproved;
+    unsigned descriptor = moved ? PGY_CALL_HANDOFF_MEMBER_GROW : 0u;
     const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
-    if (type_name != NULL && strcmp(type_name, "Array") == 0)
-        return descriptor | ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0
-            ? PGY_CALL_HANDOFF_MEMBER_RELEASE : 0u);
+    if (type_name != NULL && strcmp(type_name, "Array") == 0) {
+        unsigned summary = pgy_call_handoff_members_from_native_summary(mask);
+        unsigned members = (summary & PGY_CALL_HANDOFF_MEMBER_READ)
+            | ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0
+                ? PGY_CALL_HANDOFF_MEMBER_RELEASE : 0u);
+        if (!moved) return members;
+        members |= summary & (PGY_CALL_HANDOFF_MEMBER_KEEP | PGY_CALL_HANDOFF_MEMBER_RETURN);
+        return (summary & PGY_CALL_HANDOFF_MEMBER_KEEP) != 0u ? members : members | descriptor;
+    }
     return pgy_call_handoff_members_from_native_summary(mask) | descriptor;
 }
 

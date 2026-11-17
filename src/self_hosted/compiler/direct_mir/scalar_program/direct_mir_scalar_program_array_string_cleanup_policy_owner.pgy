@@ -173,8 +173,9 @@ func DirectMirScalarProgramArrayStringLocalCleanupRequired(
         plan.program.collection_ownership.handed_off[transition_row] == 1) {
         return false;
     }
-    // A member of a by-value formal is released by the caller's record.
-    if DirectMirScalarProgramArrayStringByValueFormalMember(plan, routine, local_row) {
+    // Storage of a by-value formal (the formal, a member path, or a local
+    // alias of either) is released by its caller, or by nobody once handed off.
+    if DirectMirScalarProgramArrayStringByValueFormalStorage(plan, routine, local_row) {
         return false;
     }
     return !DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(
