@@ -1,0 +1,20 @@
+struct Triple { first: Array<String>; second: Array<String>; third: Array<String>; }
+
+func Clear(inout value: Triple) -> Void {
+    let first: Array<String> = value.first;
+    let second: Array<String> = value.second;
+    let third: Array<String> = value.third;
+    ArrayDropOwnedStrings(first);
+    ArrayDropOwnedStrings(second);
+    ArrayDropOwnedStrings(third);
+    value.first = first;
+    value.second = second;
+    value.third = third;
+}
+
+func Main() -> Void {
+    var value: Triple = Triple([], [], []);
+    Clear(value);
+    Log(ArrayLength(value.first) + ArrayLength(value.second) +
+        ArrayLength(value.third));
+}

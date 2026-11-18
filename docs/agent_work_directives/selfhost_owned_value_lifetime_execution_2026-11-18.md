@@ -5,6 +5,46 @@ Status: investigation and implementation plan; current results belong to
 Base: `6ff288d70013898a21e867e663f97eaf07e642f8`. Integration: GPT root.
 This continues the [memory plan](selfhost_compile_memory_plan_2026-11-17.md),
 not another implementation track. One edit lane, no delegated edits.
+At published `d21aa036d`, a scratch [fixed-input census](../audits/selfhost_full_mir_independent_refusal_census_2026-11-18.md)
+reached all 9,623 route instances and found 109 distinct first refusals,
+including 35 collection-transition failures. It did not emit a program or
+expose later failures masked by an earlier refusal. The next diagnostic
+isolates the 28 owned-flow failures before choosing a production change.
+Seven representative guard-5 cases independently fail the same owned-flow
+terminal check: a row marked `retired` is still live at an exit. For the
+reached value-result parameter field-carrier path, the MIR member-rebind owner
+is the fact owner and `DirectMirOwnedCollectionBlockOutput` is the last
+consumer. The current restore query resolves a record source only as a local
+declaration; the source row in `SemanticAstCollectionExclusiveAddDep` is the
+`inout into` parameter. Reuse the already typed value-result parameter
+identity query, require exactly one declaration/parameter match, and retain
+the exact field and value-local checks. Do not accept by source spelling or
+by the row's `retired` label alone. A positive restored inout field and a
+forged source/field negative on C and LLVM are the focused falsifiers. The
+existing nested-return gate also reaches a local that is explicitly deep
+dropped and then restored as an empty descriptor. The full fixed MIR reaches
+a release function that drops three fields before restoring any. In the same
+block, the last use or definition of that local before the restore must be a
+verified deep drop; any intervening local use or definition blocks this case.
+A generic already-retired exception could restore storage that a callee now
+owns. Rerun both focused paths, the fixed MIR and published CI. This repair
+does not by itself establish all 28 guard-5 cases or S1/S2.
+The v11 focused gates pass and the fixed full MIR again first refuses at
+ordinal 1438. There, `SemanticAstSignatureTypeTextShape` returns an owned
+`Array<String>` call result through branches. Its final semantic row is
+`element_ownership=retired, disposition=retired`, so the earlier owned-element
+class is no longer in the MIR row. The semantic owner has a sealed
+`SemanticAstFreshOwnedStringArrayResultPlan`, but
+`body_type_bundle_storage_lifetime_owner` retires its function IDs and the
+MIR input does not carry a callable result-ownership proof. Do not simply
+rewrite the row as `owned-elements`: the external MIR route could forge the
+same claim for a callee with borrowed results. The next whole-chain map must
+join this existing plan to the published MIR ABI and validate its identity
+and all-exit meaning at the direct consumer; `constructor_handoff` and other
+readers of the terminal ownership class must migrate with it. Falsifiers:
+the returned call result across branches, a forged callee result proof, and
+the existing C/LLVM negative suite. The exact validated publication format
+and reader rule are still unknown, so no guard-4 product edit has begun.
 
 ## Objective card
 

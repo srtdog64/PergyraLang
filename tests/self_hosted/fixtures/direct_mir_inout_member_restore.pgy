@@ -1,0 +1,13 @@
+struct Bag { names: Array<String>; }
+
+func Grow(inout bag: Bag) -> Void {
+    var names: Array<String> = bag.names;
+    ArrayPush(names, "x");
+    bag.names = names;
+}
+
+func Main() -> Void {
+    var bag: Bag = Bag(["a"]);
+    Grow(bag);
+    Log(ArrayLength(bag.names));
+}

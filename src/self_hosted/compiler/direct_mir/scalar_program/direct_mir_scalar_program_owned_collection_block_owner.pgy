@@ -8,6 +8,7 @@ import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_site_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_use_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_member_restore_owner.pgy";
 
 func DirectMirOwnedCollectionMemberMoveLifecycleReady(
@@ -222,14 +223,45 @@ func DirectMirOwnedCollectionBlockOutput(
             if state >= 8 { prior = 8; }
             state = 4 + prior;
         } else if DirectMirCollectionOwnershipMemberRestoreLocal(index, storage, expressions,
-                logical_record, operation, local_start, local_end) == target {
-            // A member-moved local stored back into the exact field it came
-            // from: the record owns that storage again, so the local retires
-            // without a release of its own.
-            if state % 8 != 2 { return 0; }
-            var prior: Int = 0;
-            if state >= 8 { prior = 8; }
-            state = 4 + prior;
+                signature, logical_record, operation, local_start, local_end) == target {
+            if state % 8 == 2 {
+                // The record takes the live member back; the local retires.
+                var prior: Int = 0;
+                if state >= 8 { prior = 8; }
+                state = 4 + prior;
+            } else {
+                // A deep drop zeroes the descriptor. Other locals may be
+                // dropped before this field is restored, but a definition,
+                // hand-off or earlier restore of this local changes its right.
+                if state % 8 != 4 { return 0; }
+                var zeroed: Bool = false;
+                var prior_operation: Int = operation - 1;
+                let block_start: Int =
+                    storage.blocks.operation_starts[block];
+                while prior_operation >= block_start {
+                    var prior_receiver: Int = -1;
+                    let prior_effect: Int =
+                        DirectMirCollectionOwnershipExpectedOperationEffect(
+                            storage, expressions, prior_operation,
+                            receipt_effects[prior_operation - operation_offset],
+                            prior_receiver);
+                    if prior_effect == 3 && prior_receiver == target {
+                        zeroed = true;
+                        break;
+                    }
+                    let prior_result: Int =
+                        storage.operations.result_values[prior_operation];
+                    if (prior_result >= 0 && prior_result <
+                            ArrayLength(storage.values.value_local_rows) &&
+                         storage.values.value_local_rows[prior_result] == target) ||
+                        DirectMirScalarProgramOperationUsesLocal(
+                            storage, expressions, prior_operation, target) {
+                        break;
+                    }
+                    prior_operation = prior_operation - 1;
+                }
+                if !zeroed { return 0; }
+            }
         }
         var receiver: Int = -1;
         let effect: Int = DirectMirCollectionOwnershipExpectedOperationEffect(

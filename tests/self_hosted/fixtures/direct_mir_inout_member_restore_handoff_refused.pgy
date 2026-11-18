@@ -1,0 +1,14 @@
+struct Bag { names: Array<String>; }
+
+func Take(own names: Array<String>) -> Void { Log(ArrayLength(names)); }
+
+func Bad(inout bag: Bag) -> Void {
+    var names: Array<String> = bag.names;
+    Take(names);
+    bag.names = names;
+}
+
+func Main() -> Void {
+    var bag: Bag = Bag(["a"]);
+    Bad(bag);
+}

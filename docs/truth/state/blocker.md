@@ -1,23 +1,31 @@
 # Current blocker
 
 Owner: GPT root integration; published revision/CI: [main](main.md).
-The v8 full MIR stops at transition ordinal 1438 after admitting the bare
-Array<String> return at 1437. The independent failure census remains
-incomplete ([evidence](../evidence/2026-11-18_selfhost_bare_array_return_and_push_operand_lifetime.md)).
+The v11 full MIR stops at transition ordinal 1438, the same first refusal as
+published v8; no C output. Its exact local receipt is
+[here](../evidence/2026-11-18_inout_member_restore_transition.md).
+A scratch diagnostic traversed all 9,623 route instances: 109 distinct first
+refusals, no C output, and no claim about masked failures
+([audit](../../audits/selfhost_full_mir_independent_refusal_census_2026-11-18.md)).
+Next: publish and validate the sealed owned-result callee proof in MIR before
+admitting a returned call-result row across branches. The semantic plan is
+retired before MIR publication; changing its `retired` class alone would trust
+forgeable input. The reached owner/consumer map and falsifiers are in the
+[active plan](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
 Active: [full MIR lifetime/transition execution](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
 Typed reverse, retaining-alias refusals and isolated C/LLVM heap checks pass
 on the v5 driver. The unchanged one-process full DRV-2 bound fails with OOM,
 exit 134 and no C artifact ([measurements](measurements.md)).
+Nonempty record-field retirement still leaks 32 bytes per backend (S2).
 
 ## Objective card
 
-- Objective: neither front end admits a program that reads or frees freed
-  memory on either backend, with required CI green on one published commit
-  (user goal 2026-11-14: all memory errors, SoT rows they pass through).
-- Priority: memory safety of what either front end admits; one fact owner;
-  fail-closed admission; C/LLVM parity; fixed point; exact-SHA CI.
-- Forbidden: a larger job or gate timeout, a reduced canonical input, a
-  skipped backend, a weakened negative, per-program-shape route admission.
+- Objective: neither front end admits freed-memory access on C or LLVM;
+  required CI green on one published commit (user goal 2026-11-14).
+- Priority: memory safety, one fact owner, fail-closed admission, backend
+  parity, fixed point, exact-SHA CI.
+- Forbidden: larger budgets, reduced input, skipped backend, weakened
+  negative or per-program-shape route admission.
 
 ## Retained obligations (not parallel implementation tracks)
 
@@ -37,22 +45,14 @@ exit 134 and no C artifact ([measurements](measurements.md)).
    MIR statement text. `semantic.hashmap_collection_ownership` stays ACTIVE.
 4. Compiler temporaries released at last use
    ([decision](../decisions/2026-11-16_compiler_temporaries_are_released_at_last_use.md)):
-   DRV-2 source-to-C still fails the bound ([measurements](measurements.md)); direct MIR refuses routines at
-   semantic 31, mir_lower 52, codegen 59 in DM2. The current full frozen MIR
-   blocker is named above; earlier [role-prefix measurements](../evidence/2026-11-17_selfhost_memory_role_receiver_migration.md) are historical.
-5. Weekly pipeline (run 43914895554): W1 fixed the let/var fixtures, the
-   DAG floor and the rule header; open are direct MIR (driver shard 91
-   failures, fuzz variant 1), `dnd_tavern_campaign` (S5), and line caps
-   (32 semantic TUs, 2 headers, 6 test includes, 39 owners).
-6. Front ends differ: native admits a `let` field write through a world,
+   DRV-2 source-to-C still fails the bound ([measurements](measurements.md));
+   the fixed-input first-refusal inventory is above. The earlier DM2 counts
+   and [role-prefix measurements](../evidence/2026-11-17_selfhost_memory_role_receiver_migration.md)
+   are historical, smaller inputs.
+5. Front ends differ: native admits a `let` field write through a world,
    zone slot and subject path; `x = values` from a ref formal; generic
    `ref value: T`; reserved zone/role/effect names. F2 branch, unlanded.
    A `List` passed to a `ref` formal is refused even for `ListSize`.
-
-## Unlanded branches at the pause
-
-`s5a-one-later-use`, `dm3-direct-mir`, `f2-front-end-rules`: wip, not
-verified as a whole; read each branch's last commit before reuse.
 
 ## Falsifiers kept
 

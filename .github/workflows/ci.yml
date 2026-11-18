@@ -191,6 +191,12 @@ jobs:
           PGY_SELF_DRIVER_BIN: ${{ github.workspace }}/bin/pgy-self-driver
         run: bash tests/self_hosted/parity/ownership/direct_mir_owned_bare_retired_return_lifetime_owner.sh
 
+      - name: Check exact inout field restoration on C and LLVM
+        timeout-minutes: 5
+        env:
+          PGY_SELF_DRIVER_BIN: ${{ github.workspace }}/bin/pgy-self-driver
+        run: bash tests/self_hosted/parity/ownership/direct_mir_inout_member_restore_owner.sh
+
       - name: Calibrate ASan and run the bounded compiler battery
         # The sanitized compiler is built into bin-asan-*/, so its adjacent
         # lookup cannot discover bin/pgy-self-driver. Pin the admitted exact
