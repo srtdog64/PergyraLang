@@ -27,7 +27,11 @@ def routine(document, name):
 
 
 def main_instruction(document, row):
-    return routine(document, "Main")["blocks"][0]["instructions"][row]
+    rows = [item for item in routine(document, "Main")["blocks"][0]["instructions"]
+            if item.get("kind") in ("def", "stmt")]
+    if len(rows) != 3:
+        raise RuntimeError("expected Main to define xs and log twice")
+    return rows[row]
 
 
 def layout_id(layout):
@@ -87,7 +91,9 @@ def rotate_routines(document):
 
 def rename_main_collection(document):
     main = routine(document, "Main")
-    definition, consumer, length = main["blocks"][0]["instructions"]
+    rows = [item for item in main["blocks"][0]["instructions"]
+            if item.get("kind") in ("def", "stmt")]
+    definition, consumer, length = rows
     definition["arg0"] = "r"
     definition["result"] = "r.1"
     for instruction in (consumer, length):

@@ -1053,7 +1053,6 @@ Inductive SpineFact : Type :=
   | SFDirectMirArrayReturnProgramIdentity
   | SFDirectMirCallParameterGraph
   | SFDirectMirArrayArgumentProgramIdentity
-  | SFDirectMirCollectionProgramPlan
   | SFDirectMirScalarCfgForEachFact
   | SFDirectMirScalarCfgProgramExtension
   | SFDirectMirCompileTimeDeclarationErasure
@@ -1222,7 +1221,6 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFDirectMirArrayReturnProgramIdentity => SOProjectionPlanner
   | SFDirectMirCallParameterGraph => SOProjectionPlanner
   | SFDirectMirArrayArgumentProgramIdentity => SOProjectionPlanner
-  | SFDirectMirCollectionProgramPlan => SOProjectionPlanner
   | SFDirectMirScalarCfgForEachFact => SOProjectionPlanner
   | SFDirectMirScalarCfgProgramExtension => SOProjectionPlanner
   | SFDirectMirCompileTimeDeclarationErasure => SOProjectionPlanner

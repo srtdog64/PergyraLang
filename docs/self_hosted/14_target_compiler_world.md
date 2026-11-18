@@ -187,8 +187,9 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
   - **타입과 연산은 매개변수로 둔다.**
     - 원소 타입은 ABI layout 행의 매개변수다. 소유 전이는 타입과 무관한
       행 하나다.
-    - 모양별 projection 행 다섯 개는 `collection_program_plan` 하나로 합쳐
-      닫는다.
+    - 모양별 projection 행은 일반 MIR emitter가 그 프로그램을 컴파일하면
+      경로와 함께 지운다(V1). `collection_program_plan`은 2026-11-19에
+      지웠다.
   - **행 수 래칫.** SoT 행 수(현재 95)를 상한으로 둔다.
     - 새 사실 가족은 기존 행의 매개변수로 표현할 수 없음을 보인 뒤에만
       추가한다.

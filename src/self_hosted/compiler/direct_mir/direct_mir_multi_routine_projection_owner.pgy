@@ -1,8 +1,6 @@
 // Exclusive multi-routine projection; rejected shapes are never reinterpreted.
 import "direct_mir_array_return_emission_owner.pgy";
 import "direct_mir_returned_array_foreach_projection_owner.pgy";
-import "direct_mir_collection_program_route_fact_owner.pgy";
-import "direct_mir_collection_program_projection_owner.pgy";
 import "direct_mir_legacy_intent_program_projection_owner.pgy";
 import "direct_mir_composite_intent_program_projection_owner.pgy";
 import "direct_mir_nested_intent_program_projection_owner.pgy";
@@ -51,12 +49,6 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
         }
         return CodegenRoutePayloadEmitted(DirectMirArrayReturnEmitC(
             return_plan, return_abi, formatted_print, line_format));
-    }
-    let collection_route: DirectMirCollectionProgramRouteFact =
-        DirectMirCollectionProgramRouteFactFromAdmitted(admitted);
-    if collection_route.claimed {
-        return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirCollectionProgramForTarget(
-            admitted, target_projection, formatted_print, line_format));
     }
     let intent_payload: Option<String> = CompileAdmittedDirectMirLegacyIntentProgramLlvmIfClaimed(admitted, is_llvm);
     if IsSome(intent_payload) { return CodegenRoutePayloadEmitted(UnwrapOption(intent_payload)); }

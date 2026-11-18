@@ -1191,20 +1191,6 @@ require_max_lines \
     "src/self_hosted/mir/routine_param_json_projection_owner.pgy" 65
 for collection_program_owner_cap in \
     direct_mir/direct_mir_collection_local_context_fact_owner.pgy:100 \
-    direct_mir/direct_mir_collection_program_route_fact_owner.pgy:100 \
-    direct_mir/direct_mir_collection_program_identity_owner.pgy:130 \
-    direct_mir/direct_mir_collection_program_graph_fact_owner.pgy:185 \
-    direct_mir/direct_mir_collection_program_routine_fact_owner.pgy:190 \
-    direct_mir/direct_mir_collection_program_producer_admission_owner.pgy:210 \
-    direct_mir/direct_mir_collection_program_consumer_admission_owner.pgy:230 \
-    direct_mir/direct_mir_collection_program_entrypoint_admission_owner.pgy:135 \
-    direct_mir/direct_mir_collection_program_local_plan_owner.pgy:250 \
-    direct_mir/direct_mir_collection_program_local_join_owner.pgy:90 \
-    direct_mir/direct_mir_collection_program_edge_fact_owner.pgy:135 \
-    direct_mir/direct_mir_collection_program_plan_owner.pgy:220 \
-    direct_mir/direct_mir_collection_program_c_emission_owner.pgy:140 \
-    direct_mir/direct_mir_collection_program_llvm_emission_owner.pgy:180 \
-    direct_mir/direct_mir_collection_program_projection_owner.pgy:45 \
     direct_mir/direct_mir_multi_routine_terminal_projection_owner.pgy:35 \
     direct_mir/direct_mir_array_argument_legacy_route_owner.pgy:25; do
     collection_program_owner="${collection_program_owner_cap%%:*}"
