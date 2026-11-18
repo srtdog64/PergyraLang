@@ -1,21 +1,17 @@
 # GPT root lane
 
-User resumed implementation and CI follow-through on 2026-11-17, from
-`main` / integration checkpoint `5b0d354fb`.
+**Inactive since 2026-11-19.** By the user's
+[decision](../decisions/2026-11-19_claude_takes_over_gpt_root_lane.md) the
+Claude lane continues this work; see [claude](claude.md).
 
-- Owns the self-compile memory execution and its main integration, measurements,
-  focused falsifiers, commit/push and CI verification. No parallel edit lane.
-- Edits: `D:\PergyraLang`; validation: existing WSL `/root/mg-main`.
-  Unrelated worktrees, dirty files and recovery copies remain preserved.
-- Plan: [memory plan](../../agent_work_directives/selfhost_compile_memory_plan_2026-11-17.md).
-  Active: [MIR lifetime chain and declaration identity](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
-  The bounded String seed bridge is published; its full DRV-2 OOM remains open.
-- A2 frozen MIR comparisons remain separate from current source entrypoints.
-  A1 source/executable identities: [evidence](../evidence/2026-11-17_selfhost_memory_a1_flat_projection_and_oom.md);
-  reached String OOM boundary: [evidence](../evidence/2026-11-17_selfhost_string_allocation_boundary.md).
-- Current measurements and gate logs are under WSL
-  `.tmp/selfhost-memory-20261117/`; they are not semantic authority.
-- No timeout/memory increase, smaller correctness input, weaker negative,
-  per-program-shape route, GC/RC, or speculative source annotation/drop.
-- Completion is the actual self-compile memory target and required executed CI
-  on the published candidate, not an estimate or a focused green slice.
+- 2026-11-17 to 2026-11-18: the user resumed this lane on the self-compile
+  memory plan from main `5b0d354fb`. It published A1/A2, the String
+  allocation repair, role receiver erasure, declaration-ID joins, nested and
+  bare returns, typed array reverse and inout member restoration, through
+  main `a9fbfd298` (CI 44240563770, 33 jobs green).
+- Its validation tree was WSL `/root/mg-main` (Git base `5b0d354fb` plus a
+  copied source mirror); on 2026-11-19 it held no source change beyond main,
+  only scratch probes for the owned-result callee proof at full-MIR ordinal
+  1438.
+- Plan it left: [MIR owned-value lifetime](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md);
+  measurements and gate logs are under `/root/mg-main/.tmp/selfhost-memory-20261117/`.

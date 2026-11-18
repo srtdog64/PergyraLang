@@ -60,3 +60,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-11-13 | [Reorganize the folder structure right after CI is green](2026-11-13_reorganize_folders_after_ci_green.md) | in force |
 | 2026-11-15 | [Does a value returned from `Main` set the process exit status?](2026-11-15_open_main_int_return_exit_status.md) | answered 2026-11-15 |
 | 2026-11-15 | [An Int returned from `Main` is the process exit status](2026-11-15_main_int_result_is_exit_status.md) | in force |
+| 2026-11-19 | [Claude takes over the GPT root lane's work](2026-11-19_claude_takes_over_gpt_root_lane.md) | in force |

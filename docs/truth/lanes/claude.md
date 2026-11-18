@@ -1,6 +1,11 @@
 # Claude lane
 
-- **Since 2026-11-10: root lane.** By the user's
+- **Since 2026-11-19: also the GPT root lane's work.** By the user's
+  [decision](../decisions/2026-11-19_claude_takes_over_gpt_root_lane.md)
+  Claude continues the self-compile memory and MIR lifetime plan and edits
+  main's `state/` files. Edits land in `D:\PergyraLang` on `main`; WSL
+  validation tree `/root/ts2` (`/root/mg-main` is the GPT lane's copy).
+- **2026-11-10 to 2026-11-17: root lane.** By the user's
   [decision](../decisions/2026-11-10_root_lane_taken_over_all_work_lands_on_main.md)
   Claude holds main, the bootstrap, the installed driver and required CI,
   and edits `state/main.md`, `state/blocker.md` and `state/gates.md`. Work
@@ -18,12 +23,10 @@
   committed). The WSL distro is `Ubuntu-C-WSL` since 2026-10-23 (its disk
   moved to `C:\WSL`); the `Ubuntu-E-WSL` registration names the removed
   E: copy.
-- **Must not touch:** the uncommitted files in `D:\PergyraLang`'s working
-  tree (GPT's `state/main.md` line, its untracked 2026-10-18 directive,
-  and the preserved `docs/language/01_intent_first_design.md` change), Codex
-  worktrees, `bin/pgy.exe`, `bin/pgy-self-driver.exe`.
-- **Edits in `docs/truth/`:** this file, `decisions/`, `evidence/`, and
-  [state/native_checker.md](../state/native_checker.md); main's state files
-  are the GPT root lane's.
+- **Must not touch:** Codex worktrees, `bin/pgy.exe`,
+  `bin/pgy-self-driver.exe`.
+- **Edits in `docs/truth/`:** this file, `decisions/`, `evidence/`,
+  [state/native_checker.md](../state/native_checker.md) and, since
+  2026-11-19, `state/main.md`, `state/blocker.md`, `state/gates.md`.
 - **Earlier:** P0 v16 lane, handed to GPT on 2026-10-16
   (`docs/agent_work_directives/p0_v16_handoff_claude_to_gpt_2026-10-16.md`).
