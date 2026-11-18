@@ -169,6 +169,7 @@ func DirectMirScalarProgramCExpressionValues(
                     DirectMirScalarProgramArrayStringLiteralOwnsElements(
                         expressions, node, routines, routine),
                     node, expressions.node_callable_rows[node],
+                    retire[node - start],
                     runtime, logical_record, referenced_enum,
                     array_string_abi, array_string_projection);
             if IsSome(builtin_value) { value = UnwrapOption(builtin_value); }
@@ -202,7 +203,8 @@ func DirectMirScalarProgramCExpressionValues(
             }
             }
         }
-        if retire[node - start] > 0 {
+        if retire[node - start] > 0 &&
+            kind != DirectMirScalarProgramExprArrayStringPushOwned() {
             var right_value: String = right;
             if right_value == "" { right_value = "NULL"; }
             value = DirectMirOwnedStringObserverCName(kind) + "(" + left + ", " + right_value +

@@ -125,6 +125,27 @@ not another implementation track. One edit lane, no delegated edits.
    control; check isolated new typed lifetimes as well as the unchanged
    conservative alias behavior. No release right follows from the transform
    alone; the original literal/recipe and actual retaining uses still decide.
+   The next reached return-transfer edge is a bare `Array<String>` result
+   after owned element pushes (`SemanticAstSignatureTypeTextChildren` on the
+   fixed input). The semantic row marks its empty-literal binding retired,
+   while the existing transfer checker proves only a returned record field.
+   Extend that same checker to accept a direct local result under its exact
+   definition, unique last use, eager evaluation and all-exit obligations;
+   do not treat the `retired` label itself as release authority. The caller's
+   returned carrier remains the last cleanup owner. A small source/MIR
+   witness that pushes one owned String and returns its Array currently
+   refuses before either backend emits; a duplicate return use, a hidden
+   retaining call, a wrong return type or an uncovered exit must still refuse.
+   This is one S1 prerequisite, not the full retired-claim migration.
+   The first returned-array execution also exposed a separate S1 lifetime
+   edge: `ArrayPushOwnedString` copies a fresh `Concat` result and leaves the
+   source allocation behind (3 bytes under LSan on both backends). Extend the
+   existing expression-edge retirement owner only for its uniquely consumed,
+   fresh String right operand; C must evaluate it once before the copying
+   push and free it after, while LLVM frees the same admitted value after its
+   call. A literal or borrowed/local operand grants no free. Verify the
+   returned array's element cleanup and the temporary separately, including
+   a borrowed literal control and an omitted-retire mutation under -O0 LSan.
 3. Fix owned-value identity, origin, recipe, disposition and end points in
    the MIR owner. Use existing SSA/local-ref and CFG facts. Include definition
    reset on loop backedges, aliases and mutually exclusive definitions.

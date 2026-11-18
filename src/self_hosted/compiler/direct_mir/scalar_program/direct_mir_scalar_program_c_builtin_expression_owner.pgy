@@ -10,6 +10,7 @@ func DirectMirScalarProgramCBuiltinExpression(
     kind: Int, result_type: String, left_type: String,
     left: String, right: String, arguments: Array<String>,
     owns_array_string_elements: Bool, expression_row: Int, callable_ordinal: Int,
+    retired_edges: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
@@ -41,7 +42,7 @@ func DirectMirScalarProgramCBuiltinExpression(
     if IsSome(extended) { return extended; }
     let collection: Option<String> =
         DirectMirScalarProgramCStringCollectionExpression(
-            kind, left_type, left, right, runtime, logical_record);
+            kind, left_type, left, right, retired_edges, runtime, logical_record);
     if IsSome(collection) { return collection; }
     return DirectMirScalarProgramCStringExpression(
         kind, left, right, arguments, runtime);

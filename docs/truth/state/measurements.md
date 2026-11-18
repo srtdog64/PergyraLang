@@ -49,3 +49,10 @@ no C artifact exists, and the owned process group drained. This is 4,616 KiB
 above the prior failed prefix, not evidence of a memory win. The wrapper and
 GNU clocks disagree; no wall-time comparison is claimed. See the
 [array-transform run record](../evidence/2026-11-18_selfhost_array_transform_lifetime.md).
+
+The v8 Pergyra-built driver on the same fixed complete MIR input reaches
+transition ordinal 1438, then exits 1 without a C artifact. GNU time reports
+3,928,948 KiB peak RSS under unchanged 14 GiB / 1,800 s limits. This prefix
+is longer than v5's 1437, so the peaks are not a memory-speed comparison.
+The v5 complete one-process source-to-C OOM above remains the last run of
+that target. [Exact v8 evidence](../evidence/2026-11-18_selfhost_bare_array_return_and_push_operand_lifetime.md).

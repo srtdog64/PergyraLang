@@ -292,7 +292,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 if handed { ArrayPush(handed_off, 1); } else { ArrayPush(handed_off, 0); }
                 if retired && index.collection_ownership_facts.origins[
                         ownership_row] == "empty-literal" &&
-                    DirectMirScalarProgramOwnedArrayStringAggregateReturnTransferReady(
+                    DirectMirScalarProgramOwnedArrayStringReturnTransferReady(
                         storage, expressions, logical_record, routine,
                         matched_local, signature.return_type) {
                     ArrayPush(

@@ -1,9 +1,9 @@
 # Current blocker
 
 Owner: GPT root integration; published revision/CI: [main](main.md).
-The last full frozen MIR stops at collection transition routine 1437,
-`SemanticAstSignatureTypeTextChildren`. A diagnostic found five transition
-failures before unrelated statement admission at routine 1672; the census is incomplete.
+The v8 full MIR stops at transition ordinal 1438 after admitting the bare
+Array<String> return at 1437. The independent failure census remains
+incomplete ([evidence](../evidence/2026-11-18_selfhost_bare_array_return_and_push_operand_lifetime.md)).
 Active: [full MIR lifetime/transition execution](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
 Typed reverse, retaining-alias refusals and isolated C/LLVM heap checks pass
 on the v5 driver. The unchanged one-process full DRV-2 bound fails with OOM,

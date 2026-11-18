@@ -321,7 +321,7 @@ func DirectMirScalarProgramOwnedArrayStringReturnFieldNode(
     return carriers[root - start];
 }
 
-func DirectMirScalarProgramOwnedArrayStringAggregateReturnTransferReady(
+func DirectMirScalarProgramOwnedArrayStringReturnTransferReady(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
@@ -335,8 +335,9 @@ func DirectMirScalarProgramOwnedArrayStringAggregateReturnTransferReady(
         local_row >= ArrayLength(storage.values.local_types) ||
         storage.values.local_types[local_row] !=
             CompilerAbiLayoutArrayStringTypeName() ||
-        DirectMirScalarProgramLogicalRecordRow(
-            logical_record, return_type) < 0 {
+        (return_type != CompilerAbiLayoutArrayStringTypeName() &&
+         DirectMirScalarProgramLogicalRecordRow(
+             logical_record, return_type) < 0) {
         return false;
     }
     var return_graph: Int = -1;
@@ -356,14 +357,25 @@ func DirectMirScalarProgramOwnedArrayStringAggregateReturnTransferReady(
             let root: Int = expressions.graph_roots[graph];
             if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
                 root >= ArrayLength(expressions.node_types) ||
-                expressions.node_kinds[root] !=
-                    DirectMirScalarProgramExprLogicalRecordConstructor() ||
                 expressions.node_types[root] != return_type {
                 return false;
             }
-            if expressions.node_types[root] != return_type { return false; }
-            returned_local_node = DirectMirScalarProgramOwnedArrayStringReturnFieldNode(
-                expressions, logical_record, graph, local_row);
+            if return_type == CompilerAbiLayoutArrayStringTypeName() {
+                if expressions.node_kinds[root] !=
+                        DirectMirScalarProgramExprLocal() ||
+                    expressions.node_local_rows[root] != local_row {
+                    return false;
+                }
+                returned_local_node = root;
+            } else {
+                if expressions.node_kinds[root] !=
+                        DirectMirScalarProgramExprLogicalRecordConstructor() {
+                    return false;
+                }
+                returned_local_node =
+                    DirectMirScalarProgramOwnedArrayStringReturnFieldNode(
+                        expressions, logical_record, graph, local_row);
+            }
             if returned_local_node < 0 ||
                 !DirectMirScalarProgramOwnedArrayStringMoveEagerPathReady(
                     expressions, graph, returned_local_node) {

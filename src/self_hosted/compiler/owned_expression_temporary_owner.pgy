@@ -39,13 +39,17 @@ func DirectMirOwnedExpressionRetiringEdges(ref expressions: DirectMirScalarProgr
     }
     node = start;
     while node < end {
-        if DirectMirOwnedStringObserverResultType(expressions.node_kinds[node]) != "" {
+        if DirectMirOwnedStringObserverResultType(expressions.node_kinds[node]) != "" ||
+            expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprArrayStringPushOwned() {
             var edge: Int = 0;
             while edge < 2 {
                 var child: Int = expressions.node_lefts[node];
                 var bit: Int = 1;
                 if edge == 1 { child = expressions.node_rights[node]; bit = 2; }
-                if child >= start && child < node && users[child - start] == 1 &&
+                if (expressions.node_kinds[node] !=
+                        DirectMirScalarProgramExprArrayStringPushOwned() || edge == 1) &&
+                    child >= start && child < node && users[child - start] == 1 &&
                     DirectMirScalarProgramFreshStringExpressionKind(
                         expressions.node_kinds[child]) &&
                     expressions.node_types[child] == "String" {

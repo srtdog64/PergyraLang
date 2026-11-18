@@ -3,7 +3,8 @@ import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "../../../codegen/runtime_abi/collection_runtime_owner.pgy";
 import "direct_mir_scalar_program_array_transform_owner.pgy";
-func DirectMirScalarProgramCStringCollectionExpression(kind: Int, left_type: String, left: String, right: String,
+import "../../owned_expression_temporary_c_owner.pgy";
+func DirectMirScalarProgramCStringCollectionExpression(kind: Int, left_type: String, left: String, right: String, retired_edges: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection, ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> Option<String> {
     if kind == DirectMirScalarProgramExprArrayDropStorage() {
@@ -34,10 +35,9 @@ func DirectMirScalarProgramCStringCollectionExpression(kind: Int, left_type: Str
     if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
         return Some(Concat(CollectionRuntimeCOwnedStringDropFn(), Concat("(&", Concat(left, ")"))));
     }
-    if kind == DirectMirScalarProgramExprArrayStringPushOwned() {
-        return Some(Concat(CollectionRuntimeCOwnedStringPushFn(),
-            Concat("(&", Concat(left, Concat(", ", Concat(right, ")"))))));
-    }
+    if kind == DirectMirScalarProgramExprArrayStringPushOwned() { return Some(
+        DirectMirOwnedStringCopyingPushCExpression(left, right, retired_edges,
+            CollectionRuntimeCOwnedStringPushFn())); }
     if kind == DirectMirScalarProgramExprStringSplit() { return Some(Concat(
         runtime.string_split.symbol, Concat("(", Concat(left, Concat(", ", Concat(right, ")")))))); }
     if kind == DirectMirScalarProgramExprStringJoin() { return Some(Concat(runtime.string_join.symbol,
