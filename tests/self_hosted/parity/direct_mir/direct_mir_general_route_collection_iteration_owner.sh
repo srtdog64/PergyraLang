@@ -22,6 +22,9 @@
 #     this change as after it. One claim rule for both backends is open work.
 # - A forged MIR whose loop-init names another binding or iterable than its
 #   header is refused with no artifact.
+# - The route also takes a one-routine program: it claimed one only for a
+#   control-flow or builtin shape, or a record or enum (`single-program-shape`),
+#   and refused a `continue` inside a range over a literal.
 # - A String binding borrows its element: aliasing it, pushing it into
 #   another array and returning it run equal, and the general emitter's C
 #   runs them under ASan with no freed-memory access.
@@ -166,6 +169,23 @@ func Sum(n: Int) -> Int {
 func Main() -> Void {
     Log(Sum(5));
     Log(Sum(1));
+}
+PGY
+
+cat >"$WORK_DIR/one_routine_continue.pgy" <<'PGY'
+func Main() -> Void {
+    var total: Int = 0;
+    for i in 0..10 {
+        if i % 2 == 0 {
+            continue;
+        }
+        total = total + i;
+    }
+    let names: Array<String> = ["a", "bb"];
+    for name in names {
+        total = total + StringLength(name);
+    }
+    Log(ToString(total));
 }
 PGY
 
@@ -337,6 +357,7 @@ expect_run string_elements $'cde\n5\nab'
 expect_run string_push_borrowed $'x\nyy\n2\nyy'
 expect_run string_return_borrowed $'ef\nnone\nef'
 expect_run string_concat_local '>abbccc'
+expect_run one_routine_continue '28'
 
 # expect_asan NAME: the general emitter's C of NAME, built with ASan, prints
 # the expected output with no freed-memory access. The general emitter does
@@ -410,4 +431,4 @@ for name in string_pop_while_bound string_set_while_bound; do
     done
 done
 
-echo "[$LABEL] 11 programs equal on four legs, 4 String walks under ASan; 2 forged MIR and 2 releasing String walks refused: PASS"
+echo "[$LABEL] 12 programs equal on four legs, 4 String walks under ASan; 2 forged MIR and 2 releasing String walks refused: PASS"

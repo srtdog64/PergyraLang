@@ -7,6 +7,9 @@
 # CODEGEN ERROR on the default LLVM route and the general emitter's C backend.
 # Each positive runs on native C/LLVM, the default C/LLVM routes and the
 # general emitter's C and LLVM backends with the same stdout and exit status.
+# Since 2026-11-20 the general route takes the one-routine foreach, whose
+# Array index calls the bounds-panic runtime export; the general emitter's
+# LLVM leg links no runtime library, so that program runs on the other five.
 # Each MIR mutation must be refused with no artifact:
 # - a declaration row with a name outside the vocabulary;
 # - a reassignment row named as a declaration.
@@ -160,10 +163,11 @@ PY
     done
 }
 
-expect_run foreach_sum '100'
 expect_run while_counter '6'
+LEGS=(native-c native-llvm default-c default-llvm direct-c)
+expect_run foreach_sum '100'
 
 expect_mutation_refused foreach_sum unknown-declaration-name
 expect_mutation_refused foreach_sum reassignment-named-declaration
 
-echo "[$LABEL] 2 var-declared loop programs equal on six legs; 2 MIR mutations refused on C/LLVM: PASS"
+echo "[$LABEL] 2 var-declared loop programs equal (1 on six legs, 1 on five); 2 MIR mutations refused on C/LLVM: PASS"

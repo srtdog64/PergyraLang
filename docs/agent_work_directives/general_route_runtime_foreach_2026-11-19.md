@@ -136,5 +136,8 @@ implementation candidate on main, landed in slices.
    bound followed in `9886a03f1`.
 2. String elements with the borrow guard; the body entry became the body
    block's first operation, so ownership owners see `let v = xs[i]`.
-   Record elements stay open.
-3. Retirement steps above, one family per commit.
+   Record elements stay open. Landed `fae2390af`.
+3. Retirement, one step per commit. Step 1 (one-routine claim):
+   `single-program-shape` and the builtin claim owner are deleted; the sweep
+   moved 4 refused -> equal and nothing else. Next: the collection families
+   and their BRIDGE rows.

@@ -3,8 +3,6 @@
 // declines; it never rescans the MIR to reconstruct the failed decision.
 import "direct_mir_scalar_program_route_fact_owner.pgy";
 import "direct_mir_scalar_program_array_bool_abi_capture_owner.pgy";
-import "direct_mir_scalar_program_control_flow_route_owner.pgy";
-import "direct_mir_scalar_program_builtin_route_owner.pgy";
 import "direct_mir_scalar_program_callable_route_envelope_owner.pgy";
 import "direct_mir_scalar_program_callable_signature_owner.pgy";
 import "../direct_mir_routine_signature_fact_owner.pgy";
@@ -34,7 +32,7 @@ func DirectMirScalarProgramRouteAdmissionOwnerStageReady(
             stage == "opaque-readonly-zone" ||
             stage == "logical-record" || stage == "referenced-enum" ||
             stage == "payload-free-enum" ||
-            stage == "single-program-shape" || stage == "entrypoint" ||
+            stage == "entrypoint" ||
             stage == "array-int-value-result-abi" || stage == "array-bool-abi" ||
             stage == "array-string-abi" || stage == "seal";
     }
@@ -201,13 +199,6 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             -1, "", -1, "", "");
     }
     if routine_count == 1 {
-        if !DirectMirScalarControlFlowProgramRouteClaimed(admitted) &&
-            !DirectMirScalarBuiltinProgramRouteClaimed(admitted) &&
-            !referenced_enum.payload_present && !logical_record.present {
-            return DirectMirScalarProgramRouteAdmissionRejected(
-                "scalar-program-route", "single-program-shape",
-                -1, "", -1, "", "");
-        }
         let rows: Array<Int> = [routine_instances.source_rows[0]];
         let array_int_value_result:
             DirectMirScalarProgramArrayIntValueResultFact =
