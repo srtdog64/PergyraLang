@@ -147,9 +147,3 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
     }
     return output;
 }
-func DirectMirScalarCfgCLocalDeclarations(
-    ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String
-) -> String {
-    return DirectMirScalarCfgCLocalDeclarationsInRange(
-        plan, int_c_type, 0, ArrayLength(plan.local_names), 0);
-}

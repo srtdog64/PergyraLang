@@ -25,14 +25,8 @@ func DirectMirScalarCfgSealGraphPlan(
     operation_phi_starts: Array<Int>, operation_phi_counts: Array<Int>,
     phi_predecessor_blocks: Array<Int>, phi_incoming_values: Array<Int>,
     ranges: DirectMirScalarCfgRangeFactSet,
-    foreaches: DirectMirScalarCfgForEachFactSet,
-    foreach_elements: DirectMirScalarCfgForEachElementFacts,
-    string_arrays: DirectMirScalarCfgStringArrayPlan,
-    array_int: DirectMirScalarCfgArrayIntProgramFact,
-    collections: DirectMirScalarCfgCollectionPlan,
     program: DirectMirScalarCfgProgramExtensionFact
 ) -> DirectMirScalarCfgGraphPlan {
-    let collection_pops: DirectMirScalarCfgCollectionPopProgramFact = DirectMirScalarCfgCollectionPopProgramFromOwners(foreaches, string_arrays, array_int);
     var string_concat_runtime_call_abi_id: Int =
         DirectMirScalarCfgStringConcatRuntimeCallAbiId(operation_kinds);
     if program.runtime_abi.string_concat_id != 0 {
@@ -64,8 +58,7 @@ func DirectMirScalarCfgSealGraphPlan(
         operation_right_locals, operation_left_literals,
         operation_right_literals, operation_phi_starts,
         operation_phi_counts, phi_predecessor_blocks, phi_incoming_values,
-        ranges, foreaches, foreach_elements, string_arrays, array_int,
-        collection_pops, collections,
+        ranges,
         string_concat_runtime_call_abi_id,
         program
     );

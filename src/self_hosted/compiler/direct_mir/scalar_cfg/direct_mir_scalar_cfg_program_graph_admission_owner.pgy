@@ -30,9 +30,8 @@ func DirectMirScalarCfgProgramGraphPlanAdmission(ref admitted: MirMachineLayerAd
         }
         cell = cell + 1;
     }
-    let producer: DirectMirArrayIntProducerFact = DirectMirArrayIntProducerFactEmpty();
     let entry_signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(route.routine_instances, 0);
-    let entry: DirectMirScalarCfgGraphInput = DirectMirScalarCfgProgramGraphInputFromAdmitted(admitted, route.entrypoint_row, producer, entry_signature.parameters.names);
+    let entry: DirectMirScalarCfgGraphInput = DirectMirScalarCfgProgramGraphInputFromAdmitted(admitted, route.entrypoint_row, entry_signature.parameters.names);
     let callables: DirectMirScalarCfgProgramCallableInventory =
         DirectMirScalarCfgProgramCallableInventoryFromAdmitted(admitted, route.routine_instances,
             route.logical_record, route.payload_free_enum,
@@ -67,7 +66,7 @@ func DirectMirScalarCfgProgramGraphPlanAdmission(ref admitted: MirMachineLayerAd
         var input: DirectMirScalarCfgGraphInput = entry;
         if ordinal > 0 {
             input = DirectMirScalarCfgProgramGraphInputFromAdmitted(
-                admitted, route.routine_rows[ordinal], producer, signature.parameters.names);
+                admitted, route.routine_rows[ordinal], signature.parameters.names);
         }
         ArrayPush(cfg_digests, DirectMirCfgDigestFromIndex(input.index));
         input = DirectMirRoutineInstanceGraphInput(
@@ -162,8 +161,6 @@ func DirectMirScalarCfgProgramGraphPlanAdmission(ref admitted: MirMachineLayerAd
         routine_state.storage.operations.right_literals, routine_state.storage.operations.phi_starts,
         routine_state.storage.operations.phi_counts, routine_state.storage.operations.phi_predecessor_blocks,
         routine_state.storage.operations.phi_incoming_values,
-        routine_state.ranges, entry.foreach_facts,
-        entry.foreach_elements, entry.string_arrays,
-        entry.array_int_program, entry.collections, program
+        routine_state.ranges, program
     );
 }

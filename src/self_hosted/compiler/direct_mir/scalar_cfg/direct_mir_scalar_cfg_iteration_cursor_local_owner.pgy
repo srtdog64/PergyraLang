@@ -3,7 +3,6 @@
 // source spelling and no LocalRef, keyed by loop id.
 import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 import "direct_mir_scalar_cfg_range_set_owner.pgy";
-import "direct_mir_scalar_cfg_foreach_fact_owner.pgy";
 import "../../../mir_lower/routine_fact_index_owner.pgy";
 
 // The MIR iteration type fact's binding type of loop `loop_id` ("Int" for a
@@ -30,7 +29,7 @@ func DirectMirScalarCfgAppendIterationCursorLocal(
     inout local_ref_value_ids: Array<String>, inout local_ref_syntax_ids: Array<Int>
 ) -> Void {
     if !DirectMirScalarCfgRangeWalksCollection(fact) { return; }
-    ArrayPush(local_names, DirectMirScalarCfgForEachCursorIdentity(fact.loop_syntax_id));
+    ArrayPush(local_names, Concat("iteration:", Concat(ToString(fact.loop_syntax_id), ":cursor")));
     ArrayPush(local_ref_kinds, DirectMirScalarCfgLocalRefIterationCursor());
     ArrayPush(local_ref_value_ids, "");
     ArrayPush(local_ref_syntax_ids, fact.loop_syntax_id);

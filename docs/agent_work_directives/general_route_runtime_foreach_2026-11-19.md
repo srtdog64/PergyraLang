@@ -142,6 +142,8 @@ implementation candidate on main, landed in slices.
    moved 4 refused -> equal and nothing else. Step 2: hoisted iterables
    (call result, literal, field) walk as locals, and the returned-Array
    foreach and `Array<Int>` return routes are deleted; 4 refused -> equal.
-   Next: the one-routine scalar CFG route with its literal foreach receipts
-   and the three collection BRIDGE families; a route-logging sweep found no
-   program reaching it.
+   Step 3: the one-routine scalar CFG route, its literal foreach receipts
+   and the three collection BRIDGE families are deleted; a route-logging
+   sweep found no program reaching them. Next: default C claim unification
+   and the remaining per-shape routes (one-block, Option match, CFG shape,
+   enum value match, literal log, multi-routine shapes).

@@ -48,10 +48,6 @@ func CompileAdmittedDirectMirScalarProgramForTargetObserved(
     DirectMirPressureStage(observe_pressure, "graph-plan:done");
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();
-    let concat: CompilerRuntimeCallAbiFact =
-        CompilerRuntimeCallAbiStringConcatFact();
-    let compare: CompilerRuntimeCallAbiFact =
-        CompilerRuntimeCallAbiStringCompareFact();
     let process_exit: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiProcessExitFact();
     if !CompilerRuntimeCallAbiProcessExitFactReady(process_exit) {
@@ -64,13 +60,13 @@ func CompileAdmittedDirectMirScalarProgramForTargetObserved(
     var payload: String = "";
     if is_llvm {
         payload = DirectMirScalarCfgEmitLlvm(
-            plan, formatted_print, concat, compare, process_exit,
+            plan, formatted_print, process_exit,
             int_line_format,
             string_line_format, target_projection
         );
     } else {
         payload = DirectMirScalarCfgEmitC(
-            plan, formatted_print, concat, compare, process_exit,
+            plan, formatted_print, process_exit,
             int_line_format, string_line_format,
             CompilerAbiLayoutIntCValueType(), target_projection
         );

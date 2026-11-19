@@ -1,11 +1,5 @@
 // Source-local inventory closure across scalar and collection owners.
-import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
-import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
-import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy";
-import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
 import "../direct_mir_routine_parameter_set_fact_owner.pgy";
@@ -16,10 +10,6 @@ import "../../../mir_lower/routine_fact_index_owner.pgy";
 func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
     ref index: MirRoutineFactIndex,
     local_names: Array<String>, local_ref_kinds: Array<Int>, local_types: Array<String>,
-    ref foreaches: DirectMirScalarCfgForEachFactSet,
-    ref string_arrays: DirectMirScalarCfgStringArrayPlan,
-    ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
-    ref collections: DirectMirScalarCfgCollectionPlan,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref parameters: DirectMirRoutineParameterSetFact
@@ -59,63 +49,11 @@ func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
         if found >= 0 { ArraySet(consumed, found, true); }
         row = row + 1;
     }
+    // Every source local is one of the routine's locals or a parameter.
     row = 0;
     while row < ArrayLength(index.source_local_names) {
-        if !consumed[row] {
-            var claimed: Bool = false;
-            var fact_row: Int = 0;
-            while fact_row < DirectMirScalarCfgForEachFactCount(foreaches) {
-                let fact: DirectMirScalarCfgForEachFact =
-                    DirectMirScalarCfgForEachFactAt(foreaches, fact_row);
-                if fact.collection_name == index.source_local_names[row] &&
-                    DirectMirScalarCfgCollectionTypeSupported(
-                        index.source_local_types[row]
-                    ) { claimed = true; }
-                fact_row = fact_row + 1;
-            }
-            var collection_row: Int = 0;
-            while collection_row <
-                    DirectMirScalarCfgStringArrayCollectionCount(string_arrays) {
-                if string_arrays.collections.names[collection_row] ==
-                        index.source_local_names[row] &&
-                    index.source_local_types[row] ==
-                        CompilerAbiLayoutArrayStringTypeName() {
-                    claimed = true;
-                }
-                collection_row = collection_row + 1;
-            }
-            if DirectMirScalarCfgArrayIntOwnsSourceLocal(
-                array_int_program, index.source_local_names[row],
-                index.source_local_types[row]
-            ) { claimed = true; }
-            if DirectMirScalarCfgCollectionOwnsSourceLocal(
-                collections, index.source_local_names[row],
-                index.source_local_types[row]
-            ) {
-                claimed = true;
-            }
-            if !claimed { return false; }
-            ArraySet(consumed, row, true);
-        }
+        if !consumed[row] { return false; }
         row = row + 1;
     }
     return true;
-}
-
-func DirectMirScalarCfgLocalInventoryReady(
-    ref index: MirRoutineFactIndex,
-    local_names: Array<String>, local_ref_kinds: Array<Int>, local_types: Array<String>,
-    ref foreaches: DirectMirScalarCfgForEachFactSet,
-    ref string_arrays: DirectMirScalarCfgStringArrayPlan,
-    ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
-    ref collections: DirectMirScalarCfgCollectionPlan,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref parameters: DirectMirRoutineParameterSetFact
-) -> Bool {
-    let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
-        DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
-    return DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
-        index, local_names, local_ref_kinds, local_types, foreaches, string_arrays,
-        array_int_program, collections, logical_record, referenced_enum,
-        parameters);
 }

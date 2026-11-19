@@ -26,11 +26,7 @@ func DirectMirScalarProgramIndexedAssignmentFactSetInvalid() -> DirectMirScalarP
     return DirectMirScalarProgramIndexedAssignmentFactSet(
         false, ints, ints, strings, ints, strings, ints);
 }
-func DirectMirScalarProgramIndexedAssignmentFactSetCanonicalEmpty() -> DirectMirScalarProgramIndexedAssignmentFactSet {
-    let ints: Array<Int> = []; let strings: Array<String> = [];
-    return DirectMirScalarProgramIndexedAssignmentFactSet(
-        true, ints, ints, strings, ints, strings, ints);
-}
+
 struct DirectMirScalarProgramIndexedAssignmentTargetFact {
     let valid: Bool; let parameter_ordinal: Int;
     let index_root: Int; let index_literal: String;

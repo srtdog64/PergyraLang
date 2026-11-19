@@ -3,7 +3,6 @@
 import "../driver/driver_pipeline_owner.pgy";
 import "../target_projection_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
-import "scalar_cfg/direct_mir_scalar_cfg_projection_owner.pgy";
 import "direct_mir_cfg_plan_owner.pgy";
 import "direct_mir_backend_emission_owner.pgy";
 import "direct_mir_compile_time_declaration_erasure_owner.pgy";
@@ -168,10 +167,6 @@ func CompileAdmittedDirectMirForTargetObserved(
                         case CodegenRoutePayloadEmitted(text): payload = text;
                         case CodegenRoutePayloadRefused(refusal): return CompilerEmissionRouteRefused(refusal);
                     }
-                } else if DirectMirScalarCfgGraphRouteClaimed(admitted) {
-                    payload = CompileAdmittedDirectMirScalarCfgForTarget(
-                        admitted, target_projection
-                    );
                 } else if block_count == 1 {
                     let formatted_print: CompilerRuntimeCallAbiFact =
                         CompilerRuntimeCallAbiFormattedPrintFact();

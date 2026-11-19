@@ -1,15 +1,9 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "../../runtime_call_abi_structured_fact_owner.pgy";
-import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_log_operation_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
-import "direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy";
-import "direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_option_int_abi_owner.pgy";
 import "../direct_mir_scalar_result_abi_owner.pgy";
-import "direct_mir_scalar_cfg_typed_foreach_readiness_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir_scalar_cfg_string_expression_owner.pgy";
 import "direct_mir_scalar_cfg_program_phi_type_owner.pgy";
@@ -55,13 +49,6 @@ func DirectMirScalarCfgTypedOperationsReady(
         let is_value_result: Bool = DirectMirScalarCfgProgramPhiValueTypeReady(
             plan.program.logical_record, plan.program.payload_free_enum,
             plan.program.referenced_enum, result_type);
-        let indexed_row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
-            plan.string_arrays, row
-        );
-        var indexed_kind: Int = 0;
-        if indexed_row >= 0 {
-            indexed_kind = plan.string_arrays.accesses.kinds[indexed_row];
-        }
         if (kind == DirectMirScalarCfgOpConstInt() && !is_int_result) ||
             (kind == DirectMirScalarCfgOpConstString() && !is_string_result) ||
             ((kind == DirectMirScalarCfgOpCopyInt() ||
@@ -75,24 +62,21 @@ func DirectMirScalarCfgTypedOperationsReady(
                 (!is_string_result ||
                  left_type != CompilerAbiLayoutStringTypeName() ||
                  (kind == DirectMirScalarCfgOpConcatString() &&
-                  right_type != CompilerAbiLayoutStringTypeName() &&
-                   indexed_kind !=
-                    DirectMirScalarCfgStringArrayAccessConcatRead()))) ||
+                  right_type != CompilerAbiLayoutStringTypeName()))) ||
             (kind == DirectMirScalarCfgOpPhiInt() && !is_int_result) ||
             (kind == DirectMirScalarCfgOpPhiString() && !is_string_result) ||
             (kind == DirectMirScalarCfgOpPhiValue() && !is_value_result) ||
             (kind == DirectMirScalarCfgOpLogInt() && !left_is_int) ||
             (kind == DirectMirScalarCfgOpLogStringValue() &&
-                left_type != CompilerAbiLayoutStringTypeName() &&
-                indexed_kind != DirectMirScalarCfgStringArrayAccessLogRead()) ||
-            !DirectMirScalarCfgCollectionTypedOperationReady(
-                plan, row, kind, indexed_kind
-            ) ||
-            (kind == DirectMirScalarCfgOpArrayPushString() &&
-                indexed_kind != DirectMirScalarCfgStringArrayAccessPushKind()) ||
-            !DirectMirScalarCfgCollectionPopTypedOperationReady(
-                plan, row, kind, indexed_kind
-            ) ||
+                left_type != CompilerAbiLayoutStringTypeName()) ||
+            // Owned by the deleted one-routine collection plans: no program
+            // route row has these kinds.
+            kind == DirectMirScalarCfgOpArraySetString() ||
+            kind == DirectMirScalarCfgOpArrayPushString() ||
+            kind == DirectMirScalarCfgOpArrayPopString() ||
+            kind == DirectMirScalarCfgOpArrayPopInt() ||
+            kind == DirectMirScalarCfgOpLogArrayLength() ||
+            kind == DirectMirScalarCfgOpLogArrayIndexConcatString() ||
             (kind == DirectMirScalarCfgOpArrayPushInt() &&
                 (result >= 0 || !left_is_int || !right_is_int)) ||
             (plan.operation_left_locals[row] >= 0 &&
@@ -103,8 +87,7 @@ func DirectMirScalarCfgTypedOperationsReady(
                 (!is_int_result || !left_is_int || !right_is_int)) {
             return false;
         }
-        if kind == DirectMirScalarCfgOpConcatString() ||
-            DirectMirScalarCfgCollectionOperationRequiresConcat(kind) {
+        if kind == DirectMirScalarCfgOpConcatString() {
             concat_seen = true;
         }
         row = row + 1;
@@ -189,6 +172,5 @@ func DirectMirScalarCfgTypedPlanReady(
         }
         row = row + 1;
     }
-    return DirectMirScalarCfgTypedForEachReady(plan) &&
-        DirectMirScalarCfgTypedOperationsReady(plan);
+    return DirectMirScalarCfgTypedOperationsReady(plan);
 }

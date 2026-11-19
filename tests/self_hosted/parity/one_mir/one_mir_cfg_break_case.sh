@@ -53,75 +53,12 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
 
 echo "[$LABEL] nested continue/fallthrough transfers stay with their innermost range"
 
-FOREACH_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_foreach_array_int_projection.sh"
-require_file "$FOREACH_GATE"
-PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
-    bash "$FOREACH_GATE" || fail "Array<Int> foreach receipt gate failed"
-
-echo "[$LABEL] Array<Int> foreach substitutes through one collection receipt"
-
-MIXED_FOREACH_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_mixed_collection_foreach_projection.sh"
-require_file "$MIXED_FOREACH_GATE"
-PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
-    bash "$MIXED_FOREACH_GATE" || fail "mixed Int/String foreach gate failed"
-
-echo "[$LABEL] mixed Int/String foreach substitutes through one typed receipt"
-
-INDEXED_STRING_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_indexed_string_array_projection.sh"
-require_file "$INDEXED_STRING_GATE"
-PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
-    bash "$INDEXED_STRING_GATE" || fail "indexed Array<String> gate failed"
-
-echo "[$LABEL] ArrayLength-bounded parts[i] substitutes through one indexed receipt"
-
 STRING_ARRAY_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_string_array_mutation_projection.sh"
 require_file "$STRING_ARRAY_GATE"
 PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$STRING_ARRAY_GATE" || fail "String-array mutation receipt gate failed"
 
 echo "[$LABEL] while read and bounded static set share one String-array receipt"
-
-STRING_ARRAY_PUSH_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_string_array_push_projection.sh"
-require_file "$STRING_ARRAY_PUSH_GATE"
-PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
-    bash "$STRING_ARRAY_PUSH_GATE" || fail "String-array push receipt gate failed"
-
-echo "[$LABEL] empty Array<String> and ordered pushes share one mutable receipt"
-
-ARRAY_INT_PUSH_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_array_int_loop_push_projection.sh"
-require_file "$ARRAY_INT_PUSH_GATE"
-PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
-    bash "$ARRAY_INT_PUSH_GATE" || fail "Array<Int> loop-push receipt gate failed"
-
-echo "[$LABEL] bounded dynamic Array<Int> push and indexed sum share one receipt"
-
-ARRAY_INT_SUM_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_array_int_sum_projection.sh"
-require_file "$ARRAY_INT_SUM_GATE"
-PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
-    bash "$ARRAY_INT_SUM_GATE" || fail "Array<Int> initialized-sum receipt gate failed"
-
-echo "[$LABEL] initialized Array<Int> sum and static set share one receipt"
-
-ARRAY_INT_MAX_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_array_int_max_projection.sh"
-require_file "$ARRAY_INT_MAX_GATE"
-PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
-    bash "$ARRAY_INT_MAX_GATE" || fail "Array<Int> read-only maximum receipt gate failed"
-
-echo "[$LABEL] read-only Array<Int> range maximum shares one receipt"
-
-ARRAY_INT_REVERSE_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_array_int_reverse_projection.sh"
-require_file "$ARRAY_INT_REVERSE_GATE"
-PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
-    bash "$ARRAY_INT_REVERSE_GATE" || fail "fresh ArrayReverse receipt gate failed"
-
-echo "[$LABEL] fresh ArrayReverse result shares one sealed Array<Int> receipt"
-
-ARRAY_POP_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_array_pop_projection.sh"
-require_file "$ARRAY_POP_GATE"
-PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
-    bash "$ARRAY_POP_GATE" || fail "bounded ArrayPop GraphPlan gate failed"
-
-echo "[$LABEL] Int/String ArrayPop effects share one sealed GraphPlan receipt"
 
 ARRAY_INDEX_ASSIGNMENT_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir/one_mir_array_index_assignment_projection.sh"
 require_file "$ARRAY_INDEX_ASSIGNMENT_GATE"

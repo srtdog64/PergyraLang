@@ -65,7 +65,4 @@ func DirectMirScalarCfgVoidReturnExpressionRow() -> Int { return -2; }
 func DirectMirScalarCfgConditionNone() -> Int { return 0; }
 func DirectMirScalarCfgConditionBool() -> Int { return 1; }
 func DirectMirScalarCfgConditionLess() -> Int { return 2; }
-func DirectMirScalarCfgConditionEqual() -> Int { return 3; }
-func DirectMirScalarCfgConditionGreater() -> Int { return 4; }
-func DirectMirScalarCfgConditionForEach() -> Int { return 5; }
 func DirectMirScalarCfgConditionExpression() -> Int { return 6; }

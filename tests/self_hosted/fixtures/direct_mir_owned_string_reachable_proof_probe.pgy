@@ -244,10 +244,7 @@ func OwnedResultProbePlan(layers: Int, mode: String) -> DirectMirScalarCfgGraphP
         blockOperationStarts, blockOperationCounts, ints, ints, ints, ints, ints,
         strings, strings, operationKinds, operationResults, ints, ints, ints,
         ints, strings, strings, ints, ints, ints, ints,
-        DirectMirScalarCfgRangeFactSetEmpty(), DirectMirScalarCfgForEachFactSetEmpty(),
-        DirectMirScalarCfgForEachElementFactsEmpty(), DirectMirScalarCfgStringArrayPlanEmpty(),
-        DirectMirScalarCfgArrayIntProgramFactEmpty(), DirectMirScalarCfgCollectionPopProgramFactEmpty(),
-        DirectMirScalarCfgCollectionPlanEmpty(), concat.runtime_call_abi_id, program);
+        DirectMirScalarCfgRangeFactSetEmpty(), concat.runtime_call_abi_id, program);
 }
 
 func Main() -> Void

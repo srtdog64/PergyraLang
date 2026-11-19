@@ -41,10 +41,7 @@ func DirectMirScalarCfgProgramInputReady(
     ref input: DirectMirScalarCfgGraphInput
 ) -> Bool {
     return DirectMirScalarCfgRangeFactSetSourceReady(
-            input.ranges, ArrayLength(input.index.block_starts)) &&
-        DirectMirScalarCfgForEachFactCount(input.foreach_facts) == 0 &&
-        !input.string_arrays.valid && !input.array_int_program.valid &&
-        !input.collections.valid;
+            input.ranges, ArrayLength(input.index.block_starts));
 }
 func DirectMirScalarCfgProgramAppendRoutine(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -99,12 +96,11 @@ func DirectMirScalarCfgProgramAppendRoutine(
     let locals: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanFromOwners(
             admitted, input.index, input.use_facts, input.wire, input.ranges,
-            input.foreach_facts, input.string_arrays,
-            input.array_int_program, input.collections, logical_record,
+            logical_record,
             referenced_enum, indexed_assignments, signature.parameters);
     let types: DirectMirScalarCfgValueTypePlan =
         DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
-            input.index, locals, input.foreach_elements, logical_record,
+            input.index, locals, logical_record,
             referenced_enum, signature.parameters);
     if !locals.valid {
         Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
@@ -122,14 +118,13 @@ func DirectMirScalarCfgProgramAppendRoutine(
             DirectMirScalarCfgRangeFactCount(input.ranges) ||
         !DirectMirScalarCfgLoopFlowFactsReady(
             input.index, admitted.routines, routine_row,
-            routine_ranges, input.foreach_facts) {
+            routine_ranges) {
         Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
             "range_facts", routine_ordinal, -1, -1, ""));
     }
     if !DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
         input.index, locals.local_names, locals.local_ref_kinds, types.local_types,
-        input.foreach_facts, input.string_arrays, input.array_int_program,
-        input.collections, logical_record, referenced_enum,
+        logical_record, referenced_enum,
         signature.parameters
     ) {
         Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(

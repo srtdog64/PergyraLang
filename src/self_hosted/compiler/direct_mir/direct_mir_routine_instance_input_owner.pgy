@@ -71,6 +71,5 @@ func DirectMirRoutineInstanceGraphInput(
         index.loop_flow_state_access_masks, index.loop_flow_state_slot_states, index.loop_flow_state_semantic_states,
         index.loop_flow_state_pool_ids);
     return DirectMirScalarCfgGraphInput(typed, source.use_facts, source.wire,
-        source.ranges, source.foreach_facts, source.foreach_elements,
-        source.string_arrays, source.array_int_program, source.collections);
+        source.ranges);
 }

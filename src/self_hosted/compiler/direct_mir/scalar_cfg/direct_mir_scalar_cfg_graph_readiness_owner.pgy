@@ -2,13 +2,7 @@
 import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_range_graph_readiness_owner.pgy";
-import "direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_typed_readiness_owner.pgy";
-import "direct_mir_scalar_cfg_collection_pop_program_readiness_owner.pgy";
-import "direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy";
-import "direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_condition_role_owner.pgy";
 import "direct_mir_scalar_cfg_collection_operation_shape_owner.pgy";
 import "direct_mir_scalar_cfg_minimum_plan_shape_owner.pgy";
 import "direct_mir_scalar_cfg_operand_shape_owner.pgy";
@@ -37,7 +31,7 @@ func DirectMirScalarCfgGraphPlanReady(
             plan.local_ref_value_ids, plan.local_ref_syntax_ids,
             plan.value_names, plan.value_local_rows,
             plan.value_definition_blocks, block_count, plan.routines,
-            plan.range_iterations, plan.foreach_iterations
+            plan.range_iterations
         ) ||
         (operation_count < 1 && !plan.program.valid) ||
         block_count != ArrayLength(plan.block_succ_false) ||
@@ -77,8 +71,6 @@ func DirectMirScalarCfgGraphPlanReady(
         let right_local: Int = plan.block_condition_right_locals[block];
         let left_literal: String = plan.block_condition_left_literals[block];
         let right_literal: String = plan.block_condition_right_literals[block];
-        let indexed_bound: Bool = DirectMirScalarCfgStringArrayLengthRowAtBlock(
-            plan.string_arrays, block) >= 0 || DirectMirScalarCfgArrayIntLengthConditionBlock(plan, block);
         if plan.block_operation_starts[block] != expected_operation ||
             plan.block_operation_counts[block] < 0 ||
             true_target < -1 || true_target >= block_count ||
@@ -97,11 +89,8 @@ func DirectMirScalarCfgGraphPlanReady(
                     right_value, right_local, right_literal) {
                 return false;
             }
-        } else if condition == DirectMirScalarCfgConditionExpression() ||
-                condition == DirectMirScalarCfgConditionForEach() {
-            if true_target < 0 || false_target < 0 ||
-                (condition == DirectMirScalarCfgConditionExpression() &&
-                 !plan.program.valid) ||
+        } else if condition == DirectMirScalarCfgConditionExpression() {
+            if true_target < 0 || false_target < 0 || !plan.program.valid ||
                 !DirectMirScalarCfgOperandsEmpty(
                     left_value, left_local, left_literal,
                     right_value, right_local, right_literal) { return false; }
@@ -115,7 +104,7 @@ func DirectMirScalarCfgGraphPlanReady(
             (condition != DirectMirScalarCfgConditionBool() &&
                 DirectMirScalarCfgOperandCount(
                     right_value, right_local, right_literal
-                ) != 1 && !indexed_bound) {
+                ) != 1) {
             return false;
         }
         expected_operation = expected_operation +
@@ -143,15 +132,6 @@ func DirectMirScalarCfgGraphPlanReady(
         let parameter_target: Bool =
             DirectMirScalarProgramArrayMutationParameterTargetKind(kind);
         let phi_count: Int = plan.operation_phi_counts[operation];
-        let indexed_row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
-            plan.string_arrays, operation
-        );
-        let indexed_operand: Bool = indexed_row >= 0 &&
-            plan.string_arrays.accesses.kinds[indexed_row] ==
-                DirectMirScalarCfgStringArrayAccessConcatRead();
-        let indexed_log: Bool = indexed_row >= 0 &&
-            plan.string_arrays.accesses.kinds[indexed_row] ==
-                DirectMirScalarCfgStringArrayAccessLogRead();
         if kind < DirectMirScalarCfgOpConstInt() ||
             kind > DirectMirScalarCfgOpLocalSliceIntSet() ||
             result < -1 ||
@@ -198,9 +178,9 @@ func DirectMirScalarCfgGraphPlanReady(
                 (result < 0 || left_count != 1 || right_count != 0)) ||
             (kind == DirectMirScalarCfgOpConcatString() &&
                 (result < 0 || left_count != 1 ||
-                 (right_count != 1 && !indexed_operand))) ||
+                 right_count != 1)) ||
             (kind == DirectMirScalarCfgOpLogStringValue() &&
-                (result >= 0 || (left_count != 1 && !indexed_log) ||
+                (result >= 0 || left_count != 1 ||
                  right_count != 0)) ||
             (DirectMirScalarCfgCollectionOperationHasNoOperands(kind) &&
                 (result >= 0 || left_count != 0 || right_count != 0)) {
@@ -221,14 +201,6 @@ func DirectMirScalarCfgGraphPlanReady(
         phi_row = phi_row + 1;
     }
     if !DirectMirScalarCfgRangeGraphReady(plan) ||
-        !DirectMirScalarCfgForEachGraphReady(plan) ||
-        !DirectMirScalarCfgStringArrayGraphReady(plan) ||
-        !DirectMirScalarCfgArrayIntProgramReady(
-            plan, plan.array_int_program,
-            plan.array_int_program.producer,
-            plan.array_int_program.consumer) ||
-        !DirectMirScalarCfgCollectionPopProgramReady(plan) ||
-        !DirectMirScalarCfgCollectionPlanReady(plan) ||
         !DirectMirScalarCfgTypedPlanReady(plan) ||
         !DirectMirScalarCfgProgramExtensionReadyForPlan(plan) { return false; }
     return CompilerArtifactIdentityReady(

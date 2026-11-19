@@ -13,13 +13,7 @@ func DirectMirScalarCfgCollectionTypeSupported(type_name: String) -> Bool {
         type_name == CompilerAbiLayoutArrayStringTypeName() ||
         type_name == CompilerAbiLayoutSetStringTypeName();
 }
-func DirectMirScalarCfgIterationTypePairSupported(binding_type: String, iterable_type: String
-) -> Bool {
-    return (binding_type == CompilerAbiLayoutIntTypeName() &&
-            iterable_type == CompilerAbiLayoutArrayIntTypeName()) ||
-        (binding_type == CompilerAbiLayoutStringTypeName() &&
-            iterable_type == CompilerAbiLayoutArrayStringTypeName());
-}
+
 func DirectMirScalarCfgSourceLocalTypeSupported(type_name: String) -> Bool {
     let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(type_name);
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
@@ -46,21 +40,3 @@ func DirectMirScalarCfgSourceLocalTypeMatchesResolved(source_type: String, resol
         (source_type == "Result<Unknown, String>" &&
          DirectMirScalarResultAbiRuntimeForType(resolved_type).ok);
 }
-
-func DirectMirScalarCfgRoutineSourceLocalTypesSupported(
-    ref index: MirRoutineFactIndex
-) -> Bool {
-    if !index.valid || ArrayLength(index.source_local_names) < 1 ||
-        ArrayLength(index.source_local_names) !=
-            ArrayLength(index.source_local_types) { return false; }
-    var row: Int = 0;
-    while row < ArrayLength(index.source_local_types) {
-        if !DirectMirScalarCfgSourceLocalTypeSupported(
-                index.source_local_types[row]) &&
-            !CompilerRuntimeValueTypeReady(
-                index.source_local_types[row]) { return false; }
-        row = row + 1;
-    }
-    return true;
-}
-

@@ -1,6 +1,5 @@
 // Canonical local and ValueId types aligned with the scalar-CFG storage plan.
 
-import "direct_mir_scalar_cfg_foreach_element_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "../../../mir_lower/routine_result_definition_fact_owner.pgy";
@@ -33,13 +32,11 @@ func DirectMirScalarCfgValueTypePlanRejected(
 
 func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(ref index: MirRoutineFactIndex,
     ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref foreach_elements: DirectMirScalarCfgForEachElementFacts,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref parameters: DirectMirRoutineParameterSetFact) -> DirectMirScalarCfgValueTypePlan {
     let invalid: DirectMirScalarCfgValueTypePlan = DirectMirScalarCfgValueTypePlanInvalid();
-    if !index.valid || !locals.valid ||
-        !DirectMirScalarCfgForEachElementFactsReady(foreach_elements) {
+    if !index.valid || !locals.valid {
         return DirectMirScalarCfgValueTypePlanRejected(
             "inputs", "", "");
     }
@@ -107,11 +104,6 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(ref index: MirR
             type_name = DirectMirScalarCfgIterationBindingType(index, locals.local_ref_syntax_ids[local_binding]);
         } else if locals.local_ref_kinds[local_binding] == DirectMirScalarCfgLocalRefIterationCursor() {
             type_name = CompilerAbiLayoutIntTypeName();
-        } else if locals.local_ref_kinds[local_binding] ==
-                DirectMirScalarCfgLocalRefForEach() {
-            type_name = DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
-                foreach_elements, locals.local_ref_syntax_ids[local_binding]
-            );
         } else if locals.local_ref_kinds[local_binding] ==
                 DirectMirScalarCfgLocalRefMatchBinding() {
             let source_row: Int = locals.local_ref_syntax_ids[local_binding];
@@ -181,31 +173,4 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(ref index: MirR
     return DirectMirScalarCfgValueTypePlan(
         true, local_types, value_types
     );
-}
-
-func DirectMirScalarCfgValueTypePlanFromOwners(
-    ref index: MirRoutineFactIndex,
-    ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref foreach_elements: DirectMirScalarCfgForEachElementFacts,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref parameters: DirectMirRoutineParameterSetFact
-) -> DirectMirScalarCfgValueTypePlan {
-    let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
-        DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
-    return DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
-        index, locals, foreach_elements, logical_record, referenced_enum,
-        parameters);
-}
-
-func DirectMirScalarCfgOperandType(
-    ref types: DirectMirScalarCfgValueTypePlan,
-    value: Int, local_binding: Int
-) -> String {
-    if value >= 0 && value < ArrayLength(types.value_types) && local_binding < 0 {
-        return types.value_types[value];
-    }
-    if local_binding >= 0 && local_binding < ArrayLength(types.local_types) && value < 0 {
-        return types.local_types[local_binding];
-    }
-    return "";
 }

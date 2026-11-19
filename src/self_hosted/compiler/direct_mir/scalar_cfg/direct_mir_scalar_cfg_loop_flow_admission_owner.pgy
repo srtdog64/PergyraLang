@@ -3,8 +3,7 @@ import "../../../mir_lower/routine_lower.pgy";
 import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
 func DirectMirScalarCfgLoopFlowFactsReady(
     ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineIndex,
-    routine_row: Int, ref ranges: DirectMirScalarCfgRangeFactSet,
-    ref foreaches: DirectMirScalarCfgForEachFactSet
+    routine_row: Int, ref ranges: DirectMirScalarCfgRangeFactSet
 ) -> Bool {
     if !LoopFlowSummaryProjectionReady(index, routines, routine_row) ||
         !MirRoutineFactIndexLoopFlowFactsValid(index) ||
@@ -24,17 +23,12 @@ func DirectMirScalarCfgLoopFlowFactsReady(
         let loop_id: Int = index.loop_flow_summary_loop_ids[row];
         let range: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeFactAtLoopSyntaxId(ranges, loop_id);
-        let foreach: DirectMirScalarCfgForEachFact =
-            DirectMirScalarCfgForEachFactAtLoopSyntaxId(foreaches, loop_id);
         if kind == 1 {
-            if range.valid == foreach.valid || (range.valid &&
-                !DirectMirScalarCfgRangeIterationFactReady(range,
-                    ArrayLength(index.block_starts))) || (foreach.valid &&
-                !DirectMirScalarCfgForEachFactReady(foreach,
-                    ArrayLength(index.block_starts))) { return false; }
+            if !range.valid || !DirectMirScalarCfgRangeIterationFactReady(range,
+                    ArrayLength(index.block_starts)) { return false; }
             claimed = claimed + 1;
-        } else if range.valid || foreach.valid { return false; }
+        } else if range.valid { return false; }
         row = row + 1;
     }
-    return claimed == DirectMirScalarCfgRangeFactCount(ranges) + DirectMirScalarCfgForEachFactCount(foreaches);
+    return claimed == DirectMirScalarCfgRangeFactCount(ranges);
 }

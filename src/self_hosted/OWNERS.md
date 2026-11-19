@@ -3439,17 +3439,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   and textual LLVM consumers of the same fixed array plan. The bounded slice
   materializes stack-backed storage and links no Pergyra runtime symbol; it is
   not authority for general or runtime-bearing arrays.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_return_graph_fact_owner.pgy` --
-  the typed direct-call producer name of a literal foreach iterable; source
-  text and routine row order are not call-target authority.
 - `src/self_hosted/compiler/direct_mir/direct_mir_array_int_abi_fact_owner.pgy` -- one
   canonical captured `Array<Int>` ABI row predicate shared by local-value and
   returned-value direct-MIR plans, including every field offset, size, and
   alignment before target projection.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_int_producer_fact_owner.pgy` --
-  target-neutral identity, literal elements, and canonical ABI receipt for one
-  pure no-parameter `Array<Int>` producer. Direct-call consumers bind to this
-  receipt instead of reparsing the call or reopening the producer routine.
 - `src/self_hosted/compiler/direct_mir/direct_mir_routine_param_fact_owner.pgy` -- exact
   formal-parameter admission, including value/resource/pass carriage and the
   complete carried ABI row; a required row cannot be reconstructed by a
@@ -3482,9 +3475,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/direct_mir/direct_mir_array_argument_legacy_route_owner.pgy`
   -- shrink-only one-block claim for the older Array-argument envelope; looped
   collection programs cannot be classified through this route.
-- `src/self_hosted/compiler/direct_mir/direct_mir_collection_local_context_fact_owner.pgy`
-  -- routine-qualified local/formal/call-result collection origins plus
-  dynamic scalar input identities embedded in the shared `CollectionPlan`.
 - `src/self_hosted/compiler/direct_mir/direct_mir_composite_intent_program_route_fact_owner.pgy`
   -- exclusive structural claim for the canonical twelve-routine composite
   intent family; a claimed malformed family cannot fall through to the scalar
@@ -3671,10 +3661,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_expression_base_owner.pgy` --
   expression sequence, call-target absence, canonical Int, and exact use-row
   joins shared by the three scalar expression admission operations.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_expression_owner.pgy` --
-  typed persisted-expression-graph projection for the admitted Int/Bool
-  literal, copy, comparison, addition, and Log subset; display `expr0` is not
-  semantic input.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_leaf_operand_owner.pgy` --
   ValueId-first leaf resolution. Wire-required ranges use exact expression-node
   LocalRefs only for the wire-owned `expr0` lane; later expression lanes never
@@ -3718,14 +3704,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   receipt-set lookup; it neither rebuilds nor reparses the wire grammar.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_iteration_local_owner.pgy` --
   canonical range-receipt-to-local-slot bijection and bound receipt publication.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_assignment_target_owner.pgy`
-  -- exact one-leaf assignment-place graph receipt joined to the instruction's
-  carried source-local identity; display target text is not a fallback.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_admission_owner.pgy`
-  -- target-neutral plan issuer over typed MIR indices, use/dominance facts,
-  exact phi bindings, range receipts, and the optional scalar-program dialect.
-  It is the only block/operation/phi assembly loop; claimed invalid graphs
-  cannot retry a legacy topology path.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy`
   -- shared predecessor-order, local identity, type, and operation-row admission
   for every scalar GraphPlan phi. Int and String keep their existing operation
@@ -3744,21 +3722,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- canonical routine identity and contiguous local/value/block/operation/phi
   ranges inside that one flat GraphPlan. The paired mutation owner proves a
   shifted range cannot survive plan readiness.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_expression_owner.pgy`
-  -- type-directed String/Int collection expression routing inside that one
-  GraphPlan. It selects an already admitted receipt and never reopens a graph.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_instruction_graph_owner.pgy`,
-  `direct_mir_scalar_cfg_instruction_position_owner.pgy`,
-  `direct_mir_scalar_cfg_operation_position_owner.pgy`,
-  `direct_mir_scalar_cfg_while_induction_owner.pgy`, and
-  `direct_mir_scalar_cfg_array_guard_dominance_owner.pgy` -- element-neutral
-  graph access, source/operation positions, zero-plus-one while induction, and
-  unique true-edge dominance. String and Int collection lanes consume these
-  owners instead of retaining type-named copies.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_route_owner.pgy` --
-  topology-independent per-routine classification by the supported
-  operation/type envelope, never fixture names or exact block counts. A
-  validated multi-routine composition may select its exact `Main` row.
+  `direct_mir_scalar_cfg_operation_position_owner.pgy`, and
+  `direct_mir_scalar_cfg_while_induction_owner.pgy` -- element-neutral graph
+  access, operation positions and zero-plus-one while induction.
 - `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_fact_owner.pgy` and
   `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_admission_owner.pgy`
   -- immutable typed scalar-program route receipt plus its sole one-pass
@@ -4920,8 +4887,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   selected-target boundary that issues one sealed GraphPlan and never retries a
   returned-Array, Option, terminal-graph, or native backend path. Opt-in
   receipts bracket the one GraphPlan build and the one target emission.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_operation_plan_owner.pgy` --
-  operation-row assembly plus latest-dominating ValueId joins.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy`
   -- scalar execution receipt over the existing loop-summary/CFG projection
   owner. The current pure-Int slice accepts while or a sealed range receipt,
@@ -4931,174 +4896,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- admitted-MIR construction of canonical range receipts over typed
   iteration and loop-flow owners; multi-range selection consumes the one
   decoded wire and exact `loop_syntax_id` LocalRefs, while the byte-stable
-  single-range shape has one possible typed receipt. Its bound is issued by
-  `direct_mir_scalar_cfg_range_bound_owner.pgy`, which admits exactly one
-  canonical integer literal or one persisted `ArrayLength(ValueId)` graph.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_admission_owner.pgy`
-  -- joins a collection loop candidate, typed iteration row, collection
-  ValueId, resolved local-literal or direct-call collection source, binding
-  identity, element payload receipt, and CFG edges once. `Array<Int>` and
-  `Array<String>` use the same loop receipt; a mistyped collection loop fails
-  here instead of being retried as an integer range.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_element_owner.pgy`
-  -- loop-syntax-keyed element type and String-pool companion receipt. It keeps
-  target-specific storage out of the primitive foreach fact set.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_definition_owner.pgy`
-  -- element-neutral definition-instruction identity predicate shared by
-  foreach and indexed local collection owners.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy`
-  -- foreach adapter over the target-neutral local `Array<String>` collection
-  fact; it does not decode a second literal graph or ABI row.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_string_collection_owner.pgy`
-  -- exact local `Array<String>` literal graph, canonical ABI, storage
-  identity, and element-pool admission shared by foreach and indexed reads.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_length_fact_owner.pgy`
-  -- one persisted-graph `ArrayLength(collection)` subtree identity shared by
-  range and while conditions. It owns no CFG or backend policy.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_length_log_graph_owner.pgy`
-  -- element-neutral exact `Log(ToString(ArrayLength(collection)))` graph. The
-  String-named compatibility view delegates here and owns no second shape.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_collection_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_collection_admission_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_program_fact_owner.pgy`, and
-  the static/read-only/reverse/pop fact owners -- one
-  public-ABI `Array<Int>` identity and one program receipt with mutually
-  exclusive dynamic-push, initialized-static-set, initialized-read-only,
-  fresh-reverse, and foreach-backed-pop modes. Initial elements, current
-  length, capacity, and selected child receipt are facts; a backend cannot
-  reinterpret one mode as another. The pop mode references the existing
-  foreach storage identity and owns effects only, so no second `xs` storage is
-  materialized.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_program_admission_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_static_graph_owner.pgy`, and
-  the static/read-only admission owners -- admit
-  either the bounded producer/push/consumer topology or the initialized
-  current-length while sum followed by one in-bounds set, indexed observation,
-  and final length observation, or one read-only range maximum with two indexed
-  reads, a greater branch, exact phi joins, and final Log. The read-only source
-  and phi/topology owners consume the existing range receipt rather than
-  duplicating its block facts. `loop_flow_summary.effect_delta` is not mutation
-  authority, and no mode is tried as a compatibility fallback.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_program_binding_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_program_identity_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy`,
-  the read-only binding/identity/expression owners, and the three mode
-  readiness owners -- bind exact ValueId/LocalRef/operation rows,
-  include the single receipt and explicit mode in `GraphPlan` identity, and
-  prove loop induction, accumulator recurrence, mutation ordering, derived
-  storage state, range bounds, greater-condition projection, predecessor/value
-  phi joins, and target operation shape. The C/LLVM storage, initialization,
-  program-operation, and read-only emission owners consume that receipt without
-  reopening MIR or calling a native/runtime collection path.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy`,
-  `direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy`,
-  `direct_mir_scalar_cfg_string_array_plan_append_owner.pgy`, and
-  `direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy` -- immutable
-  primitive column sets for local `Array<String>` collections, length guards,
-  and indexed concat/Log/static-set/push/pop accesses. Row views preserve one
-  collection storage identity, an operation-ordered current-length timeline,
-  and one global-instruction-to-operation mapping without a custom-struct
-  array ABI. Capacity remains the initial-plus-push bound and is never reduced
-  by pop.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_pop_program_fact_owner.pgy`,
-  `direct_mir_scalar_cfg_collection_pop_program_readiness_owner.pgy`, and
-  `direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy` -- one joint
-  program receipt joining the foreach-owned `Array<Int>` source, the
-  String-plan-owned source, and the globally ordered `4->3`, `3->2`, `3->2`
-  pop effects. Partial Int-only or String-only admission is invalid.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy`
-  and `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_identity_owner.pgy`
-  -- the target-neutral collection SSA-value, ordered `Initialize`/`Get`/`Set`,
-  and observation columns carried by `GraphPlan`. Storage identity and
-  predecessor rows stay distinct from source names, and one digest seals the
-  complete value/operation/observation view.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_index_assignment_graph_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_index_assignment_source_owner.pgy`,
-  and `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_index_assignment_admission_owner.pgy`
-  -- coarse claim and exact admission of the currently bounded Int/String
-  indexed-assignment graph into the general collection plan. The claimant owns
-  rejection routing; only exact typed graph/use/ABI/length admission can
-  publish the plan.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_selection_owner.pgy`
-  -- the exclusive selection boundary between the embedded general collection
-  plan and the older String/ArrayInt plans. Once the indexed-assignment route
-  is claimed, invalid admission cannot retry either older plan.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_binding_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_expression_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_value_readiness_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_operation_readiness_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_observation_readiness_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_array_int_absence_owner.pgy`,
-  and `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_operation_shape_owner.pgy`
+  single-range shape has one possible typed receipt. A range's bound is the
+  header row's Int expression, admitted by the program route.
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_operation_shape_owner.pgy`
   -- graph-row binding and final plan validation. Every collection version,
   operation, observation, target operation row, ABI layout, and inactive legacy
   Array-operation handoff must be complete and exclusive before sealing.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_c_operation_owner.pgy`,
-  `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy`,
-  and `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy`
-  -- selected-target storage materialization and ordered operation projection
-  from the sealed collection plan only. They cannot read MIR JSON, call the
-  private three-field mutation helpers, or precompute final observations.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy`
-  and the ArrayInt pop admission/binding/identity/lookup/readiness owners --
-  bind the two Int effects to the pre-existing foreach collection identity.
-  C and LLVM mutate the same live length field later consumed by the loop and
-  final length observation; the private value-returning three-field helper is
-  not a legal projection.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_pop_c_operation_owner.pgy`
-  and `direct_mir_scalar_cfg_string_array_pop_llvm_operation_owner.pgy` --
-  decrement only the live String-array length in the canonical four-field
-  object. Data, capacity, allocator, and the popped source tail remain intact.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy`
-  -- source and bound-row shape, static literal bounds, duplicate collection /
-  global / operation claim rejection, and explicit empty-String value presence.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_source_fact_owner.pgy`,
-  `direct_mir_scalar_cfg_string_array_statement_source_owner.pgy`, and
-  `direct_mir_scalar_cfg_string_array_length_log_graph_owner.pgy` -- exact
-  persisted graph/use facts for one collection statement, including literal
-  `ArrayPush` and `Log(ToString(ArrayLength(collection)))`. Display text is not
-  an authority and missing graph facts fail closed.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_capacity_owner.pgy`,
-  `direct_mir_scalar_cfg_string_array_index_readiness_owner.pgy`, and
-  `direct_mir_scalar_cfg_string_array_push_graph_readiness_owner.pgy` --
-  operation-ordered length version, bounded final capacity, absent-index
-  sentinel, and post-plan push/length-log operation binding. A future push
-  count cannot be observed as the current length.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy`
-  and `direct_mir_scalar_cfg_string_array_entry_execution_owner.pgy` -- admit
-  only once-executed entry-block push prefixes after the collection definition
-  and before every length/read/set consumer. The entry owner rejects every
-  predecessor edge into block zero; loop, branch, late, reordered,
-  pre-definition, or re-entered pushes fail before target projection.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy`
-  and `direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy` -- exact
-  graph/use admission for range or while `ArrayLength`, indexed concat/Log,
-  and bounded static `ArraySet`. Display text, fixture names, block counts, and
-  capacity never own these decisions.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy`
-  and `direct_mir_scalar_cfg_string_array_index_safety_owner.pgy` -- collection
-  definition dominance, unique-predecessor true-edge guard dominance, and the
-  zero/start-plus-one nonnegative proof required before C `size_t` or LLVM
-  unsigned/inbounds projection.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_array_plan_binding_owner.pgy`,
-  `direct_mir_scalar_cfg_string_array_expression_owner.pgy`, and
-  `direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy` -- bind source
-  selector identities to exact ValueId/LocalRef and operation rows, then reject
-  stale row bounds or operation-kind drift before either backend publishes.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy`
-  -- the one type-directed join over local Int, local String, and admitted
-  returned-Int collection definitions. It exposes one collection receipt and
-  one companion element receipt to the planner.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_collection_owner.pgy`
-  -- exact collection-definition join. Local literals consume their own graph
-  and ABI; hoisted calls consume the admitted producer receipt and reject call
-  target, ABI, result-name, or hidden LocalRef drift.
 - `src/self_hosted/compiler/direct_mir/direct_mir_array_captured_abi_fact_owner.pgy` and
   `direct_mir_array_literal_spine_owner.pgy` -- element-neutral captured-array
   ABI and persisted array-literal spine predicates shared by the Int and String
@@ -5129,20 +4932,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   named LLVM carrier. They consume projected size, alignment, field names,
   aggregate spelling, element size/alignment, and field indices; they do not
   merge the private carrier name with public `PgyArray_String`.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_fact_owner.pgy`,
-  `direct_mir_scalar_cfg_foreach_set_owner.pgy`, and
-  `direct_mir_scalar_cfg_foreach_append_owner.pgy` -- immutable target-neutral
-  collection-iteration receipt, canonical primitive set storage, identity
-  digest, and exact lookup. A storage identity deduplicates repeated calls to
-  the same pure producer while each loop retains its own cursor. The receipt
-  owns data/length roles and elements; neither backend reconstructs the hidden
-  cursor protocol.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_local_owner.pgy` --
-  binds each foreach source binder to one scalar local slot while its
-  `Array<Int>` collection remains owned by the collection receipt.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy`
-  -- verifies receipt-to-CFG topology, condition identity, latch ownership, and
-  non-overlapping collection/cursor/binder identities after plan issue.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_fact_owner.pgy` --
   target-neutral per-range receipt schema, digest, and bound/unbound readiness.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_set_owner.pgy` -- one
@@ -5165,68 +4954,24 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   final C label/goto projection from the immutable scalar CFG plan. Operation
   spelling is delegated to the type-directed operation owner; MIR is never
   reread.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_c_operation_emission_owner.pgy`
-  and `direct_mir_scalar_cfg_string_c_materialization_owner.pgy` -- typed C
-  operation spelling and the bounded concat runtime block selected solely by
-  the sealed plan and runtime ABI receipt.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_c_collection_operation_emission_owner.pgy`
-  and `direct_mir_scalar_cfg_array_int_c_emission_owner.pgy` -- collection
-  operation dispatch and public four-field `PgyArray_Int` storage. A proven
-  bound is capacity while current length starts at zero; each dynamic value is
-  stored at `data[length]` before length advances. No runtime push or realloc
-  path is available in this bounded lane.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy`
-  -- stable C consumer names delegated to
-  `direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy`, which owns typed
-  Int/String storage, ABI-length cursor, binder load, latch increment, and
-  condition projection from the sealed receipts.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_c_materialization_owner.pgy`,
-  `direct_mir_scalar_cfg_string_array_c_storage_emission_owner.pgy`,
-  `direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy`, and
-  `direct_mir_scalar_cfg_string_array_c_emission_owner.pgy` -- canonical public
-  four-field C String-array storage, initial length/capacity materialization,
-  operation-time push store then length update, final length observation,
-  indexed reads, and static in-bounds set. A signed dynamic index is converted
-  to `size_t` only after the shared nonnegative plan proof.
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_c_materialization_owner.pgy`
+  -- the bounded concat runtime block selected solely by the sealed plan and
+  runtime ABI receipt.
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_c_materialization_owner.pgy`
+  -- canonical public four-field C String-array storage materialization.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_emission_owner.pgy` --
   final textual LLVM block projection from that same plan. Operation spelling
   is delegated to the type-directed operation owner; it owns no admission.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_operation_emission_owner.pgy`
-  and `direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy` -- typed
-  LLVM operation spelling, String constants/arrays, and the selected concat
-  helper body from sealed receipts.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_collection_operation_emission_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy`, and
-  `direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy` -- the LLVM view of
-  the same bounded Int receipt: one mutable four-field object, explicit
-  i64-to-i32 push truncation, i32-to-i64 read extension, current-length guard,
-  and store-before-length-update order. Backends consume no MIR JSON or graph.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy`
-  remains the immutable foreach value materializer. The direct indexed lane is
-  instead owned by `direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy`,
-  `direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy`, and
-  `direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy`: one mutable
-  four-field object owns data, current length, capacity, push stores, indexed
-  reads, and final length observation. No stale immutable aggregate snapshot
-  may own a post-push length. Unsigned `icmp ult` and inbounds GEP consume the
-  same nonnegative and owned-length receipt as C.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy`
-  -- stable LLVM consumer names delegated to
-  `direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy`, which owns
-  typed aggregate storage, ABI-indexed data/length access, binder load, cursor
-  update, and condition projection from the same receipts.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_emission_owner.pgy` and
-  `direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy` -- responsibility-
-  named scalar local and LLVM terminator spelling owners extracted to preserve
-  the existing emitter hard caps; they own no semantic admission policy. C
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy`
+  -- the selected LLVM concat helper body from sealed receipts.
+- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_local_emission_owner.pgy`
+  -- responsibility-named scalar local spelling owner; it owns no semantic
+  admission policy. C
   local spelling consumes the same admitted Slice ABI rows already used by the
   LLVM local owner, so a control-flow program cannot lose Slice representation
   merely by selecting C first.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_llvm_operand_owner.pgy` --
   LLVM spelling for sealed ValueId/LocalRef operands.
-- `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_projection_owner.pgy` --
-  selected-target boundary joining the one scalar CFG plan with the owned
-  formatted-print ABI and C/LLVM text consumer.
 - `src/self_hosted/compiler/direct_mir/direct_mir_scalar_graph_admission_owner.pgy` --
   backend-neutral validation of the bounded literal/local/arithmetic/direct-
   call graph facts consumed by direct projection. Its name-aware common

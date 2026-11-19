@@ -26,21 +26,6 @@ func DirectMirScalarCfgExpressionSequenceForField(
     );
 }
 
-func DirectMirScalarCfgNoCallTargets(
-    ref sequence: MirExpressionGraphSequence
-) -> Bool {
-    var row: Int = 0;
-    while row < ArrayLength(sequence.arena.call_target_kinds) {
-        if sequence.arena.call_target_kinds[row] !=
-                SemanticCallTargetNone() ||
-            sequence.arena.call_target_names[row] != "" {
-            return false;
-        }
-        row = row + 1;
-    }
-    return true;
-}
-
 func DirectMirScalarCfgCanonicalInt(value: String) -> Bool {
     return DirectMirScalarIntLiteralInRange(value) &&
         ToString(ToInt(value)) == value;

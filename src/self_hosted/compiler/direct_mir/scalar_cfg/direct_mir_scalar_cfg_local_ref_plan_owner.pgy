@@ -1,12 +1,6 @@
 // Target-neutral local storage identities for the scalar CFG plan.
 
 import "direct_mir_scalar_cfg_iteration_local_owner.pgy";
-import "direct_mir_scalar_cfg_foreach_local_owner.pgy";
-import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
-import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy";
-import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
 import "direct_mir_scalar_cfg_local_inventory_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
@@ -47,10 +41,6 @@ func DirectMirScalarCfgValueLocalRow(names: Array<String>, wanted: String) -> In
 func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex, ref use_facts: MirRoutineInstructionUseFacts,
     ref wire: DirectMirScalarCfgWireLocalRefs, ref ranges: DirectMirScalarCfgRangeFactSet,
-    ref foreach_sources: DirectMirScalarCfgForEachFactSet,
-    ref string_arrays: DirectMirScalarCfgStringArrayPlan,
-    ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
-    ref collections: DirectMirScalarCfgCollectionPlan,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref indexed_assignments:
@@ -91,15 +81,7 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
               !collection_mutation_receiver)) {
             Die("direct MIR scalar CFG instruction LocalRef coverage is invalid");
         }
-        if result != "" && !DirectMirScalarCfgForEachOwnsDefinition(
-            foreach_sources, global
-        ) && !DirectMirScalarCfgStringArrayOwnsDefinition(
-            string_arrays, global
-        ) && !DirectMirScalarCfgArrayIntOwnsDefinition(
-            array_int_program, global
-        ) && !DirectMirScalarCfgCollectionOwnsDefinition(
-            collections, global
-        ) {
+        if result != "" {
             if kind != "def" && kind != "phi" { return empty; }
             var local_name: String = index.instruction_facts.arg0s[instruction];
             if kind == "phi" {
@@ -189,12 +171,6 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
     }
     if !DirectMirScalarCfgAppendIterationElementValues(ranges, local_ref_kinds, local_ref_syntax_ids,
             value_names, value_local_rows, value_definition_blocks) { Die("direct MIR scalar CFG iteration element value is invalid"); }
-    if !DirectMirScalarCfgAppendForEachLocals(
-        index, wire, foreach_sources, local_names, local_ref_kinds,
-        local_ref_value_ids, local_ref_syntax_ids
-    ) {
-        Die("direct MIR scalar CFG foreach LocalRef binding is invalid");
-    }
     if !DirectMirScalarCfgAppendMatchBindingLocals(
         admitted, index, logical_record, referenced_enum, local_names,
         local_ref_kinds, local_ref_value_ids, local_ref_syntax_ids
@@ -214,8 +190,7 @@ func DirectMirScalarCfgLocalRefsReady(
     ref value_names: Array<String>, ref value_local_rows: Array<Int>,
     ref value_definition_blocks: Array<Int>, block_count: Int,
     ref routines: DirectMirScalarCfgRoutinePartitionFact,
-    ref ranges: DirectMirScalarCfgRangeFactSet,
-    ref foreach_facts: DirectMirScalarCfgForEachFactSet
+    ref ranges: DirectMirScalarCfgRangeFactSet
 ) -> Bool {
     let count: Int = ArrayLength(local_names);
     let value_count: Int = ArrayLength(value_names);
@@ -243,8 +218,7 @@ func DirectMirScalarCfgLocalRefsReady(
                 (kind == DirectMirScalarCfgLocalRefValue() &&
                     (local_ref_value_ids[row] == "" ||
                      local_ref_syntax_ids[row] >= 0)) ||
-                ((kind == DirectMirScalarCfgLocalRefIteration() ||
-                  kind == DirectMirScalarCfgLocalRefForEach()) &&
+                (kind == DirectMirScalarCfgLocalRefIteration() &&
                     (local_ref_syntax_ids[row] < 0 ||
                      (local_ref_value_ids[row] != "" &&
                       local_ref_value_ids[row] != Concat(
@@ -262,7 +236,6 @@ func DirectMirScalarCfgLocalRefsReady(
                             local_ref_syntax_ids[row])) ||
                 (kind != DirectMirScalarCfgLocalRefValue() &&
                  kind != DirectMirScalarCfgLocalRefIteration() &&
-                 kind != DirectMirScalarCfgLocalRefForEach() &&
                  kind != DirectMirScalarCfgLocalRefIterationCursor() &&
                  kind != DirectMirScalarCfgLocalRefMatchBinding()) {
                 return false;
@@ -299,7 +272,5 @@ func DirectMirScalarCfgLocalRefsReady(
     return DirectMirScalarCfgIterationLocalsReady(
         local_names, local_ref_kinds, local_ref_value_ids,
         local_ref_syntax_ids, ranges
-    ) && DirectMirScalarCfgForEachLocalsReady(
-        local_names, local_ref_kinds, local_ref_syntax_ids, foreach_facts
     );
 }
