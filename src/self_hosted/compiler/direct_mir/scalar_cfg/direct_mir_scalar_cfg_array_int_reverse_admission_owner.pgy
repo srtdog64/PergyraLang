@@ -9,6 +9,7 @@ import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
 import "../direct_mir_array_int_abi_fact_owner.pgy";
 import "../../../mir_lower/abi_layout_admission_fact_owner.pgy";
 import "../../../mir_lower/routine_definition_dominance_fact_owner.pgy";
+import "../../../hir/assignment_operation_owner.pgy";
 
 func DirectMirScalarCfgArrayIntReverseFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -43,7 +44,8 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
         let call: DirectMirScalarCfgArrayIntReverseCallGraphFact =
             DirectMirScalarCfgArrayIntReverseCallGraphFactFrom(graph);
         if call.valid {
-            if reverse_global >= 0 || capture.name != "ssa-def" ||
+            if reverse_global >= 0 ||
+                !IsSome(BindingDeclarationModeFromMirName(capture.name)) ||
                 admitted.routines.instruction_source_types[global] !=
                     "AST_LET_DECL" || capture.arg1 != "" ||
                 capture.abi_type_name != CompilerAbiLayoutArrayIntTypeName() ||

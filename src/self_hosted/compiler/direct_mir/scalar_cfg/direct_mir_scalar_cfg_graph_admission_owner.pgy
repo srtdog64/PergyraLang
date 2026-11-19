@@ -230,7 +230,8 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                 let string_access: Int = DirectMirScalarCfgStringArrayAccessRowAtGlobal(
                     string_arrays, global_row
                 );
-                if !scalar.valid || scalar.name != "ssa-def" ||
+                if !scalar.valid || (scalar.name != "ssa-def" &&
+                    (source != "AST_LET_DECL" || !IsSome(BindingDeclarationModeFromMirName(scalar.name)))) ||
                     result_value < 0 || scalar.abi_type_name !=
                         type_plan.value_types[result_value] ||
                     !expression.valid ||

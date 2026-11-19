@@ -11,6 +11,7 @@ import "../../mir_lower/expression_graph_sequence_owner.pgy";
 import "../../mir_lower/routine_fact_index_owner.pgy";
 import "../../mir_lower/routine_instruction_use_fact_owner.pgy";
 import "../../mir_lower/ssa_identity_owner.pgy";
+import "../../hir/assignment_operation_owner.pgy";
 
 struct DirectMirHelloProjection {
     let valid: Bool;
@@ -270,10 +271,12 @@ func DirectMirScalarDefinitionLiteral(
     ref instruction: JsonObjectFactTable,
     expected_id: String, local_name: String, result_name: String
 ) -> String {
+    let name: Option<String> = JsonObjectFactStringFieldOpt(instruction, "name");
     if !JsonObjectFactTableReady(instruction) ||
         !DirectMirObjectNumberEquals(instruction, "id", expected_id) ||
         !JsonObjectFactStringFieldEquals(instruction, "kind", "def") ||
-        !JsonObjectFactStringFieldEquals(instruction, "name", "ssa-def") ||
+        !IsSome(name) ||
+        !IsSome(BindingDeclarationModeFromMirName(UnwrapOption(name))) ||
         !MirSsaNameMatches(result_name, local_name, false) ||
         !JsonObjectFactStringFieldEquals(instruction, "result", result_name) ||
         !JsonObjectFactStringFieldEquals(instruction, "arg0", local_name) ||

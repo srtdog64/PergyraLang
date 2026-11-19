@@ -13,13 +13,13 @@ admitting a returned call-result row across branches. The semantic plan is
 retired before MIR publication; changing its `retired` class alone would trust
 forgeable input. The reached owner/consumer map and falsifiers are in the
 [active plan](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
-2026-11-19: the per-shape collection program route is deleted; the general
-emitter leaks that program's `ToString` results and returned `Array<Int>`
-([run record](../evidence/2026-11-19_collection_program_route_deleted.md)).
-Typed reverse, retaining-alias refusals and isolated C/LLVM heap checks pass
-on the v5 driver. The unchanged one-process full DRV-2 bound fails with OOM,
-exit 134 and no C artifact ([measurements](measurements.md)).
-Nonempty record-field retirement still leaks 32 bytes per backend (S2).
+The general emitter leaks the deleted collection route's `ToString` results
+and returned `Array<Int>` ([run record](../evidence/2026-11-19_collection_program_route_deleted.md));
+nonempty record-field retirement leaks 32 bytes per backend (S2). The
+one-process full DRV-2 bound fails with OOM, exit 134 and no C artifact
+([measurements](measurements.md)). Default LLVM runs 7 programs unlike native:
+six `function_param_flow_summary/*_landed_valid` (wrong values, an abort,
+garbage String bytes) and `log_trailing_newline` ([sweep](../evidence/2026-11-19_scalar_cfg_mutable_declaration.md)).
 
 ## Objective card
 
