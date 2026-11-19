@@ -5,14 +5,14 @@
 #   so the random capability and the generator are the native ones;
 # - SetSize reads a Set<String> (its C program includes pgy_runtime.h, whose
 #   pgy_bool_to_string then serves ToString(Bool));
-# - a range loop may stop at a literal bound.
+# - a range loop may stop at a literal bound or a let value (the general
+#   route reads any Int bound from the header row since 2026-11-19).
 # Each positive runs on native C/LLVM, the default C/LLVM routes and the
 # general emitter's C backend with the same stdout and exit status; the
-# default LLVM route refused all of them before. Each neighbour stays refused
-# by the default LLVM route while native admits it:
-# - ArrayMap with a declared function (no callable-argument row yet);
-# - a range loop that stops at a let value (no typed bound identity yet);
-# and one MIR mutation: SeedRandom given a String argument.
+# default LLVM route refused all of them before. The neighbour stays refused
+# by the default LLVM route while native admits it: ArrayMap with a declared
+# function (no callable-argument row yet); and one MIR mutation: SeedRandom
+# given a String argument.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -228,10 +228,10 @@ expect_mutation_refused() {
 expect_run random_draw $'true\ntrue\n0\ntrue' 0
 expect_run set_size $'true\n3\n0' 0
 expect_run literal_range '206' 0
+expect_run let_range '14' 0
 
 expect_direct_refusal array_map '6'
-expect_direct_refusal let_range '14'
 
 expect_mutation_refused random_draw seed-random-string-argument "stage=builtin-call"
 
-echo "[$LABEL] 3 programs equal on five legs; 2 neighbours and 1 MIR mutation refused: PASS"
+echo "[$LABEL] 4 programs equal on five legs; 1 neighbour and 1 MIR mutation refused: PASS"
