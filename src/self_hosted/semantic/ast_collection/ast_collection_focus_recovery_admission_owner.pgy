@@ -207,6 +207,9 @@ func SemanticAstCollectionFocusRecoverySelectionCurrent(
                 let nominal: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_fact.nominal_base_name);
                 if !IsSome(nominal) || !IsSome(SemanticAstNominalConstructorFieldRowForName(constructors, UnwrapOption(nominal), field)) { return false; }
             }
+        } else if StartsWith(key, "w:") {
+            // A formal written in place (exclusive value growth owner).
+            if !MapHas(formals, Substring(key, 2, StringLength(key) - 2)) { return false; }
         } else if !MapHas(formals, key) { return false; }
         row = row + 1;
     }

@@ -1,0 +1,88 @@
+// An in-place write (ArraySet, ArraySort, ArrayReverse, or a hand-off to an
+// inout formal that writes in place) through a member alias, a member path
+// or a local holding a by-value formal's storage writes the caller's storage.
+// Native copies the alias where it is taken when the routine reads the
+// formal again (decision 2026-11-12_unwritten_field_copy_is_a_copy), and
+// otherwise counts the write as a write of the formal, which moves it
+// (decisions 2026-10-21_array_sort_permutes_in_place and
+// 2026-10-22_moved_argument_used_again_is_copied). This owner answers the
+// second case: the formal is by-value, Clone copies it whole, and no
+// statement of the routine other than the write and the aliases' own
+// definitions names it. Every other write keeps the sharing the analysis
+// admitted before.
+import "ast_collection_exclusive_value_field_read_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+
+func SemanticAstCollectionExclusiveWriteThroughMovesFormal(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref origins: Array<Int>, ref dep_locals: Array<Int>, function_id: Int, syntax_id: Int, formal_id: Int
+) -> Bool {
+    let formal: Option<Int> = SemanticAstCollectionExclusiveFormalIndex(signatures, function_id, formal_id);
+    if !IsSome(formal) || signatures.param_modes[UnwrapOption(formal)] != 0 ||
+        !SemanticAstCollectionExclusiveCloneCopiesWhole(constructors, signatures.param_types[UnwrapOption(formal)], 0) {
+        return false;
+    }
+    var surface: Int = 0;
+    while surface < ArrayLength(surfaces.node_ids) {
+        let statement: Int = surfaces.node_ids[surface];
+        // An alias's own definition names the formal; it is the copy, not a read.
+        let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, statement);
+        var alias_definition: Bool = IsSome(declared) && UnwrapOption(declared) < ArrayLength(origins) &&
+            origins[UnwrapOption(declared)] == SemanticAstCollectionOriginMemberMove();
+        var dependency: Int = 0;
+        while IsSome(declared) && dependency < ArrayLength(dep_locals) {
+            if dep_locals[dependency] == statement { alias_definition = true; }
+            dependency = dependency + 1;
+        }
+        if surfaces.function_node_ids[surface] == function_id && statement != syntax_id && !alias_definition {
+            var lane: Int = 0;
+            while lane < 3 {
+                let slot: Int = surface * 3 + lane;
+                if slot < ArrayLength(surfaces.expression_graph.has_roots) && surfaces.expression_graph.has_roots[slot] {
+                    let root: Int = surfaces.expression_graph.roots[slot];
+                    let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+                    var node: Int = root + 1;
+                    if IsSome(start) { node = UnwrapOption(start); }
+                    while node <= root {
+                        if node < ArrayLength(surfaces.expression_graph.arena.identities.binding_syntax_ids) &&
+                            surfaces.expression_graph.arena.identities.binding_syntax_ids[node] == formal_id {
+                            return false;
+                        }
+                        node = node + 1;
+                    }
+                }
+                lane = lane + 1;
+            }
+        }
+        surface = surface + 1;
+    }
+    return true;
+}
+
+// The root a write goes through moves: a formal that moves, or a local whose
+// every held formal moves.
+func SemanticAstCollectionExclusiveWriteThroughMovesRoot(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref origins: Array<Int>, ref dep_locals: Array<Int>, ref dep_formals: Array<Int>,
+    function_id: Int, syntax_id: Int, through: Int
+) -> Bool {
+    if SemanticAstCollectionExclusiveWriteThroughMovesFormal(signatures, constructors, locals, surfaces,
+            origins, dep_locals, function_id, syntax_id, through) {
+        return true;
+    }
+    var held: Bool = false;
+    var row: Int = 0;
+    while row < ArrayLength(dep_locals) && row < ArrayLength(dep_formals) {
+        if dep_locals[row] == through {
+            if !SemanticAstCollectionExclusiveWriteThroughMovesFormal(signatures, constructors, locals, surfaces,
+                    origins, dep_locals, function_id, syntax_id, dep_formals[row]) {
+                return false;
+            }
+            held = true;
+        }
+        row = row + 1;
+    }
+    return held;
+}

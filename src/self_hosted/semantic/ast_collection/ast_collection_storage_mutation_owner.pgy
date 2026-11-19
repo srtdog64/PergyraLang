@@ -18,3 +18,20 @@ func SemanticAstCollectionStorageMutationKind(
         builtin == "QueuePush" || builtin == "QueuePop" { return 3; }
     return 0;
 }
+
+// In-place element writes: ArraySet replaces an element, ArraySort and
+// ArrayReverse permute the receiver's elements (decision
+// 2026-10-21_array_sort_permutes_in_place). They retire no buffer, but every
+// other value that shares the storage sees them (decision
+// 2026-10-21_local_copies_refuse_the_other_side_after_a_change), so a formal
+// written this way moves its argument and a copy of the receiver is taken
+// before the write when the other side is read again.
+func SemanticAstCollectionStorageInPlaceWrite(
+    ref graph: SemanticExpressionGraphFacts, call_node: Int
+) -> Bool {
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(graph, call_node);
+    if !IsSome(name) { return false; }
+    let builtin: String = UnwrapOption(name);
+    if builtin != "ArraySet" && builtin != "ArraySort" && builtin != "ArrayReverse" { return false; }
+    return SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, builtin);
+}

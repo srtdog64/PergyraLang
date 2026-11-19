@@ -37,6 +37,8 @@ DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/p
 NO_ROW="direct MIR Array<String> cleanup requires an admitted ownership row"
 SHARED="direct MIR Array<String> cleanup refuses storage another holder still has"
 MEMBER_ALIAS="direct MIR Array<String> alias of a parameter member grows storage the member still names"
+# A compiler Clone the source analysis selected that MIR does not carry.
+CLONE_LANDING="direct MIR emission cannot carry the 1 compiler Clone landing(s)"
 NO_HANDOFF="direct MIR Array<String> constructor input has no hand-off fact"
 LENT_INOUT="owned local lent to a ref formal is released while an inout argument of the same call may hold its Strings"
 # The MIR reader refuses the routine whose member move claims a hand-off.
@@ -415,7 +417,10 @@ refuse alias_owned_element --emit-llvm ll "$SHARED"
 # only the LLVM leg reaches the direct MIR cleanup.
 refuse constructor_twice --emit-llvm ll "$NO_HANDOFF"
 refuse constructor_loop --emit-llvm ll "$NO_HANDOFF"
-refuse member_alias --emit-llvm ll "$MEMBER_ALIAS"
+# member_alias's unassigned focus part is a Clone landing at its definition
+# (decision 2026-11-12), which MIR does not carry: the source route stops
+# there. The backend's own alias guard is reached from the MIR below.
+refuse member_alias --emit-llvm ll "$CLONE_LANDING"
 refuse lent_beside_inout --emit-llvm ll "$LENT_INOUT"
 refuse record_then_return --emit-llvm ll "$TAKEN"
 refuse record_twice --emit-llvm ll "$TAKEN"
@@ -524,6 +529,18 @@ for backend in c llvm; do
             fail "$forged MIR was refused for another reason on $backend: $(head -3 "$WORK_DIR/$forged.$backend.log")"
     done
 done
+
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/member_alias.pgy" \
+    -o "$WORK_REL/member_alias.mir.json") >"$WORK_DIR/member_alias.mir.log" 2>&1 ||
+    fail "self-host MIR producer rejected member_alias"
+set +e
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm "$WORK_REL/member_alias.mir.json" \
+    -o "$WORK_REL/member_alias.direct.ll") >"$WORK_DIR/member_alias.direct.log" 2>&1
+rc=$?
+set -e
+[[ "$rc" -ne 0 && ! -e "$WORK_DIR/member_alias.direct.ll" ]] || fail "member_alias MIR was admitted by the direct backend"
+grep -Fq "$MEMBER_ALIAS" "$WORK_DIR/member_alias.direct.log" ||
+    fail "member_alias MIR was refused for another reason: $(head -3 "$WORK_DIR/member_alias.direct.log")"
 
 # The source spelling is deliberately reused in disjoint scopes. The wire
 # owns two declaration identities; the transition join must keep them apart.

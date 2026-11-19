@@ -11,7 +11,7 @@ import "../scalar_program/direct_mir_scalar_program_llvm_logical_record_assignme
 import "../direct_mir_llvm_text_format_owner.pgy";
 import "../../../mir/runtime_call_abi_fact_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy";
-import "direct_mir_scalar_cfg_program_llvm_log_operation_owner.pgy";
+import "direct_mir_scalar_cfg_program_llvm_log_string_owner.pgy";
 import "../../mir_compound_assignment_llvm_owner.pgy";
 func DirectMirScalarCfgProgramLlvmOperation(
     ref plan: DirectMirScalarCfgGraphPlan, ref lifetime: DirectMirOwnedLocalLifetimeFact, routine: Int, operation: Int,
@@ -165,7 +165,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
         if llvm_type == "i1" { storage_align = "1"; }
         return output + ", align " + storage_align + "\n";
     }
-    return DirectMirScalarCfgProgramLlvmLogOperation(
+    return DirectMirScalarCfgProgramLlvmLogLineOperation(
         plan, operation, formatted_print, int_line_format,
         string_line_format, expression_row, expression, output);
 }

@@ -36,12 +36,12 @@ func DirectMirCollectionOwnershipOperationRequiresValueCopy(
     ref expressions: DirectMirScalarProgramExpressionSet,
     operation: Int
 ) -> Bool {
-    return operation >= 0 &&
-        operation < ArrayLength(operation_expression_rows) &&
-        DirectMirScalarProgramCollectionOwnershipOperationEffect(
-            ownership, operation) == 1 &&
-        DirectMirCollectionOwnershipValueCopySourceReady(
-            expressions, operation_expression_rows[operation]);
+    if operation < 0 || operation >= ArrayLength(operation_expression_rows) { return false; }
+    // An owned String set (effect 4) stores a copy of every value, as native
+    // pgy_array_set_owned_String does: the array owns its elements.
+    let effect: Int = DirectMirScalarProgramCollectionOwnershipOperationEffect(ownership, operation);
+    return effect == 4 || (effect == 1 && DirectMirCollectionOwnershipValueCopySourceReady(
+        expressions, operation_expression_rows[operation]));
 }
 
 func DirectMirCollectionOwnershipValueCopyReached(

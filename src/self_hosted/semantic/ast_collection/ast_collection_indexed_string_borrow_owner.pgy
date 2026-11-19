@@ -12,6 +12,7 @@ import "../ast_signature_fact_owner.pgy";
 
 import "ast_collection_indexed_string_borrow_state_owner.pgy";
 import "ast_collection_indexed_string_borrow_retirement_owner.pgy";
+import "ast_collection_indexed_string_borrow_store_owner.pgy";
 
 func SemanticAstIndexedStringBorrowUseAtEvent(
     artifact: AstTreeArtifact,
@@ -111,7 +112,7 @@ func SemanticAstIndexedStringBorrowCompleteValue(
         }
     }
     if target_row < 0 || target_row >= ArrayLength(inferred_types) {
-        return true;
+        return SemanticAstIndexedStringBorrowCompleteStore(artifact, locals, inferred_types, surfaces, assignments, definitions, storage, current_definitions, state, root_slot);
     }
     let root: Int = surfaces.expression_graph.roots[root_slot];
     if inferred_types[target_row] != "String" {

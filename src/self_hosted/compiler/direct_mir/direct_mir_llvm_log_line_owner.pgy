@@ -1,0 +1,45 @@
+// LLVM text for Log of a String, with the runtime's line rule
+// (codegen/runtime_abi/log_line_text_owner.pgy): the value is written as it
+// is, then a line break unless it already ends with one; a null value is
+// written as "(null)", as pgy_log_string does.
+//
+// The written length is the formatted print's own result, so the module
+// needs no strlen declaration of its own.
+import "../../codegen/runtime_abi/log_line_text_owner.pgy";
+
+func DirectMirLlvmLogLineFunctionName() -> String {
+    return "@pgy.log.line.string";
+}
+
+func DirectMirLlvmLogLineDefinition(formatted_print_symbol: String) -> String {
+    if formatted_print_symbol == "" {
+        Die("direct MIR LLVM Log line rule requires the formatted print symbol");
+    }
+    var output: String = "@.pgy.log.line.text = private unnamed_addr constant [3 x i8] c\"%s\\00\", align 1\n";
+    output = Concat(output, "@.pgy.log.line.break = private unnamed_addr constant [2 x i8] c\"\\0A\\00\", align 1\n");
+    output = Concat(output, "@.pgy.log.line.null = private unnamed_addr constant [7 x i8] c\"(null)\\00\", align 1\n\n");
+    output = Concat(output, Concat("define internal void ", Concat(
+        DirectMirLlvmLogLineFunctionName(), "(ptr %value) {\nentry:\n")));
+    output = Concat(output, "  %is.null = icmp eq ptr %value, null\n");
+    output = Concat(output, "  %text = select i1 %is.null, ptr @.pgy.log.line.null, ptr %value\n");
+    output = Concat(output, Concat("  %written = call i32 (ptr, ...) @", Concat(
+        formatted_print_symbol, "(ptr @.pgy.log.line.text, ptr %text)\n")));
+    output = Concat(output, "  %nonempty = icmp sgt i32 %written, 0\n");
+    output = Concat(output, "  br i1 %nonempty, label %last, label %break\n\nlast:\n");
+    output = Concat(output, "  %last.index = sub i32 %written, 1\n");
+    output = Concat(output, "  %last.offset = sext i32 %last.index to i64\n");
+    output = Concat(output, "  %last.ptr = getelementptr inbounds i8, ptr %text, i64 %last.offset\n");
+    output = Concat(output, "  %last.char = load i8, ptr %last.ptr, align 1\n");
+    output = Concat(output, "  %ended = icmp eq i8 %last.char, 10\n");
+    output = Concat(output, "  br i1 %ended, label %done, label %break\n\nbreak:\n");
+    output = Concat(output, Concat("  %break.written = call i32 (ptr, ...) @", Concat(
+        formatted_print_symbol, "(ptr @.pgy.log.line.break)\n")));
+    output = Concat(output, "  br label %done\n\ndone:\n  ret void\n}\n\n");
+    return output;
+}
+
+func DirectMirLlvmLogLineCall(value: String) -> String {
+    if value == "" { Die("direct MIR LLVM Log line value is missing"); }
+    return Concat("  call void ", Concat(DirectMirLlvmLogLineFunctionName(),
+        Concat("(ptr ", Concat(value, ")\n"))));
+}

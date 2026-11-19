@@ -27,8 +27,7 @@ func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
             TextBuilderAppend(output, "  ${value}.local = alloca ${llvm_type}\n");
             TextBuilderAppend(output, "  store ${llvm_type} ${value}, ptr ${value}.local\n");
         }
-        if plan.routines.parameter_carriages[row] == "value" &&
-            DirectMirScalarProgramReadonlyArrayTypeSupported(type_name) {
+        if DirectMirScalarProgramArrayValueParameterSlotAt(plan.routines, row) {
             var storage_align: Int = 0;
             if type_name == CompilerAbiLayoutArrayIntTypeName() {
                 if !IsSome(int_projection) { Die("direct MIR LLVM value Array<Int> projection is missing"); }

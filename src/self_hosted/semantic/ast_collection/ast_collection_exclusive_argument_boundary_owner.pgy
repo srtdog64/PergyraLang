@@ -262,7 +262,10 @@ func SemanticAstCollectionExclusiveSiblingInoutGrows(
             }
             let there: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
                 artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, sibling.argument_node);
-            if mode == 1 && MapHas(mutating, ToString(formal.syntax_id)) &&
+            // A sibling inout formal the callee grows or writes in place
+            // (decision 2026-10-23_by_value_argument_beside_its_inout_is_copied).
+            if mode == 1 && (MapHas(mutating, ToString(formal.syntax_id)) ||
+                    MapHas(mutating, Concat("w:", ToString(formal.syntax_id)))) &&
                 SemanticAstCollectionExclusivePlacesOverlap(surfaces, here, there) { return true; }
         }
         node = node + 1;
@@ -299,8 +302,8 @@ func SemanticAstCollectionExclusiveArgumentBoundary(
         signatures.param_modes[signatures.param_starts[inout_formal.signature_row] + inout_formal.ordinal] == 1 &&
         SemanticAstCollectionExclusiveWriteBackCopy(artifact, signatures, locals, inferred_types,
             surfaces, assignments, function_id, locals.node_ids[binding.row]) { return ""; }
-    // A by-value argument beside an inout argument the callee grows over the
-    // same storage takes a copy where the call takes it, or is refused.
+    // A by-value argument beside an inout argument the callee grows or writes
+    // over the same storage takes a copy where the call takes it, or is refused.
     let argument_formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
     var argument_mode: Int = -1;

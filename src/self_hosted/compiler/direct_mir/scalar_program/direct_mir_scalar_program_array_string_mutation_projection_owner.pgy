@@ -2,7 +2,6 @@
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "../../../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../../../codegen/runtime_abi/collection_runtime_owner.pgy";
-
 func DirectMirScalarProgramCArrayStringSetMaterialization(
     ref fact: DirectMirScalarProgramArrayStringAbiFact,
     projection_opt: Option<DirectMirArrayStringAbiProjection>
@@ -35,12 +34,22 @@ func DirectMirScalarProgramLlvmArrayStringSetMaterialization(
     ref fact: DirectMirScalarProgramArrayStringAbiFact,
     projection_opt: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
+    return DirectMirScalarProgramLlvmArrayStringSetHelper(
+        fact, projection_opt, "@pgy_as_set", false);
+}
+
+func DirectMirScalarProgramLlvmArrayStringSetHelper(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>,
+    symbol: String, retire_replaced: Bool
+) -> String {
     let projection: DirectMirArrayStringAbiProjection =
         DirectMirScalarProgramLlvmArrayStringMutationProjection(
             fact, projection_opt);
     let aggregate: String = projection.llvm_aggregate_type;
     let align: String = ToString(projection.storage.align);
-    var output: String = "define internal void @pgy_as_set(ptr %array, i64 %index, ptr %value) {\nentry:\n  %length.ptr = getelementptr inbounds ";
+    var output: String = Concat("define internal void ", Concat(symbol,
+        "(ptr %array, i64 %index, ptr %value) {\nentry:\n  %length.ptr = getelementptr inbounds "));
     output = Concat(output, Concat(aggregate, ", ptr %array, i32 0, i32 "));
     output = Concat(output, Concat(ToString(projection.length_index),
         Concat("\n  %length = load i64, ptr %length.ptr, align ", align)));
@@ -48,6 +57,13 @@ func DirectMirScalarProgramLlvmArrayStringSetMaterialization(
     output = Concat(output, Concat(aggregate, ", ptr %array, i32 0, i32 "));
     output = Concat(output, Concat(ToString(projection.data_index),
         Concat("\n  %data = load ptr, ptr %data.ptr, align ", align)));
-    output = Concat(output, Concat("\n  %slot = getelementptr inbounds ptr, ptr %data, i64 %index\n  store ptr %value, ptr %slot, align ", align));
+    output = Concat(output, "\n  %slot = getelementptr inbounds ptr, ptr %data, i64 %index");
+    if retire_replaced {
+        output = Concat(output, Concat("\n  %replaced = load ptr, ptr %slot, align ", align));
+    }
+    output = Concat(output, Concat("\n  store ptr %value, ptr %slot, align ", align));
+    if retire_replaced {
+        output = Concat(output, "\n  call void @free(ptr %replaced)");
+    }
     return Concat(output, "\n  ret void\n}\n\n");
 }

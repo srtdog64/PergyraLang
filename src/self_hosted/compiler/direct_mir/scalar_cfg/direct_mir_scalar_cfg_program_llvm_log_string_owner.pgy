@@ -1,0 +1,67 @@
+// Log of a String in the scalar program's LLVM routines. The value goes
+// through the runtime line rule (direct_mir_llvm_log_line_owner.pgy), not a
+// fixed trailing line break; a String literal the Log writes gets its own
+// global holding the literal's Log text (log_line_text_owner.pgy). Other
+// types keep the formatted-print operation.
+import "direct_mir_scalar_cfg_program_llvm_log_operation_owner.pgy";
+import "../direct_mir_llvm_log_line_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_llvm_string_literal_owner.pgy";
+
+func DirectMirScalarCfgProgramLlvmLogStringRoot(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> Int {
+    if plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionLog() { return -1; }
+    let row: Int = plan.program.operation_expression_rows[operation];
+    if row < 0 || row >= ArrayLength(plan.program.expressions.graph_roots) { return -1; }
+    let root: Int = plan.program.expressions.graph_roots[row];
+    if root < 0 || root >= ArrayLength(plan.program.expressions.node_types) ||
+        plan.program.expressions.node_types[root] != CompilerAbiLayoutStringTypeName() { return -1; }
+    return root;
+}
+
+// The line rule's function and one global per String literal a Log writes.
+func DirectMirScalarCfgProgramLlvmLogStringPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan, formatted_print_symbol: String
+) -> String {
+    var output: String = "";
+    var logs_string: Bool = false;
+    var emitted: HashMap<String, Int> = MapNew();
+    var operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        let root: Int = DirectMirScalarCfgProgramLlvmLogStringRoot(plan, operation);
+        if root >= 0 {
+            logs_string = true;
+            if plan.program.expressions.node_kinds[root] == DirectMirScalarProgramExprStringLiteral() &&
+                !MapHas(emitted, ToString(root)) {
+                MapSet(emitted, ToString(root), 1);
+                let text: String = LogLineLiteralText(plan.program.expressions.node_literals[root]);
+                let size: String = ToString(StringLength(text) + 1);
+                let payload: String = DirectMirScalarProgramLlvmStringLiteralPayload(text);
+                output = Concat(output, Concat("@pgy.log.literal.", Concat(ToString(root), Concat(
+                    " = private unnamed_addr constant [", Concat(size, Concat(" x i8] c\"", Concat(payload, "\\00\"\n")))))));
+            }
+        }
+        operation = operation + 1;
+    }
+    if logs_string { output = Concat(output, DirectMirLlvmLogLineDefinition(formatted_print_symbol)); }
+    return output;
+}
+
+func DirectMirScalarCfgProgramLlvmLogLineOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, string_line_format: String,
+    expression_row: Int, expression: DirectMirScalarProgramLlvmExpression,
+    instructions: String
+) -> String {
+    let root: Int = DirectMirScalarCfgProgramLlvmLogStringRoot(plan, operation);
+    if root < 0 {
+        return DirectMirScalarCfgProgramLlvmLogOperation(plan, operation, formatted_print,
+            int_line_format, string_line_format, expression_row, expression, instructions);
+    }
+    var value: String = expression.value;
+    if plan.program.expressions.node_kinds[root] == DirectMirScalarProgramExprStringLiteral() {
+        value = Concat("@pgy.log.literal.", ToString(root));
+    }
+    return Concat(instructions, DirectMirLlvmLogLineCall(value));
+}

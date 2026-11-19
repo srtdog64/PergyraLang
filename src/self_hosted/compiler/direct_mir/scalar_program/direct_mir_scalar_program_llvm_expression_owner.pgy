@@ -20,6 +20,7 @@ import "direct_mir_scalar_program_llvm_hashmap_owner.pgy";
 import "direct_mir_scalar_program_llvm_slice_expression_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
+import "direct_mir_scalar_program_llvm_parameter_read_storage_owner.pgy";
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
     let instructions: String;
@@ -222,12 +223,13 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
                 node_instructions = node_instructions + "  ${result} = load ${scalar_type}, ptr %pgy.param.${ordinal}.local\n";
             } else if (routines.parameter_carriages[parameter_row] ==
                         "value-result" ||
+                       DirectMirScalarProgramArrayValueParameterSlotAt(routines, parameter_row) ||
                        DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
                            routines, routine, ordinal)) &&
                     array_type != "" {
                 value = result;
                 node_instructions = node_instructions + "  " + result + " = load " + array_type +
-                    ", ptr " + DirectMirScalarProgramLlvmParameterCurrentStorage(
+                    ", ptr " + DirectMirScalarProgramLlvmParameterReadStorage(
                         plan, routine, ordinal) + ", align " + storage_align + "\n";
             }
             let parameter_read: DirectMirScalarProgramLlvmStringExpression =

@@ -1,0 +1,16 @@
+// The storage an LLVM read of a formal loads: an admitted mutable formal's
+// current storage, or a by-value array formal's entry-frame slot
+// (DirectMirScalarProgramArrayValueParameterSlotAt), which an inout callee
+// the formal is handed to writes.
+import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
+import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
+
+func DirectMirScalarProgramLlvmParameterReadStorage(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> String {
+    if DirectMirScalarProgramArrayValueParameterSlotAt(
+            plan.routines, plan.routines.parameter_starts[routine] + ordinal) {
+        return Concat("%pgy.param.", Concat(ToString(ordinal), ".local"));
+    }
+    return DirectMirScalarProgramLlvmParameterCurrentStorage(plan, routine, ordinal);
+}

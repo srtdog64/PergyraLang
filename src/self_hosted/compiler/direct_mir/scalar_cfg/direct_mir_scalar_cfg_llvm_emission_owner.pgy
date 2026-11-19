@@ -13,6 +13,7 @@ import "direct_mir_scalar_cfg_array_int_program_llvm_storage_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_artifact_emission_owner.pgy";
 import "../direct_mir_llvm_text_format_owner.pgy";
+import "../direct_mir_llvm_log_line_owner.pgy";
 import "../direct_mir_llvm_entry_block_storage_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy";
 import "../../../mir/runtime_call_abi_fact_owner.pgy";
@@ -68,6 +69,20 @@ func DirectMirScalarCfgEmitLlvm(
     );
     output = Concat(output, "\\00\", align 1\n");
     output = Concat(output, DirectMirScalarCfgStringLlvmGlobals(plan));
+    var logs_string: Bool = false;
+    var log_operation: Int = 0;
+    while log_operation < ArrayLength(plan.operation_kinds) {
+        let log_kind: Int = plan.operation_kinds[log_operation];
+        if log_kind == DirectMirScalarCfgOpLogString() ||
+            log_kind == DirectMirScalarCfgOpLogStringValue() ||
+            log_kind == DirectMirScalarCfgOpLogArrayIndexConcatString() {
+            logs_string = true;
+        }
+        log_operation = log_operation + 1;
+    }
+    if logs_string {
+        output = Concat(output, DirectMirLlvmLogLineDefinition(formatted_print.symbol));
+    }
     output = Concat(output, DirectMirScalarCfgStringArrayLlvmGlobals(plan));
     output = Concat(output,
         DirectMirScalarCfgCollectionPlanLlvmGlobals(plan));

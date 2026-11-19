@@ -4,6 +4,7 @@
 import "ast_collection_exclusive_value_owner.pgy";
 import "ast_collection_storage_mutation_owner.pgy";
 import "ast_collection_exclusive_growth_record_owner.pgy";
+import "ast_collection_exclusive_formal_write_through_owner.pgy";
 
 // Mutating formals: default or inout formals whose storage the body grows
 // through a member alias, or passes to a mutating formal (a fixed point).
@@ -98,6 +99,47 @@ func SemanticAstCollectionMutatingFormals(
                             }
                             let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
                                 signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+                            // A write through an alias, a member path or a local holding a
+                            // formal's storage moves the formal (write-through owner).
+                            let writes: Bool = (edge.ordinal == 0 &&
+                                SemanticAstCollectionStorageInPlaceWrite(surfaces.expression_graph, edge.call_node)) ||
+                                (formal.ok && MapHas(mutating, Concat("w:", ToString(formal.syntax_id))));
+                            if writes && root_id == 0 && place.ok && !place.temporary &&
+                                (place.key >= 0 || ArrayLength(place.chain) > 0) {
+                                let alias: Bool = place.key >= 0 && ArrayLength(place.chain) == 0 &&
+                                    origins[place.key] == SemanticAstCollectionOriginMemberMove();
+                                var through: Int = SemanticAstCollectionExclusivePlaceRoot(locals, place);
+                                if alias { through = source_binding_syntax_ids[place.key]; }
+                                if SemanticAstCollectionExclusiveWriteThroughMovesRoot(signatures, constructors, locals,
+                                        surfaces, origins, dep_locals, dep_formals, function_id, syntax_id, through) {
+                                    root_id = through;
+                                    if alias {
+                                        field = SemanticAstCollectionExclusiveAliasField(surfaces, locals, mutating, place.key);
+                                    } else if ArrayLength(place.chain) > 0 {
+                                        let written: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+                                        if !IsSome(written) { MapSet(mutating, "unconverged", 1); return mutating; }
+                                        field = UnwrapOption(written);
+                                    }
+                                }
+                            }
+                            // ArraySet, ArraySort and ArrayReverse write a whole formal
+                            // in place; an inout formal handed whole to a formal written
+                            // so keeps the callee's verdict. Such a formal is recorded as
+                            // written ("w:<formal>"), not grown: a by-value Array handed
+                            // whole to it keeps sharing the caller's elements, as native
+                            // does (OPEN 2026-10-23_open_by_value_array_element_write_through_inout).
+                            if place.ok && !place.temporary && place.key < 0 && ArrayLength(place.chain) == 0 {
+                                let whole: Int = SemanticAstCollectionExclusivePlaceRoot(locals, place);
+                                let in_place: Bool = edge.ordinal == 0 &&
+                                    SemanticAstCollectionStorageInPlaceWrite(surfaces.expression_graph, edge.call_node);
+                                let handed: Bool = formal.ok &&
+                                    MapHas(mutating, Concat("w:", ToString(formal.syntax_id))) &&
+                                    SemanticAstCollectionExclusiveRootMode(signatures, function_id, whole) == 1;
+                                if (in_place || handed) && !MapHas(mutating, Concat("w:", ToString(whole))) {
+                                    MapSet(mutating, Concat("w:", ToString(whole)), 1);
+                                    changed = true;
+                                }
+                            }
                             if root_id == 0 && formal.ok && MapHas(mutating, ToString(formal.syntax_id)) &&
                                 place.ok && !place.temporary {
                                 var passed_root: Int = 0 - place.key;
@@ -138,6 +180,17 @@ func SemanticAstCollectionMutatingFormals(
         var statement: Int = 0;
         while statement < ArrayLength(statements.node_ids) {
             let kind: Int = statements.kind_tags[statement];
+            if kind == TypedAstKindArraySetStmtTag() {
+                // A set of a whole formal writes it in place: recorded as
+                // written (see the call arguments above), not grown.
+                let written: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionExclusiveStatementTargetPlace(
+                    artifact, signatures, locals, inferred_types, surfaces, statements.function_node_ids[statement],
+                    statements.node_ids[statement]);
+                if written.ok && !written.temporary && written.key < 0 && ArrayLength(written.chain) == 0 {
+                    let written_key: String = Concat("w:", ToString(SemanticAstCollectionExclusivePlaceRoot(locals, written)));
+                    if !MapHas(mutating, written_key) { MapSet(mutating, written_key, 1); changed = true; }
+                }
+            }
             if kind == TypedAstKindArrayPushStmtTag() || kind == TypedAstKindArrayPopStmtTag() {
                 let function_id: Int = statements.function_node_ids[statement];
                 let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(

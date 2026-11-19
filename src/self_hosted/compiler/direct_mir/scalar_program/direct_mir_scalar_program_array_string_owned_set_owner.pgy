@@ -1,0 +1,102 @@
+// An owned String set (collection receipt effect 4): the array owns its
+// elements, so the set stores a fresh copy of the value and frees the
+// element the copy replaces, as native pgy_array_set_owned_String does. The
+// copy is the receipt source owner's
+// (DirectMirCollectionOwnershipOperationRequiresValueCopy); this owner
+// chooses the set helper and its text for both backends.
+import "direct_mir_scalar_program_array_string_mutation_projection_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirCollectionOwnershipOperationRetiresReplacedElement(
+    ref ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact, operation: Int
+) -> Bool {
+    return DirectMirScalarProgramCollectionOwnershipOperationEffect(ownership, operation) == 4;
+}
+
+func DirectMirScalarProgramArrayStringOwnedSetReached(ref plan: DirectMirScalarCfgGraphPlan) -> Bool {
+    var operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[operation] == DirectMirScalarCfgOpArrayStringSet() &&
+            DirectMirCollectionOwnershipOperationRetiresReplacedElement(
+                plan.program.collection_ownership, operation) {
+            return true;
+        }
+        operation = operation + 1;
+    }
+    return false;
+}
+
+// The owned set of `operation` must be an Array<String> set the receipt
+// source owner copies the value of.
+func DirectMirScalarProgramArrayStringOwnedSetAt(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int, kind: Int
+) -> Bool {
+    if !DirectMirCollectionOwnershipOperationRetiresReplacedElement(
+            plan.program.collection_ownership, operation) {
+        return false;
+    }
+    if kind != DirectMirScalarCfgOpArrayStringSet() ||
+        !DirectMirScalarProgramCollectionOwnershipOperationRequiresValueCopy(plan, operation) {
+        Die("direct MIR owned String set target is invalid");
+    }
+    return true;
+}
+
+func DirectMirScalarProgramLlvmArrayStringOwnedSetPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>
+) -> String {
+    if !DirectMirScalarProgramArrayStringOwnedSetReached(plan) { return ""; }
+    return DirectMirScalarProgramLlvmArrayStringSetHelper(
+        plan.program.array_string_abi, projection_opt, "@pgy_as_set_owned", true);
+}
+
+func DirectMirScalarProgramLlvmArrayStringSetSymbol(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int, kind: Int
+) -> String {
+    if DirectMirScalarProgramArrayStringOwnedSetAt(plan, operation, kind) { return "@pgy_as_set_owned"; }
+    return "@pgy_as_set";
+}
+
+func DirectMirScalarProgramCArrayStringOwnedSetFn() -> String {
+    return "pgy_as_set_owned_copy";
+}
+
+func DirectMirScalarProgramCArrayStringOwnedSetPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>
+) -> String {
+    if !DirectMirScalarProgramArrayStringOwnedSetReached(plan) { return ""; }
+    if !IsSome(projection_opt) { Die(
+        "direct MIR C Array<String> owned set projection is missing"); }
+    let projection: DirectMirArrayStringAbiProjection =
+        UnwrapOption(projection_opt);
+    let carrier: String = DirectMirScalarProgramCArrayStringCarrierType(
+        plan.program.array_string_abi, projection);
+    return Concat("#include <stdlib.h>\n", CollectionRuntimeCGuardedReplaceOwnedWithLength(
+        DirectMirScalarProgramCArrayStringOwnedSetFn(), carrier, "length"));
+}
+
+func DirectMirScalarProgramCArrayStringSetSymbol(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int, kind: Int
+) -> String {
+    if DirectMirScalarProgramArrayStringOwnedSetAt(plan, operation, kind) {
+        return DirectMirScalarProgramCArrayStringOwnedSetFn();
+    }
+    return CollectionRuntimeCSetFn(2);
+}
+
+// The value an Array<String> set stores: a fresh copy for an owned set.
+func DirectMirScalarProgramCArrayStringSetValue(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int, kind: Int, value: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    if !DirectMirScalarProgramArrayStringOwnedSetAt(plan, operation, kind) { return value; }
+    if !CompilerRuntimeCallAbiStringConcatFactReady(runtime.string_concat) {
+        Die("direct MIR C owned String set copy ABI is invalid");
+    }
+    return Concat(runtime.string_concat.symbol, Concat("(", Concat(value, ", \"\")")));
+}

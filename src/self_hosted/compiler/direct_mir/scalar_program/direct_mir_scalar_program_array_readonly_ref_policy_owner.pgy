@@ -2,11 +2,19 @@
 
 import "../direct_mir_routine_signature_fact_owner.pgy";
 import "../../abi_layout_row_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 
 func DirectMirScalarProgramReadonlyArrayTypeSupported(type_name: String) -> Bool {
     return type_name == CompilerAbiLayoutArrayIntTypeName() ||
         type_name == CompilerAbiLayoutArrayBoolTypeName() ||
         type_name == CompilerAbiLayoutArrayStringTypeName();
+}
+
+// A by-value Int/Bool/String array formal gets one entry-frame header slot
+// (`%pgy.param.N.local`). The slot is the formal's current storage: an
+// inout callee the formal is handed to writes it, so every read loads it.
+func DirectMirScalarProgramArrayValueParameterSlotAt(ref routines: DirectMirScalarCfgRoutinePartitionFact, row: Int) -> Bool {
+    return routines.parameter_carriages[row] == "value" && DirectMirScalarProgramReadonlyArrayTypeSupported(routines.parameter_types[row]);
 }
 
 func DirectMirScalarProgramArrayReadonlyRefParameterReady(

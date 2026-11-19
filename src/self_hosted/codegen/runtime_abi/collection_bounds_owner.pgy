@@ -52,6 +52,14 @@ func CollectionRuntimeCGuardedSetWithLength(
     return "static void ${fn_name}(${array_type} *a, long long i, ${value_type} v) {\n    if (i < 0 || i >= (long long)a->${length_field}) { ${CollectionRuntimeCBoundsPanic()}; }\n    a->data[i] = v;\n}\n";
 }
 
+// A checked set into an array that owns its String elements: `v` is the
+// caller's fresh copy, and the element it replaces is freed after the store.
+func CollectionRuntimeCGuardedReplaceOwnedWithLength(
+    fn_name: String, array_type: String, length_field: String
+) -> String {
+    return "static void ${fn_name}(${array_type} *a, long long i, const char *v) {\n    if (i < 0 || i >= (long long)a->${length_field}) { ${CollectionRuntimeCBoundsPanic()}; }\n    const char *replaced = a->data[i];\n    a->data[i] = v;\n    free((void *)replaced);\n}\n";
+}
+
 func CollectionRuntimeLlvmBoundsPanicFn() -> String {
     return "pgy_runtime_panic_out_of_bounds_export";
 }

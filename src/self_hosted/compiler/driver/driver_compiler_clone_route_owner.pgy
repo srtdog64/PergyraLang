@@ -2,13 +2,16 @@
 //
 // The semantic ownership analysis selects exact expression nodes that must be
 // copied (a compiler Clone, docs/truth/decisions/2026-10-22 and 2026-11-12).
-// A copy of a builtin store's value travels in MIR as its owned-store
-// receipt. A copy of an argument of a declared routine or of a constructor
-// has no MIR carrier: self-host MIR JSON has no Clone call for it. The MIR to AST
-// round trip derives the same landings again from the same program, so its C
-// keeps every copy. A direct MIR emitter reads only the MIR and would emit
-// the program without that copy, so a direct route refuses a program with
-// one instead of admitting it.
+// MIR carries one kind of landing: the stored value of an owned String push
+// or set, whose instruction's collection receipt (owned-string-push or
+// owned-string-set) makes the direct emitter store a copy. Every other
+// landing has no MIR carrier: an argument of a declared routine or of a
+// constructor, a binding's initializer, an assigned value, or a value a
+// shallow store keeps. Self-host MIR JSON has no Clone call for it. The MIR
+// to AST round trip derives the same landings again from the same program,
+// so its C keeps every copy. A direct MIR emitter reads only the MIR and
+// would emit the program without that copy, so a direct route refuses a
+// program with one instead of admitting it.
 import "../../mir/program_fact_owner.pgy";
 import "../../semantic/ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
 import "../../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
@@ -30,12 +33,11 @@ func DriverCompilerCloneLandingConsumer(ref graph: SemanticExpressionGraphFacts,
     return -1;
 }
 
-// The landings at an argument of a declared routine's call or of a nominal
-// constructor. Neither has a MIR carrier: a constructor emitted without its
-// copy leaves the record sharing the local's storage, and every holder that
-// releases it frees it again. A landing that is a lane root (a statement
-// store's value, a binding's initializer) or an argument of a builtin belongs
-// to the owned-store receipt named above.
+// The landings no direct MIR emitter carries (see the header). An argument
+// of a declared routine or of a constructor is never carried, even inside an
+// owned store: a constructor emitted without its copy leaves the record
+// sharing the local's storage, and every holder that releases it frees it
+// again.
 func DriverCompilerCloneLandingCount(ref facts: SelfMirProgramFacts) -> Int {
     let node_count: Int = ArrayLength(facts.expression_graph.arena.compiler_clone_kinds);
     var targets: HashMap<String, Int> = MapNew();
@@ -52,10 +54,13 @@ func DriverCompilerCloneLandingCount(ref facts: SelfMirProgramFacts) -> Int {
         }
         row = row + 1;
     }
+    let carried: Array<Bool> = DriverCompilerCloneReceiptCarriedNodes(facts, node_count);
     var count: Int = 0;
     var node: Int = 0;
     while node < node_count {
-        if facts.expression_graph.arena.compiler_clone_kinds[node] == 1 {
+        if facts.expression_graph.arena.compiler_clone_kinds[node] == 1 && !carried[node] {
+            count = count + 1;
+        } else if facts.expression_graph.arena.compiler_clone_kinds[node] == 1 {
             var uncarried: Bool = false;
             var consumer: Int = -1;
             if facts.expression_graph.ok && node_count == SemanticExpressionGraphArenaNodeCount(facts.expression_graph.arena) {
@@ -77,6 +82,42 @@ func DriverCompilerCloneLandingCount(ref facts: SelfMirProgramFacts) -> Int {
         node = node + 1;
     }
     return count;
+}
+
+// The expression nodes of instructions whose collection receipt is an owned
+// String push (1) or set (4): the emitter copies the value such a store
+// keeps. Rows that do not line up with the instructions carry nothing.
+func DriverCompilerCloneReceiptCarriedNodes(ref facts: SelfMirProgramFacts, node_count: Int) -> Array<Bool> {
+    var carried: Array<Bool> = [];
+    var node: Int = 0;
+    while node < node_count {
+        ArrayPush(carried, false);
+        node = node + 1;
+    }
+    let instruction_count: Int = ArrayLength(facts.cfg.instructions.ids);
+    if !facts.collection_ownership_receipts.valid ||
+        ArrayLength(facts.collection_ownership_receipts.effect_kinds) != instruction_count ||
+        ArrayLength(facts.cfg.instructions.expr0_graphs.has_roots) != instruction_count ||
+        ArrayLength(facts.cfg.instructions.expr0_graphs.node_starts) != instruction_count ||
+        ArrayLength(facts.cfg.instructions.expr0_graphs.node_counts) != instruction_count {
+        return carried;
+    }
+    var instruction: Int = 0;
+    while instruction < instruction_count {
+        let effect: Int = facts.collection_ownership_receipts.effect_kinds[instruction];
+        if (effect == 1 || effect == 4) &&
+            facts.cfg.instructions.expr0_graphs.has_roots[instruction] != 0 {
+            let first: Int = facts.cfg.instructions.expr0_graphs.node_starts[instruction];
+            let end: Int = first + facts.cfg.instructions.expr0_graphs.node_counts[instruction];
+            var row: Int = first;
+            while row < end {
+                if row >= 0 && row < node_count { ArraySet(carried, row, true); }
+                row = row + 1;
+            }
+        }
+        instruction = instruction + 1;
+    }
+    return carried;
 }
 
 func DriverCompilerCloneDirectRouteRefusal(landings: Int, route: String) -> CodegenRouteRefusal {

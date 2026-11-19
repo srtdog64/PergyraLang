@@ -16,11 +16,11 @@ The general emitter leaks the deleted collection route's `ToString` results
 and returned `Array<Int>` ([run record](../evidence/2026-11-19_collection_program_route_deleted.md));
 nonempty record-field retirement leaks 32 bytes per backend (S2). The
 one-process full DRV-2 bound fails with OOM, exit 134 and no C artifact
-([measurements](measurements.md)). Default LLVM runs 7 programs unlike native:
-six `function_param_flow_summary/*_landed_valid` (wrong values, an abort,
-garbage String bytes) and `log_trailing_newline` ([sweep](../evidence/2026-11-19_scalar_cfg_mutable_declaration.md)).
-Default C, through the MIR-to-AST round trip, prints garbage for a foreach
-whose body pushes to the walked local ([record](../evidence/2026-11-19_general_route_collection_iteration.md)).
+([measurements](measurements.md)). On a 2,693-program sweep no program runs
+unlike native on default LLVM; default C still differs on 12 that predate
+the [fix](../evidence/2026-11-19_default_route_native_runtime_parity.md).
+Default C, through the MIR-to-AST round trip, also prints garbage for a
+foreach whose body pushes to the walked local ([record](../evidence/2026-11-19_general_route_collection_iteration.md)).
 
 ## Objective card
 

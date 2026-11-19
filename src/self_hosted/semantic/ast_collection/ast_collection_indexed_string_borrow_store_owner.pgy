@@ -1,0 +1,85 @@
+// A shallow ArrayPush statement stores the String it is handed without a
+// copy, so the receiving Array carries that String's element loan, as a
+// carrier a definition hands a loan does: once the loan's storage is
+// deep-dropped, a use of the receiving Array is refused
+// (indexed_string_use_after_deep_drop). Native copies such a value where it
+// is pushed; the self-host refuses the use instead of reading freed bytes
+// (named_string_identity_loop_reassignment_landed_valid).
+//
+// Inside a loop, a value the pushed binding is assigned later in the loop
+// reaches the push on the next pass, so that assignment's loan counts too.
+// Only exact storage loans are carried, as for a carrier a call hands a loan.
+import "ast_collection_indexed_string_borrow_source_policy_owner.pgy";
+import "ast_collection_indexed_string_borrow_state_owner.pgy";
+import "ast_collection_exclusive_value_exit_flow_owner.pgy";
+import "../ast_assignment_fact_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+
+func SemanticAstIndexedStringBorrowCompleteStore(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>,
+    inout state: SemanticAstIndexedStringBorrowState,
+    root_slot: Int
+) -> Bool {
+    let surface_row: Int = root_slot / 3;
+    let syntax_id: Int = surfaces.node_ids[surface_row];
+    let function_id: Int = surfaces.function_node_ids[surface_row];
+    if !TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindArrayPushStmtTag()) {
+        return true;
+    }
+    let receiver: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
+        artifact, locals, inferred_types, surfaces, function_id, syntax_id);
+    if !receiver.ok || receiver.row >= ArrayLength(state.source_storage_ids) ||
+        receiver.row >= ArrayLength(inferred_types) ||
+        !SemanticAstMapPayloadLoanCarrierType(inferred_types[receiver.row]) {
+        return true;
+    }
+    let root: Int = surfaces.expression_graph.roots[root_slot];
+    var carried: Int = 0;
+    let incoming: Int = SemanticAstIndexedStringBorrowSourceForRoot(
+        artifact, locals, inferred_types, surfaces, definitions, storage,
+        current_definitions, state.source_storage_ids, state.map_payload_none, surface_row, root);
+    if incoming > 0 { carried = incoming; }
+    let pushed: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, function_id, syntax_id, surfaces.expression_graph, root);
+    var surface: Int = 0;
+    while pushed.ok && pushed.type_name == "String" && surface < ArrayLength(surfaces.node_ids) {
+        let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, surfaces.node_ids[surface]);
+        let value_slot: Int = surface * 3 + AstExpressionLaneValue();
+        let target: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, surfaces.node_ids[surface], AstExpressionLaneAtom());
+        if surfaces.function_node_ids[surface] == function_id && IsSome(assigned) && IsSome(target) &&
+            assignments.target_is_indexed[UnwrapOption(assigned)] == 0 &&
+            value_slot < ArrayLength(surfaces.expression_graph.has_roots) &&
+            surfaces.expression_graph.has_roots[value_slot] &&
+            SemanticAstCollectionExclusiveLoopCarries(artifact, locals.node_ids[pushed.row],
+                surfaces.node_ids[surface], syntax_id) {
+            let written: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                artifact, locals, inferred_types, function_id, surfaces.node_ids[surface],
+                surfaces.expression_graph, UnwrapOption(target));
+            if written.ok && written.row == pushed.row {
+                let looped: Int = SemanticAstIndexedStringBorrowSourceForRoot(
+                    artifact, locals, inferred_types, surfaces, definitions, storage,
+                    current_definitions, state.source_storage_ids, state.map_payload_none, surface,
+                    surfaces.expression_graph.roots[value_slot]);
+                if looped > 0 { carried = SemanticAstIndexedStringBorrowSourceJoin(carried, looped); }
+            }
+        }
+        surface = surface + 1;
+    }
+    if carried > 0 {
+        state.source_storage_ids[receiver.row] = SemanticAstIndexedStringBorrowSourceJoin(
+            state.source_storage_ids[receiver.row], carried);
+    } else if carried != 0 {
+        // Two storages joined: every deep drop may retire one of them.
+        state.source_storage_ids[receiver.row] = SemanticAstIndexedStringBorrowSourceJoin(
+            state.source_storage_ids[receiver.row], SemanticAstIndexedStringBorrowUnknownSource());
+    }
+    return true;
+}

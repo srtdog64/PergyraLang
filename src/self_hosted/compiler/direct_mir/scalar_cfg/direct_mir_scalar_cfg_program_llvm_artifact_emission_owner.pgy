@@ -1,5 +1,6 @@
 // Whole-program LLVM materialization around the per-routine emitter.
 import "direct_mir_scalar_cfg_program_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_program_llvm_log_string_owner.pgy";
 import "../direct_mir_identity_cell_target_preamble_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy";
@@ -97,6 +98,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
         DirectMirScalarLlvmFormatPayload(float_line_format));
     TextBuilderAppend(output, "\\00\", align 1\n");
     TextBuilderAppend(output, DirectMirScalarProgramLlvmStringGlobals(plan.program.expressions));
+    TextBuilderAppend(output, DirectMirScalarCfgProgramLlvmLogStringPreamble(plan, formatted_print.symbol));
     TextBuilderAppend(output,
         DirectMirScalarCfgLlvmForeignDeclarations(plan, return_clone_required));
     TextBuilderAppend(output,
