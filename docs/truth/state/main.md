@@ -6,11 +6,12 @@ Checked 2026-11-19.
 
 | Item | Observed value |
 |---|---|
-| Last fully green published main | `f0d16adaf`: [CI 44488492111](https://github.com/srtdog64/PergyraLang/actions/runs/44488492111), all 33 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
+| Last fully green published main | `411649d31`: [CI 44515282300](https://github.com/srtdog64/PergyraLang/actions/runs/44515282300), all 33 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
 | Route deletion on main | `34ae17546` deleted the per-program-shape collection program route and its registry row ([evidence](../evidence/2026-11-19_collection_program_route_deleted.md)); green in [CI 44358794007](https://github.com/srtdog64/PergyraLang/actions/runs/44358794007) at `2c199fb28` |
 | `var` declarations in scalar CFG | `9a5d7362e`: scalar CFG reads them through the binding vocabulary owner ([evidence](../evidence/2026-11-19_scalar_cfg_mutable_declaration.md)); green in [CI 44463438926](https://github.com/srtdog64/PergyraLang/actions/runs/44463438926) |
-| Runtime helpers | `f0d16adaf`: String concat, record push and `Array<Bool>` type declared with the facts that emit them ([evidence](../evidence/2026-11-19_runtime_helper_materialization.md)); green in the first row's run |
-| Candidates on main | general-route foreach over runtime Array<Int>/Array<Bool> locals and parameters ([evidence](../evidence/2026-11-19_general_route_collection_iteration.md)), then a range bound read as the header's Int expression ([evidence](../evidence/2026-11-19_general_route_range_expression_bound.md)); slices of the [directive](../../agent_work_directives/general_route_runtime_foreach_2026-11-19.md); CI results go in [gates](gates.md) |
+| Runtime helpers | `f0d16adaf`: String concat, record push and `Array<Bool>` type declared with the facts that emit them ([evidence](../evidence/2026-11-19_runtime_helper_materialization.md)); green in [CI 44488492111](https://github.com/srtdog64/PergyraLang/actions/runs/44488492111) |
+| General-route foreach | `411649d31`: runtime Array<Int>/Array<Bool> locals and parameters ([evidence](../evidence/2026-11-19_general_route_collection_iteration.md)); green in the first row's run |
+| Candidate on main | a range bound read as the header's Int expression ([evidence](../evidence/2026-11-19_general_route_range_expression_bound.md)), a slice of the [directive](../../agent_work_directives/general_route_runtime_foreach_2026-11-19.md); CI result goes in [gates](gates.md) |
 | Work tree | `D:\PergyraLang` on `main`; unrelated untracked folder preserved |
 | Linux validation | WSL `Ubuntu-C-WSL` `/root/ts2` builds the candidate; `/root/mg-main` is the GPT lane's copy (base `5b0d354fb` plus a source mirror) |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |
