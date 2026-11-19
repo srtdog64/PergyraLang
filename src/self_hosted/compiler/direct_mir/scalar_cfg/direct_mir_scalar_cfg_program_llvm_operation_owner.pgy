@@ -73,12 +73,14 @@ func DirectMirScalarCfgProgramLlvmOperation(
             expected = CompilerAbiLayoutBoolTypeName();
         }
         if kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet() {
-            let parameter_row: Int = plan.routines.parameter_starts[routine] +
-                plan.operation_right_locals[operation];
-            let element: Option<String> = DirectMirScalarProgramLogicalRecordArrayElementType(
-                    plan.program.logical_record, plan.routines.parameter_types[parameter_row]);
-            if !IsSome(element) { Die("direct MIR scalar CFG LLVM record array set target is invalid"); }
-            expected = UnwrapOption(element);
+            // The set target is a local or a value-result parameter; the
+            // mutation target owner resolves both, as on C.
+            let set_target: DirectMirScalarProgramLogicalRecordArrayMutationTargetFact =
+                DirectMirScalarProgramLogicalRecordArrayMutationTargetFactAt(
+                    plan, routine, plan.operation_left_locals[operation],
+                    plan.operation_right_locals[operation]);
+            if !set_target.valid { Die("direct MIR scalar CFG LLVM record array set target is invalid"); }
+            expected = set_target.element_type;
         }
         if !index.valid || !value.valid || index.type_name != CompilerAbiLayoutIntTypeName() ||
             value.type_name != expected {

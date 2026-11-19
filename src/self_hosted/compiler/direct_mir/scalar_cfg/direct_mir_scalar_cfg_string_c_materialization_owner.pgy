@@ -7,9 +7,10 @@ import "../../../codegen/runtime_abi/string_runtime_owner.pgy";
 
 func DirectMirScalarCfgStringCPreamble(
     ref plan: DirectMirScalarCfgGraphPlan,
-    concat: CompilerRuntimeCallAbiFact
+    concat: CompilerRuntimeCallAbiFact, return_clone_reached: Bool
 ) -> String {
-    if !DirectMirScalarProgramStringConcatMaterializationReached(plan) {
+    if !DirectMirScalarProgramStringConcatMaterializationReached(
+            plan, return_clone_reached) {
         return "";
     }
     if !CompilerRuntimeCallAbiStringConcatFactReady(concat) ||

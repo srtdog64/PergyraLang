@@ -71,9 +71,10 @@ func DirectMirScalarCfgEmitLlvm(
     output = Concat(output, DirectMirScalarCfgStringArrayLlvmGlobals(plan));
     output = Concat(output,
         DirectMirScalarCfgCollectionPlanLlvmGlobals(plan));
-    output = Concat(output, DirectMirScalarCfgLlvmForeignDeclarations(plan));
+    // One-routine scalar CFG has no owned-local lifetime, so no return clone.
+    output = Concat(output, DirectMirScalarCfgLlvmForeignDeclarations(plan, false));
     output = Concat(output,
-        DirectMirScalarCfgStringLlvmConcatBlock(plan, concat));
+        DirectMirScalarCfgStringLlvmConcatBlock(plan, concat, false));
     output = Concat(output, "\ndeclare i32 @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");

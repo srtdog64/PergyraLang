@@ -64,6 +64,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_general_emitter_coverage_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_general_emitter_builtin_rows_owner.sh'
     run 'bash tests/self_hosted/parity/one_mir/one_mir_array_param_projection.sh'
+    run 'bash tests/self_hosted/parity/direct_mir/direct_mir_runtime_helper_materialization_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_mutable_declaration_owner.sh'
     run 'bash tests/self_hosted/parity/mir/phi_dominance_reuse_owner.sh'
     run 'bash tests/self_hosted/parity/mir/json_projection_output_lifetime.sh'

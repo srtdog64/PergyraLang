@@ -100,7 +100,7 @@ func DirectMirScalarCfgEmitProgramC(
             plan.program.array_int_value_result, array_int_runtime, target));
     TextBuilderAppend(output,
         DirectMirScalarProgramCArrayBoolPreamble(
-            plan.program.array_bool_abi, target));
+            plan.program.array_bool_abi, plan.program.expressions, target));
     if DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) {
         TextBuilderAppend(output, DirectMirScalarProgramCArrayPushMaterialization(CollectionRuntimeCPushFn(4), CompilerAbiLayoutArrayBoolCValueType(), "bool"));
     }
@@ -129,7 +129,8 @@ func DirectMirScalarCfgEmitProgramC(
             plan.program.opaque_readonly_zones));
     TextBuilderAppend(output, DirectMirIdentityCellCTargetPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarCfgStringCPreamble(
-        plan, runtime.string_concat));
+        plan, runtime.string_concat,
+        DirectMirOwnedLocalLifetimeReturnCloneReached(lifetime)));
     let runtime_header_owns_print: Bool =
         runtime_value_header || set_string_runtime_header ||
         compiler_artifact_header || checked_division_header || hashmap_runtime_header ||

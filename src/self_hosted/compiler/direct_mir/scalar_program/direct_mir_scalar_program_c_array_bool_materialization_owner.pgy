@@ -1,6 +1,7 @@
 // C type materialization for one sealed program-wide Array<Bool> ABI.
 
 import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "../direct_mir_array_storage_abi_projection_owner.pgy";
 import "../direct_mir_array_storage_c_assertion_owner.pgy";
 import "../../target_projection_fact_owner.pgy";
@@ -9,21 +10,33 @@ import "../../../codegen/runtime_abi/collection_runtime_owner.pgy";
 
 func DirectMirScalarProgramCArrayBoolPreamble(
     ref fact: DirectMirScalarProgramArrayBoolAbiFact,
+    ref expressions: DirectMirScalarProgramExpressionSet,
     ref target: CompilerTargetProjectionFact
 ) -> String {
     if !DirectMirScalarProgramArrayBoolAbiFactReady(fact) {
         Die("direct MIR C Array<Bool> ABI fact is invalid");
     }
-    if !fact.present { return ""; }
+    // A temporary the runtime fills, such as MapKeys over Bool keys, has no
+    // ABI row of its own; it takes the target descriptor.
+    var expression_typed: Bool = false;
+    var node: Int = 0;
+    while node < ArrayLength(expressions.node_types) {
+        if expressions.node_types[node] == CompilerAbiLayoutArrayBoolTypeName() {
+            expression_typed = true;
+        }
+        node = node + 1;
+    }
+    if !fact.present && !expression_typed { return ""; }
     let storage: DirectMirArrayStorageAbiProjection =
         DirectMirArrayStorageAbiProjectionFromTarget(target);
     if !DirectMirArrayStorageAbiProjectionReadyFor(
             storage, CompilerTargetCpuCProjection()) ||
-        fact.size != storage.size || fact.align != storage.align ||
-        fact.data_offset != storage.data_offset ||
-        fact.length_offset != storage.length_offset ||
-        fact.capacity_offset != storage.capacity_offset ||
-        fact.allocator_offset != storage.allocator_offset {
+        (fact.present && (fact.size != storage.size ||
+            fact.align != storage.align ||
+            fact.data_offset != storage.data_offset ||
+            fact.length_offset != storage.length_offset ||
+            fact.capacity_offset != storage.capacity_offset ||
+            fact.allocator_offset != storage.allocator_offset)) {
         Die("direct MIR C Array<Bool> target projection is invalid");
     }
     var output: String = "#include <stddef.h>\n";

@@ -56,10 +56,12 @@ func DirectMirScalarProgramCollectionOwnershipValueCopyReached(
     return false;
 }
 
+// `return_clone_reached` comes from the owned-local lifetime fact; a plan
+// without that fact (one-routine scalar CFG) has no return clone.
 func DirectMirScalarProgramStringConcatMaterializationReached(
-    ref plan: DirectMirScalarCfgGraphPlan
+    ref plan: DirectMirScalarCfgGraphPlan, return_clone_reached: Bool
 ) -> Bool {
-    return plan.string_concat_runtime_call_abi_id != 0 ||
+    return plan.string_concat_runtime_call_abi_id != 0 || return_clone_reached ||
         DirectMirScalarProgramCollectionOwnershipValueCopyReached(plan);
 }
 

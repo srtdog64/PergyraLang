@@ -29,6 +29,17 @@ struct DirectMirOwnedLocalLifetimeFact {
     let release: DirectMirOwnedStorageReleasePlan;
 }
 
+// A borrowed String return normalized to an owned copy calls the String
+// concat runtime, so the program must materialize it.
+func DirectMirOwnedLocalLifetimeReturnCloneReached(ref lifetime: DirectMirOwnedLocalLifetimeFact) -> Bool {
+    var graph: Int = 0;
+    while graph < ArrayLength(lifetime.return_clones) {
+        if lifetime.return_clones[graph] { return true; }
+        graph = graph + 1;
+    }
+    return false;
+}
+
 func DirectMirOwnedLocalBorrowingNode(kind: Int) -> Bool {
     return kind == DirectMirScalarProgramExprStringLength() ||
         kind == DirectMirScalarProgramExprStringContains() ||

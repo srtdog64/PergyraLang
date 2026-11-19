@@ -28,14 +28,8 @@ func DirectMirScalarCfgEmitProgramLlvm(
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, "@.pgy.log.true = private unnamed_addr constant [5 x i8] c\"true\\00\"\n@.pgy.log.false = private unnamed_addr constant [6 x i8] c\"false\\00\"\n");
-    var return_clone_required: Bool = false;
-    var return_graph: Int = 0;
-    while return_graph < ArrayLength(lifetime.return_clones) {
-        if lifetime.return_clones[return_graph] {
-            return_clone_required = true;
-        }
-        return_graph = return_graph + 1;
-    }
+    let return_clone_required: Bool =
+        DirectMirOwnedLocalLifetimeReturnCloneReached(lifetime);
     if return_clone_required {
         TextBuilderAppend(output,
             "@pgy.scalar.owned.return.empty = private unnamed_addr constant [1 x i8] c\"\\00\"\n");
@@ -58,7 +52,8 @@ func DirectMirScalarCfgEmitProgramLlvm(
             DirectMirScalarProgramExprArrayBoolIndex());
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmArrayBoolPreamble(
-            plan.program.array_bool_abi, array_bool_get_required, target));
+            plan.program.array_bool_abi, plan.program.expressions,
+            array_bool_get_required, target));
     if DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) {
         TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayBoolPushMaterialization());
     }
@@ -103,7 +98,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output, "\\00\", align 1\n");
     TextBuilderAppend(output, DirectMirScalarProgramLlvmStringGlobals(plan.program.expressions));
     TextBuilderAppend(output,
-        DirectMirScalarCfgLlvmForeignDeclarations(plan));
+        DirectMirScalarCfgLlvmForeignDeclarations(plan, return_clone_required));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmRuntimeValueDeclarations(
             plan.program.expressions));
@@ -113,7 +108,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output, DirectMirScalarProgramLlvmCompilerArtifactDeclarations(plan.program.expressions, runtime));
     TextBuilderAppend(output,
         DirectMirScalarCfgStringLlvmConcatBlock(
-            plan, runtime.string_concat));
+            plan, runtime.string_concat, return_clone_required));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmBuiltinMaterialization(
             plan, runtime, formatted_print));

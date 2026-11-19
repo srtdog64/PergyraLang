@@ -37,33 +37,38 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(
             output = Concat(output, Concat(projected.llvm_type_name,
                 Concat(" = type ", Concat(
                     projected.llvm_aggregate_type, "\n"))));
-            let element_type: String =
-                DirectMirScalarProgramLlvmLogicalRecordTypeName(
-                    plan.program.logical_record, projected.element_type);
-            let symbol: String = Concat(
-                "@pgy.scalar.logical.record.array.push.",
-                ToString(projected.record_row));
-            output = Concat(output, Concat("define internal void ", symbol));
-            output = Concat(output, Concat("(ptr %array, ", element_type));
-            output = Concat(output, " %value) {\nentry:\n  %data.ptr = getelementptr inbounds ");
-            output = Concat(output, Concat(projected.llvm_type_name,
-                ", ptr %array, i32 0, i32 0\n  %length.ptr = getelementptr inbounds "));
-            output = Concat(output, Concat(projected.llvm_type_name,
-                ", ptr %array, i32 0, i32 1\n  %capacity.ptr = getelementptr inbounds "));
-            output = Concat(output, Concat(projected.llvm_type_name,
-                ", ptr %array, i32 0, i32 2\n  %length = load i64, ptr %length.ptr, align 8\n  %capacity = load i64, ptr %capacity.ptr, align 8\n  %full = icmp eq i64 %length, %capacity\n  br i1 %full, label %grow, label %append\n\ngrow:\n  %empty = icmp eq i64 %capacity, 0\n  %doubled = mul i64 %capacity, 2\n  %next.capacity = select i1 %empty, i64 4, i64 %doubled\n  %next.end = getelementptr "));
-            output = Concat(output, Concat(element_type,
-                ", ptr null, i64 %next.capacity\n  %bytes = ptrtoint ptr %next.end to i64\n  %old.data = load ptr, ptr %data.ptr, align 8\n  %next.data = call ptr @realloc(ptr %old.data, i64 %bytes)\n  %failed = icmp eq ptr %next.data, null\n  br i1 %failed, label %abort, label %grown\n\nabort:\n  call void @abort()\n  unreachable\n\ngrown:\n  store ptr %next.data, ptr %data.ptr, align 8\n  store i64 %next.capacity, ptr %capacity.ptr, align 8\n  br label %append\n\nappend:\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds "));
-            output = Concat(output, Concat(element_type,
-                ", ptr %data, i64 %length\n  store "));
-            output = Concat(output, Concat(element_type,
-                " %value, ptr %slot, align 8\n  %next.length = add i64 %length, 1\n  store i64 %next.length, ptr %length.ptr, align 8\n  ret void\n}\n\n"));
-            if DirectMirScalarProgramLogicalRecordArraySetRequired(
+            // The push grow path calls realloc and abort; the foreign
+            // declaration owner declares them under this same predicate.
+            if DirectMirScalarProgramLogicalRecordArrayMutationRequired(
                     plan.operation_kinds) {
-                let set_symbol: String = Concat(
-                    "@pgy.scalar.logical.record.array.set.",
+                let element_type: String =
+                    DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                        plan.program.logical_record, projected.element_type);
+                let symbol: String = Concat(
+                    "@pgy.scalar.logical.record.array.push.",
                     ToString(projected.record_row));
-                output = Concat(output, "define internal void ${set_symbol}(ptr %array, i64 %index, ${element_type} %value) {\nentry:\n  %length.ptr = getelementptr inbounds ${projected.llvm_type_name}, ptr %array, i32 0, i32 1\n  %length = load i64, ptr %length.ptr, align 8\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %write\n\npanic:\n  call void @${CollectionRuntimeLlvmBoundsPanicFn()}(ptr null)\n  unreachable\n\nwrite:\n  %data.ptr = getelementptr inbounds ${projected.llvm_type_name}, ptr %array, i32 0, i32 0\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds ${element_type}, ptr %data, i64 %index\n  store ${element_type} %value, ptr %slot, align 8\n  ret void\n}\n\n");
+                output = Concat(output, Concat("define internal void ", symbol));
+                output = Concat(output, Concat("(ptr %array, ", element_type));
+                output = Concat(output, " %value) {\nentry:\n  %data.ptr = getelementptr inbounds ");
+                output = Concat(output, Concat(projected.llvm_type_name,
+                    ", ptr %array, i32 0, i32 0\n  %length.ptr = getelementptr inbounds "));
+                output = Concat(output, Concat(projected.llvm_type_name,
+                    ", ptr %array, i32 0, i32 1\n  %capacity.ptr = getelementptr inbounds "));
+                output = Concat(output, Concat(projected.llvm_type_name,
+                    ", ptr %array, i32 0, i32 2\n  %length = load i64, ptr %length.ptr, align 8\n  %capacity = load i64, ptr %capacity.ptr, align 8\n  %full = icmp eq i64 %length, %capacity\n  br i1 %full, label %grow, label %append\n\ngrow:\n  %empty = icmp eq i64 %capacity, 0\n  %doubled = mul i64 %capacity, 2\n  %next.capacity = select i1 %empty, i64 4, i64 %doubled\n  %next.end = getelementptr "));
+                output = Concat(output, Concat(element_type,
+                    ", ptr null, i64 %next.capacity\n  %bytes = ptrtoint ptr %next.end to i64\n  %old.data = load ptr, ptr %data.ptr, align 8\n  %next.data = call ptr @realloc(ptr %old.data, i64 %bytes)\n  %failed = icmp eq ptr %next.data, null\n  br i1 %failed, label %abort, label %grown\n\nabort:\n  call void @abort()\n  unreachable\n\ngrown:\n  store ptr %next.data, ptr %data.ptr, align 8\n  store i64 %next.capacity, ptr %capacity.ptr, align 8\n  br label %append\n\nappend:\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds "));
+                output = Concat(output, Concat(element_type,
+                    ", ptr %data, i64 %length\n  store "));
+                output = Concat(output, Concat(element_type,
+                    " %value, ptr %slot, align 8\n  %next.length = add i64 %length, 1\n  store i64 %next.length, ptr %length.ptr, align 8\n  ret void\n}\n\n"));
+                if DirectMirScalarProgramLogicalRecordArraySetRequired(
+                        plan.operation_kinds) {
+                    let set_symbol: String = Concat(
+                        "@pgy.scalar.logical.record.array.set.",
+                        ToString(projected.record_row));
+                    output = Concat(output, "define internal void ${set_symbol}(ptr %array, i64 %index, ${element_type} %value) {\nentry:\n  %length.ptr = getelementptr inbounds ${projected.llvm_type_name}, ptr %array, i32 0, i32 1\n  %length = load i64, ptr %length.ptr, align 8\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %write\n\npanic:\n  call void @${CollectionRuntimeLlvmBoundsPanicFn()}(ptr null)\n  unreachable\n\nwrite:\n  %data.ptr = getelementptr inbounds ${projected.llvm_type_name}, ptr %array, i32 0, i32 0\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds ${element_type}, ptr %data, i64 %index\n  store ${element_type} %value, ptr %slot, align 8\n  ret void\n}\n\n");
+                }
             }
         }
         record = record + 1;

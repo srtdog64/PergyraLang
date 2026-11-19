@@ -51,7 +51,8 @@ func DirectMirScalarCfgEmitC(
     output = Concat(output, DirectMirScalarCfgArrayIntCPreamble(plan, target));
     output = Concat(output,
         DirectMirScalarCfgCollectionPlanCPreamble(plan, target));
-    output = Concat(output, DirectMirScalarCfgStringCPreamble(plan, concat));
+    // One-routine scalar CFG has no owned-local lifetime, so no return clone.
+    output = Concat(output, DirectMirScalarCfgStringCPreamble(plan, concat, false));
     output = Concat(output, "\nint main(void) {\n");
     output = Concat(
         output, DirectMirScalarCfgCLocalDeclarations(plan, int_c_type)
