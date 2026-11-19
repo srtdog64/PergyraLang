@@ -23,9 +23,9 @@ func DirectMirScalarCfgRangeGraphShapeReady(
         plan.block_condition_right_locals[range.header_block] == -1 &&
         plan.block_condition_left_literals[range.header_block] == "" &&
         plan.block_condition_right_literals[range.header_block] == "";
-    if range.iterable_type != "" {
+    if DirectMirScalarCfgRangeWalksCollection(range) {
         condition_ready = expression_condition && DirectMirScalarCfgCollectionRangeShapeReady(plan, range);
-    } else if range.stop_local_ref != "" {
+    } else if range.stop_local_ref != "" || range.iterable_type == "Int" {
         condition_ready = expression_condition;
     } else if range.stop_literal != "" && range.stop_value_id == "" {
         condition_ready = condition_ready || expression_condition;

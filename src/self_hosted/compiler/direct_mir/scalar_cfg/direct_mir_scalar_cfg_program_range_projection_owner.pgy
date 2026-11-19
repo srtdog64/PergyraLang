@@ -67,7 +67,7 @@ func DirectMirScalarCfgProgramRangeFactsWithElementRows(
     var row: Int = 0;
     while row < ArrayLength(rows) {
         let fact: DirectMirScalarCfgRangeIterationFact = DirectMirScalarCfgRangeFactAt(source, row);
-        if (fact.iterable_type == "") != (rows[row] == -1) || rows[row] < -1 {
+        if DirectMirScalarCfgRangeWalksCollection(fact) == (rows[row] == -1) || rows[row] < -1 {
             return DirectMirScalarCfgRangeFactSetInvalid();
         }
         let element: DirectMirScalarCfgRangeIterationFact =

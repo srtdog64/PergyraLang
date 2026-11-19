@@ -29,7 +29,7 @@ func DirectMirScalarCfgAppendIterationCursorLocal(
     inout local_names: Array<String>, inout local_ref_kinds: Array<Int>,
     inout local_ref_value_ids: Array<String>, inout local_ref_syntax_ids: Array<Int>
 ) -> Void {
-    if fact.iterable_type == "" { return; }
+    if !DirectMirScalarCfgRangeWalksCollection(fact) { return; }
     ArrayPush(local_names, DirectMirScalarCfgForEachCursorIdentity(fact.loop_syntax_id));
     ArrayPush(local_ref_kinds, DirectMirScalarCfgLocalRefIterationCursor());
     ArrayPush(local_ref_value_ids, "");
@@ -42,7 +42,7 @@ func DirectMirScalarCfgIterationCursorRow(
     ref fact: DirectMirScalarCfgRangeIterationFact,
     ref local_ref_kinds: Array<Int>, ref local_ref_syntax_ids: Array<Int>
 ) -> Int {
-    if fact.iterable_type == "" { return -1; }
+    if !DirectMirScalarCfgRangeWalksCollection(fact) { return -1; }
     var found: Int = -2;
     var row: Int = 0;
     while row < ArrayLength(local_ref_kinds) {
@@ -63,6 +63,6 @@ func DirectMirScalarCfgIterationCursorLocalReady(
 ) -> Bool {
     let fact: DirectMirScalarCfgRangeIterationFact =
         DirectMirScalarCfgRangeFactAtLoopSyntaxId(facts, local_ref_syntax_ids[row]);
-    return fact.valid && fact.iterable_type != "" && fact.cursor_local_row == row &&
+    return fact.valid && DirectMirScalarCfgRangeWalksCollection(fact) && fact.cursor_local_row == row &&
         local_ref_value_ids[row] == "";
 }

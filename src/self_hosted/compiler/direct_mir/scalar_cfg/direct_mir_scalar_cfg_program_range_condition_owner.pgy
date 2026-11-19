@@ -9,67 +9,28 @@ import "../scalar_program/direct_mir_scalar_program_expression_admission_owner.p
 import "../scalar_program/direct_mir_scalar_program_collection_expression_kind_owner.pgy";
 import "../../../mir/local_ref_identity_owner.pgy";
 
+// The bound is any Int expression the header row carries; like the native
+// backends, the header evaluates it again on every pass.
 func DirectMirScalarCfgProgramRangeConditionFactsFromBound(
     facts: DirectMirScalarProgramExpressionSet,
     expression_row: Int,
     ref range: DirectMirScalarCfgRangeIterationFact,
     ref locals: DirectMirScalarCfgLocalRefPlan,
-    local_offset: Int,
-    ref signature: DirectMirRoutineSignatureFact
+    local_offset: Int
 ) -> DirectMirScalarProgramExpressionSet {
-    // A bound is either a local the loop reads each pass or a literal; an
-    // ArrayLength or let-value bound has no admitted condition shape here.
-    let literal_bound: Bool = range.stop_literal != "" &&
-        range.stop_local_ref == "";
-    let local_bound: Bool = range.stop_local_ref != "" &&
-        range.stop_literal == "";
     if !facts.valid || facts.digest != 0 ||
         expression_row + 1 != ArrayLength(facts.graph_starts) ||
         facts.graph_global_rows[expression_row] !=
             range.branch_global_row ||
-        facts.graph_counts[expression_row] != 1 ||
-        (!literal_bound && !local_bound) ||
-        range.stop_value_id != "" || range.local_row < 0 ||
+        range.iterable_type != "Int" || range.local_row < 0 ||
         range.local_row >= ArrayLength(locals.local_ref_kinds) ||
         locals.local_ref_kinds[range.local_row] !=
-            DirectMirScalarCfgLocalRefIteration() {
-        return DirectMirScalarProgramExpressionSetInvalid(facts);
-    }
-    let start: Int = facts.graph_starts[expression_row];
-    let bound: Int = facts.graph_roots[expression_row];
-    if bound != start || facts.node_types[bound] !=
+            DirectMirScalarCfgLocalRefIteration() ||
+        facts.node_types[facts.graph_roots[expression_row]] !=
             CompilerAbiLayoutIntTypeName() {
         return DirectMirScalarProgramExpressionSetInvalid(facts);
     }
-    var bound_identity: String = "";
-    if literal_bound {
-        if facts.node_kinds[bound] != DirectMirScalarProgramExprIntLiteral() ||
-            facts.node_literals[bound] != range.stop_literal {
-            return DirectMirScalarProgramExpressionSetInvalid(facts);
-        }
-    } else if facts.node_kinds[bound] ==
-            DirectMirScalarProgramExprParameter() {
-        let ordinal: Int = facts.node_parameter_ordinals[bound];
-        if ordinal < 0 || ordinal >= signature.param_count {
-            return DirectMirScalarProgramExpressionSetInvalid(facts);
-        }
-        bound_identity = SelfMirLocalRef(
-            "parameter", signature.source_syntax_id, ordinal);
-    } else if facts.node_kinds[bound] ==
-            DirectMirScalarProgramExprLocal() {
-        let relative: Int =
-            facts.node_local_rows[bound] - local_offset;
-        if relative < 0 || relative >=
-                ArrayLength(locals.local_ref_value_ids) {
-            return DirectMirScalarProgramExpressionSetInvalid(facts);
-        }
-        bound_identity = locals.local_ref_value_ids[relative];
-    } else {
-        return DirectMirScalarProgramExpressionSetInvalid(facts);
-    }
-    if local_bound && bound_identity != range.stop_local_ref {
-        return DirectMirScalarProgramExpressionSetInvalid(facts);
-    }
+    let bound: Int = facts.graph_roots[expression_row];
     var counts: Array<Int> = facts.graph_counts;
     var roots: Array<Int> = facts.graph_roots;
     var kinds: Array<Int> = facts.node_kinds;
@@ -94,7 +55,7 @@ func DirectMirScalarCfgProgramRangeConditionFactsFromBound(
         literals, callables, runtime_ids,
         DirectMirScalarProgramExprLessInt(), CompilerAbiLayoutBoolTypeName(),
         iteration, bound, -1, -1, -1, "", -1, -1);
-    ArraySet(counts, expression_row, 3);
+    ArraySet(counts, expression_row, counts[expression_row] + 2);
     ArraySet(roots, expression_row, comparison);
     return DirectMirScalarProgramExpressionSet(
         true, 0, facts.graph_global_rows, facts.graph_starts,
@@ -140,8 +101,7 @@ func DirectMirScalarCfgProgramAppendRangeConditionExpression(
     }
     let appended: DirectMirScalarProgramExpressionSet =
         DirectMirScalarCfgProgramRangeConditionFactsFromBound(
-            admission.facts, expression_row, range, locals, local_offset,
-            signature);
+            admission.facts, expression_row, range, locals, local_offset);
     if !appended.valid ||
         ArrayLength(appended.graph_starts) != expression_row + 1 {
         if !failure.present {
@@ -167,7 +127,7 @@ func DirectMirScalarCfgProgramCollectionRangeFactsFromIterable(
     if !facts.valid || facts.digest != 0 ||
         expression_row + 1 != ArrayLength(facts.graph_starts) ||
         facts.graph_global_rows[expression_row] != range.branch_global_row ||
-        range.iterable_type == "" || range.cursor_local_row < 0 ||
+        !DirectMirScalarCfgRangeWalksCollection(range) || range.cursor_local_row < 0 ||
         facts.node_types[facts.graph_roots[expression_row]] != range.iterable_type {
         return DirectMirScalarProgramExpressionSetInvalid(facts);
     }
@@ -318,7 +278,7 @@ func DirectMirScalarCfgProgramAppendRangeHeader(
     ref range: DirectMirScalarCfgRangeIterationFact,
     ref ranges: DirectMirScalarCfgRangeFactSet
 ) -> Option<Int> {
-    if range.iterable_type == "" {
+    if !DirectMirScalarCfgRangeWalksCollection(range) {
         return DirectMirScalarCfgProgramAppendRangeConditionExpression(
             expressions, failure, instruction, uses, index, global_row,
             local_instruction, locals, types, wire, local_offset,

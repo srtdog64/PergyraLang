@@ -16,7 +16,7 @@ func DirectMirScalarCfgProgramCollectionRangeLlvmEntry(
     var row: Int = 0;
     while row < DirectMirScalarCfgRangeFactCount(plan.range_iterations) {
         let fact: DirectMirScalarCfgRangeIterationFact = DirectMirScalarCfgRangeFactAt(plan.range_iterations, row);
-        if fact.iterable_type != "" && fact.body_block == block {
+        if DirectMirScalarCfgRangeWalksCollection(fact) && fact.body_block == block {
             let expression: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
                 plan, plan.program.expressions, fact.element_expression_row, runtime,
                 plan.program.logical_record, plan.program.payload_free_enum, plan.program.referenced_enum,
@@ -48,7 +48,7 @@ func DirectMirScalarCfgProgramCollectionRangeCEntry(
     var row: Int = 0;
     while row < DirectMirScalarCfgRangeFactCount(plan.range_iterations) {
         let fact: DirectMirScalarCfgRangeIterationFact = DirectMirScalarCfgRangeFactAt(plan.range_iterations, row);
-        if fact.iterable_type != "" && fact.body_block == block {
+        if DirectMirScalarCfgRangeWalksCollection(fact) && fact.body_block == block {
             let expression: String = DirectMirScalarProgramCExpressionAt(
                 plan, plan.program.expressions, fact.element_expression_row, runtime,
                 plan.program.logical_record, plan.program.referenced_enum, plan.routines, routine,

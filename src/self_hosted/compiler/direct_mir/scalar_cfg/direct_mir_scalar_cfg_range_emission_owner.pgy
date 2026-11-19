@@ -4,7 +4,7 @@ import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
 
 // A collection iteration advances its cursor; an Int range its binding.
 func DirectMirScalarCfgRangeSteppedLocalRow(ref fact: DirectMirScalarCfgRangeIterationFact) -> Int {
-    if fact.iterable_type != "" { return fact.cursor_local_row; }
+    if DirectMirScalarCfgRangeWalksCollection(fact) { return fact.cursor_local_row; }
     return fact.local_row;
 }
 

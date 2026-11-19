@@ -6,6 +6,10 @@
 # route took no foreach at all: a parameter iterable died in the literal
 # foreach admission and a local one ended the routine input with "an external
 # collection plan".
+# - A range's bound is the header row's Int expression, evaluated again on
+#   every pass as on the native backends: `0..ArrayLength(xs)` with a push in
+#   the body, and `0..n - 1`. The route used to admit only a literal or local
+#   bound.
 # - Each program runs on native C/LLVM, the default LLVM route and the
 #   general emitter's C backend with the same stdout and exit status.
 #   - The general emitter's LLVM leg links no runtime library, so it cannot
@@ -129,6 +133,37 @@ func Main() -> Void {
 }
 PGY
 
+cat >"$WORK_DIR/range_length_bound.pgy" <<'PGY'
+func Grow(seed: Int) -> Int {
+    var xs: Array<Int> = [seed, seed + 1, seed + 2];
+    var n: Int = 0;
+    for i in 0..ArrayLength(xs) {
+        if i < 3 { ArrayPush(xs, i); }
+        n = n + xs[i];
+    }
+    return n;
+}
+
+func Main() -> Void {
+    Log(Grow(1));
+}
+PGY
+
+cat >"$WORK_DIR/range_expression_bound.pgy" <<'PGY'
+func Sum(n: Int) -> Int {
+    var total: Int = 0;
+    for i in 0..n - 1 {
+        total = total + i;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Sum(5));
+    Log(Sum(1));
+}
+PGY
+
 cat >"$WORK_DIR/string_elements.pgy" <<'PGY'
 func Width(names: Array<String>) -> Int {
     var total: Int = 0;
@@ -198,6 +233,8 @@ expect_run nested_parameters '11'
 expect_run live_local_push $'1\n2\n3\n11\n12\n13\n21\n22\n8'
 expect_run bool_elements '3'
 expect_run range_beside_foreach '9'
+expect_run range_length_bound '9'
+expect_run range_expression_bound $'6\n0'
 
 # forge NAME FIELD VALUE OUT: rewrites FIELD of the first Tally loop-init row.
 forge() {
@@ -250,4 +287,4 @@ for backend in c llvm; do
           fail "string_elements on $backend was not refused at collection_range (status $status)"; }
 done
 
-echo "[$LABEL] 5 programs equal on four legs, 2 forged MIR and 1 String iterable refused: PASS"
+echo "[$LABEL] 7 programs equal on four legs, 2 forged MIR and 1 String iterable refused: PASS"

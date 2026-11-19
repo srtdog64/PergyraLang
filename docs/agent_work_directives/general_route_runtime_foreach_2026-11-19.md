@@ -119,6 +119,14 @@ implementation candidate on main, landed in slices.
   trip there, before and after this slice. Unifying the two claims is a
   retirement step, not part of slice 1.
 
+- A range bound is the header row's Int expression in the program route,
+  evaluated on every pass as native does (`411649d31` + range-bound change);
+  the literal/local bound shapes stay only for the one-routine plan.
+- With slice 1 and the range bound, deleting the `single-program-shape`
+  guard moves 4 programs: 2 refused -> equal, and `array_max` (fixed by the
+  range bound) and `for_each` (String elements) equal -> refused. String
+  elements are the last blocker for the guard.
+
 ## Slices
 
 1. Int, Long and Bool elements, local or parameter iterable, LLVM and C,

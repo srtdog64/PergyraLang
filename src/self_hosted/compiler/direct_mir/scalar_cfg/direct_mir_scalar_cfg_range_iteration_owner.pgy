@@ -15,9 +15,10 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
     ref foreach_sources: DirectMirScalarCfgForEachFactSet,
     collection_ranges: Bool
 ) -> DirectMirScalarCfgRangeFactSet {
-    // `collection_ranges`: the program route walks `for v in xs` as a cursor
-    // range over the runtime collection; its element type is admitted by the
-    // routine admission, which refuses an unsupported one with a typed stage.
+    // `collection_ranges`: the program route takes each loop's MIR iterable
+    // type. It walks `for v in xs` as a cursor range over the runtime
+    // collection, whose element type the routine admission admits or refuses
+    // with a typed stage, and reads a range's bound from the header row.
     let invalid: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgRangeFactSetInvalid();
     if !index.valid || !wire.valid {
@@ -88,7 +89,8 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
             }
             row = row + 1;
         }
-        let collection: Bool = collection_ranges && type_row >= 0 &&
+        let program_route: Bool = collection_ranges && type_row >= 0;
+        let collection: Bool = program_route &&
             index.iteration_type_facts.iterable_types[type_row] != "Int";
         if matched_flow < 0 || type_row < 0 ||
             index.loop_flow_summary_effect_bases[matched_flow] != 0 ||
@@ -169,6 +171,12 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
                 branch.expr0 != init.expr0 || branch.expr1 != init.expr0 {
                 Die("direct MIR scalar CFG collection iteration rows disagree");
             }
+        } else if program_route {
+            // The header admission reads the bound from the branch's graph.
+            iterable_type = "Int";
+            start = DirectMirCfgSingleNodeLiteral(
+                init_object, AstExpressionNodeIntegerLiteral()
+            );
         } else {
             start = DirectMirCfgSingleNodeLiteral(
                 init_object, AstExpressionNodeIntegerLiteral()
