@@ -648,7 +648,7 @@ producer `storage_identity` owns the Array body, while outer, inner, and
 trailing foreach receipts own distinct cursors. Validate the boundary with:
 
 ```text
-tests/self_hosted/parity/one_mir/one_mir_returned_array_foreach_projection.sh
+tests/self_hosted/parity/direct_mir/direct_mir_general_route_collection_iteration_owner.sh
 tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_foreach_array_int_projection.sh
 tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_graph_projection.sh
 tests/self_hosted/gates/self_hosted_component_contract_smoke.sh

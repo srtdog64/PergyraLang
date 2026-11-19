@@ -139,5 +139,9 @@ implementation candidate on main, landed in slices.
    Record elements stay open. Landed `fae2390af`.
 3. Retirement, one step per commit. Step 1 (one-routine claim):
    `single-program-shape` and the builtin claim owner are deleted; the sweep
-   moved 4 refused -> equal and nothing else. Next: the collection families
-   and their BRIDGE rows.
+   moved 4 refused -> equal and nothing else. Step 2: hoisted iterables
+   (call result, literal, field) walk as locals, and the returned-Array
+   foreach and `Array<Int>` return routes are deleted; 4 refused -> equal.
+   Next: the one-routine scalar CFG route with its literal foreach receipts
+   and the three collection BRIDGE families; a route-logging sweep found no
+   program reaching it.

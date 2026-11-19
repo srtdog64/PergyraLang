@@ -120,7 +120,8 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                     local_identity, ToInt(index.source_syntax_id));
                 if (StartsWith(local_identity, "parameter:") &&
                     (parameter_ordinal < 0 || parameter_ordinal >= ArrayLength(parameters.names))) ||
-                    (source == "AST_LET_DECL" && !StartsWith(local_identity, "declaration:")) {
+                    (source == "AST_LET_DECL" && !StartsWith(local_identity, "declaration:") &&
+                     !MirIterationTypeFactsHoistedIterableRef(index.iteration_type_facts, local_identity)) {
                     Die("direct MIR scalar CFG LocalRef declaration role or owner is invalid");
                 }
             }

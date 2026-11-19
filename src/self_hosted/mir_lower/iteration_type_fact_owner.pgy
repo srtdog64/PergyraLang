@@ -5,6 +5,7 @@
 
 import "json_fact_read.pgy";
 import "../semantic/ast_type_name_canonical_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
 
 struct MirIterationTypeFacts {
     valid: Bool;
@@ -145,4 +146,19 @@ func MirIterationHeaderTextFromFacts(
             " in ", Concat(start, Concat("..", stop))
         ))
     );
+}
+
+// Whether `local_ref` is the `iteration-synthetic` binding the front end
+// declares for a hoisted collection iteration of this routine: the `let` of
+// the iterable's call result, which the loop then walks.
+func MirIterationTypeFactsHoistedIterableRef(
+    ref facts: MirIterationTypeFacts, local_ref: String
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(facts.iteration_syntax_ids) {
+        if facts.collection_hoists[row] == 1 && local_ref ==
+            SelfMirLocalRef("iteration-synthetic", facts.iteration_syntax_ids[row], 0) { return true; }
+        row = row + 1;
+    }
+    return false;
 }

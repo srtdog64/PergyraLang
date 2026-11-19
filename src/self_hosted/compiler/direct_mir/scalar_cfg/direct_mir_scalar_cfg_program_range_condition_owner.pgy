@@ -417,7 +417,9 @@ func DirectMirScalarCfgProgramCollectionRangeElementType(
         }
         row = row + 1;
     }
-    if type_row < 0 || index.iteration_type_facts.collection_hoists[type_row] != 0 ||
+    // A hoisted iterable is the loop's own `let` of the call result, walked
+    // like any other local.
+    if type_row < 0 ||
         index.iteration_type_facts.iterable_types[type_row] != range.iterable_type { return ""; }
     var element_type: String = "";
     if range.iterable_type == CompilerAbiLayoutArrayIntTypeName() {

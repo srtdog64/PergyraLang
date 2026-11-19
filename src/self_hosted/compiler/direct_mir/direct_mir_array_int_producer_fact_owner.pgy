@@ -65,18 +65,6 @@ func DirectMirArrayIntProducerFactDigest(
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirArrayIntProducerFactWithDigest(
-    fact: DirectMirArrayIntProducerFact, digest: Int
-) -> DirectMirArrayIntProducerFact {
-    return DirectMirArrayIntProducerFact(
-        fact.valid, digest, fact.routine_row, fact.routine_name,
-        fact.routine_syntax_id, fact.storage_identity, fact.elements,
-        fact.abi_layout_id, fact.abi_size, fact.abi_align,
-        fact.data_offset, fact.length_offset, fact.capacity_offset,
-        fact.allocator_offset
-    );
-}
-
 func DirectMirArrayIntProducerFactReady(
     ref fact: DirectMirArrayIntProducerFact
 ) -> Bool {
@@ -96,89 +84,4 @@ func DirectMirArrayIntProducerFactReady(
         fact.length_offset == layout.length_offset &&
         fact.capacity_offset == layout.capacity_offset &&
         fact.allocator_offset == layout.allocator_offset;
-}
-
-func DirectMirArrayIntProducerFactFromRoutine(
-    ref admitted: MirMachineLayerAdmittedJsonInput, routine_row: Int
-) -> DirectMirArrayIntProducerFact {
-    let invalid: DirectMirArrayIntProducerFact =
-        DirectMirArrayIntProducerFactEmpty();
-    if !DirectMirRoutineNoParamSignatureReady(
-        admitted.routines, routine_row,
-        CompilerAbiLayoutArrayIntTypeName(), 1
-    ) || admitted.routines.routine_block_counts[routine_row] != 1 {
-        return invalid;
-    }
-    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-        admitted.routines, routine_row
-    );
-    let uses: MirRoutineInstructionUseFacts =
-        BuildMirRoutineInstructionUseFacts(admitted.routines, routine_row);
-    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
-        admitted.routines, routine_row, 0, 0
-    );
-    if !index.valid || global < 0 ||
-        ArrayLength(index.block_reachable) != 1 ||
-        !index.block_reachable[0] ||
-        !MirRoutineFactIndexBlockIsTerminal(index, 0) ||
-        index.block_has_conditional_branch[0] != 0 ||
-        ArrayLength(index.source_local_names) != 0 ||
-        !MirRoutineInstructionUseFactsReady(uses, 1) ||
-        MirRoutineInstructionUseCountAtGlobal(uses, global) != 0 {
-        return invalid;
-    }
-    let returned: MirRoutineInstructionScalarCapture =
-        MirRoutineInstructionFactBundleAtGlobal(
-            index.instruction_facts, global
-        );
-    if !returned.valid ||
-        admitted.routines.instruction_kinds[global] != "return" ||
-        admitted.routines.instruction_source_types[global] !=
-            "AST_ARRAY_LITERAL" || returned.name != "return" ||
-        returned.result != "" || returned.arg0 != "" ||
-        returned.arg1 != "" || returned.expr1 != "" ||
-        returned.abi_type_name != CompilerAbiLayoutArrayIntTypeName() {
-        return invalid;
-    }
-    let abi_opt: Option<MirAbiLayoutRowCapture> =
-        MirCapturedRequiredAbiLayoutRowAdmission(
-            admitted.routines.source_json, admitted.routines.source_json_extent, returned.abi_type_name,
-            returned.abi_type_value_ready, returned.abi_type_start,
-            returned.abi_type_end, returned.abi_layout_id_start,
-            returned.abi_layout_id_end,
-            returned.abi_layout_required_start,
-            returned.abi_layout_required_end, returned.abi_layout_start,
-            returned.abi_layout_end
-        );
-    if !IsSome(abi_opt) { return invalid; }
-    let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
-    if !DirectMirArrayIntCapturedAbiReady(abi) { return invalid; }
-    let expression: MirProgramInstructionExpressionFact =
-        MirProgramInstructionExpressionIndexAt(
-            admitted.routines.instruction_expressions, global
-        );
-    let graph: MirExpressionGraphSequence =
-        DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
-        );
-    let elements: Array<Int> = DirectMirArrayIntLiteralElements(graph);
-    let name: String = admitted.routines.names[routine_row];
-    let syntax_id: Int = ToInt(
-        admitted.routines.source_syntax_ids[routine_row]
-    );
-    let fact: DirectMirArrayIntProducerFact =
-        DirectMirArrayIntProducerFact(
-            true, 0, routine_row, name, syntax_id,
-            DirectMirArrayIntProducerStorageIdentity(name, syntax_id),
-            elements, MirAbiLayoutIdFromCapture(abi), ToInt(abi.size_text),
-            ToInt(abi.align_text), ToInt(abi.field_offsets[0]),
-            ToInt(abi.field_offsets[1]), ToInt(abi.field_offsets[2]),
-            ToInt(abi.field_offsets[3])
-        );
-    let verified: DirectMirArrayIntProducerFact =
-        DirectMirArrayIntProducerFactWithDigest(
-            fact, DirectMirArrayIntProducerFactDigest(fact)
-        );
-    if !DirectMirArrayIntProducerFactReady(verified) { return invalid; }
-    return verified;
 }

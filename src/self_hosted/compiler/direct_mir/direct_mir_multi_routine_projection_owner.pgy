@@ -1,6 +1,4 @@
 // Exclusive multi-routine projection; rejected shapes are never reinterpreted.
-import "direct_mir_array_return_emission_owner.pgy";
-import "direct_mir_returned_array_foreach_projection_owner.pgy";
 import "direct_mir_legacy_intent_program_projection_owner.pgy";
 import "direct_mir_composite_intent_program_projection_owner.pgy";
 import "direct_mir_nested_intent_program_projection_owner.pgy";
@@ -37,19 +35,6 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
     let line_format: String = StringRuntimeCIntLineFormat();
     if DirectMirRoleOperatorProgramCandidate(admitted) { return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirRoleOperatorForTarget(
         admitted, target_projection, is_llvm, formatted_print, line_format)); }
-    if DirectMirReturnedArrayForEachProgramCandidate(admitted) {
-        return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirReturnedArrayForEachForTarget(admitted, target_projection)); }
-    if DirectMirArrayReturnProgramCandidate(admitted) {
-        let return_plan: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanFromAdmitted(admitted);
-        let return_abi: DirectMirArrayIntAbiProjection =
-            DirectMirArrayReturnAbiProjectionFromPlan(return_plan, target_projection);
-        if is_llvm {
-            return CodegenRoutePayloadEmitted(DirectMirArrayReturnEmitLlvm(
-                return_plan, return_abi, formatted_print, line_format));
-        }
-        return CodegenRoutePayloadEmitted(DirectMirArrayReturnEmitC(
-            return_plan, return_abi, formatted_print, line_format));
-    }
     let intent_payload: Option<String> = CompileAdmittedDirectMirLegacyIntentProgramLlvmIfClaimed(admitted, is_llvm);
     if IsSome(intent_payload) { return CodegenRoutePayloadEmitted(UnwrapOption(intent_payload)); }
     let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);

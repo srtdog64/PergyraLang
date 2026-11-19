@@ -31,6 +31,12 @@
 # - A String walk whose body pops or sets an Array is refused at the typed
 #   `collection_range` stage; either can release the borrowed element (the
 #   native backends print freed memory for both).
+# - A hoisted iterable (a call result, an array literal or a record field) is
+#   the loop's own `let`, walked like any local. Its LocalRef row is
+#   `iteration-synthetic:<loop>:0`, admitted only for an iteration whose type
+#   fact says it is hoisted: a forged fact or an unknown loop is refused.
+#   Before 2026-11-20 the route refused every hoisted iterable, and a
+#   per-program-shape route took only a call result walked by Int arithmetic.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -297,6 +303,44 @@ func Main() -> Void {
 }
 PGY
 
+cat >"$WORK_DIR/hoisted_calls.pgy" <<'PGY'
+func MakeValues() -> Array<Int> {
+    return [1, 2, 3];
+}
+
+func Main() -> Void {
+    var total: Int = 0;
+    for outer in MakeValues() {
+        for inner in MakeValues() {
+            total = total + inner;
+        }
+        total = total + outer;
+    }
+    for tail in MakeValues() {
+        total = total + tail;
+    }
+    Log(total);
+}
+PGY
+
+cat >"$WORK_DIR/hoisted_literal_and_field.pgy" <<'PGY'
+struct Bag {
+    let items: Array<Int>;
+}
+
+func Main() -> Void {
+    var total: Int = 0;
+    for x in [4, 5, 6] {
+        total = total + x;
+    }
+    let bag: Bag = Bag([10, 20]);
+    for y in bag.items {
+        total = total + y;
+    }
+    Log(total);
+}
+PGY
+
 leg_flags() {
     case "$1" in
         native-c) echo "--native-pipeline --backend=c" ;;
@@ -358,6 +402,8 @@ expect_run string_push_borrowed $'x\nyy\n2\nyy'
 expect_run string_return_borrowed $'ef\nnone\nef'
 expect_run string_concat_local '>abbccc'
 expect_run one_routine_continue '28'
+expect_run hoisted_calls '30'
+expect_run hoisted_literal_and_field '45'
 
 # expect_asan NAME: the general emitter's C of NAME, built with ASan, prints
 # the expected output with no freed-memory access. The general emitter does
@@ -411,6 +457,31 @@ for backend in c llvm; do
     expect_refused forged_iterable.mir.json "$backend" "collection iteration rows disagree"
 done
 
+# forge_hoist OUT MODE: in hoisted_calls, either the first iteration type fact
+# stops saying it is hoisted, or the first hoisted `let` names a loop the
+# routine does not have.
+forge_hoist() {
+    python3 - "$WORK_DIR/hoisted_calls.mir.json" "$WORK_DIR/$1" "$2" <<'PY'
+import json, sys
+source, out, mode = sys.argv[1:4]
+mir = json.load(open(source))
+routine = next(r for r in mir["routines"] if r["name"] == "Main")
+if mode == "fact":
+    routine["iteration_type_facts"][0]["collection_hoisted"] = False
+else:
+    row = next(i for b in routine["blocks"] for i in b["instructions"]
+               if str(i.get("local_ref", "")).startswith("iteration-synthetic:"))
+    row["local_ref"] = "iteration-synthetic:999999:0"
+json.dump(mir, open(out, "w"))
+PY
+}
+forge_hoist forged_hoist_fact.mir.json fact
+forge_hoist forged_hoist_loop.mir.json loop
+for backend in c llvm; do
+    expect_refused forged_hoist_fact.mir.json "$backend" "LocalRef declaration role or owner is invalid"
+    expect_refused forged_hoist_loop.mir.json "$backend" "LocalRef declaration role or owner is invalid"
+done
+
 # The self-host driver prints a route refusal as a CODEGEN ERROR artifact.
 for name in string_pop_while_bound string_set_while_bound; do
     (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/$name.pgy" \
@@ -431,4 +502,4 @@ for name in string_pop_while_bound string_set_while_bound; do
     done
 done
 
-echo "[$LABEL] 12 programs equal on four legs, 4 String walks under ASan; 2 forged MIR and 2 releasing String walks refused: PASS"
+echo "[$LABEL] 14 programs equal on four legs, 4 String walks under ASan; 4 forged MIR and 2 releasing String walks refused: PASS"

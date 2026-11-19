@@ -3440,9 +3440,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   materializes stack-backed storage and links no Pergyra runtime symbol; it is
   not authority for general or runtime-bearing arrays.
 - `src/self_hosted/compiler/direct_mir/direct_mir_array_return_graph_fact_owner.pgy` --
-  typed direct-call and single-index expression facts for the bounded
-  two-routine `Array<Int>` return graph; source text and routine row order are
-  not call-target authority.
+  the typed direct-call producer name of a literal foreach iterable; source
+  text and routine row order are not call-target authority.
 - `src/self_hosted/compiler/direct_mir/direct_mir_array_int_abi_fact_owner.pgy` -- one
   canonical captured `Array<Int>` ABI row predicate shared by local-value and
   returned-value direct-MIR plans, including every field offset, size, and
@@ -3451,26 +3450,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   target-neutral identity, literal elements, and canonical ABI receipt for one
   pure no-parameter `Array<Int>` producer. Direct-call consumers bind to this
   receipt instead of reparsing the call or reopening the producer routine.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_return_program_identity_owner.pgy`
-  -- exact-one `Main`/producer identity and strict return-signature join. It
-  binds the typed direct call target to stable routine syntax IDs without the
-  legacy missing-return-to-`Void` default.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_return_plan_owner.pgy` -- one
-  target-neutral call/return/use/ABI/lifetime plan. The caller owns fixed
-  backing storage, the producer cannot return its dead frame, and repaired-
-  digest use/layout/target mutations fail before emission.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_return_emission_owner.pgy` --
-  final C/LLVM consumers for the same two-routine plan. Both materialize a real
-  producer call with caller-owned storage and no Pergyra runtime symbol.
-- `src/self_hosted/compiler/direct_mir/direct_mir_returned_array_program_route_owner.pgy`
-  -- shared shallow `Array<Int>` return claim used by both returned-Array
-  routes; routine and block counts alone cannot claim collection semantics.
-- `src/self_hosted/compiler/direct_mir/direct_mir_returned_array_foreach_program_owner.pgy`
-  -- exclusive multi-routine identity joining one `Main` scalar CFG to one
-  admitted `Array<Int>` producer independently of routine row order.
-- `src/self_hosted/compiler/direct_mir/direct_mir_returned_array_foreach_projection_owner.pgy`
-  -- selected-target composition boundary that gives the producer receipt and
-  exact `Main` row to the existing scalar-CFG plan and C/LLVM consumers.
 - `src/self_hosted/compiler/direct_mir/direct_mir_routine_param_fact_owner.pgy` -- exact
   formal-parameter admission, including value/resource/pass carriage and the
   complete carried ABI row; a required row cannot be reconstructed by a

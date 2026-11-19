@@ -1137,17 +1137,7 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_array_return_graph_fact_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_array_return_program_identity_owner.pgy" 240
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_array_return_plan_owner.pgy" 380
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_array_return_emission_owner.pgy" 240
-require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_array_int_producer_fact_owner.pgy" 200
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_returned_array_foreach_program_owner.pgy" 180
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_returned_array_foreach_projection_owner.pgy" 70
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy" 110
 require_max_lines \
@@ -1208,8 +1198,6 @@ while IFS='|' read -r scalar_program_owner scalar_program_cap; do
     [[ -z "$scalar_program_owner" || "$scalar_program_owner" == \#* ]] && continue
     require_max_lines "$scalar_program_owner" "$scalar_program_cap"
 done < tests/self_hosted/parity/mir/scalar_program_owner_caps.tsv
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_returned_array_program_route_owner.pgy" 100
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_bool_logic_projection.sh" 170
 require_max_lines \
@@ -2737,8 +2725,6 @@ require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_program_control_transfer_owner.sh" 140
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_foreach_array_int_projection.sh" 180
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_returned_array_foreach_projection.sh" 180
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_mixed_collection_foreach_projection.sh" 100
 require_max_lines \
