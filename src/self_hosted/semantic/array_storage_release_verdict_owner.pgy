@@ -69,6 +69,13 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
     let preserving_formals: HashMap<String, Int> = SemanticArrayStoragePreservingFormals(artifact, analysis, order);
     let requirements: HashMap<String, Int> = SemanticArrayStorageReleaseParameterRequirements(
         analysis.signatures, analysis.expression_surfaces, roots);
+    // Qualified enum variant names, built once: a call to one is a constructor.
+    var qualified_variants: HashMap<String, Int> = MapNew();
+    var variant: Int = 0;
+    while variant < ArrayLength(analysis.enums.variant_names) {
+        MapSet(qualified_variants, analysis.enums.variant_enum_names[variant] + "." + analysis.enums.variant_names[variant], 1);
+        variant = variant + 1;
+    }
     var retired: HashMap<String, Int> = MapNew();
     var release_sites: HashMap<String, Int> = MapNew();
     var escaped: HashMap<String, Int> = MapNew();
@@ -187,15 +194,8 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
                             MapSet(retired, key, UnwrapOption(block));
                             MapSet(release_sites, key, syntax_id);
                         } else {
-                            var constructor: Bool = IsSome(SemanticAstNominalConstructorIndexForName(analysis.constructors, target)) ||
-                                target == "Some" || target == "Ok" || target == "Err";
-                            var variant: Int = 0;
-                            while variant < ArrayLength(analysis.enums.variant_names) {
-                                if target == analysis.enums.variant_enum_names[variant] + "." + analysis.enums.variant_names[variant] {
-                                    constructor = true;
-                                }
-                                variant = variant + 1;
-                            }
+                            let constructor: Bool = IsSome(SemanticAstNominalConstructorIndexForName(analysis.constructors, target)) ||
+                                target == "Some" || target == "Ok" || target == "Err" || MapHas(qualified_variants, target);
                             var arg: Int = 0;
                             while arg < ArrayLength(call.argument_nodes) {
                                 let binding: Int = SemanticArrayStorageBinding(artifact, analysis, initializers.inferred_type_names,

@@ -12,8 +12,8 @@ forgeable input. The reached owner/consumer map and falsifiers are in the
 [active plan](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
 The general emitter leaks the deleted collection route's `ToString` results and returned `Array<Int>` ([run record](../evidence/2026-11-19_collection_program_route_deleted.md));
 nonempty record-field retirement leaks 32 bytes per backend (S2). The
-one-process full DRV-2 bound fails with OOM, exit 134 and no C artifact
-([measurements](measurements.md)). On a 2,693-program sweep no program runs
+one-process full DRV-2 source-to-C now ends within its 14 GiB bound at
+12.1 GiB ([measurements](measurements.md)). On a 2,693-program sweep no program runs
 unlike native on default LLVM; default C still differs on 12 that predate
 the [fix](../evidence/2026-11-19_default_route_native_runtime_parity.md).
 Default C, through the MIR-to-AST round trip, also prints garbage for a
@@ -48,7 +48,7 @@ ArrayPop(xs)`) with heap-use-after-free ([record](../evidence/2026-11-19_general
    MIR statement text. `semantic.hashmap_collection_ownership` stays ACTIVE.
 4. Compiler temporaries released at last use
    ([decision](../decisions/2026-11-16_compiler_temporaries_are_released_at_last_use.md)):
-   DRV-2 source-to-C still fails the bound ([measurements](measurements.md)).
+   DRV-2 fits its bound by less waste; the driver still releases almost nothing.
 5. Front ends differ: native admits a `let` field write through a world,
    zone slot and subject path; `x = values` from a ref formal; generic
    `ref value: T`; reserved zone/role/effect names. F2 branch, unlanded.

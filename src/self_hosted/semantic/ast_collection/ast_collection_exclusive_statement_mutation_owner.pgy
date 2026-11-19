@@ -124,9 +124,16 @@ func SemanticAstCollectionExclusiveSelectCopiesBeforeMutation(
         MapGet(surface_starts, function_key) < 0 { return false; }
     let count: Int = SemanticAstCollectionExclusiveCopyCount(
         copies, "copy_site_count");
+    let function_count: Int = SemanticAstCollectionExclusiveCopyCount(
+        copies, Concat("copy_site_function_count:", function_key));
+    let site_prefix: String = Concat("copy_site_function_site:", Concat(function_key, ":"));
     let no_uses: Array<Int> = [];
-    var site: Int = 0;
-    while site < count {
+    var position: Int = 0;
+    while position < function_count {
+        let site_row: String = Concat(site_prefix, ToString(position));
+        if !MapHas(copies, site_row) { return false; }
+        let site: Int = MapGet(copies, site_row);
+        if site < 0 || site >= count { return false; }
         let key: String = ToString(site);
         let function_row: String = Concat("copy_site_function:", key);
         let syntax_row: String = Concat("copy_site_syntax:", key);
@@ -141,10 +148,9 @@ func SemanticAstCollectionExclusiveSelectCopiesBeforeMutation(
             !MapHas(copies, node_row) || !MapHas(copies, root_row) ||
             !MapHas(copies, source_field_row) || !MapHas(copies, holder_row) ||
             !MapHas(copies, destination_field_row) { return false; }
-        let copy_function: Int = MapGet(copies, function_row);
+        if MapGet(copies, function_row) != function_id { return false; }
         let copy_syntax: Int = MapGet(copies, syntax_row);
-        if copy_function == function_id &&
-            (copy_syntax < syntax_id || (!earlier_only && copy_syntax == syntax_id)) {
+        if copy_syntax < syntax_id || (!earlier_only && copy_syntax == syntax_id) {
             let root: Int = MapGet(copies, root_row);
             let holder: Int = MapGet(copies, holder_row);
             var other: Int = 0;
@@ -164,7 +170,7 @@ func SemanticAstCollectionExclusiveSelectCopiesBeforeMutation(
                     MapGet(copies, node_row));
             }
         }
-        site = site + 1;
+        position = position + 1;
     }
     return true;
 }

@@ -148,8 +148,9 @@ func SemanticAstCollectionExclusiveRecordCopySite(
 ) -> Void {
     if function_id <= 0 || syntax_id <= 0 || node < 0 || root <= 0 ||
         holder <= 0 || source_field < -1 || destination_field < -1 { return; }
+    let function_key: String = ToString(function_id);
     let identity: String = Concat("copy_site_pair:", Concat(
-        ToString(function_id), Concat(":", Concat(ToString(syntax_id),
+        function_key, Concat(":", Concat(ToString(syntax_id),
         Concat(":", Concat(ToString(node), Concat(":",
         ToString(destination_field))))))));
     if MapHas(copies, identity) { return; }
@@ -157,6 +158,14 @@ func SemanticAstCollectionExclusiveRecordCopySite(
         copies, "copy_site_count");
     let key: String = ToString(count);
     MapSet(copies, identity, count + 1);
+    // Per-function site list, in recording order: a selector reads only the
+    // sites of its own function.
+    let function_count_row: String = Concat("copy_site_function_count:", function_key);
+    let function_count: Int = SemanticAstCollectionExclusiveCompilerCloneCount(
+        copies, function_count_row);
+    MapSet(copies, Concat("copy_site_function_site:", Concat(function_key,
+        Concat(":", ToString(function_count)))), count);
+    MapSet(copies, function_count_row, function_count + 1);
     MapSet(copies, Concat("copy_site_function:", key), function_id);
     MapSet(copies, Concat("copy_site_syntax:", key), syntax_id);
     MapSet(copies, Concat("copy_site_node:", key), node);
