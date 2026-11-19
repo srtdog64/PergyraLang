@@ -3,6 +3,7 @@
 import "direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_cfg_iteration_cursor_local_owner.pgy";
 
 func DirectMirScalarCfgIterationLocalRow(
     ref local_ref_kinds: Array<Int>, ref local_ref_syntax_ids: Array<Int>,
@@ -73,6 +74,8 @@ func DirectMirScalarCfgAppendIterationLocals(
         if wire.required { ArrayPush(local_ref_value_ids, expected_ref); }
         else { ArrayPush(local_ref_value_ids, ""); }
         ArrayPush(local_ref_syntax_ids, fact.loop_syntax_id);
+        DirectMirScalarCfgAppendIterationCursorLocal(fact, local_names, local_ref_kinds,
+            local_ref_value_ids, local_ref_syntax_ids);
         row = row + 1;
     }
     return DirectMirScalarCfgWireRangeScopesReady(
@@ -93,9 +96,10 @@ func DirectMirScalarCfgRangeFactsAtLocalRows(
         let local_binding: Int = DirectMirScalarCfgIterationLocalRow(
             local_ref_kinds, local_ref_syntax_ids, fact.loop_syntax_id
         );
-        if local_binding < 0 { return DirectMirScalarCfgRangeFactSetInvalid(); }
+        let cursor: Int = DirectMirScalarCfgIterationCursorRow(fact, local_ref_kinds, local_ref_syntax_ids);
+        if local_binding < 0 || cursor < -1 { return DirectMirScalarCfgRangeFactSetInvalid(); }
         bound = DirectMirScalarCfgRangeFactSetAppend(
-            bound, DirectMirScalarCfgRangeIterationFactAtLocalRow(fact, local_binding)
+            bound, DirectMirScalarCfgRangeIterationFactAtLocalRow(fact, local_binding, cursor)
         );
         if !bound.valid { return DirectMirScalarCfgRangeFactSetInvalid(); }
         row = row + 1;
@@ -124,6 +128,9 @@ func DirectMirScalarCfgIterationLocalsReady(
             }
             count = count + 1;
         }
+        if local_ref_kinds[row] == DirectMirScalarCfgLocalRefIterationCursor() &&
+            !DirectMirScalarCfgIterationCursorLocalReady(facts, row, local_ref_value_ids,
+                local_ref_syntax_ids) { return false; }
         row = row + 1;
     }
     if count != DirectMirScalarCfgRangeFactCount(facts) { return false; }

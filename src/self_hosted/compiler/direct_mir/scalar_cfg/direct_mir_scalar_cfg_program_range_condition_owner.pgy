@@ -6,6 +6,7 @@ import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_range_fact_owner.pgy";
 import "../direct_mir_routine_signature_schema_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_expression_admission_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_collection_expression_kind_owner.pgy";
 import "../../../mir/local_ref_identity_owner.pgy";
 
 func DirectMirScalarCfgProgramRangeConditionFactsFromBound(
@@ -152,4 +153,229 @@ func DirectMirScalarCfgProgramAppendRangeConditionExpression(
     }
     expressions = appended;
     return Some(expression_row);
+}
+
+// Extends the admitted iterable graph of a collection iteration's header row
+// into `cursor < ArrayLength(xs)` (`condition`) or into `xs[cursor]`, the
+// element the body entry binds. The node shapes are the admitted ones for
+// `ArrayLength(xs)` and `xs[i]`; no runtime call is attached.
+func DirectMirScalarCfgProgramCollectionRangeFactsFromIterable(
+    facts: DirectMirScalarProgramExpressionSet, expression_row: Int,
+    ref range: DirectMirScalarCfgRangeIterationFact, local_offset: Int,
+    element_type: String, condition: Bool
+) -> DirectMirScalarProgramExpressionSet {
+    if !facts.valid || facts.digest != 0 ||
+        expression_row + 1 != ArrayLength(facts.graph_starts) ||
+        facts.graph_global_rows[expression_row] != range.branch_global_row ||
+        range.iterable_type == "" || range.cursor_local_row < 0 ||
+        facts.node_types[facts.graph_roots[expression_row]] != range.iterable_type {
+        return DirectMirScalarProgramExpressionSetInvalid(facts);
+    }
+    let element: DirectMirScalarProgramExpressionKindFact =
+        DirectMirScalarProgramCollectionExpressionKindFact(
+            AstExpressionNodeIndex(), range.iterable_type, CompilerAbiLayoutIntTypeName(), 2);
+    if !element.valid || element.type_name != element_type {
+        return DirectMirScalarProgramExpressionSetInvalid(facts);
+    }
+    let iterable: Int = facts.graph_roots[expression_row];
+    var counts: Array<Int> = facts.graph_counts;
+    var roots: Array<Int> = facts.graph_roots;
+    var kinds: Array<Int> = facts.node_kinds;
+    var types: Array<String> = facts.node_types;
+    var lefts: Array<Int> = facts.node_lefts;
+    var rights: Array<Int> = facts.node_rights;
+    var local_rows: Array<Int> = facts.node_local_rows;
+    var params: Array<Int> = facts.node_parameter_ordinals;
+    var members: Array<Int> = facts.node_member_ordinals;
+    var literals: Array<String> = facts.node_literals;
+    var callables: Array<Int> = facts.node_callable_rows;
+    var runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    let first: Int = ArrayLength(kinds);
+    var length: Int = -1;
+    if condition {
+        length = ArrayLength(kinds);
+        DirectMirScalarProgramAppendExpressionNode(
+            kinds, types, lefts, rights, local_rows, params, members,
+            literals, callables, runtime_ids,
+            DirectMirScalarProgramExprArrayStringLength(), CompilerAbiLayoutIntTypeName(),
+            iterable, -1, -1, -1, -1, "", -1, -1);
+    }
+    let cursor: Int = ArrayLength(kinds);
+    DirectMirScalarProgramAppendExpressionNode(
+        kinds, types, lefts, rights, local_rows, params, members,
+        literals, callables, runtime_ids,
+        DirectMirScalarProgramExprLocal(), CompilerAbiLayoutIntTypeName(),
+        -1, -1, range.cursor_local_row + local_offset, -1, -1, "", -1, -1);
+    let root: Int = ArrayLength(kinds);
+    if condition {
+        DirectMirScalarProgramAppendExpressionNode(
+            kinds, types, lefts, rights, local_rows, params, members,
+            literals, callables, runtime_ids,
+            DirectMirScalarProgramExprLessInt(), CompilerAbiLayoutBoolTypeName(),
+            cursor, length, -1, -1, -1, "", -1, -1);
+    } else {
+        DirectMirScalarProgramAppendExpressionNode(
+            kinds, types, lefts, rights, local_rows, params, members,
+            literals, callables, runtime_ids, element.kind, element.type_name,
+            iterable, cursor, -1, -1, -1, "", -1, -1);
+    }
+    ArraySet(counts, expression_row, counts[expression_row] + ArrayLength(kinds) - first);
+    ArraySet(roots, expression_row, root);
+    return DirectMirScalarProgramExpressionSet(
+        true, 0, facts.graph_global_rows, facts.graph_starts,
+        counts, roots, kinds, types, lefts, rights, local_rows, params,
+        members, literals, callables, runtime_ids,
+        facts.nary_operands);
+}
+
+// Admits the header of a collection iteration: the condition row, returned,
+// and the element row (`element_row`). Each re-admits the branch's iterable
+// graph, so the cursor reads the live collection on every pass, as the
+// native backends do.
+func DirectMirScalarCfgProgramAppendCollectionRangeExpressions(
+    inout expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    inout element_row: Int,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref index: MirRoutineFactIndex,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, parameter_types: Array<String>,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    caller_ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref range: DirectMirScalarCfgRangeIterationFact, element_type: String
+) -> Option<Int> {
+    var rows: Array<Int> = [];
+    var pass: Int = 0;
+    while pass < 2 {
+        let expression_row: Int = ArrayLength(expressions.graph_starts);
+        var use_offset: Int = 0;
+        let admission: DirectMirScalarProgramExpressionAdmission =
+            DirectMirScalarProgramAppendExpression(
+                expressions, instruction, uses, index, global_row,
+                local_instruction, locals, types, wire, local_offset,
+                parameter_types, signature, callables, routine_instances,
+                caller_ordinal, logical_record, payload_free_enum,
+                referenced_enum, "expr0_graph", use_offset, true,
+                range.iterable_type, false, -1, false);
+        if !admission.valid {
+            if !failure.present { failure = admission.failure; }
+            expressions = admission.facts;
+            return None;
+        }
+        let appended: DirectMirScalarProgramExpressionSet =
+            DirectMirScalarCfgProgramCollectionRangeFactsFromIterable(
+                admission.facts, expression_row, range, local_offset,
+                element_type, pass == 0);
+        if !appended.valid ||
+            ArrayLength(appended.graph_starts) != expression_row + 1 {
+            if !failure.present {
+                failure = DirectMirScalarProgramExpressionAdmissionFailureAt(
+                    "collection-range", -1);
+            }
+            expressions = appended;
+            return None;
+        }
+        expressions = appended;
+        ArrayPush(rows, expression_row);
+        pass = pass + 1;
+    }
+    element_row = rows[1];
+    return Some(rows[0]);
+}
+
+// Admits a range header row: an Int range's bound comparison, or a
+// collection iteration's condition row (returned) and element row, stored in
+// `element_rows`, parallel to `ranges`. An element type the route does not
+// emit fails at the `collection_range` stage.
+func DirectMirScalarCfgProgramAppendRangeHeader(
+    inout expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    inout element_rows: Array<Int>,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref index: MirRoutineFactIndex,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, parameter_types: Array<String>,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
+    caller_ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref range: DirectMirScalarCfgRangeIterationFact,
+    ref ranges: DirectMirScalarCfgRangeFactSet
+) -> Option<Int> {
+    if range.iterable_type == "" {
+        return DirectMirScalarCfgProgramAppendRangeConditionExpression(
+            expressions, failure, instruction, uses, index, global_row,
+            local_instruction, locals, types, wire, local_offset,
+            parameter_types, signature, callables, routine_instances,
+            caller_ordinal, logical_record, payload_free_enum,
+            referenced_enum, range);
+    }
+    let element_type: String = DirectMirScalarCfgProgramCollectionRangeElementType(index, range);
+    let receipt: Int = DirectMirScalarCfgRangeFactUniqueRow(ranges.branch_global_rows, global_row);
+    if element_type == "" || receipt < 0 {
+        if !failure.present {
+            failure = DirectMirScalarProgramExpressionAdmissionFailureAt("collection_range", -1);
+        }
+        return None;
+    }
+    var element_row: Int = -1;
+    let condition: Option<Int> = DirectMirScalarCfgProgramAppendCollectionRangeExpressions(
+        expressions, failure, element_row, instruction, uses, index, global_row,
+        local_instruction, locals, types, wire, local_offset, parameter_types,
+        signature, callables, routine_instances, caller_ordinal, logical_record,
+        payload_free_enum, referenced_enum, range, element_type);
+    ArraySet(element_rows, receipt, element_row);
+    return condition;
+}
+
+// The element type of a collection iteration the program route emits, or ""
+// to refuse it: an Array of Int or Bool elements named directly (not a
+// hoisted temporary), whose body block is entered only from the header, so
+// the element bound at body entry is the one the header admitted. The route
+// can neither build nor receive an Array<Long> yet, so it is not admitted.
+func DirectMirScalarCfgProgramCollectionRangeElementType(
+    ref index: MirRoutineFactIndex, ref range: DirectMirScalarCfgRangeIterationFact
+) -> String {
+    var type_row: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(index.iteration_type_facts.iteration_syntax_ids) {
+        if index.iteration_type_facts.iteration_syntax_ids[row] == range.loop_syntax_id {
+            if type_row >= 0 { return ""; }
+            type_row = row;
+        }
+        row = row + 1;
+    }
+    if type_row < 0 || index.iteration_type_facts.collection_hoists[type_row] != 0 ||
+        index.iteration_type_facts.iterable_types[type_row] != range.iterable_type { return ""; }
+    var element_type: String = "";
+    if range.iterable_type == CompilerAbiLayoutArrayIntTypeName() {
+        element_type = CompilerAbiLayoutIntTypeName();
+    } else if range.iterable_type == CompilerAbiLayoutArrayBoolTypeName() {
+        element_type = CompilerAbiLayoutBoolTypeName();
+    }
+    if element_type == "" ||
+        index.iteration_type_facts.binding_types[type_row] != element_type { return ""; }
+    var block: Int = 0;
+    while block < ArrayLength(index.block_succ_true) {
+        if block != range.header_block && (index.block_succ_true[block] == range.body_block ||
+                index.block_succ_false[block] == range.body_block) { return ""; }
+        block = block + 1;
+    }
+    return element_type;
 }

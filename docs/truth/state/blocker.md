@@ -3,8 +3,7 @@
 Owner: Claude lane (GPT root lane's work since 2026-11-19); published
 revision/CI: [main](main.md).
 The v11 full MIR stops at transition ordinal 1438, the same first refusal as
-published v8; no C output. Its exact local receipt is
-[here](../evidence/2026-11-18_inout_member_restore_transition.md).
+published v8; no C output ([receipt](../evidence/2026-11-18_inout_member_restore_transition.md)).
 A scratch diagnostic traversed all 9,623 route instances: 109 distinct first
 refusals, no C output, and no claim about masked failures
 ([audit](../../audits/selfhost_full_mir_independent_refusal_census_2026-11-18.md)).
@@ -20,6 +19,8 @@ one-process full DRV-2 bound fails with OOM, exit 134 and no C artifact
 ([measurements](measurements.md)). Default LLVM runs 7 programs unlike native:
 six `function_param_flow_summary/*_landed_valid` (wrong values, an abort,
 garbage String bytes) and `log_trailing_newline` ([sweep](../evidence/2026-11-19_scalar_cfg_mutable_declaration.md)).
+Default C, through the MIR-to-AST round trip, prints garbage for a foreach
+whose body pushes to the walked local ([record](../evidence/2026-11-19_general_route_collection_iteration.md)).
 
 ## Objective card
 
@@ -56,5 +57,4 @@ garbage String bytes) and `log_trailing_newline` ([sweep](../evidence/2026-11-19
 
 ## Falsifiers kept
 
-- `direct_mir_array_string_cleanup_fact_owner.sh`: refused 18+4+6+2,
-  admitted 8x2 plus retained/nested cases; call-handoff row reader: 44.
+- `direct_mir_array_string_cleanup_fact_owner.sh`: refused 18+4+6+2, admitted 8x2 plus retained/nested cases; call-handoff row reader: 44.

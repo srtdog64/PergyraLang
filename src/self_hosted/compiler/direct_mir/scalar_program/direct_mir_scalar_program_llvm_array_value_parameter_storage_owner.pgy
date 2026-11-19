@@ -1,4 +1,4 @@
-// One entry-frame header slot for an admitted Int/String array value parameter.
+// One entry-frame header slot for an admitted Int/Bool/String array value parameter.
 // Readonly calls borrow this slot; no element copy, mutation or copy-out authority.
 import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
@@ -38,6 +38,9 @@ func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
                     Die("direct MIR LLVM value Array<Int> projection drifted");
                 }
                 storage_align = projection.storage.align;
+            } else if type_name == CompilerAbiLayoutArrayBoolTypeName() {
+                if !plan.program.array_bool_abi.present { Die("direct MIR LLVM value Array<Bool> ABI is missing"); }
+                storage_align = plan.program.array_bool_abi.align;
             } else {
                 if !IsSome(string_projection) { Die("direct MIR LLVM value Array<String> projection is missing"); }
                 let projection: DirectMirArrayStringAbiProjection = UnwrapOption(string_projection);

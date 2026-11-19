@@ -33,22 +33,21 @@ func DirectMirScalarCfgGraphInputFromAdmittedForOwner(
     let wire: DirectMirScalarCfgWireLocalRefs =
         DirectMirScalarCfgWireLocalRefsFromOwners(admitted, index, parameter_names);
     if !wire.valid { Die("direct MIR scalar CFG LocalRef plan is invalid"); }
-    let foreach_admission: DirectMirScalarCfgForEachAdmission =
-        DirectMirScalarCfgForEachFactsFromOwners(
-            admitted, index, use_facts, wire, producer
-        );
-    let foreach_facts: DirectMirScalarCfgForEachFactSet =
-        foreach_admission.facts;
-    if !foreach_admission.valid ||
-        DirectMirScalarCfgForEachFactCount(foreach_facts) !=
-            DirectMirScalarCfgCollectionIterationCount(admitted, index) ||
-        !DirectMirScalarCfgForEachFactSetSourceReady(
-            foreach_facts, ArrayLength(index.block_starts)
-        ) { Die("direct MIR scalar CFG foreach facts are invalid"); }
-    let ranges: DirectMirScalarCfgRangeFactSet =
-        DirectMirScalarCfgRangeIterationFactsFromOwners(
-            admitted, index, use_facts, wire, foreach_facts
-        );
+    // The program route walks every collection iteration as a cursor range
+    // over the runtime collection; the literal foreach receipts serve only the
+    // one-routine plan.
+    var foreach_admission: DirectMirScalarCfgForEachAdmission = DirectMirScalarCfgForEachAdmission(
+        true, DirectMirScalarCfgForEachFactSetEmpty(), DirectMirScalarCfgForEachElementFactsEmpty());
+    if !program_expression_owner {
+        foreach_admission = DirectMirScalarCfgForEachFactsFromOwners(admitted, index, use_facts, wire, producer);
+        if !foreach_admission.valid || DirectMirScalarCfgForEachFactCount(foreach_admission.facts) !=
+                DirectMirScalarCfgCollectionIterationCount(admitted, index) ||
+            !DirectMirScalarCfgForEachFactSetSourceReady(foreach_admission.facts, ArrayLength(index.block_starts)) {
+            Die("direct MIR scalar CFG foreach facts are invalid"); }
+    }
+    let foreach_facts: DirectMirScalarCfgForEachFactSet = foreach_admission.facts;
+    let ranges: DirectMirScalarCfgRangeFactSet = DirectMirScalarCfgRangeIterationFactsFromOwners(
+        admitted, index, use_facts, wire, foreach_facts, program_expression_owner);
     var expected_ranges: Int = 0;
     var type_row: Int = 0;
     while type_row < ArrayLength(

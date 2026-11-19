@@ -1,0 +1,68 @@
+// Iteration slots: the binding type of a loop and the cursor slot of a
+// program-route collection iteration (`for v in xs`), an Int local with no
+// source spelling and no LocalRef, keyed by loop id.
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_fact_owner.pgy";
+import "../../../mir_lower/routine_fact_index_owner.pgy";
+
+// The MIR iteration type fact's binding type of loop `loop_id` ("Int" for a
+// range), or "" when the loop has no unique fact.
+func DirectMirScalarCfgIterationBindingType(ref index: MirRoutineFactIndex, loop_id: Int) -> String {
+    var found: Int = -1;
+    var row: Int = 0;
+    while row < ArrayLength(index.iteration_type_facts.iteration_syntax_ids) {
+        if index.iteration_type_facts.iteration_syntax_ids[row] == loop_id {
+            if found >= 0 { return ""; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { return ""; }
+    // A copy: the type plan keeps the name past the borrowed index.
+    return Concat("", index.iteration_type_facts.binding_types[found]);
+}
+
+// An Int range appends nothing.
+func DirectMirScalarCfgAppendIterationCursorLocal(
+    ref fact: DirectMirScalarCfgRangeIterationFact,
+    inout local_names: Array<String>, inout local_ref_kinds: Array<Int>,
+    inout local_ref_value_ids: Array<String>, inout local_ref_syntax_ids: Array<Int>
+) -> Void {
+    if fact.iterable_type == "" { return; }
+    ArrayPush(local_names, DirectMirScalarCfgForEachCursorIdentity(fact.loop_syntax_id));
+    ArrayPush(local_ref_kinds, DirectMirScalarCfgLocalRefIterationCursor());
+    ArrayPush(local_ref_value_ids, "");
+    ArrayPush(local_ref_syntax_ids, fact.loop_syntax_id);
+}
+
+// The unique cursor slot of `fact`: -1 for an Int range, -2 when a
+// collection iteration has none or more than one.
+func DirectMirScalarCfgIterationCursorRow(
+    ref fact: DirectMirScalarCfgRangeIterationFact,
+    ref local_ref_kinds: Array<Int>, ref local_ref_syntax_ids: Array<Int>
+) -> Int {
+    if fact.iterable_type == "" { return -1; }
+    var found: Int = -2;
+    var row: Int = 0;
+    while row < ArrayLength(local_ref_kinds) {
+        if local_ref_kinds[row] == DirectMirScalarCfgLocalRefIterationCursor() &&
+            local_ref_syntax_ids[row] == fact.loop_syntax_id {
+            if found >= 0 { return -2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+// A cursor slot belongs to the collection receipt of its loop, which names it.
+func DirectMirScalarCfgIterationCursorLocalReady(
+    ref facts: DirectMirScalarCfgRangeFactSet, row: Int,
+    ref local_ref_value_ids: Array<String>, ref local_ref_syntax_ids: Array<Int>
+) -> Bool {
+    let fact: DirectMirScalarCfgRangeIterationFact =
+        DirectMirScalarCfgRangeFactAtLoopSyntaxId(facts, local_ref_syntax_ids[row]);
+    return fact.valid && fact.iterable_type != "" && fact.cursor_local_row == row &&
+        local_ref_value_ids[row] == "";
+}

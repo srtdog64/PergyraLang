@@ -59,11 +59,10 @@ implementation candidate on main, landed in slices.
 
 ## Intended chain
 
-1. **Fact:** a program-route collection-iteration fact per foreach.
-   - It carries the loop syntax id, init/header/body/exit/backedge blocks,
-     the binding name and type, and the iterable type.
-   - It is built from the `loop-init`/`branch` pair and checked like the
-     range fact: same binding, same iterable text, header dominance.
+1. **Fact:** the range receipt of the loop, extended with the iterable type
+   (see "Settled" below).
+   - It is built from the `loop-init`/`branch` pair and checked like a
+     range: same binding, same iterable text on both rows.
    - It is built only when `program_expression_owner`; the literal foreach
      admission stays for one-routine scalar CFG until its routes are deleted.
 2. **Locals:** the iteration-local owner appends two rows per foreach.
@@ -85,9 +84,11 @@ implementation candidate on main, landed in slices.
    the init block, and add 1 at the end of each backedge block, as range
    effects do.
 6. **Admission guards:**
-   - The body must not push, set or pop the iterable, and must not assign it.
-   - The iterable must be a local or a parameter the route stores.
-   - Anything else is refused with a typed stage, never a `Die`.
+   - The element type is Int, Long or Bool, the iterable is not a hoisted
+     temporary, and only the header enters the body block.
+   - Anything else is refused at the `collection_range` stage, never a `Die`.
+   - String elements (slice 2) add the borrow guard: the body must not set,
+     pop or reassign the iterable while the binding is live.
 7. **Retirement (later slices):**
    - Let the general route claim one-routine programs: delete the
      `single-program-shape` guard and its control-flow/builtin claim owners.
@@ -96,18 +97,31 @@ implementation candidate on main, landed in slices.
    - Delete each collection family and its registry row once the sweep shows
      its programs equal on the general route.
 
-## Unknowns to settle before editing
+## Settled while implementing slice 1
 
-- Whether wire `primary_refs` (when `wire.required`) name the foreach
-  binding the way they name a range binding.
-- Whether the C emitter's `Array<String>` length/index (`pgy_as` runtime
-  calls) and `Array<Int>` element width (`i32` storage, `i64` local) need a
-  conversion node.
-- Which line caps the touched owners sit at; graph admission is at 450/450.
+- The fact is the range receipt itself, not a second fact: a collection
+  iteration is a range receipt with `iterable_type`, `cursor_local_row` and
+  `element_expression_row`. Merging, local binding, block effects and plan
+  readiness are the range owners'.
+- Wire `primary_refs` name a foreach's rows `iteration:<loop>:0`, as for a
+  range. A parameter iterable has no SSA use on its rows, only a
+  `parameter:` wire ref; that is why the literal admission died on it.
+- The native backends read the live collection: `ArrayPush` in the body
+  extends the walk. The cursor range does the same, so the body-mutation
+  guard is not needed for Int, Long or Bool elements. It stays a condition
+  for String elements, whose binding borrows.
+- The wire range-scope check refused every non-iteration ref in a routine
+  with a range (for example `ArrayPush(xs, v)`); it now scopes only
+  `iteration:` refs and leaves declaration and parameter refs to the
+  expression owner's exact identity lookup.
+- The default C route chooses the general emitter by its own claim rule,
+  not the one default LLVM uses; these programs reach the MIR-to-AST round
+  trip there, before and after this slice. Unifying the two claims is a
+  retirement step, not part of slice 1.
 
 ## Slices
 
-1. Int and String elements, local or parameter iterable, LLVM and C; gate
-   and sweep.
-2. Bool, Long and record elements; break/continue/nested coverage.
+1. Int, Long and Bool elements, local or parameter iterable, LLVM and C,
+   break/continue/nested; gate and sweep.
+2. String and record elements, with the borrow guard.
 3. Retirement steps above, one family per commit.

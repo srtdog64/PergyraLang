@@ -2625,6 +2625,12 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_iteration_local_owner.pgy" 150
 require_max_lines \
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_iteration_cursor_local_owner.pgy" 70
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_collection_range_entry_owner.pgy" 70
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_collection_range_readiness_owner.pgy" 60
+require_max_lines \
     "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy" 150
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_range_graph_readiness_owner.pgy" 60

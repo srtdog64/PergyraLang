@@ -77,7 +77,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     if !type_plan.valid { Die("direct MIR scalar CFG value type plan is invalid"); }
     let local_types: Array<String> = type_plan.local_types;
     if !DirectMirScalarCfgLocalInventoryReady(
-        input.index, local_names, local_types,
+        input.index, local_names, local_refs.local_ref_kinds, local_types,
         foreach_sources, string_array_source, array_int_source,
         collection_source, logical_record, signature.parameters
     ) { Die(Concat(

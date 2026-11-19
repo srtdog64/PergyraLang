@@ -2,6 +2,12 @@
 
 import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
 
+// A collection iteration advances its cursor; an Int range its binding.
+func DirectMirScalarCfgRangeSteppedLocalRow(ref fact: DirectMirScalarCfgRangeIterationFact) -> Int {
+    if fact.iterable_type != "" { return fact.cursor_local_row; }
+    return fact.local_row;
+}
+
 func DirectMirScalarCfgRangeBackedgeContains(
     ref fact: DirectMirScalarCfgRangeIterationFact,
     block: Int
@@ -24,7 +30,7 @@ func DirectMirScalarCfgRangeCBlockEffect(
         Die("direct MIR scalar CFG C range fact is invalid");
     }
     let local_binding: String = Concat(
-        "pgy_local_", ToString(fact.local_row)
+        "pgy_local_", ToString(DirectMirScalarCfgRangeSteppedLocalRow(fact))
     );
     if block == fact.init_block {
         return Concat(
@@ -59,7 +65,7 @@ func DirectMirScalarCfgRangeLlvmBlockEffect(
         Die("direct MIR scalar CFG LLVM range fact is invalid");
     }
     let local_binding: String = Concat(
-        "%pgy.local.", ToString(fact.local_row)
+        "%pgy.local.", ToString(DirectMirScalarCfgRangeSteppedLocalRow(fact))
     );
     if block == fact.init_block {
         return Concat(

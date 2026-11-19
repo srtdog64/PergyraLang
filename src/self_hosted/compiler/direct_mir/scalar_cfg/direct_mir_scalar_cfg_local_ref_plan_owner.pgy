@@ -240,7 +240,8 @@ func DirectMirScalarCfgLocalRefsReady(
                 (kind == DirectMirScalarCfgLocalRefValue() &&
                     (local_ref_value_ids[row] == "" ||
                      local_ref_syntax_ids[row] >= 0)) ||
-                (kind == DirectMirScalarCfgLocalRefIteration() &&
+                ((kind == DirectMirScalarCfgLocalRefIteration() ||
+                  kind == DirectMirScalarCfgLocalRefForEach()) &&
                     (local_ref_syntax_ids[row] < 0 ||
                      (local_ref_value_ids[row] != "" &&
                       local_ref_value_ids[row] != Concat(
@@ -248,14 +249,8 @@ func DirectMirScalarCfgLocalRefsReady(
                             ToString(local_ref_syntax_ids[row]), ":0"
                         )
                       )))) ||
-                (kind == DirectMirScalarCfgLocalRefForEach() &&
-                    (local_ref_syntax_ids[row] < 0 ||
-                     (local_ref_value_ids[row] != "" &&
-                      local_ref_value_ids[row] != Concat(
-                          "iteration:", Concat(
-                              ToString(local_ref_syntax_ids[row]), ":0"
-                          )
-                      )))) ||
+                (kind == DirectMirScalarCfgLocalRefIterationCursor() &&
+                    (local_ref_syntax_ids[row] < 0 || local_ref_value_ids[row] != "")) ||
                 (kind == DirectMirScalarCfgLocalRefMatchBinding() &&
                     (local_ref_syntax_ids[row] < 0 ||
                      SelfMirLocalRefDestructureOrdinalForOwner(
@@ -265,6 +260,7 @@ func DirectMirScalarCfgLocalRefsReady(
                 (kind != DirectMirScalarCfgLocalRefValue() &&
                  kind != DirectMirScalarCfgLocalRefIteration() &&
                  kind != DirectMirScalarCfgLocalRefForEach() &&
+                 kind != DirectMirScalarCfgLocalRefIterationCursor() &&
                  kind != DirectMirScalarCfgLocalRefMatchBinding()) {
                 return false;
             }

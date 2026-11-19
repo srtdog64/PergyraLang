@@ -6,6 +6,8 @@ func DirectMirScalarCfgLocalRefValue() -> Int { return 1; }
 func DirectMirScalarCfgLocalRefIteration() -> Int { return 2; }
 func DirectMirScalarCfgLocalRefForEach() -> Int { return 3; }
 func DirectMirScalarCfgLocalRefMatchBinding() -> Int { return 4; }
+// The program route's position in a collection iteration, keyed by loop id.
+func DirectMirScalarCfgLocalRefIterationCursor() -> Int { return 5; }
 
 // Normalize the admitted no-wire declaration before any ownership consumer.
 func DirectMirScalarCfgDeclarationIdentity(

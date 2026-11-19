@@ -127,7 +127,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
             "range_facts", routine_ordinal, -1, -1, ""));
     }
     if !DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
-        input.index, locals.local_names, types.local_types,
+        input.index, locals.local_names, locals.local_ref_kinds, types.local_types,
         input.foreach_facts, input.string_arrays, input.array_int_program,
         input.collections, logical_record, referenced_enum,
         signature.parameters
@@ -151,13 +151,9 @@ func DirectMirScalarCfgProgramAppendRoutine(
     let operation_offset: Int = ArrayLength(storage.operations.kinds);
     let phi_offset: Int =
         ArrayLength(storage.operations.phi_predecessor_blocks);
-    ranges = DirectMirScalarCfgProgramRangeFactsMergeRoutine(
-        ranges, routine_ranges, local_offset, block_offset,
-        ArrayLength(input.index.block_starts));
-    if !ranges.valid {
-        Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
-            "range_projection", routine_ordinal, -1, -1, ""));
-    }
+    // Element rows are admitted with their headers; the receipts join the
+    // plan once every block is admitted.
+    var element_rows: Array<Int> = DirectMirScalarCfgProgramRangeElementRowsUnbound(routine_ranges);
     let values: DirectMirScalarCfgProgramValueStorage =
         DirectMirScalarCfgProgramValuesAppendRoutine(
             storage.values, locals, types, block_offset);
@@ -324,14 +320,14 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         break;
                     }
                     let condition_row_opt: Option<Int> =
-                        DirectMirScalarCfgProgramAppendRangeConditionExpression(
-                            expressions, expression_failure, instruction,
+                        DirectMirScalarCfgProgramAppendRangeHeader(
+                            expressions, expression_failure, element_rows, instruction,
                             input.use_facts, input.index, global_row,
                             local_instruction, locals, types, input.wire,
                             local_offset, parameter_types, signature,
                             callables, routine_instances, routine_ordinal,
                             logical_record, payload_free_enum,
-                            referenced_enum, range);
+                            referenced_enum, range, routine_ranges);
                     if !IsSome(condition_row_opt) {
                         refusal = DirectMirScalarCfgProgramExpressionAdmissionRefusal(
                             global_row, source, expression_failure);
@@ -419,6 +415,15 @@ func DirectMirScalarCfgProgramAppendRoutine(
         DirectMirScalarCfgProgramGraphStorage(
             values, blocks, operations, routines
         );
+    if refusal == "" {
+        ranges = DirectMirScalarCfgProgramRangeFactsMergeRoutine(
+            ranges, routine_ranges, element_rows, local_offset, block_offset,
+            ArrayLength(input.index.block_starts));
+        if !ranges.valid {
+            Die(DirectMirScalarCfgProgramRoutineAdmissionRefusal(
+                "range_projection", routine_ordinal, -1, -1, ""));
+        }
+    }
     // One terminal return: a refused routine still hands back every input.
     if refusal == "" {
         collection_ownership =

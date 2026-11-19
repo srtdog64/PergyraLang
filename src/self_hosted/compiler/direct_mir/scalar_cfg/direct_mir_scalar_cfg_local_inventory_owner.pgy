@@ -15,7 +15,7 @@ import "direct_mir_scalar_cfg_value_type_projection_owner.pgy";
 import "../../../mir_lower/routine_fact_index_owner.pgy";
 func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
     ref index: MirRoutineFactIndex,
-    local_names: Array<String>, local_types: Array<String>,
+    local_names: Array<String>, local_ref_kinds: Array<Int>, local_types: Array<String>,
     ref foreaches: DirectMirScalarCfgForEachFactSet,
     ref string_arrays: DirectMirScalarCfgStringArrayPlan,
     ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
@@ -27,6 +27,7 @@ func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
     if ArrayLength(index.source_local_names) !=
         ArrayLength(index.source_local_types) ||
         ArrayLength(local_names) != ArrayLength(local_types) ||
+        ArrayLength(local_names) != ArrayLength(local_ref_kinds) ||
         !DirectMirRoutineParameterSetFactReady(parameters) { return false; }
     var consumed: Array<Bool> = [];
     var row: Int = 0;
@@ -35,6 +36,8 @@ func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
     }
     row = 0;
     while row < ArrayLength(local_names) {
+        // A collection iteration cursor has no source local.
+        if local_ref_kinds[row] == DirectMirScalarCfgLocalRefIterationCursor() { row = row + 1; continue; }
         var found: Int = -1; var source: Int = 0;
         while source < ArrayLength(index.source_local_names) {
             if !consumed[source] && index.source_local_names[source] ==
@@ -101,7 +104,7 @@ func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
 
 func DirectMirScalarCfgLocalInventoryReady(
     ref index: MirRoutineFactIndex,
-    local_names: Array<String>, local_types: Array<String>,
+    local_names: Array<String>, local_ref_kinds: Array<Int>, local_types: Array<String>,
     ref foreaches: DirectMirScalarCfgForEachFactSet,
     ref string_arrays: DirectMirScalarCfgStringArrayPlan,
     ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
@@ -112,7 +115,7 @@ func DirectMirScalarCfgLocalInventoryReady(
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
         DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
     return DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
-        index, local_names, local_types, foreaches, string_arrays,
+        index, local_names, local_ref_kinds, local_types, foreaches, string_arrays,
         array_int_program, collections, logical_record, referenced_enum,
         parameters);
 }

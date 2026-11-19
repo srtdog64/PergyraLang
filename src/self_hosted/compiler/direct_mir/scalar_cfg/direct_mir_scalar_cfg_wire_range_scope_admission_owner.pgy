@@ -61,6 +61,12 @@ func DirectMirScalarCfgWireRangeScopesReady(
                         branch_range.stop_local_ref != "" &&
                         direct_ref == branch_range.stop_local_ref {
                         bound_nodes = bound_nodes + 1;
+                    } else if !StartsWith(direct_ref, "iteration:") {
+                        // A declaration or parameter ref (an iterable, a
+                        // mutated collection) is resolved by exact identity
+                        // in expression admission; only iteration refs are
+                        // scoped here.
+                        bound_nodes = bound_nodes + 1;
                     } else {
                         return false;
                     }

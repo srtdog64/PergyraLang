@@ -1,0 +1,253 @@
+#!/usr/bin/env bash
+# The general direct-MIR route walks `for v in xs` over a runtime Array<Int>
+# or Array<Bool> local or parameter as a cursor range: the header
+# compares the cursor with the live `ArrayLength(xs)`, the body entry binds
+# `v = xs[cursor]`, and the backedges advance the cursor. Before 2026-11-19 the
+# route took no foreach at all: a parameter iterable died in the literal
+# foreach admission and a local one ended the routine input with "an external
+# collection plan".
+# - Each program runs on native C/LLVM, the default LLVM route and the
+#   general emitter's C backend with the same stdout and exit status.
+#   - The general emitter's LLVM leg links no runtime library, so it cannot
+#     resolve the Array index bounds-panic export the default LLVM route links.
+#   - The default C route claims the general emitter by its own rule
+#     (collection ownership facts, or LocalRef wire facts with every routine
+#     claimed); these programs fall to the MIR-to-AST round trip, which refused
+#     the parameter iterables and printed garbage for `live_local_push` before
+#     this change as after it. One claim rule for both backends is open work.
+# - A forged MIR whose loop-init names another binding or iterable than its
+#   header is refused with no artifact.
+# - An Array<String> iterable, outside this slice, is refused with the typed
+#   `collection_range` stage, not a driver death.
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
+LABEL="direct-mir-general-route-collection-iteration"
+PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
+DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
+WORK_REL=".tmp/self_hosted/direct_mir_general_route_collection_iteration"
+WORK_DIR="$ROOT_DIR/$WORK_REL"
+CC="${PGY_SELFHOST_CC:-gcc}"
+LEGS=(native-c native-llvm default-llvm direct-c)
+
+fail() { echo "[$LABEL] $*" >&2; exit 1; }
+pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
+pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
+command -v python3 >/dev/null || fail "python3 is unavailable"
+
+rm -rf "$WORK_DIR"
+mkdir -p "$WORK_DIR"
+
+cat >"$WORK_DIR/parameter_break_continue.pgy" <<'PGY'
+func Tally(xs: Array<Int>) -> Int {
+    var total: Int = 0;
+    for v in xs {
+        if v == 3 { continue; }
+        if v > 8 { break; }
+        total = total + v;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3, 4, 9, 5];
+    Log(Tally(xs));
+}
+PGY
+
+cat >"$WORK_DIR/nested_parameters.pgy" <<'PGY'
+func Pairs(rows: Array<Int>, cols: Array<Int>) -> Int {
+    var total: Int = 0;
+    for r in rows {
+        for c in cols {
+            if r < c { total = total + r * c; }
+        }
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let rows: Array<Int> = [1, 2, 3];
+    let cols: Array<Int> = [2, 3];
+    Log(Pairs(rows, cols));
+}
+PGY
+
+# The cursor reads the live collection: elements pushed by the body are
+# visited, as on the native backends.
+cat >"$WORK_DIR/live_local_push.pgy" <<'PGY'
+func Grow(seed: Int) -> Int {
+    var xs: Array<Int> = [seed, seed + 1, seed + 2];
+    var n: Int = 0;
+    for v in xs {
+        if n < 5 { ArrayPush(xs, v + 10); }
+        n = n + 1;
+        Log(v);
+    }
+    return n;
+}
+
+func Main() -> Void {
+    Log(Grow(1));
+}
+PGY
+
+cat >"$WORK_DIR/bool_elements.pgy" <<'PGY'
+func CountTrue(flags: Array<Bool>) -> Int {
+    var n: Int = 0;
+    for f in flags {
+        if f { n = n + 1; }
+    }
+    return n;
+}
+
+func Main() -> Void {
+    let flags: Array<Bool> = [true, false, true, true];
+    Log(CountTrue(flags));
+}
+PGY
+
+# A range and a foreach in one routine publish LocalRef wire facts.
+cat >"$WORK_DIR/range_beside_foreach.pgy" <<'PGY'
+func Sum(xs: Array<Int>) -> Int {
+    var total: Int = 0;
+    for v in xs {
+        total = total + v;
+    }
+    for i in 0..3 {
+        total = total + i;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3];
+    Log(Sum(xs));
+}
+PGY
+
+cat >"$WORK_DIR/string_elements.pgy" <<'PGY'
+func Width(names: Array<String>) -> Int {
+    var total: Int = 0;
+    for name in names {
+        total = total + StringLength(name);
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let names: Array<String> = ["ab", "cde"];
+    Log(Width(names));
+}
+PGY
+
+leg_flags() {
+    case "$1" in
+        native-c) echo "--native-pipeline --backend=c" ;;
+        native-llvm) echo "--native-pipeline --backend=llvm" ;;
+        default-llvm) echo "--backend=llvm" ;;
+        *) fail "unknown leg $1" ;;
+    esac
+}
+
+# compile NAME LEG: builds WORK_DIR/NAME-LEG.exe, returns the compiler status.
+compile() {
+    local name="$1" leg="$2" status=0
+    if [[ "$leg" == direct-c ]]; then
+        (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/$name.pgy" \
+                -o "$WORK_REL/$name.mir.json" &&
+            "$DRIVER" --mir-json-backend=c "$WORK_REL/$name.mir.json" \
+                -o "$WORK_REL/$name-direct.c" &&
+            ! grep -Fq 'CODEGEN ERROR' "$WORK_REL/$name-direct.c" &&
+            "$CC" -std=c11 -D_POSIX_C_SOURCE=200809L -Isrc -Isrc/runtime -pthread \
+                "$WORK_REL/$name-direct.c" -o "$WORK_REL/$name-$leg.exe" -lm) \
+            >"$WORK_DIR/$name-$leg.compile.log" 2>&1 || status=$?
+        return "$status"
+    fi
+    # shellcheck disable=SC2046
+    (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" \
+        "$PGY" "$WORK_REL/$name.pgy" $(leg_flags "$leg") \
+        -o "$WORK_REL/$name-$leg.exe") \
+        >"$WORK_DIR/$name-$leg.compile.log" 2>&1 || status=$?
+    return "$status"
+}
+
+# expect_run NAME STDOUT: every leg prints STDOUT and exits 0.
+expect_run() {
+    local name="$1" expected_out="$2" leg status
+    printf '%s\n' "$expected_out" >"$WORK_DIR/$name.expected"
+    for leg in "${LEGS[@]}"; do
+        compile "$name" "$leg" ||
+            { cat "$WORK_DIR/$name-$leg.compile.log" >&2; fail "$leg did not compile $name"; }
+        status=0
+        "$WORK_DIR/$name-$leg.exe" >"$WORK_DIR/$name-$leg.out" \
+            2>"$WORK_DIR/$name-$leg.err" </dev/null || status=$?
+        [[ "$status" == 0 ]] || fail "$leg $name exited $status"
+        tr -d '\r' <"$WORK_DIR/$name-$leg.out" >"$WORK_DIR/$name-$leg.out.lf"
+        cmp -s "$WORK_DIR/$name.expected" "$WORK_DIR/$name-$leg.out.lf" ||
+            { diff -u "$WORK_DIR/$name.expected" "$WORK_DIR/$name-$leg.out.lf" >&2 || true
+              fail "$leg $name printed other output"; }
+    done
+}
+
+expect_run parameter_break_continue '7'
+expect_run nested_parameters '11'
+expect_run live_local_push $'1\n2\n3\n11\n12\n13\n21\n22\n8'
+expect_run bool_elements '3'
+expect_run range_beside_foreach '9'
+
+# forge NAME FIELD VALUE OUT: rewrites FIELD of the first Tally loop-init row.
+forge() {
+    python3 - "$WORK_DIR/$1.mir.json" "$2" "$3" "$WORK_DIR/$4" <<'PY'
+import json, sys
+source, field, value, out = sys.argv[1:5]
+mir = json.load(open(source))
+routine = next(r for r in mir["routines"] if r["name"] == "Tally")
+row = next(i for b in routine["blocks"] for i in b["instructions"]
+           if i["kind"] == "loop-init" and i.get("source_type") == "AST_FOR_LOOP")
+row[field] = value
+json.dump(mir, open(out, "w"))
+PY
+}
+
+# expect_refused MIR BACKEND MESSAGE: the driver exits nonzero with MESSAGE
+# and writes no artifact.
+expect_refused() {
+    local mir="$1" backend="$2" message="$3" status=0
+    rm -f "$WORK_DIR/refused.out"
+    (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend="$backend" "$WORK_REL/$mir" \
+        -o "$WORK_REL/refused.out") >"$WORK_DIR/$mir.$backend.log" 2>&1 || status=$?
+    [[ "$status" != 0 ]] || fail "$mir on $backend was admitted"
+    [[ ! -s "$WORK_DIR/refused.out" ]] || fail "$mir on $backend wrote an artifact"
+    grep -Fq "$message" "$WORK_DIR/$mir.$backend.log" ||
+        { cat "$WORK_DIR/$mir.$backend.log" >&2; fail "$mir on $backend: expected '$message'"; }
+}
+
+forge parameter_break_continue arg0 w forged_binding.mir.json
+forge parameter_break_continue expr1 ys forged_iterable.mir.json
+for backend in c llvm; do
+    expect_refused forged_binding.mir.json "$backend" "range instruction/CFG join is invalid"
+    expect_refused forged_iterable.mir.json "$backend" "collection iteration rows disagree"
+done
+
+# The self-host driver prints a route refusal as a CODEGEN ERROR artifact.
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/string_elements.pgy" \
+    -o "$WORK_REL/string_elements.mir.json") >"$WORK_DIR/string_elements.mir.log" 2>&1 ||
+    fail "string_elements did not lower to MIR"
+for backend in c llvm; do
+    status=0
+    (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend="$backend" "$WORK_REL/string_elements.mir.json" \
+        -o "$WORK_REL/string_elements.$backend.out") >"$WORK_DIR/string_elements.$backend.log" 2>&1 ||
+        status=$?
+    cat "$WORK_DIR/string_elements.$backend.log" "$WORK_DIR/string_elements.$backend.out" \
+        >"$WORK_DIR/string_elements.$backend.all" 2>/dev/null || true
+    grep -Fq 'CODEGEN ERROR' "$WORK_DIR/string_elements.$backend.all" &&
+        grep -Fq 'collection_range' "$WORK_DIR/string_elements.$backend.all" ||
+        { cat "$WORK_DIR/string_elements.$backend.all" >&2
+          fail "string_elements on $backend was not refused at collection_range (status $status)"; }
+done
+
+echo "[$LABEL] 5 programs equal on four legs, 2 forged MIR and 1 String iterable refused: PASS"

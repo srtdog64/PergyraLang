@@ -1,5 +1,5 @@
 // Validates one range's condition representation and fixed CFG edges.
-import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_collection_range_readiness_owner.pgy";
 
 func DirectMirScalarCfgRangeGraphShapeReady(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -23,7 +23,9 @@ func DirectMirScalarCfgRangeGraphShapeReady(
         plan.block_condition_right_locals[range.header_block] == -1 &&
         plan.block_condition_left_literals[range.header_block] == "" &&
         plan.block_condition_right_literals[range.header_block] == "";
-    if range.stop_local_ref != "" {
+    if range.iterable_type != "" {
+        condition_ready = expression_condition && DirectMirScalarCfgCollectionRangeShapeReady(plan, range);
+    } else if range.stop_local_ref != "" {
         condition_ready = expression_condition;
     } else if range.stop_literal != "" && range.stop_value_id == "" {
         condition_ready = condition_ready || expression_condition;

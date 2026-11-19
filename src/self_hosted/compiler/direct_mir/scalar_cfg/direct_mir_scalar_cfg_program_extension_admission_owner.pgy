@@ -212,6 +212,7 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     if !DirectMirScalarProgramHashMapLifetimeReadyForPlan(plan) { return 27; }
     if !DirectMirArrayStorageReleaseLifetimeReady(plan) { return 28; }
     if !DirectMirScalarProgramArrayIndexStaticBoundsReady(plan) { return 29; }
+    if !DirectMirScalarCfgProgramCollectionRangeElementRowsReady(plan) { return 30; }
     return 0;
 }
 
