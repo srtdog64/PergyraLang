@@ -25,7 +25,6 @@ struct DirectMirScalarCfgRangeFactSet {
     let backedge_blocks: Array<Int>;
     let iterable_types: Array<String>;
     let cursor_local_rows: Array<Int>;
-    let element_expression_rows: Array<Int>;
 }
 
 func DirectMirScalarCfgRangeFactSetInvalid(
@@ -35,7 +34,7 @@ func DirectMirScalarCfgRangeFactSetInvalid(
     return DirectMirScalarCfgRangeFactSet(
         false, 0, ints, ints, ints, ints, ints, ints, ints, ints, ints,
         strings, strings, strings, strings, strings, strings,
-        ints, ints, ints, strings, ints, ints
+        ints, ints, ints, strings, ints
     );
 }
 
@@ -65,8 +64,7 @@ func DirectMirScalarCfgRangeFactSetWithDigest(
         facts.loop_syntax_ids, facts.binding_names, facts.start_literals,
         facts.stop_literals, facts.stop_value_ids, facts.stop_local_refs,
         facts.step_literals, facts.backedge_starts, facts.backedge_counts,
-        facts.backedge_blocks, facts.iterable_types, facts.cursor_local_rows,
-        facts.element_expression_rows
+        facts.backedge_blocks, facts.iterable_types, facts.cursor_local_rows
     );
 }
 
@@ -86,7 +84,7 @@ func DirectMirScalarCfgRangeFactSetEmpty(
             invalid.step_literals,
             invalid.backedge_starts, invalid.backedge_counts,
             invalid.backedge_blocks, invalid.iterable_types,
-            invalid.cursor_local_rows, invalid.element_expression_rows
+            invalid.cursor_local_rows
         );
     return DirectMirScalarCfgRangeFactSetWithDigest(
         facts, DirectMirScalarCfgRangeFactSetDigest(facts)
@@ -124,7 +122,7 @@ func DirectMirScalarCfgRangeFactAt(
         facts.start_literals[row], facts.stop_literals[row],
         facts.stop_value_ids[row], facts.stop_local_refs[row],
         facts.step_literals[row], backedges, facts.iterable_types[row],
-        facts.cursor_local_rows[row], facts.element_expression_rows[row]
+        facts.cursor_local_rows[row]
     );
 }
 
@@ -158,10 +156,8 @@ func DirectMirScalarCfgRangeFactSetAppend(
     var backedges: Array<Int> = facts.backedge_blocks;
     var iterable_types: Array<String> = facts.iterable_types;
     var cursors: Array<Int> = facts.cursor_local_rows;
-    var elements: Array<Int> = facts.element_expression_rows;
     ArrayPush(iterable_types, fact.iterable_type);
     ArrayPush(cursors, fact.cursor_local_row);
-    ArrayPush(elements, fact.element_expression_row);
     ArrayPush(fact_digests, fact.digest);
     ArrayPush(init_globals, fact.init_global_row);
     ArrayPush(branch_globals, fact.branch_global_row);
@@ -189,7 +185,7 @@ func DirectMirScalarCfgRangeFactSetAppend(
             true, 0, fact_digests, init_globals, branch_globals, init_blocks,
             headers, bodies, exits, locals, loop_ids, names, starts, stops,
             stop_values, stop_refs, steps, backedge_starts,
-            backedge_counts, backedges, iterable_types, cursors, elements
+            backedge_counts, backedges, iterable_types, cursors
         );
     return DirectMirScalarCfgRangeFactSetWithDigest(
         appended, DirectMirScalarCfgRangeFactSetDigest(appended)
@@ -252,8 +248,7 @@ func DirectMirScalarCfgRangeFactSetShapeReady(
         count != ArrayLength(facts.backedge_starts) ||
         count != ArrayLength(facts.backedge_counts) ||
         count != ArrayLength(facts.iterable_types) ||
-        count != ArrayLength(facts.cursor_local_rows) ||
-        count != ArrayLength(facts.element_expression_rows) {
+        count != ArrayLength(facts.cursor_local_rows) {
         return false;
     }
     var edge_cursor: Int = 0;

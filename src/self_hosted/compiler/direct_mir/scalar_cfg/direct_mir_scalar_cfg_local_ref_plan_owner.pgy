@@ -146,9 +146,9 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                 // noncolliding wire form omits explicit LocalRefs.
                 if !wire.required && parameter_ordinal < 0 &&
                     ArrayLength(index.collection_ownership_facts.binding_syntax_ids) > 0 {
-                    local_identity = DirectMirScalarCfgDeclarationIdentity(
-                        index.source_local_names, index.source_local_binding_syntax_ids,
-                        index.declared_source_local_count, local_name);
+                    var loop_bindings: Array<String> = DirectMirScalarCfgLoopBindingNames(admitted.routines, index);
+                    local_identity = DirectMirScalarCfgDeclarationIdentity(index.source_local_names,
+                        index.source_local_binding_syntax_ids, index.declared_source_local_count, local_name, loop_bindings);
                 }
                 local_row = ArrayLength(local_names);
                 ArrayPush(local_names, local_name);
@@ -186,6 +186,8 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
     ) {
         Die("direct MIR scalar CFG range LocalRef binding is invalid");
     }
+    if !DirectMirScalarCfgAppendIterationElementValues(ranges, local_ref_kinds, local_ref_syntax_ids,
+            value_names, value_local_rows, value_definition_blocks) { Die("direct MIR scalar CFG iteration element value is invalid"); }
     if !DirectMirScalarCfgAppendForEachLocals(
         index, wire, foreach_sources, local_names, local_ref_kinds,
         local_ref_value_ids, local_ref_syntax_ids
@@ -284,8 +286,9 @@ func DirectMirScalarCfgLocalRefsReady(
             if StringLength(value_names[value]) == 0 ||
                 local_binding < local_start || local_binding >= local_end ||
                 definition_block < block_start || definition_block >= block_end ||
-                local_ref_kinds[local_binding] !=
-                    DirectMirScalarCfgLocalRefValue() {
+                (local_ref_kinds[local_binding] != DirectMirScalarCfgLocalRefValue() &&
+                 !DirectMirScalarCfgIterationElementValueOf(ranges, value_names[value],
+                    local_ref_kinds[local_binding], local_ref_syntax_ids[local_binding])) {
                 return false;
             }
             value = value + 1;

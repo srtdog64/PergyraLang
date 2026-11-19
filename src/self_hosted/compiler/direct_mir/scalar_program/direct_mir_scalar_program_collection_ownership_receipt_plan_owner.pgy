@@ -67,46 +67,61 @@ func DirectMirCollectionOwnershipInstructionReceiptFromJson(
         ToInt(UnwrapOption(source)));
 }
 
+// Operations follow the block order. `element_blocks` are the body blocks
+// whose first operation binds a collection iteration's element; it has no
+// MIR row and no receipt.
 func DirectMirCollectionOwnershipRoutineReceiptPlanFromJson(
     json: String, json_extent: Int, ref index: MirRoutineFactIndex,
-    expected_operation_count: Int
+    element_blocks: Array<Int>, expected_operation_count: Int
 ) -> DirectMirCollectionOwnershipRoutineReceiptPlan {
     var effects: Array<Int> = [];
     var receivers: Array<Int> = [];
     var sources: Array<Int> = [];
-    var instruction: Int = 0;
-    while instruction < ArrayLength(index.instruction_facts.starts) {
-        let instruction_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            json, json_extent, index.instruction_facts.starts[instruction],
-            index.instruction_facts.ends[instruction]);
-        let kind: Option<String> = JsonObjectFactStringFieldOpt(
-            instruction_object, "kind");
-        let receipt: DirectMirCollectionOwnershipInstructionReceipt =
-            DirectMirCollectionOwnershipInstructionReceiptFromJson(
-                instruction_object);
-        if !JsonObjectFactTableReady(instruction_object) || !IsSome(kind) ||
-            !receipt.valid {
-            return DirectMirCollectionOwnershipRoutineReceiptPlan(
-                false, effects, receivers, sources);
+    var block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        var element: Int = 0;
+        while element < ArrayLength(element_blocks) {
+            if element_blocks[element] == block {
+                ArrayPush(effects, 0); ArrayPush(receivers, 0); ArrayPush(sources, 0);
+            }
+            element = element + 1;
         }
-        if DirectMirCollectionOwnershipOperationKindProducesRow(UnwrapOption(kind)) {
-            if ArrayLength(effects) >= expected_operation_count {
+        var block_row: Int = 0;
+        while block_row < index.block_instruction_counts[block] {
+            let instruction: Int = index.block_instruction_starts[block] + block_row;
+            let instruction_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                json, json_extent, index.instruction_facts.starts[instruction],
+                index.instruction_facts.ends[instruction]);
+            let kind: Option<String> = JsonObjectFactStringFieldOpt(
+                instruction_object, "kind");
+            let receipt: DirectMirCollectionOwnershipInstructionReceipt =
+                DirectMirCollectionOwnershipInstructionReceiptFromJson(
+                    instruction_object);
+            if !JsonObjectFactTableReady(instruction_object) || !IsSome(kind) ||
+                !receipt.valid {
                 return DirectMirCollectionOwnershipRoutineReceiptPlan(
                     false, effects, receivers, sources);
             }
-            var effect: Int = 0; var receiver: Int = 0; var source: Int = 0;
-            if receipt.present {
-                effect = receipt.effect_kind;
-                receiver = receipt.receiver_binding_syntax_id;
-                source = receipt.source_binding_syntax_id;
+            if DirectMirCollectionOwnershipOperationKindProducesRow(UnwrapOption(kind)) {
+                if ArrayLength(effects) >= expected_operation_count {
+                    return DirectMirCollectionOwnershipRoutineReceiptPlan(
+                        false, effects, receivers, sources);
+                }
+                var effect: Int = 0; var receiver: Int = 0; var source: Int = 0;
+                if receipt.present {
+                    effect = receipt.effect_kind;
+                    receiver = receipt.receiver_binding_syntax_id;
+                    source = receipt.source_binding_syntax_id;
+                }
+                ArrayPush(effects, effect); ArrayPush(receivers, receiver);
+                ArrayPush(sources, source);
+            } else if receipt.present {
+                return DirectMirCollectionOwnershipRoutineReceiptPlan(
+                    false, effects, receivers, sources);
             }
-            ArrayPush(effects, effect); ArrayPush(receivers, receiver);
-            ArrayPush(sources, source);
-        } else if receipt.present {
-            return DirectMirCollectionOwnershipRoutineReceiptPlan(
-                false, effects, receivers, sources);
+            block_row = block_row + 1;
         }
-        instruction = instruction + 1;
+        block = block + 1;
     }
     return DirectMirCollectionOwnershipRoutineReceiptPlan(
         ArrayLength(effects) == expected_operation_count,

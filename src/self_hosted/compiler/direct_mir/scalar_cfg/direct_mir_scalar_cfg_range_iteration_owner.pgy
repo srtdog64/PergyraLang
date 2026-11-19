@@ -216,7 +216,7 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
                 index.block_succ_true[header], index.block_succ_false[header],
                 -1, loop_id, init.arg0, start, bound.stop_literal,
                 bound.stop_value_id, bound.stop_local_ref, "1", backedges,
-                iterable_type, -1, -1
+                iterable_type, -1
             );
         let verified: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeIterationFactWithDigest(

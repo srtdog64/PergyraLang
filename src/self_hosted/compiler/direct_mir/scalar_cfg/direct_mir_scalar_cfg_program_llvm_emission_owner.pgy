@@ -42,7 +42,6 @@ import "../scalar_program/direct_mir_scalar_program_scalar_value_result_owner.pg
 import "../scalar_program/direct_mir_scalar_program_llvm_slice_expression_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_payload_free_enum_result_preamble_owner.pgy";
 import "direct_mir_scalar_cfg_range_block_effect_owner.pgy";
-import "direct_mir_scalar_cfg_program_collection_range_entry_owner.pgy";
 import "../../../codegen/runtime_abi/string_runtime_symbol_owner.pgy";
 func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan, ref lifetime: DirectMirOwnedLocalLifetimeFact, routine: Int,
     formatted_print: CompilerRuntimeCallAbiFact, process_exit: CompilerRuntimeCallAbiFact,
@@ -92,8 +91,6 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
         TextBuilderAppend(output, ".block.");
         TextBuilderAppend(output, ToString(block));
         TextBuilderAppend(output, ":\n");
-        TextBuilderAppend(output, DirectMirScalarCfgProgramCollectionRangeLlvmEntry(
-            plan, routine, block, runtime, array_string_projection, array_int_projection, target));
         var operation: Int = plan.block_operation_starts[block];
         let operation_end: Int = operation +
             plan.block_operation_counts[block];

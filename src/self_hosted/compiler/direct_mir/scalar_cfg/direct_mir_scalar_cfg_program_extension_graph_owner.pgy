@@ -20,7 +20,6 @@ import "../direct_mir_identity_cell_lifetime_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_hashmap_lifetime_owner.pgy";
 import "../direct_mir_array_storage_release_lifetime_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_array_index_static_bounds_owner.pgy";
-import "direct_mir_scalar_cfg_program_collection_range_readiness_owner.pgy";
 
 func DirectMirScalarCfgProgramExpressionUseCount(
     ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
@@ -42,7 +41,7 @@ func DirectMirScalarCfgProgramExpressionUseCount(
                 expression_row { count = count + 1; }
         row = row + 1;
     }
-    return count + DirectMirScalarCfgProgramCollectionRangeElementUses(plan, expression_row);
+    return count;
 }
 
 func DirectMirScalarCfgProgramRoutineEdgesReady(

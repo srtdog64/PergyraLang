@@ -24,8 +24,7 @@ func DirectMirScalarCfgProgramRangeFactAtOffsets(
             fact.local_row + local_offset, fact.loop_syntax_id,
             fact.binding_name, fact.start_literal, fact.stop_literal,
             fact.stop_value_id, fact.stop_local_ref, fact.step_literal,
-            backedges, fact.iterable_type, cursor,
-            fact.element_expression_row);
+            backedges, fact.iterable_type, cursor);
     return DirectMirScalarCfgRangeIterationFactWithDigest(
         shifted, DirectMirScalarCfgRangeIterationFactDigest(shifted));
 }
@@ -54,63 +53,17 @@ func DirectMirScalarCfgProgramRangeFactsAtOffsets(
     return shifted;
 }
 
-// Attaches each collection iteration's admitted element expression row
-// (`xs[cursor]`, one plan-wide expression row) to its receipt; `rows` is
-// parallel to `source`. An Int range keeps -1, a collection range needs a row.
-func DirectMirScalarCfgProgramRangeFactsWithElementRows(
-    ref source: DirectMirScalarCfgRangeFactSet, rows: Array<Int>
-) -> DirectMirScalarCfgRangeFactSet {
-    if ArrayLength(rows) != DirectMirScalarCfgRangeFactCount(source) {
-        return DirectMirScalarCfgRangeFactSetInvalid();
-    }
-    var bound: DirectMirScalarCfgRangeFactSet = DirectMirScalarCfgRangeFactSetEmpty();
-    var row: Int = 0;
-    while row < ArrayLength(rows) {
-        let fact: DirectMirScalarCfgRangeIterationFact = DirectMirScalarCfgRangeFactAt(source, row);
-        if DirectMirScalarCfgRangeWalksCollection(fact) == (rows[row] == -1) || rows[row] < -1 {
-            return DirectMirScalarCfgRangeFactSetInvalid();
-        }
-        let element: DirectMirScalarCfgRangeIterationFact =
-            DirectMirScalarCfgRangeIterationFact(
-                fact.valid, 0, fact.init_global_row, fact.branch_global_row,
-                fact.init_block, fact.header_block, fact.body_block,
-                fact.exit_block, fact.local_row, fact.loop_syntax_id,
-                fact.binding_name, fact.start_literal, fact.stop_literal,
-                fact.stop_value_id, fact.stop_local_ref, fact.step_literal,
-                fact.backedge_blocks, fact.iterable_type,
-                fact.cursor_local_row, rows[row]);
-        bound = DirectMirScalarCfgRangeFactSetAppend(bound,
-            DirectMirScalarCfgRangeIterationFactWithDigest(
-                element, DirectMirScalarCfgRangeIterationFactDigest(element)));
-        if !bound.valid { return DirectMirScalarCfgRangeFactSetInvalid(); }
-        row = row + 1;
-    }
-    return bound;
-}
-
-// One -1 element row per receipt, before any header is admitted.
-func DirectMirScalarCfgProgramRangeElementRowsUnbound(
-    ref routine: DirectMirScalarCfgRangeFactSet
-) -> Array<Int> {
-    var rows: Array<Int> = [];
-    while ArrayLength(rows) < DirectMirScalarCfgRangeFactCount(routine) { ArrayPush(rows, -1); }
-    return rows;
-}
-
-// `element_rows` is parallel to `routine`: its admitted element rows.
 func DirectMirScalarCfgProgramRangeFactsMergeRoutine(
     ref prior: DirectMirScalarCfgRangeFactSet,
-    ref routine: DirectMirScalarCfgRangeFactSet, element_rows: Array<Int>,
+    ref routine: DirectMirScalarCfgRangeFactSet,
     local_offset: Int, block_offset: Int, routine_block_count: Int
 ) -> DirectMirScalarCfgRangeFactSet {
     if (!DirectMirScalarCfgRangeFactSetReady(prior, block_offset)) {
         return DirectMirScalarCfgRangeFactSetInvalid();
     }
-    let attached: DirectMirScalarCfgRangeFactSet =
-        DirectMirScalarCfgProgramRangeFactsWithElementRows(routine, element_rows);
     let shifted: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgProgramRangeFactsAtOffsets(
-            attached, local_offset, block_offset, routine_block_count);
+            routine, local_offset, block_offset, routine_block_count);
     if (!shifted.valid) {
         return DirectMirScalarCfgRangeFactSetInvalid();
     }

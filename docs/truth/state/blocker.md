@@ -4,16 +4,13 @@ Owner: Claude lane (GPT root lane's work since 2026-11-19); published
 revision/CI: [main](main.md).
 The v11 full MIR stops at transition ordinal 1438, the same first refusal as
 published v8; no C output ([receipt](../evidence/2026-11-18_inout_member_restore_transition.md)).
-A scratch diagnostic traversed all 9,623 route instances: 109 distinct first
-refusals, no C output, and no claim about masked failures
-([audit](../../audits/selfhost_full_mir_independent_refusal_census_2026-11-18.md)).
+A scratch diagnostic traversed all 9,623 route instances: 109 distinct first refusals ([audit](../../audits/selfhost_full_mir_independent_refusal_census_2026-11-18.md)).
 Next: publish and validate the sealed owned-result callee proof in MIR before
 admitting a returned call-result row across branches. The semantic plan is
 retired before MIR publication; changing its `retired` class alone would trust
 forgeable input. The reached owner/consumer map and falsifiers are in the
 [active plan](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
-The general emitter leaks the deleted collection route's `ToString` results
-and returned `Array<Int>` ([run record](../evidence/2026-11-19_collection_program_route_deleted.md));
+The general emitter leaks the deleted collection route's `ToString` results and returned `Array<Int>` ([run record](../evidence/2026-11-19_collection_program_route_deleted.md));
 nonempty record-field retirement leaks 32 bytes per backend (S2). The
 one-process full DRV-2 bound fails with OOM, exit 134 and no C artifact
 ([measurements](measurements.md)). On a 2,693-program sweep no program runs
@@ -21,6 +18,9 @@ unlike native on default LLVM; default C still differs on 12 that predate
 the [fix](../evidence/2026-11-19_default_route_native_runtime_parity.md).
 Default C, through the MIR-to-AST round trip, also prints garbage for a
 foreach whose body pushes to the walked local ([record](../evidence/2026-11-19_general_route_collection_iteration.md)).
+Native prints freed memory for a String foreach whose body pops or sets the
+walked array; the general route admits the index form (`let s = xs[i];
+ArrayPop(xs)`) with heap-use-after-free ([record](../evidence/2026-11-19_general_route_string_foreach.md)).
 
 ## Objective card
 

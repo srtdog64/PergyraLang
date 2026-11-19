@@ -116,7 +116,7 @@ evidence.
 | `lifecycle` | contextual | native | 1 | 1 | 0 | 3 | none | native+selfhost-typed |
 | `link` | contextual | native+self_host | 1 | 1 | 0 | 4 | none | native+selfhost-typed |
 | `local` | reserved | native+self_host | 1 | 1 | 0 | 17 | TextMate:storage.modifier.pergyra | native+selfhost-typed |
-| `loop` | contextual | native+self_host | 1 | 0 | 0 | 6 | none | native-only |
+| `loop` | contextual | native+self_host | 1 | 0 | 0 | 7 | none | native-only |
 | `maintain` | contextual | native | 2 | 2 | 0 | 1 | none | native+selfhost-typed |
 | `map` | contextual | native+self_host | 1 | 2 | 0 | 28 | none | native+selfhost-typed |
 | `match` | reserved | native+self_host | 1 | 0 | 0 | 61 | hover, TextMate:keyword.control.pergyra | native-only |

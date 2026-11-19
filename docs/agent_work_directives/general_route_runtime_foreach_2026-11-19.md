@@ -75,9 +75,11 @@ implementation candidate on main, landed in slices.
      iterable type.
    - The `ArrayLength` node is the existing length kind for that element
      type.
-4. **Body entry:** `Local(binding) = Index(iterable, Local(cursor))` is one
-   synthesized expression row, evaluated and stored at the top of the body
-   block by a foreach block effect.
+4. **Body entry:** `Local(binding) = Index(iterable, Local(cursor))` is the
+   body block's first operation: a definition of the binding's element value
+   with no MIR row (the collection ownership receipt plan inserts an empty
+   receipt for it). Slice 1 used a block effect; owners that map expression
+   rows to routines through operations missed it.
    - The index node is the existing kind for the element type.
    - The binding is a borrowed view: the lifetime owner gives it no release.
 5. **Init and backedges:** block effects store 0 into the cursor at the end of
@@ -129,7 +131,10 @@ implementation candidate on main, landed in slices.
 
 ## Slices
 
-1. Int, Long and Bool elements, local or parameter iterable, LLVM and C,
-   break/continue/nested; gate and sweep.
-2. String and record elements, with the borrow guard.
+1. Int and Bool elements, local or parameter iterable, LLVM and C,
+   break/continue/nested; gate and sweep. Landed `411649d31`; the range
+   bound followed in `9886a03f1`.
+2. String elements with the borrow guard; the body entry became the body
+   block's first operation, so ownership owners see `let v = xs[i]`.
+   Record elements stay open.
 3. Retirement steps above, one family per commit.

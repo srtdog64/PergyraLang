@@ -550,6 +550,11 @@ timeout 120 "$PGY" --native-pipeline --backend=c \
 timeout 20 "$WORK_DIR/declaration-identity.exe" >"$WORK_DIR/declaration-identity.run" 2>&1
 [[ "$(tr -d '\r\n' <"$WORK_DIR/declaration-identity.run")" == 'declaration:17:0' ]] ||
     fail "declared-prefix identity normalization failed"
+# A loop binding is a declared id-0 row; the lookup skips it.
+timeout 20 "$WORK_DIR/declaration-identity.exe" loop >"$WORK_DIR/declaration-loop.run" 2>&1 ||
+    fail "a declared loop binding refused the declaration lookup"
+[[ "$(tr -d '\r\n' <"$WORK_DIR/declaration-loop.run")" == 'declaration:17:0' ]] ||
+    fail "a declared loop binding changed the declaration identity"
 for mode in missing ambiguous invalid range; do
     status=0
     timeout 20 "$WORK_DIR/declaration-identity.exe" "$mode" >"$WORK_DIR/declaration-$mode.run" 2>&1 || status=$?

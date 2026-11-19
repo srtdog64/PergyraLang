@@ -171,7 +171,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     routine: Int,
     local_offset: Int,
-    operation_offset: Int
+    operation_offset: Int, element_blocks: Array<Int>
 ) -> DirectMirScalarProgramCollectionOwnershipTransitionFact {
     if !fact.valid || fact.digest != 0 || !index.valid ||
         !index.collection_ownership_facts.valid ||
@@ -185,7 +185,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     }
     let receipt_plan: DirectMirCollectionOwnershipRoutineReceiptPlan =
         DirectMirCollectionOwnershipRoutineReceiptPlanFromJson(
-            json, json_extent, index,
+            json, json_extent, index, element_blocks,
             storage.routines.operation_counts[routine]
         );
     if !receipt_plan.valid {

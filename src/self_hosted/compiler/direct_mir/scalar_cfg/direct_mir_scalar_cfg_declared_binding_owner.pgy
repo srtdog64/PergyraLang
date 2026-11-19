@@ -1,0 +1,46 @@
+// The declared prefix of a routine's source locals as the no-wire
+// declaration lookup reads it. A loop binding is a declared source local with
+// binding id 0 (its LocalRef is the iteration ref); any other id-0 row in the
+// prefix stays invalid.
+import "../../../mir_lower/collection_ownership_binding_move_fact_owner.pgy";
+import "../../../mir_lower/routine_fact_index_owner.pgy";
+
+// The binding names of this routine's loops (`loop-init` rows).
+func DirectMirScalarCfgLoopBindingNames(
+    ref routines: MirProgramRoutineIndex, ref index: MirRoutineFactIndex
+) -> Array<String> {
+    var names: Array<String> = [];
+    var row: Int = 0;
+    while row < ArrayLength(index.instruction_facts.arg0s) {
+        if routines.instruction_kinds[index.instruction_facts.global_start + row] == "loop-init" {
+            ArrayPushOwnedString(names, Concat("", index.instruction_facts.arg0s[row]));
+        }
+        row = row + 1;
+    }
+    return names;
+}
+
+func DirectMirScalarCfgDeclaredBindingForName(
+    ref names: Array<String>, ref syntax_ids: Array<Int>, declared_count: Int,
+    name: String, ref loop_bindings: Array<String>
+) -> Int {
+    if declared_count < 0 || declared_count > ArrayLength(names) ||
+        ArrayLength(names) != ArrayLength(syntax_ids) { return 0 - 1; }
+    var kept_names: Array<String> = [];
+    var kept_ids: Array<Int> = [];
+    var row: Int = 0;
+    while row < declared_count {
+        var loop_binding: Bool = false;
+        var loop_row: Int = 0;
+        while loop_row < ArrayLength(loop_bindings) {
+            if loop_bindings[loop_row] == names[row] { loop_binding = true; }
+            loop_row = loop_row + 1;
+        }
+        if syntax_ids[row] != 0 || !loop_binding {
+            ArrayPushOwnedString(kept_names, Concat("", names[row]));
+            ArrayPush(kept_ids, syntax_ids[row]);
+        }
+        row = row + 1;
+    }
+    return MirCollectionOwnershipBindingForLocalName(kept_names, kept_ids, name, ArrayLength(kept_names));
+}

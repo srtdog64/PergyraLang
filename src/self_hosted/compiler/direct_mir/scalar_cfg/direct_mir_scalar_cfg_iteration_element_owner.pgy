@@ -1,0 +1,86 @@
+// The element binding of a program-route collection iteration: the value
+// its binding takes at body entry, defined by one operation with no MIR row,
+// and the body blocks where that operation runs.
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+
+// The value a collection iteration's binding takes at body entry, defined by
+// one operation with no MIR row.
+func DirectMirScalarCfgIterationElementValueName(loop_id: Int) -> String {
+    return Concat("iteration:", Concat(ToString(loop_id), ":element"));
+}
+
+// A value on an iteration binding slot is the element value of that
+// loop, which walks a collection.
+func DirectMirScalarCfgIterationElementValueOf(
+    ref ranges: DirectMirScalarCfgRangeFactSet, value_name: String, kind: Int, syntax_id: Int
+) -> Bool {
+    let fact: DirectMirScalarCfgRangeIterationFact = DirectMirScalarCfgRangeFactAtLoopSyntaxId(ranges, syntax_id);
+    return kind == DirectMirScalarCfgLocalRefIteration() && DirectMirScalarCfgRangeWalksCollection(fact) &&
+        value_name == DirectMirScalarCfgIterationElementValueName(syntax_id);
+}
+
+// One element value per collection iteration, on its binding slot and
+// defined in its body block.
+func DirectMirScalarCfgAppendIterationElementValues(
+    ref facts: DirectMirScalarCfgRangeFactSet,
+    ref local_ref_kinds: Array<Int>, ref local_ref_syntax_ids: Array<Int>,
+    inout value_names: Array<String>, inout value_local_rows: Array<Int>,
+    inout value_definition_blocks: Array<Int>
+) -> Bool {
+    var row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        let fact: DirectMirScalarCfgRangeIterationFact = DirectMirScalarCfgRangeFactAt(facts, row);
+        if DirectMirScalarCfgRangeWalksCollection(fact) {
+            var binding: Int = -1;
+            var slot: Int = 0;
+            while slot < ArrayLength(local_ref_kinds) {
+                if local_ref_kinds[slot] == DirectMirScalarCfgLocalRefIteration() &&
+                    local_ref_syntax_ids[slot] == fact.loop_syntax_id {
+                    if binding >= 0 { return false; }
+                    binding = slot;
+                }
+                slot = slot + 1;
+            }
+            if binding < 0 { return false; }
+            ArrayPushOwnedString(value_names, DirectMirScalarCfgIterationElementValueName(fact.loop_syntax_id));
+            ArrayPush(value_local_rows, binding);
+            ArrayPush(value_definition_blocks, fact.body_block);
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+// The collection iteration whose body block is `block`, or an absent fact.
+func DirectMirScalarCfgRangeFactAtCollectionBody(
+    ref facts: DirectMirScalarCfgRangeFactSet, block: Int
+) -> DirectMirScalarCfgRangeIterationFact {
+    var found: Int = -1;
+    var row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        let fact: DirectMirScalarCfgRangeIterationFact = DirectMirScalarCfgRangeFactAt(facts, row);
+        if facts.body_blocks[row] == block && DirectMirScalarCfgRangeWalksCollection(fact) {
+            if found >= 0 { return DirectMirScalarCfgRangeIterationFactEmpty(); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgRangeFactAt(facts, found);
+}
+
+// The body blocks of the collection iterations, in receipt order.
+func DirectMirScalarCfgRangeCollectionBodyBlocks(
+    ref facts: DirectMirScalarCfgRangeFactSet
+) -> Array<Int> {
+    var blocks: Array<Int> = [];
+    var row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        let fact: DirectMirScalarCfgRangeIterationFact = DirectMirScalarCfgRangeFactAt(facts, row);
+        if DirectMirScalarCfgRangeWalksCollection(fact) {
+            ArrayPush(blocks, facts.body_blocks[row]);
+        }
+        row = row + 1;
+    }
+    return blocks;
+}

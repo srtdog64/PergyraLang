@@ -1,54 +1,28 @@
-// Plan readiness of a collection iteration's header shape and of the element
-// row it binds at body entry: one use of its expression row, typed as the
-// binding slot and owned by the routine of the body block.
+// Plan readiness of a collection iteration's header shape and body entry: the
+// body block, entered only from the header, starts with the definition of
+// the binding from `xs[cursor]`.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
-import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
-import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 
-// A collection iteration compares its cursor with the live length and binds
-// `xs[cursor]` at the entry of a body only the header enters.
 func DirectMirScalarCfgCollectionRangeShapeReady(
     ref plan: DirectMirScalarCfgGraphPlan, ref range: DirectMirScalarCfgRangeIterationFact
 ) -> Bool {
-    let element: Int = range.element_expression_row;
-    if range.cursor_local_row < 0 || element < 0 ||
-        element >= ArrayLength(plan.program.expressions.graph_starts) ||
-        plan.program.expressions.graph_global_rows[element] != range.branch_global_row ||
-        plan.program.expressions.node_types[plan.program.expressions.graph_roots[element]] !=
-            plan.local_types[range.local_row] { return false; }
+    if range.cursor_local_row < 0 || plan.block_operation_counts[range.body_block] < 1 { return false; }
+    let operation: Int = plan.block_operation_starts[range.body_block];
+    let value: Int = plan.operation_result_values[operation];
+    let row: Int = plan.program.operation_expression_rows[operation];
+    if plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionDefinition() ||
+        value < 0 || value >= ArrayLength(plan.value_local_rows) ||
+        plan.value_local_rows[value] != range.local_row || row < 0 ||
+        row >= ArrayLength(plan.program.expressions.graph_roots) ||
+        plan.program.expressions.graph_global_rows[row] != range.branch_global_row { return false; }
+    let cursor: Int = plan.program.expressions.node_rights[plan.program.expressions.graph_roots[row]];
+    if cursor < 0 || plan.program.expressions.node_kinds[cursor] != DirectMirScalarProgramExprLocal() ||
+        plan.program.expressions.node_local_rows[cursor] != range.cursor_local_row { return false; }
     var block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {
         if block != range.header_block && (plan.block_succ_true[block] == range.body_block ||
                 plan.block_succ_false[block] == range.body_block) { return false; }
         block = block + 1;
-    }
-    return true;
-}
-
-func DirectMirScalarCfgProgramCollectionRangeElementUses(
-    ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
-) -> Int {
-    var count: Int = 0;
-    var row: Int = 0;
-    while row < ArrayLength(plan.range_iterations.element_expression_rows) {
-        if plan.range_iterations.element_expression_rows[row] == expression_row { count = count + 1; }
-        row = row + 1;
-    }
-    return count;
-}
-
-func DirectMirScalarCfgProgramCollectionRangeElementRowsReady(
-    ref plan: DirectMirScalarCfgGraphPlan
-) -> Bool {
-    var row: Int = 0;
-    while row < DirectMirScalarCfgRangeFactCount(plan.range_iterations) {
-        let element: Int = plan.range_iterations.element_expression_rows[row];
-        let binding: Int = plan.range_iterations.local_rows[row];
-        if element >= 0 && (binding < 0 || binding >= ArrayLength(plan.local_types) ||
-            !DirectMirScalarCfgProgramExpressionRowReady(plan, element, plan.local_types[binding],
-                DirectMirScalarCfgRoutinePartitionBlockOwner(
-                    plan.routines, plan.range_iterations.body_blocks[row]))) { return false; }
-        row = row + 1;
     }
     return true;
 }

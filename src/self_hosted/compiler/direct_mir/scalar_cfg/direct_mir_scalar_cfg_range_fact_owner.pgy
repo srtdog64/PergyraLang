@@ -24,12 +24,11 @@ struct DirectMirScalarCfgRangeIterationFact {
     // The program route's MIR iterable type: "Int" for a range whose bound
     // is the header row's expression graph, re-evaluated on every pass; an
     // Array type for a collection iteration (`for v in xs`), which walks a
-    // cursor local from 0 while it is below `ArrayLength(xs)` and binds `v`
-    // from `element_expression_row` (`xs[cursor]`) at body entry. "" is a
-    // one-routine range, whose bound is a literal, local or Array length.
+    // cursor local from 0 while it is below `ArrayLength(xs)`; the first
+    // operation of its body binds `v = xs[cursor]`. "" is a one-routine
+    // range, whose bound is a literal, local or Array length.
     let iterable_type: String;
     let cursor_local_row: Int;
-    let element_expression_row: Int;
 }
 
 func DirectMirScalarCfgRangeWalksCollection(ref fact: DirectMirScalarCfgRangeIterationFact) -> Bool { return fact.iterable_type != "" && fact.iterable_type != "Int"; }
@@ -43,7 +42,7 @@ func DirectMirScalarCfgRangeIterationFactEmpty(
     let backedges: Array<Int> = [];
     return DirectMirScalarCfgRangeIterationFact(
         false, 0, -1, -1, -1, -1, -1, -1, -1, -1,
-        "", "", "", "", "", "", backedges, "", -1, -1
+        "", "", "", "", "", "", backedges, "", -1
     );
 }
 
@@ -66,7 +65,7 @@ func DirectMirScalarCfgRangeIterationFactDigest(
     hash = DirectMirCfgHashString(hash, fact.stop_local_ref);
     hash = DirectMirCfgHashString(hash, fact.step_literal);
     hash = DirectMirCfgHashString(hash, fact.iterable_type);
-    hash = DirectMirCfgHashInt(DirectMirCfgHashInt(hash, fact.cursor_local_row), fact.element_expression_row);
+    hash = DirectMirCfgHashInt(hash, fact.cursor_local_row);
     var row: Int = 0;
     while row < ArrayLength(fact.backedge_blocks) {
         hash = DirectMirCfgHashInt(hash, fact.backedge_blocks[row]);
@@ -85,7 +84,7 @@ func DirectMirScalarCfgRangeIterationFactWithDigest(
         fact.local_row, fact.loop_syntax_id, fact.binding_name, fact.start_literal,
         fact.stop_literal, fact.stop_value_id, fact.stop_local_ref,
         fact.step_literal, fact.backedge_blocks, fact.iterable_type,
-        fact.cursor_local_row, fact.element_expression_row
+        fact.cursor_local_row
     );
 }
 
@@ -100,7 +99,7 @@ func DirectMirScalarCfgRangeIterationFactAbsent(
         fact.start_literal == "" && fact.stop_literal == "" &&
         fact.stop_value_id == "" && fact.stop_local_ref == "" &&
         fact.step_literal == "" && ArrayLength(fact.backedge_blocks) == 0 &&
-        fact.iterable_type == "" && fact.cursor_local_row < 0 && fact.element_expression_row < 0;
+        fact.iterable_type == "" && fact.cursor_local_row < 0;
 }
 
 func DirectMirScalarCfgRangeIterationFactShapeReady(
@@ -124,13 +123,13 @@ func DirectMirScalarCfgRangeIterationFactShapeReady(
         (DirectMirScalarCfgRangeCanonicalInt(fact.stop_literal) &&
             (fact.stop_value_id != "" || fact.stop_local_ref != "")) ||
         (fact.stop_value_id != "" && fact.stop_local_ref != "") ||
-        (fact.iterable_type == "" && (fact.cursor_local_row != -1 || fact.element_expression_row != -1 ||
+        (fact.iterable_type == "" && (fact.cursor_local_row != -1 ||
             (!DirectMirScalarCfgRangeCanonicalInt(fact.stop_literal) &&
              fact.stop_value_id == "" && fact.stop_local_ref == ""))) ||
-        (fact.iterable_type == "Int" && (fact.cursor_local_row != -1 || fact.element_expression_row != -1 ||
+        (fact.iterable_type == "Int" && (fact.cursor_local_row != -1 ||
             fact.stop_literal != "" || fact.stop_value_id != "" || fact.stop_local_ref != "")) ||
         (DirectMirScalarCfgRangeWalksCollection(fact) && (fact.start_literal != "0" || fact.stop_literal != "" ||
-            fact.stop_value_id != "" || fact.stop_local_ref != "" || fact.element_expression_row < -1 ||
+            fact.stop_value_id != "" || fact.stop_local_ref != "" ||
             (require_bound_local && fact.cursor_local_row < 0) ||
             (!require_bound_local && fact.cursor_local_row != -1) ||
             (fact.cursor_local_row == fact.local_row && fact.cursor_local_row >= 0))) ||
@@ -179,8 +178,7 @@ func DirectMirScalarCfgRangeIterationFactAtLocalRow(
             fact.exit_block, local_row, fact.loop_syntax_id,
             fact.binding_name, fact.start_literal, fact.stop_literal,
             fact.stop_value_id, fact.stop_local_ref, fact.step_literal,
-            fact.backedge_blocks, fact.iterable_type, cursor_local_row,
-            fact.element_expression_row
+            fact.backedge_blocks, fact.iterable_type, cursor_local_row
         );
     return DirectMirScalarCfgRangeIterationFactWithDigest(
         bound, DirectMirScalarCfgRangeIterationFactDigest(bound)

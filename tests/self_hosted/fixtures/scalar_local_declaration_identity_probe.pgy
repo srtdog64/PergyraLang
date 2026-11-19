@@ -6,6 +6,7 @@ func Main() -> Void with caps env {
     var ids: Array<Int> = [17, 0];
     var count: Int = 1;
     var wanted: String = "value";
+    var loops: Array<String> = [];
     if ArrayLength(args) > 0 {
         let mode: String = args[0];
         if mode == "missing" { wanted = "absent";
@@ -13,8 +14,10 @@ func Main() -> Void with caps env {
             names = ["value", "value"]; ids = [17, 18]; count = 2;
         } else if mode == "invalid" { count = 2;
         } else if mode == "range" { count = 3;
+        } else if mode == "loop" { count = 2; loops = ["synthetic"];
         } else { Exit(2); }
     }
-    // The synthetic suffix is not a declared source binding and grants no ID.
-    Log(DirectMirScalarCfgDeclarationIdentity(names, ids, count, wanted));
+    // The synthetic suffix is not a declared source binding and grants no ID;
+    // in the declared prefix an id-0 row is invalid unless it is a loop binding.
+    Log(DirectMirScalarCfgDeclarationIdentity(names, ids, count, wanted, loops));
 }

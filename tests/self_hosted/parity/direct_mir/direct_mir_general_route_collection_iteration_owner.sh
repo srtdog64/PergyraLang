@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# The general direct-MIR route walks `for v in xs` over a runtime Array<Int>
-# or Array<Bool> local or parameter as a cursor range: the header
-# compares the cursor with the live `ArrayLength(xs)`, the body entry binds
-# `v = xs[cursor]`, and the backedges advance the cursor. Before 2026-11-19 the
+# The general direct-MIR route walks `for v in xs` over a runtime Array<Int>,
+# Array<Bool> or Array<String> local or parameter as a cursor range: the
+# header compares the cursor with the live `ArrayLength(xs)`, the first
+# operation of the body binds `v = xs[cursor]` (ownership owners see it as
+# `let v = xs[i]`), and the backedges advance the cursor. Before 2026-11-19 the
 # route took no foreach at all: a parameter iterable died in the literal
 # foreach admission and a local one ended the routine input with "an external
 # collection plan".
@@ -21,8 +22,12 @@
 #     this change as after it. One claim rule for both backends is open work.
 # - A forged MIR whose loop-init names another binding or iterable than its
 #   header is refused with no artifact.
-# - An Array<String> iterable, outside this slice, is refused with the typed
-#   `collection_range` stage, not a driver death.
+# - A String binding borrows its element: aliasing it, pushing it into
+#   another array and returning it run equal, and the general emitter's C
+#   runs them under ASan with no freed-memory access.
+# - A String walk whose body pops or sets an Array is refused at the typed
+#   `collection_range` stage; either can release the borrowed element (the
+#   native backends print freed memory for both).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -167,15 +172,108 @@ PGY
 cat >"$WORK_DIR/string_elements.pgy" <<'PGY'
 func Width(names: Array<String>) -> Int {
     var total: Int = 0;
+    var last: String = "";
     for name in names {
         total = total + StringLength(name);
+        last = name;
     }
+    Log(last);
     return total;
 }
 
 func Main() -> Void {
     let names: Array<String> = ["ab", "cde"];
     Log(Width(names));
+    Log(names[0]);
+}
+PGY
+
+cat >"$WORK_DIR/string_push_borrowed.pgy" <<'PGY'
+func Copy(names: Array<String>) -> Int {
+    var out: Array<String> = [];
+    for name in names {
+        ArrayPush(out, name);
+    }
+    for kept in out {
+        Log(kept);
+    }
+    return ArrayLength(out);
+}
+
+func Main() -> Void {
+    let names: Array<String> = ["x", "yy"];
+    Log(Copy(names));
+    Log(names[1]);
+}
+PGY
+
+cat >"$WORK_DIR/string_return_borrowed.pgy" <<'PGY'
+func Find(names: Array<String>, wanted: Int) -> String {
+    for name in names {
+        if StringLength(name) == wanted { return name; }
+    }
+    return "none";
+}
+
+func Main() -> Void {
+    let names: Array<String> = ["a", "bcd", "ef"];
+    Log(Find(names, 2));
+    Log(Find(names, 9));
+    Log(names[2]);
+}
+PGY
+
+cat >"$WORK_DIR/string_concat_local.pgy" <<'PGY'
+func Join(seed: String) -> String {
+    let names: Array<String> = ["a", "bb", "ccc"];
+    var acc: String = seed;
+    for name in names {
+        acc = Concat(acc, name);
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    Log(Join(">"));
+}
+PGY
+
+cat >"$WORK_DIR/string_pop_while_bound.pgy" <<'PGY'
+func Drain(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    ArrayPush(names, ToString(seed + 2));
+    var n: Int = 0;
+    for name in names {
+        ArrayPop(names);
+        Log(name);
+        n = n + 1;
+    }
+    return n;
+}
+
+func Main() -> Void {
+    Log(Drain(1));
+}
+PGY
+
+cat >"$WORK_DIR/string_set_while_bound.pgy" <<'PGY'
+func Swap(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var n: Int = 0;
+    for name in names {
+        ArraySet(names, 0, ToString(99));
+        Log(name);
+        n = n + 1;
+    }
+    return n;
+}
+
+func Main() -> Void {
+    Log(Swap(5));
 }
 PGY
 
@@ -235,6 +333,28 @@ expect_run bool_elements '3'
 expect_run range_beside_foreach '9'
 expect_run range_length_bound '9'
 expect_run range_expression_bound $'6\n0'
+expect_run string_elements $'cde\n5\nab'
+expect_run string_push_borrowed $'x\nyy\n2\nyy'
+expect_run string_return_borrowed $'ef\nnone\nef'
+expect_run string_concat_local '>abbccc'
+
+# expect_asan NAME: the general emitter's C of NAME, built with ASan, prints
+# the expected output with no freed-memory access. The general emitter does
+# not retire every temporary yet, so leak detection stays off.
+expect_asan() {
+    local name="$1" status=0
+    (cd "$ROOT_DIR" && "$CC" -x c -std=c11 -O0 -g -fsanitize=address -fno-omit-frame-pointer \
+        -D_POSIX_C_SOURCE=200809L -Isrc -Isrc/runtime -pthread "$WORK_REL/$name-direct.c" \
+        -o "$WORK_REL/$name-asan.exe" -lm) >"$WORK_DIR/$name-asan.compile.log" 2>&1 ||
+        { cat "$WORK_DIR/$name-asan.compile.log" >&2; fail "$name did not compile with ASan"; }
+    ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 "$WORK_DIR/$name-asan.exe" </dev/null \
+        2>"$WORK_DIR/$name-asan.err" | tr -d '\r' >"$WORK_DIR/$name-asan.out" || status=$?
+    [[ "$status" == 0 ]] || { cat "$WORK_DIR/$name-asan.err" >&2; fail "$name failed under ASan"; }
+    cmp -s "$WORK_DIR/$name.expected" "$WORK_DIR/$name-asan.out" || fail "$name printed other output under ASan"
+}
+for name in string_elements string_push_borrowed string_return_borrowed string_concat_local; do
+    expect_asan "$name"
+done
 
 # forge NAME FIELD VALUE OUT: rewrites FIELD of the first Tally loop-init row.
 forge() {
@@ -271,20 +391,23 @@ for backend in c llvm; do
 done
 
 # The self-host driver prints a route refusal as a CODEGEN ERROR artifact.
-(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/string_elements.pgy" \
-    -o "$WORK_REL/string_elements.mir.json") >"$WORK_DIR/string_elements.mir.log" 2>&1 ||
-    fail "string_elements did not lower to MIR"
-for backend in c llvm; do
-    status=0
-    (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend="$backend" "$WORK_REL/string_elements.mir.json" \
-        -o "$WORK_REL/string_elements.$backend.out") >"$WORK_DIR/string_elements.$backend.log" 2>&1 ||
-        status=$?
-    cat "$WORK_DIR/string_elements.$backend.log" "$WORK_DIR/string_elements.$backend.out" \
-        >"$WORK_DIR/string_elements.$backend.all" 2>/dev/null || true
-    grep -Fq 'CODEGEN ERROR' "$WORK_DIR/string_elements.$backend.all" &&
-        grep -Fq 'collection_range' "$WORK_DIR/string_elements.$backend.all" ||
-        { cat "$WORK_DIR/string_elements.$backend.all" >&2
-          fail "string_elements on $backend was not refused at collection_range (status $status)"; }
+for name in string_pop_while_bound string_set_while_bound; do
+    (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/$name.pgy" \
+        -o "$WORK_REL/$name.mir.json") >"$WORK_DIR/$name.mir.log" 2>&1 ||
+        fail "$name did not lower to MIR"
+    for backend in c llvm; do
+        status=0
+        rm -f "$WORK_DIR/$name.$backend.out"
+        (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend="$backend" "$WORK_REL/$name.mir.json" \
+            -o "$WORK_REL/$name.$backend.out") >"$WORK_DIR/$name.$backend.log" 2>&1 ||
+            status=$?
+        cat "$WORK_DIR/$name.$backend.log" "$WORK_DIR/$name.$backend.out" \
+            >"$WORK_DIR/$name.$backend.all" 2>/dev/null || true
+        grep -Fq 'CODEGEN ERROR' "$WORK_DIR/$name.$backend.all" &&
+            grep -Fq 'collection_range' "$WORK_DIR/$name.$backend.all" ||
+            { cat "$WORK_DIR/$name.$backend.all" >&2
+              fail "$name on $backend was not refused at collection_range (status $status)"; }
+    done
 done
 
-echo "[$LABEL] 7 programs equal on four legs, 2 forged MIR and 1 String iterable refused: PASS"
+echo "[$LABEL] 11 programs equal on four legs, 4 String walks under ASan; 2 forged MIR and 2 releasing String walks refused: PASS"
