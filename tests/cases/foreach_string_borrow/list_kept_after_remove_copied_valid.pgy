@@ -1,0 +1,17 @@
+// The foreach binding is kept in an outer String; after the loop ListRemove
+// frees the element it borrows, and the outer String is read. Before
+// 2026-11-20 that read printed freed memory. The compiler copies the String
+// where `kept` is assigned. Admitted; prints 6 1.
+func Keep(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    var kept: String = "";
+    for name in items {
+        kept = name;
+    }
+    ListRemove(items, 1);
+    Log(kept);
+    return ListSize(items);
+}
+func Main() -> Void { Log(Keep(5)); }

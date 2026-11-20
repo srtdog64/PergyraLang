@@ -1,0 +1,16 @@
+// The foreach binding borrows the List element items[0]; ListRemove frees
+// that String, and the binding is read afterwards (heap-use-after-free on
+// native C before 2026-11-20). Refused at the read.
+func Drop(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    var n: Int = 0;
+    for name in items {
+        ListRemove(items, 0);
+        Log(name);
+        n = n + 1;
+    }
+    return n;
+}
+func Main() -> Void { Log(Drop(5)); }

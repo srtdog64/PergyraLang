@@ -73,9 +73,11 @@ void semantic_indexed_string_borrow_record_assignment(
     SemanticContext *ctx);
 void semantic_indexed_string_borrow_invalidate_deep_drop(
     ASTNode *receiver, SemanticContext *ctx);
-/* An owned element replacement or pop retires one payload. Conservatively
- * invalidate every local String loan from that Array source; a later use
- * fails while direct reads used to compute the replacement remain valid. */
+/* An owned element replacement or pop retires one payload, as do ListSet and
+ * ListRemove on a List<String>. Conservatively invalidate every local String
+ * loan from that Array source and every loan of unknown source (which every
+ * List loan is); a later use fails while direct reads used to compute the
+ * replacement remain valid. */
 void semantic_indexed_string_borrow_invalidate_owned_element(
     ASTNode *receiver, SemanticContext *ctx);
 /* Loans across loop iterations (indexed_string_loop_loan_owner.c).

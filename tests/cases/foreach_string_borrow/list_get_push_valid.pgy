@@ -1,0 +1,17 @@
+// ListPush stores a copy and frees no element. Twenty pushes grow the List
+// past its initial capacity of 16, which moves only its pointer array, not
+// the Strings, so `name` stays readable. Admitted; prints 5 22.
+func Grow(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    let name: String = ListGet(items, 0);
+    var i: Int = 0;
+    while i < 20 {
+        ListPush(items, ToString(i));
+        i = i + 1;
+    }
+    Log(name);
+    return ListSize(items);
+}
+func Main() -> Void { Log(Grow(5)); }

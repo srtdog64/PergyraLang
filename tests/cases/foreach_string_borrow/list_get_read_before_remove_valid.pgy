@@ -1,0 +1,13 @@
+// `name` is read before ListRemove frees the element it borrows, and not
+// after. Admitted; prints 5 6 1.
+func Drop(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    let name: String = ListGet(items, 0);
+    Log(name);
+    ListRemove(items, 0);
+    Log(ListGet(items, 0));
+    return ListSize(items);
+}
+func Main() -> Void { Log(Drop(5)); }

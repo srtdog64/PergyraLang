@@ -1,0 +1,14 @@
+// `name` borrows the List element items[0], and ListRemove frees that String
+// before `name` is read. Before 2026-11-20 the read printed freed memory on
+// native C and LLVM. ListRemove retires the unknown-source loan and the
+// compiler copies the String where `name` is defined. Admitted; prints 5 1.
+func Drop(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    let name: String = ListGet(items, 0);
+    ListRemove(items, 0);
+    Log(name);
+    return ListSize(items);
+}
+func Main() -> Void { Log(Drop(5)); }

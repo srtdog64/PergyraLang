@@ -1,0 +1,19 @@
+// `first` borrows the List element items[0]; the first iteration frees it
+// with ListSet and the second iteration reads it. Before 2026-11-20 that read
+// printed freed memory. The loop is checked again after the release, and the
+// compiler copies the String where `first` is defined. Admitted; prints
+// 5 5 2.
+func Walk(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    let first: String = ListGet(items, 0);
+    var n: Int = 0;
+    for name in items {
+        Log(first);
+        ListSet(items, 0, ToString(99));
+        n = n + 1;
+    }
+    return n;
+}
+func Main() -> Void { Log(Walk(5)); }

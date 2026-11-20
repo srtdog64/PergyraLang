@@ -1,0 +1,16 @@
+// `name` borrows the List element items[0], and ListSet frees that String
+// before `name` is read. Before 2026-11-20 the read printed freed memory on
+// native C and LLVM. A ListGet loan has no storage source of its own, so
+// ListSet retires it as a loan of unknown source, and the compiler copies
+// the String where `name` is defined, as for `let x = view[i]`. Admitted;
+// prints 5 2.
+func Swap(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    let name = ListGet(items, 0);
+    ListSet(items, 0, ToString(99));
+    Log(name);
+    return ListSize(items);
+}
+func Main() -> Void { Log(Swap(5)); }

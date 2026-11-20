@@ -1,0 +1,17 @@
+// The foreach binding borrows the List element items[0]; ListSet frees that
+// String, and the binding is read afterwards (heap-use-after-free on native C
+// before 2026-11-20). Refused at the read.
+func Swap(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    var n: Int = 0;
+    for name in items {
+        ListSet(items, 0, ToString(99));
+        Log(name);
+        n = n + 1;
+    }
+    Log(ListGet(items, 0));
+    return n;
+}
+func Main() -> Void { Log(Swap(5)); }

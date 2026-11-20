@@ -809,7 +809,16 @@ indexed_string_borrow_invalidate_owner_source(
 {
     Symbol *owner = identifier_symbol(receiver, ctx);
     uint32_t source_id;
-    if (!symbol_is_string_array(owner) || ctx == NULL)
+    /* A List<String> owns its String elements too. Its loans carry no
+     * storage source of their own (`ListGet` and a for-in binding over a
+     * List lend from the unknown source), so its releases retire the unknown
+     * loans; its own source id below matches no loan. */
+    Type *list_element = owner != NULL
+        && type_is_constructed_named(owner->type, "List")
+        && type_constructed_arg_count(owner->type) == 1
+        ? type_constructed_arg(owner->type, 0) : NULL;
+    bool string_list = list_element != NULL && type_equals(list_element, TYPE_STRING);
+    if ((!symbol_is_string_array(owner) && !string_list) || ctx == NULL)
         return;
     source_id = collection_storage_source_id(owner);
     if (source_id == 0)
@@ -874,13 +883,13 @@ semantic_indexed_string_borrow_validate_use(
     }
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, use,
-        "String '%s' borrows an Array<String> element that was replaced or released.\n"
+        "String '%s' borrows an Array or List element that was replaced or released.\n"
         "Reason:\n"
-        "- an ownership-aware ArraySet, ArrayPop or ArrayDropOwnedStrings retired a payload from the exact storage source\n"
-        "- using the indexed alias afterwards would read freed memory\n"
+        "- an owned ArraySet, ArrayPop, ArrayDropOwnedStrings, ListSet or ListRemove freed a String this loan may name\n"
+        "- using the alias afterwards would read freed memory\n"
         "Fix:\n"
         "- copy the String with Concat(\"\", value) before the release\n"
-        "- or keep the Array<String> owner live until the final alias use",
+        "- or read the alias before the element is replaced or released",
         binding->name != NULL ? binding->name : "<string>");
     return false;
 }
