@@ -30,6 +30,9 @@ typedef struct {
     Symbol *symbol;
     uint32_t declaration_id;
     uint8_t invalidated;
+    /* The inout calls the String loan was live across (its call-release
+     * edge head, indexed_string_borrow_owner.h). */
+    uint32_t call_release_head;
 } DeferredStringInvalidationState;
 
 /* Origin lists grow monotonically during one scope's check. The head is an
@@ -70,7 +73,11 @@ bool resource_snapshot_capture_deferred_strings(ResourceConsumeSnapshot *snap,
     SemanticContext *ctx);
 bool resource_snapshot_restore_deferred_strings(const ResourceConsumeSnapshot *snap,
     SemanticContext *ctx);
-void resource_snapshot_join_deferred_strings(const ResourceConsumeSnapshot *snap, uint8_t *joined);
+/* ORs each captured String's invalidation into `joined` and joins its
+ * call-release edges into `joined_heads` (UINT32_MAX: no branch yet), one
+ * entry per captured row. */
+void resource_snapshot_join_deferred_strings(const ResourceConsumeSnapshot *snap, uint8_t *joined,
+    uint32_t *joined_heads, SemanticContext *ctx);
 void restore_resource_states(const ResourceConsumeSnapshot *snap);
 void restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
                                          SemanticContext *ctx);

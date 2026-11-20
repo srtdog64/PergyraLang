@@ -1,0 +1,19 @@
+// The second iteration reads what the first iteration's call freed; the
+// String is copied where `name` is defined. Admitted; prints 5 5 2.
+func Replace(inout items: List<String>) -> Void {
+    ListSet(items, 0, ToString(99));
+}
+func Run(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    let name: String = ListGet(items, 0);
+    var i: Int = 0;
+    while i < 2 {
+        Log(name);
+        Replace(items);
+        i = i + 1;
+    }
+    return ListSize(items);
+}
+func Main() -> Void { Log(Run(5)); }

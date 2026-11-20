@@ -1,0 +1,17 @@
+// `name` borrows from `others`; Replace frees an element of `names` only.
+// Admitted; prints 6 3.
+func Replace(inout names: Array<String>) -> Void {
+    ArraySet(names, 0, ToString(99));
+}
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    var others: Array<String> = [];
+    ArrayPush(others, ToString(seed + 1));
+    ArrayPush(others, ToString(seed + 2));
+    let name = others[0];
+    Replace(names);
+    Log(name);
+    return ArrayLength(names) + ArrayLength(others);
+}
+func Main() -> Void { Log(Run(5)); }

@@ -1,0 +1,20 @@
+// `name` borrows names[0] or names[1], depending on the path; either may be
+// what Replace frees. Refused at the read after the call.
+func Replace(inout names: Array<String>) -> Void {
+    ArraySet(names, 0, ToString(99));
+}
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var name: String = "none";
+    if seed > 0 {
+        name = names[0];
+    } else {
+        name = names[1];
+    }
+    Replace(names);
+    Log(name);
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Run(5)); }

@@ -32,6 +32,11 @@ typedef struct
     bool                 has_break_states;
     bool                 has_continue_states;
     Scope               *loop_scope;
+    /* The inout-call edges String loans of the enclosing scopes hold at
+     * each `continue` (indexed_string_borrow_owner.h), for the back edge. */
+    struct IndexedStringCallReleaseHead *call_release_continues;
+    size_t               call_release_continue_count;
+    size_t               call_release_continue_capacity;
 } LoopFlowState;
 
 Type *flow_normalize_type(Type *type);

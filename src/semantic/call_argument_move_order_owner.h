@@ -75,17 +75,33 @@ bool semantic_call_argument_sibling_finalize(SemanticContext *ctx);
 /* Which formals release String storage they hold: a routine deep-drops
  * (ArrayDropOwnedStrings) storage rooted at its formal, or hands storage
  * rooted at its formal to an inout or own formal that releases it. Rows are
- * recorded in Pass 2 and closed over the forwarding edges after it. */
+ * recorded in Pass 2 and closed over the forwarding edges after it.
+ *
+ * A formal also frees String elements when the routine frees one String
+ * of the storage rooted at it and keeps the rest: an owned ArraySet or
+ * ArrayPop, or ListSet or ListRemove on a List<String>. A release frees
+ * every element. A String a caller borrowed from that storage dangles after
+ * the call (indexed_string_borrow_owner retires it). */
 typedef struct FormalReleaseRow {
     ASTNode *routine;
     size_t formal;
-    ASTNode *callee;         /* NULL: a direct release */
+    ASTNode *callee;         /* NULL: a direct release or element free */
     size_t callee_formal;
     bool releases;
+    bool frees_elements;
 } FormalReleaseRow;
 bool semantic_formal_release_record_drop(ASTNode *receiver, SemanticContext *ctx);
+/* `receiver` (an Array<String> or List<String> place) loses one String
+ * element, which the operation frees. */
+bool semantic_formal_release_record_element(ASTNode *receiver, SemanticContext *ctx);
 bool semantic_formal_release_record_argument(ASTNode *argument, ASTNode *callee,
     size_t callee_formal, int param_mode, SemanticContext *ctx);
+/* After the rows are closed (semantic_call_argument_sibling_finalize):
+ * whether `callee` may free a String element of the storage its formal
+ * `formal` names. A callee with no body, or rows not yet closed, answers
+ * true. */
+bool semantic_formal_release_frees_elements(SemanticContext *ctx,
+    ASTNode *callee, size_t formal);
 
 typedef struct CallArgumentSiblingPending {
     ASTNode *call;

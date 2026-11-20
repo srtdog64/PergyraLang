@@ -4,6 +4,7 @@
 #include "type_checker_flow_internal.h"
 #include "type_checker_flow_effects.h"
 #include "type_checker_assignment.h"
+#include "../indexed_string_borrow_owner.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -156,7 +157,12 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     bool strings_joined = resource_snapshot_capture_deferred_strings(&base, ctx);
     uint8_t *string_released = strings_joined && base.deferred_string_count != 0 ?
         calloc(base.deferred_string_count, sizeof(uint8_t)) : NULL;
-    if (base.deferred_string_count != 0 && string_released == NULL) strings_joined = false;
+    uint32_t *call_release_heads = strings_joined && base.deferred_string_count != 0 ?
+        malloc(base.deferred_string_count * sizeof(uint32_t)) : NULL;
+    if (base.deferred_string_count != 0 && (string_released == NULL || call_release_heads == NULL))
+        strings_joined = false;
+    for (size_t i = 0; strings_joined && i < base.deferred_string_count; i++)
+        call_release_heads[i] = UINT32_MAX;
 
     if (!type_equals(cond, TYPE_BOOL)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
@@ -192,7 +198,7 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         }
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &then_snap);
         destroy_resource_snapshot(&then_snap);
-        if (strings_joined) resource_snapshot_join_deferred_strings(&base, string_released);
+        if (strings_joined) resource_snapshot_join_deferred_strings(&base, string_released, call_release_heads, ctx);
         flags |= FLOW_FALLTHROUGH;
     }
 
@@ -225,13 +231,17 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
             }
             merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &else_snap);
             destroy_resource_snapshot(&else_snap);
-            if (strings_joined) resource_snapshot_join_deferred_strings(&base, string_released);
+            if (strings_joined) resource_snapshot_join_deferred_strings(&base, string_released, call_release_heads, ctx);
             flags |= FLOW_FALLTHROUGH;
         }
     } else if (else_reachable) {
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
-        for (size_t i = 0; strings_joined && i < base.deferred_string_count; i++)
+        for (size_t i = 0; strings_joined && i < base.deferred_string_count; i++) {
             string_released[i] |= base.deferred_strings[i].invalidated;
+            call_release_heads[i] = semantic_indexed_string_borrow_call_release_join(ctx,
+                base.deferred_strings[i].call_release_head, call_release_heads[i],
+                base.deferred_strings[i].call_release_head);
+        }
         flags |= FLOW_FALLTHROUGH;
         else_effect_delta = EFFECT_NONE;
     }
@@ -263,10 +273,14 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         restore_resource_states(&fallthrough);
     else
         restore_resource_states(&base);
-    for (size_t i = 0; strings_joined && has_fallthrough && i < base.deferred_string_count; i++)
+    for (size_t i = 0; strings_joined && has_fallthrough && i < base.deferred_string_count; i++) {
         base.deferred_strings[i].invalidated = string_released[i];
+        if (call_release_heads[i] != UINT32_MAX)
+            base.deferred_strings[i].call_release_head = call_release_heads[i];
+    }
     if (strings_joined) (void)resource_snapshot_restore_deferred_strings(&base, ctx);
     free(string_released);
+    free(call_release_heads);
 
     destroy_resource_snapshot(&base);
     destroy_resource_snapshot(&fallthrough);

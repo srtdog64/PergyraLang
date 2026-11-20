@@ -12,6 +12,7 @@ typedef struct Scope Scope;
 /* A String loan whose Array<String> storage source is not known: every
  * owned release of a String element retires it. Zero means no loan. */
 #define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
+typedef struct Type Type;
 /* Conditional local-risk exclusion; no String source or cleanup grant. */
 bool semantic_indexed_string_nonowner_record(SemanticContext *ctx,
     const Symbol *candidate, ASTNode *value, ASTNode *sink, size_t actual_ordinal);
@@ -98,6 +99,51 @@ size_t semantic_indexed_string_borrow_retired_loans(const Scope *scope,
     size_t *visible);
 bool semantic_indexed_string_borrow_validate_use(
     Symbol *binding, ASTNode *use, SemanticContext *ctx);
+/* Loans live across an inout call (indexed_string_call_release_owner.c).
+ * A callee that frees a String element of its inout formal (its formal
+ * release summary, call_argument_move_order_owner.h) retires the loans of
+ * the actual's storage as a direct release does. That summary is final only
+ * after Pass 2, so the call cannot retire them where it is typed. Pass 2
+ * records, for each String local that may borrow from the actual (its exact
+ * Array<String> source, or an unknown source), an edge naming the call; a
+ * read of the local records the edges it has there. After Pass 2 a read
+ * behind a call whose callee may free an element of that formal is retired:
+ * refused for an exact source, copied at each reaching definition for an
+ * unknown one where the definition owner can issue that copy, refused
+ * otherwise.
+ *
+ * `argument` of `type` is passed to the inout formal at `actual` of `call`;
+ * called after every argument of the call is typed. */
+void semantic_indexed_string_borrow_record_call_release(ASTNode *argument,
+    const Type *type, ASTNode *call, size_t actual, SemanticContext *ctx);
+/* The read `use` of `binding`, which holds call edges (from validate_use). */
+bool semantic_indexed_string_borrow_record_call_release_read(Symbol *binding,
+    ASTNode *use, SemanticContext *ctx);
+/* Branch join of one local's edges: `base` before the branches, `joined`
+ * from the branches joined so far (UINT32_MAX: none yet), `incoming` from
+ * the next one that falls through. Returns the joined edges, adding a join
+ * edge when both branches added calls. */
+uint32_t semantic_indexed_string_borrow_call_release_join(SemanticContext *ctx,
+    uint32_t base, uint32_t joined, uint32_t incoming);
+/* Loops: a loan read in a loop body before a call later in the body meets
+ * that call in the next iteration. Mark the reads before the first body
+ * pass; at each `continue`, record the edges each local of `outer` (the
+ * scopes around the loop, up to the routine) holds there; after each pass,
+ * join the edges those locals hold at the body's end, and those recorded at
+ * a `continue`, into their reads since the mark. */
+typedef struct IndexedStringCallReleaseHead {
+    uint32_t binding_id, head;
+} IndexedStringCallReleaseHead;
+size_t semantic_indexed_string_borrow_call_release_loop_begin(const SemanticContext *ctx);
+bool semantic_indexed_string_borrow_call_release_continue(SemanticContext *ctx,
+    const Scope *outer, IndexedStringCallReleaseHead **heads, size_t *count,
+    size_t *capacity);
+void semantic_indexed_string_borrow_call_release_back_edge(SemanticContext *ctx,
+    const Scope *outer, size_t reads_from,
+    const IndexedStringCallReleaseHead *continues, size_t continue_count);
+/* After Pass 2, in the receipts prepare phase: retire each read behind a
+ * call whose callee may free an element of the storage it borrows. */
+bool semantic_indexed_string_borrow_call_release_receipts(SemanticContext *ctx);
 bool semantic_indexed_string_borrow_owner_transfer_allowed(
     ASTNode *receiver, SemanticContext *ctx);
 bool semantic_indexed_string_borrow_deferred_release_current(SemanticContext *ctx,

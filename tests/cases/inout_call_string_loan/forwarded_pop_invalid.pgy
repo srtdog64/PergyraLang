@@ -1,0 +1,18 @@
+// Outer hands its inout formal to Shrink, whose owned ArrayPop frees the
+// String `name` borrows. Refused at the read after the call to Outer.
+func Shrink(inout names: Array<String>) -> Void {
+    ArrayPop(names);
+}
+func Outer(inout names: Array<String>) -> Void {
+    Shrink(names);
+}
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let name = names[1];
+    Outer(names);
+    Log(name);
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Run(5)); }

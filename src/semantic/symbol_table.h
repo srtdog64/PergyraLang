@@ -136,6 +136,10 @@ struct Symbol
     uint32_t   collection_storage_source_syntax_id;
     uint32_t   indexed_string_borrow_source_syntax_id;
     bool       indexed_string_borrow_invalidated;
+    /* The latest inout call this String loan was live across, as a 1-based
+     * edge index chaining the earlier ones; 0 when none since the binding
+     * was last initialized (indexed_string_borrow_owner). */
+    uint32_t   indexed_string_call_release_head;
     /* HashMap<K, String> storage, and the map storage a value read through
      * MapGet points into (map_string_payload_view_owner). */
     uint32_t   map_storage_source_syntax_id;

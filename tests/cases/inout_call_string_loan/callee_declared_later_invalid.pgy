@@ -1,0 +1,15 @@
+// The callee is checked after its caller, so its summary is final only
+// after the whole program is checked. Refused at the read after the call.
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let name = names[0];
+    Replace(names);
+    Log(name);
+    return ArrayLength(names);
+}
+func Replace(inout names: Array<String>) -> Void {
+    ArraySet(names, 0, ToString(99));
+}
+func Main() -> Void { Log(Run(5)); }

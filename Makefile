@@ -607,6 +607,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/formal_string_store_landing_owner.c \
                    $(SEMANTIC_DIR)/loan_copy_landing_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_named_call_owner.c \
+                   $(SEMANTIC_DIR)/indexed_string_call_release_owner.c \
                    $(SEMANTIC_DIR)/array_storage_pending_call_receipt_owner.c \
                    $(SEMANTIC_DIR)/array_storage_deferred_replay_owner.c \
                    $(SEMANTIC_DIR)/array_storage_deferred_finalization_owner.c \
@@ -5307,6 +5308,9 @@ native-unsafe-negative-refusal-test-smoke: $(PGY)
 .PHONY: foreach-string-borrow-refusal-test-smoke
 foreach-string-borrow-refusal-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/foreach_string_borrow_refusal_smoke.sh
+.PHONY: inout-call-string-loan-refusal-test-smoke
+inout-call-string-loan-refusal-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/inout_call_string_loan_refusal_smoke.sh
 
 .PHONY: process-args-utf8-test-smoke
 process-args-utf8-test-smoke:

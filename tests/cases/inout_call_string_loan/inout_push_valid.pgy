@@ -1,0 +1,15 @@
+// Grow pushes onto names; the pushed-over String elements stay where they
+// are, so the loan read after the call stays valid. Admitted; prints 5 3.
+func Grow(inout names: Array<String>) -> Void {
+    ArrayPush(names, ToString(7));
+}
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let name = names[0];
+    Grow(names);
+    Log(name);
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Run(5)); }

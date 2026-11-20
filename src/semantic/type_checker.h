@@ -222,6 +222,14 @@ struct SemanticContext
     size_t       call_argument_sibling_count, call_argument_sibling_capacity;
     struct FormalReleaseRow *formal_release_rows;
     size_t       formal_release_count, formal_release_capacity;
+    bool         formal_release_closed;
+    /* String loans live across an inout call and their later reads, judged
+     * after Pass 2 against the callee's formal release summary
+     * (indexed_string_borrow_owner). */
+    struct IndexedStringCallReleaseEdge *indexed_string_call_release_edges;
+    size_t       indexed_string_call_release_edge_count, indexed_string_call_release_edge_capacity;
+    struct IndexedStringCallReleaseRead *indexed_string_call_release_reads;
+    size_t       indexed_string_call_release_read_count, indexed_string_call_release_read_capacity;
     /* Locals holding a String read through an aggregate member, and the
      * bindings each routine passes inout, judged after Pass 2
      * (member_element_borrow_carrier_owner). */

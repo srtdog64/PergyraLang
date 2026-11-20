@@ -716,6 +716,7 @@ semantic_indexed_string_borrow_initialize_binding(
         binding->indexed_string_borrow_source_syntax_id =
             borrow_source_for_expression(initializer, ctx);
         binding->indexed_string_borrow_invalidated = false;
+        binding->indexed_string_call_release_head = 0;
         if (semantic_indexed_string_definition_record_birth(ctx, binding,
                 declaration, initializer) == INDEXED_STRING_DEFINITION_FAILED) return false;
         if (semantic_param_publication_pending(ctx)
@@ -863,6 +864,10 @@ semantic_indexed_string_borrow_validate_use(
     if (binding != NULL && type_equals(binding->type, TYPE_STRING)
         && !semantic_array_storage_record_deferred_string_read(use, binding->indexed_string_borrow_source_syntax_id,
             binding, false, false, ctx)) return false;
+    if (binding != NULL && type_equals(binding->type, TYPE_STRING)
+        && !binding->indexed_string_borrow_invalidated
+        && !semantic_indexed_string_borrow_record_call_release_read(binding, use, ctx))
+        return false;
     if (binding == NULL ||
         binding->indexed_string_borrow_source_syntax_id == 0 ||
         !binding->indexed_string_borrow_invalidated)

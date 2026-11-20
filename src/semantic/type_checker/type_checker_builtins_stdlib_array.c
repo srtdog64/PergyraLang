@@ -14,6 +14,7 @@
 #include "../array_storage_defer_release_owner.h"
 #include "../array_storage_deferred_preservation_owner.h"
 #include "../indexed_string_borrow_owner.h"
+#include "../call_argument_move_order_owner.h"
 #include "../loan_copy_landing_owner.h"
 #include "type_checker_builtins_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
@@ -760,6 +761,10 @@ type_check_stdlib_array_call(ASTNode *expr,
                 && type_equals(inner, TYPE_STRING))
                 semantic_indexed_string_borrow_invalidate_owned_element(
                     arg0, ctx);
+            /* The replaced String is freed: a formal's callers' loans too. */
+            if (owned_set && inner != NULL && type_equals(inner, TYPE_STRING)
+                && !semantic_formal_release_record_element(arg0, ctx))
+                return TYPE_UNKNOWN;
         }
         return TYPE_VOID;
     }
@@ -827,6 +832,9 @@ type_check_stdlib_array_call(ASTNode *expr,
             if (owned_string_pop)
                 semantic_indexed_string_borrow_invalidate_owned_element(
                     arg0, ctx);
+            if (owned_string_pop
+                && !semantic_formal_release_record_element(arg0, ctx))
+                return TYPE_UNKNOWN;
         }
         return TYPE_VOID;
     }

@@ -1,0 +1,22 @@
+// Replace runs only on the path that leaves the loop, so no iteration reads
+// `name` after it. Admitted; prints 5 5 2.
+func Replace(inout names: Array<String>) -> Void {
+    ArraySet(names, 0, ToString(99));
+}
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let name = names[0];
+    var i: Int = 0;
+    while i < 2 {
+        Log(name);
+        i = i + 1;
+        if i == 2 {
+            Replace(names);
+            break;
+        }
+    }
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Run(5)); }

@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "../diag_codes.h"
 #include "type_checker_flow_loops.h"
 #include "type_checker_flow_effects.h"
@@ -43,6 +45,10 @@ destroy_loop_flow_state(LoopFlowState *loop_flow)
     destroy_resource_snapshot(&loop_flow->continue_states);
     loop_flow->has_break_states = false;
     loop_flow->has_continue_states = false;
+    free(loop_flow->call_release_continues);
+    loop_flow->call_release_continues = NULL;
+    loop_flow->call_release_continue_count = 0;
+    loop_flow->call_release_continue_capacity = 0;
 }
 
 /* A zero-trip loop still has typed source. Preserve diagnostics while none of
@@ -205,6 +211,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         return cached_flags;
     }
 
+    /* String loans read in the body meet calls later in it next time. */
+    size_t call_release_reads = semantic_indexed_string_borrow_call_release_loop_begin(ctx);
     for (size_t iter = 0; iter < max_iterations; iter++) {
         LoopFlowState loop_flow = {0};
         ResourceConsumeSnapshot backedge = {0};
@@ -231,6 +239,11 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
             ctx->scope, body != NULL ? body : node,
             ctx, "for body exit");
         scope_exit(&ctx->scope);
+        /* A loop known to run at most once has no next iteration. */
+        if (!known_iterations || known_cap > 1)
+            semantic_indexed_string_borrow_call_release_back_edge(ctx, ctx->scope->parent,
+                call_release_reads, loop_flow.call_release_continues,
+                loop_flow.call_release_continue_count);
         if (!dynamic_defer_rejected
             && (body_flags & FLOW_HAS_DEFER) != 0
             && (!known_iterations || known_cap > 1)) {
@@ -433,6 +446,8 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         return cached_flags;
     }
 
+    /* String loans read in the body meet calls later in it next time. */
+    size_t call_release_reads = semantic_indexed_string_borrow_call_release_loop_begin(ctx);
     for (size_t iter = 0; iter < max_iterations; iter++) {
         LoopFlowState loop_flow = {0};
         ResourceConsumeSnapshot backedge = {0};
@@ -468,6 +483,9 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
             ast_while_body(node) != NULL ? ast_while_body(node) : node,
             ctx, "while body exit");
         scope_exit(&ctx->scope);
+        semantic_indexed_string_borrow_call_release_back_edge(ctx, ctx->scope->parent,
+            call_release_reads, loop_flow.call_release_continues,
+            loop_flow.call_release_continue_count);
         if (!dynamic_defer_rejected
             && (body_flags & FLOW_HAS_DEFER) != 0
             && !flow_condition_is_static_bool(ast_while_condition(node))) {

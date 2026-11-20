@@ -62,3 +62,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-11-15 | [An Int returned from `Main` is the process exit status](2026-11-15_main_int_result_is_exit_status.md) | in force |
 | 2026-11-19 | [Claude takes over the GPT root lane's work](2026-11-19_claude_takes_over_gpt_root_lane.md) | in force |
 | 2026-11-20 | [ListSet and ListRemove retire String loans; a List loan keeps the unknown source](2026-11-20_list_string_release_retires_unknown_loans.md) | in force |
+| 2026-11-20 | [A call whose inout formal frees a String element retires the loans of its actual](2026-11-20_inout_call_freeing_an_element_retires_loans.md) | in force |

@@ -1,0 +1,16 @@
+// Count takes names inout but only reads it: no String is freed, and the
+// loan read after the call stays valid. Admitted; prints 5 5 2.
+func Count(inout names: Array<String>) -> Int {
+    Log(names[0]);
+    return ArrayLength(names);
+}
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let name = names[0];
+    let n = Count(names);
+    Log(name);
+    return n;
+}
+func Main() -> Void { Log(Run(5)); }

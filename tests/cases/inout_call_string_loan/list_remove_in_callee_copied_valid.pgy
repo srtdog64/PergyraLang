@@ -1,0 +1,15 @@
+// Drop's ListRemove frees the String `name` borrows; it is copied where
+// `name` is defined. Admitted; prints 5 1.
+func Drop(inout items: List<String>) -> Void {
+    ListRemove(items, 0);
+}
+func Run(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    let name: String = ListGet(items, 0);
+    Drop(items);
+    Log(name);
+    return ListSize(items);
+}
+func Main() -> Void { Log(Run(5)); }

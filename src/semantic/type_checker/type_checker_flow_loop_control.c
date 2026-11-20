@@ -2,6 +2,7 @@
 
 #include "type_checker_flow_internal.h"
 #include "../diag_codes.h"
+#include "../indexed_string_borrow_owner.h"
 
 static bool
 flow_validate_loop_control(SemanticContext *ctx, ASTNode *node,
@@ -60,6 +61,13 @@ type_check_loop_control_flow(ASTNode *node, SemanticContext *ctx,
         ctx);
     loop_flow_record(loop_flow, is_break, &snap);
     destroy_resource_snapshot(&snap);
+    /* The next iteration starts here too: String loans keep the inout calls
+     * they were live across on this path. */
+    if (!is_break && loop_flow != NULL && loop_flow->loop_scope != NULL)
+        (void)semantic_indexed_string_borrow_call_release_continue(ctx,
+            loop_flow->loop_scope->parent, &loop_flow->call_release_continues,
+            &loop_flow->call_release_continue_count,
+            &loop_flow->call_release_continue_capacity);
 
     return is_break ? FLOW_BREAK : FLOW_CONTINUE;
 }

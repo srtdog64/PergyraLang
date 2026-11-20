@@ -1,0 +1,15 @@
+// Peek takes items inout but only reads it. Admitted; prints 5 5 2.
+func Peek(inout items: List<String>) -> Int {
+    Log(ListGet(items, 0));
+    return ListSize(items);
+}
+func Run(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    let name: String = ListGet(items, 0);
+    let n = Peek(items);
+    Log(name);
+    return n;
+}
+func Main() -> Void { Log(Run(5)); }

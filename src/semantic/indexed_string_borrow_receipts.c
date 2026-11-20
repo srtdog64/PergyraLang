@@ -130,6 +130,16 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
         "[semantic timing] indexed_receipts=definition copies=%zu stores=%zu\n",
         ctx->loan_copy_landing_selected_count,
         ctx->string_store_landing_selected_count);
+    /* A loan read after an inout call whose callee may free its element is
+     * retired as after a direct release; judged once, at prepare. */
+    before = ctx->loan_copy_landing_selected_count;
+    stores_before = ctx->string_store_landing_selected_count;
+    diagnostic_before = ctx->diagnostic_emission_revision;
+    if (prepare && !semantic_indexed_string_borrow_call_release_receipts(ctx)) {
+        if (!indexed_string_receipt_deferred(ctx, before,
+                stores_before, diagnostic_before)) return false;
+        deferred = true;
+    }
     for (size_t i = 0; i < store->node_capacity; i++) {
         PublishedNode *row = &store->nodes[i];
         if (!row->indexed_string_shallow_retention) continue;

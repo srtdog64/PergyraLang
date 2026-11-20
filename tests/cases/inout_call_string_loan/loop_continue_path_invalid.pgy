@@ -1,0 +1,24 @@
+// The first iteration calls Replace and continues; the second reads what
+// that call freed. The edges the loan holds at the continue reach the next
+// iteration. Refused at the read.
+func Replace(inout names: Array<String>) -> Void {
+    ArraySet(names, 0, ToString(99));
+}
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let name = names[0];
+    var i: Int = 0;
+    while i < 2 {
+        if i == 0 {
+            Replace(names);
+            i = i + 1;
+            continue;
+        }
+        Log(name);
+        i = i + 1;
+    }
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Run(5)); }

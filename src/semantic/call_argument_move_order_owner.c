@@ -254,7 +254,23 @@ semantic_formal_release_record_drop(ASTNode *receiver, SemanticContext *ctx)
 {
     size_t formal = ctx != NULL ? current_formal_root(receiver, ctx) : SIZE_MAX;
     return formal == SIZE_MAX || formal_release_add(
-        (FormalReleaseRow){ctx->current_function_decl, formal, NULL, 0, true}, receiver, ctx);
+        (FormalReleaseRow){ctx->current_function_decl, formal, NULL, 0, true, true}, receiver, ctx);
+}
+
+bool
+semantic_formal_release_record_element(ASTNode *receiver, SemanticContext *ctx)
+{
+    size_t formal = ctx != NULL ? current_formal_root(receiver, ctx) : SIZE_MAX;
+    if (formal == SIZE_MAX)
+        return true;
+    for (size_t i = 0; i < ctx->formal_release_count; i++) {
+        const FormalReleaseRow *row = &ctx->formal_release_rows[i];
+        if (row->callee == NULL && row->frees_elements
+            && row->routine == ctx->current_function_decl && row->formal == formal)
+            return true;
+    }
+    return formal_release_add((FormalReleaseRow){ctx->current_function_decl,
+        formal, NULL, 0, false, true}, receiver, ctx);
 }
 
 bool
@@ -266,7 +282,7 @@ semantic_formal_release_record_argument(ASTNode *argument, ASTNode *callee,
         return true;
     size_t formal = current_formal_root(argument, ctx);
     return formal == SIZE_MAX || formal_release_add(
-        (FormalReleaseRow){ctx->current_function_decl, formal, callee, callee_formal, false},
+        (FormalReleaseRow){ctx->current_function_decl, formal, callee, callee_formal, false, false},
         argument, ctx);
 }
 
@@ -281,8 +297,21 @@ formal_releases(const SemanticContext *ctx, const ASTNode *routine, size_t forma
     return false;
 }
 
+static bool
+formal_frees(const SemanticContext *ctx, const ASTNode *routine, size_t formal)
+{
+    for (size_t i = 0; i < ctx->formal_release_count; i++) {
+        const FormalReleaseRow *row = &ctx->formal_release_rows[i];
+        if ((row->releases || row->frees_elements)
+            && row->routine == routine && row->formal == formal)
+            return true;
+    }
+    return false;
+}
+
 /* Close the forwarding edges: a formal handed to a releasing formal
- * releases too. */
+ * releases too, and one handed to a formal that frees elements (or to a
+ * callee with no body, which nothing proves does not) frees them too. */
 static void
 formal_release_close(SemanticContext *ctx)
 {
@@ -290,13 +319,31 @@ formal_release_close(SemanticContext *ctx)
         changed = false;
         for (size_t i = 0; i < ctx->formal_release_count; i++) {
             FormalReleaseRow *row = &ctx->formal_release_rows[i];
-            if (row->releases || row->callee == NULL
-                || !formal_releases(ctx, row->callee, row->callee_formal))
+            if (row->callee == NULL)
                 continue;
-            row->releases = true;
-            changed = true;
+            if (!row->releases && formal_releases(ctx, row->callee, row->callee_formal)) {
+                row->releases = true;
+                changed = true;
+            }
+            if (!row->frees_elements && (ast_func_body(row->callee) == NULL
+                    || formal_frees(ctx, row->callee, row->callee_formal))) {
+                row->frees_elements = true;
+                changed = true;
+            }
         }
     }
+    ctx->formal_release_closed = true;
+}
+
+bool
+semantic_formal_release_frees_elements(SemanticContext *ctx,
+    ASTNode *callee, size_t formal)
+{
+    if (ctx == NULL || !ctx->formal_release_closed || callee == NULL
+        || callee->type != AST_FUNC_DECL || ast_func_body(callee) == NULL)
+        return true;
+    return formal_frees(ctx, callee, formal)
+        || semantic_collection_owned_parameter_release_required(ctx, callee, formal);
 }
 
 /* After Pass 2: the callee's summary for the inout or own formal says

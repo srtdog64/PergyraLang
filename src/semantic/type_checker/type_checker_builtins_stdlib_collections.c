@@ -9,6 +9,7 @@
 #include "../collection_ownership_fact.h"
 #include "../function_param_flow/function_param_publication_owner.h"
 #include "../indexed_string_borrow_owner.h"
+#include "../call_argument_move_order_owner.h"
 
 
 typedef struct StdlibCollectionBuiltinSpec {
@@ -329,6 +330,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             /* A List<String> frees the String it replaces (C and LLVM). */
             if (type_equals(type_constructed_arg(list_type, 0), TYPE_STRING))
                 semantic_indexed_string_borrow_invalidate_owned_element(arg0, ctx);
+            if (type_equals(type_constructed_arg(list_type, 0), TYPE_STRING)
+                && !semantic_formal_release_record_element(arg0, ctx))
+                return TYPE_UNKNOWN;
         } else if (list_type != NULL && list_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
@@ -378,8 +382,11 @@ type_check_stdlib_collection_call(ASTNode *expr,
         /* A List<String> frees the String it removes (C and LLVM). */
         if (type_is_constructed_named(list_type, "List")
             && type_constructed_arg_count(list_type) == 1
-            && type_equals(type_constructed_arg(list_type, 0), TYPE_STRING))
+            && type_equals(type_constructed_arg(list_type, 0), TYPE_STRING)) {
             semantic_indexed_string_borrow_invalidate_owned_element(arg0, ctx);
+            if (!semantic_formal_release_record_element(arg0, ctx))
+                return TYPE_UNKNOWN;
+        }
         return TYPE_INT;
     }
     if (kind == STDLIB_COLLECTION_SET_NEW) {

@@ -19,6 +19,7 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "../diag_codes.h"
 #include "../call_argument_move_order_owner.h"
+#include "../indexed_string_borrow_owner.h"
 #include "../member_element_borrow_carrier_owner.h"
 #include "../map_string_payload_view_owner.h"
 #include "../owned_string_transfer_owner.h"
@@ -461,6 +462,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     for (size_t i = 0; i < provided; i++) {
         if (type_function_param_mode(sym->type, i) != PARAM_MODE_REF)
             semantic_map_payload_view_change(ast_call_argument(expr, i), NULL, ctx);
+    }
+    /* So may String elements of an inout argument's storage: loans of it
+     * live across the call are judged against the callee's summary. */
+    for (size_t i = 0; i < provided; i++) {
+        if (type_function_param_mode(sym->type, i) == PARAM_MODE_MUT_REF)
+            semantic_indexed_string_borrow_record_call_release(ast_call_argument(expr, i),
+                call_arg_types[i], expr, i, ctx);
     }
     semantic_map_payload_view_call_finish(&map_view_frame, ctx);
     (void)semantic_call_argument_sibling_check(&move_frame, expr, ctx);

@@ -1,0 +1,16 @@
+// `name` borrows names[0]. Replace takes names inout and its owned ArraySet
+// frees that String; `name` is read after the call (heap-use-after-free on
+// C and LLVM before 2026-11-20). Refused at the read.
+func Replace(inout names: Array<String>) -> Void {
+    ArraySet(names, 0, ToString(99));
+}
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let name = names[0];
+    Replace(names);
+    Log(name);
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Run(5)); }
