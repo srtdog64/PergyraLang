@@ -1,0 +1,16 @@
+// The binding is kept in an outer String; after the loop the owned ArraySet
+// frees the element it borrows, and the outer String is read. Refused at the
+// read of kept.
+func Keep(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var kept: String = "";
+    for name in names {
+        kept = name;
+    }
+    ArraySet(names, 1, ToString(99));
+    Log(kept);
+    return 1;
+}
+func Main() -> Void { Log(Keep(5)); }

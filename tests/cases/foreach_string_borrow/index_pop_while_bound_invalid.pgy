@@ -1,0 +1,12 @@
+// The index form of the same loan: the owned ArrayPop frees names[1] while
+// `name` still borrows it. Refused at the read.
+func Shrink(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let name = names[1];
+    ArrayPop(names);
+    Log(name);
+    return 1;
+}
+func Main() -> Void { Log(Shrink(5)); }

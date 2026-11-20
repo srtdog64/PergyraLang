@@ -597,6 +597,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/array_storage_release_owner.c \
                    $(SEMANTIC_DIR)/array_storage_defer_release_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_receipts.c \
+                   $(SEMANTIC_DIR)/indexed_string_loop_loan_owner.c \
                    $(SEMANTIC_DIR)/default_aggregate_move_owner.c \
                    $(SEMANTIC_DIR)/default_aggregate_call_move_owner.c \
                    $(SEMANTIC_DIR)/default_aggregate_move_rule.c \
@@ -5302,6 +5303,10 @@ hashmap-owned-string-provenance-test-smoke: $(PGY)
 .PHONY: native-unsafe-negative-refusal-test-smoke
 native-unsafe-negative-refusal-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/native_unsafe_negative_refusal_smoke.sh
+
+.PHONY: foreach-string-borrow-refusal-test-smoke
+foreach-string-borrow-refusal-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/foreach_string_borrow_refusal_smoke.sh
 
 .PHONY: process-args-utf8-test-smoke
 process-args-utf8-test-smoke:

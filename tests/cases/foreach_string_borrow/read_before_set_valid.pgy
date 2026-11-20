@@ -1,0 +1,16 @@
+// Each iteration reads its binding before the owned ArraySet, and the next
+// iteration binds a fresh element. Admitted; prints 5 6 99 2.
+func Swap(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var n: Int = 0;
+    for name in names {
+        Log(name);
+        ArraySet(names, 0, ToString(99));
+        n = n + 1;
+    }
+    Log(names[0]);
+    return n;
+}
+func Main() -> Void { Log(Swap(5)); }

@@ -1,0 +1,16 @@
+// The same loan in a while loop: the first pass frees names[0] and the
+// second pass reads `first`. Refused at the read.
+func Walk(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let first = names[0];
+    var n: Int = 0;
+    while n < 2 {
+        Log(first);
+        ArraySet(names, 0, ToString(99));
+        n = n + 1;
+    }
+    return n;
+}
+func Main() -> Void { Log(Walk(5)); }

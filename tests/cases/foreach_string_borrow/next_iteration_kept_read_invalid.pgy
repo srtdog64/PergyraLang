@@ -1,0 +1,17 @@
+// The binding is kept in `kept`, the owned ArraySet frees the element it
+// borrows, and the next iteration reads `kept`. Refused at the read.
+func Walk(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var kept: String = "start";
+    var n: Int = 0;
+    for name in names {
+        Log(kept);
+        kept = name;
+        ArraySet(names, 0, ToString(99));
+        n = n + 1;
+    }
+    return n;
+}
+func Main() -> Void { Log(Walk(5)); }

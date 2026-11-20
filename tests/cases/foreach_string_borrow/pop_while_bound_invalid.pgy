@@ -1,0 +1,17 @@
+// In the second iteration the binding borrows names[1] and the owned
+// ArrayPop frees that String before the read (heap-use-after-free on C and
+// LLVM before 2026-11-20). Refused at the read.
+func Shrink(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    ArrayPush(names, ToString(seed + 2));
+    var n: Int = 0;
+    for name in names {
+        ArrayPop(names);
+        Log(name);
+        n = n + 1;
+    }
+    return n;
+}
+func Main() -> Void { Log(Shrink(5)); }

@@ -18,9 +18,9 @@ unlike native on default LLVM; default C still differs on 12 that predate
 the [fix](../evidence/2026-11-19_default_route_native_runtime_parity.md).
 Default C, through the MIR-to-AST round trip, also prints garbage for a
 foreach whose body pushes to the walked local ([record](../evidence/2026-11-19_general_route_collection_iteration.md)).
-Native prints freed memory for a String foreach whose body pops or sets the
-walked array; the general route admits the index form (`let s = xs[i];
-ArrayPop(xs)`) with heap-use-after-free ([record](../evidence/2026-11-19_general_route_string_foreach.md)).
+Native refuses a String foreach or index loan read after a set, pop or drop
+(2026-11-20 [record](../evidence/2026-11-20_native_foreach_string_borrow_refusal.md); `List<String>` still reads freed memory); the general route admits
+`let s = xs[i]; ArrayPop(xs)` with heap-use-after-free ([record](../evidence/2026-11-19_general_route_string_foreach.md)).
 
 ## Objective card
 

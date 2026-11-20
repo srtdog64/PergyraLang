@@ -758,7 +758,7 @@ type_check_stdlib_array_call(ASTNode *expr,
             }
             if (owned_set && inner != NULL
                 && type_equals(inner, TYPE_STRING))
-                semantic_indexed_string_borrow_invalidate_owned_set(
+                semantic_indexed_string_borrow_invalidate_owned_element(
                     arg0, ctx);
         }
         return TYPE_VOID;
@@ -823,6 +823,10 @@ type_check_stdlib_array_call(ASTNode *expr,
                     "Could not seal Array<String> ownership transition receipt");
                 return TYPE_UNKNOWN;
             }
+            /* The owned pop frees the String it removes. */
+            if (owned_string_pop)
+                semantic_indexed_string_borrow_invalidate_owned_element(
+                    arg0, ctx);
         }
         return TYPE_VOID;
     }

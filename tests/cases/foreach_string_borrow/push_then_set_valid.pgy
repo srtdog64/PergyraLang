@@ -1,0 +1,18 @@
+// The binding is pushed into another Array, whose element must outlive the
+// owned ArraySet on names: the push stores an owned copy
+// (ArrayPushOwnedString). Before 2026-11-20 it stored the borrowed String
+// and out[0] read freed memory. Admitted; prints 5 99 2.
+func Gather(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var out: Array<String> = [];
+    for name in names {
+        ArrayPush(out, name);
+    }
+    ArraySet(names, 0, ToString(99));
+    Log(out[0]);
+    Log(names[0]);
+    return ArrayLength(out);
+}
+func Main() -> Void { Log(Gather(5)); }

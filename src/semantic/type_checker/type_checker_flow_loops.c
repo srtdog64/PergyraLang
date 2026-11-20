@@ -3,6 +3,7 @@
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loop_summary.h"
 #include "../function_param_flow/function_param_publication_owner.h"
+#include "../indexed_string_borrow_owner.h"
 #include "type_checker_assignment.h"
 
 static size_t
@@ -116,8 +117,10 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     Symbol *loop_var = symbol_create_variable(
         ast_for_variable(node), var_type, node->line, node->column);
     symbol_mark_declaration(loop_var, ast_node_stable_id(node), false);
-    if (iterable != NULL)
+    if (iterable != NULL) {
         semantic_mark_storage_alias_binding(loop_var, iterable, ctx);
+        semantic_indexed_string_borrow_bind_iteration(loop_var, iterable, ctx);
+    }
     scope_declare(ctx->scope, loop_var);
 
     if (range_start != NULL) {
@@ -156,6 +159,14 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     bool body_terminates = false;
     FlowFlags terminating = FLOW_NONE;
     bool dynamic_defer_rejected = false;
+    /* A pass that retires an outer String loan earns one more pass, at most
+     * once per visible loan; a loop known to run at most once has no next
+     * iteration to read it. */
+    size_t loan_passes = 0;
+    (void)semantic_indexed_string_borrow_retired_loans(ctx->scope->parent,
+                                                       &loan_passes);
+    if (known_iterations && known_cap <= 1)
+        loan_passes = 0;
     size_t max_iterations = known_iterations && known_cap == 0
         ? 0
         : (known_iterations && known_cap == 1 ? 1
@@ -200,12 +211,18 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         bool has_backedge = false;
         size_t map_view_invalidations = ctx->map_payload_view_invalidation_count;
         size_t owned_string_releases = ctx->owned_string_release_count;
+        /* Loans declared outside the loop; the binding is rebound below. */
+        size_t retired_loans =
+            semantic_indexed_string_borrow_retired_loans(ctx->scope->parent, NULL);
         FlowFlags body_flags = FLOW_NONE;
         uint32_t iter_effect_delta = EFFECT_NONE;
 
         loop_flow.loop_scope = ctx->scope;
         restore_resource_states(&entry);
         ctx->current_function_effects = effect_base;
+        /* Each iteration binds the next element afresh. */
+        if (iterable != NULL)
+            semantic_indexed_string_borrow_bind_iteration(loop_var, iterable, ctx);
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         loop_flow_summary_note_body_check(ctx, node, "for");
         body_flags = type_check_block_flow(body, ctx, &loop_flow);
@@ -270,12 +287,19 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
             break;
         }
 
+        bool loans_retired = semantic_indexed_string_borrow_retired_loans(
+            ctx->scope->parent, NULL) != retired_loans;
         if (resource_snapshot_availability_equal(&entry, &backedge)
             && ctx->map_payload_view_invalidation_count == map_view_invalidations
-            && ctx->owned_string_release_count == owned_string_releases) {
+            && ctx->owned_string_release_count == owned_string_releases
+            && !loans_retired) {
             destroy_resource_snapshot(&entry);
             entry = backedge;
             break;
+        }
+        if (loans_retired && iter + 1 == max_iterations && loan_passes > 0) {
+            loan_passes--;
+            max_iterations++;
         }
 
         destroy_resource_snapshot(&entry);
@@ -371,6 +395,11 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         : (ResourceConsumeSnapshot){0};
     ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
     bool dynamic_defer_rejected = false;
+    /* A pass that retires an outer String loan earns one more pass, at most
+     * once per visible loan. */
+    size_t loan_passes = 0;
+    (void)semantic_indexed_string_borrow_retired_loans(ctx->scope->parent,
+                                                       &loan_passes);
     size_t max_iterations = base.count + base.slice_permission_count + 1;
     if (max_iterations == 0)
         max_iterations = 1;
@@ -410,6 +439,8 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         bool has_backedge = false;
         size_t map_view_invalidations = ctx->map_payload_view_invalidation_count;
         size_t owned_string_releases = ctx->owned_string_release_count;
+        size_t retired_loans =
+            semantic_indexed_string_borrow_retired_loans(ctx->scope->parent, NULL);
         FlowFlags body_flags = FLOW_NONE;
         uint32_t iter_effect_delta = EFFECT_NONE;
 
@@ -496,12 +527,19 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
             break;
         }
 
+        bool loans_retired = semantic_indexed_string_borrow_retired_loans(
+            ctx->scope->parent, NULL) != retired_loans;
         if (resource_snapshot_availability_equal(&entry, &backedge)
             && ctx->map_payload_view_invalidation_count == map_view_invalidations
-            && ctx->owned_string_release_count == owned_string_releases) {
+            && ctx->owned_string_release_count == owned_string_releases
+            && !loans_retired) {
             destroy_resource_snapshot(&entry);
             entry = backedge;
             break;
+        }
+        if (loans_retired && iter + 1 == max_iterations && loan_passes > 0) {
+            loan_passes--;
+            max_iterations++;
         }
 
         destroy_resource_snapshot(&entry);

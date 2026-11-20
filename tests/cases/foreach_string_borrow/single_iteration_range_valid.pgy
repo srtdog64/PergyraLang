@@ -1,0 +1,16 @@
+// The range runs once: `first` is read and then its element is freed, and
+// no later iteration reads it. Admitted; prints 5 1.
+func Once(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let first = names[0];
+    var n: Int = 0;
+    for i in 0..1 {
+        Log(first);
+        ArraySet(names, 0, ToString(99));
+        n = n + 1;
+    }
+    return n;
+}
+func Main() -> Void { Log(Once(5)); }

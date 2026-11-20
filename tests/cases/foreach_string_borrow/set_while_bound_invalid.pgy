@@ -1,0 +1,17 @@
+// The foreach binding borrows names[0]; the owned ArraySet frees that
+// String, and the binding is read afterwards (heap-use-after-free on C and
+// LLVM before 2026-11-20). Refused at the read.
+func Swap(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var n: Int = 0;
+    for name in names {
+        ArraySet(names, 0, ToString(99));
+        Log(name);
+        n = n + 1;
+    }
+    Log(names[0]);
+    return n;
+}
+func Main() -> Void { Log(Swap(5)); }

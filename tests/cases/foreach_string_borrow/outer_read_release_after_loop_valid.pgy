@@ -1,0 +1,17 @@
+// `first` is read in every iteration and its element is released only after
+// the loop, with no read after the release. Admitted; prints 5 5 5 6 2.
+func Walk(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let first = names[0];
+    var n: Int = 0;
+    for name in names {
+        Log(first);
+        Log(name);
+        n = n + 1;
+    }
+    ArraySet(names, 0, ToString(99));
+    return n;
+}
+func Main() -> Void { Log(Walk(5)); }

@@ -1,0 +1,16 @@
+// ArrayDropOwnedStrings frees every element, the bound one included, before
+// the read. Refused at the read.
+func Drop(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var n: Int = 0;
+    for name in names {
+        ArrayDropOwnedStrings(names);
+        Log(name);
+        n = n + 1;
+        break;
+    }
+    return n;
+}
+func Main() -> Void { Log(Drop(5)); }

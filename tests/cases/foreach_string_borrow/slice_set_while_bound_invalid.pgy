@@ -1,0 +1,16 @@
+// A foreach over a Slice<String> borrows the backing Array's element; the
+// owned ArraySet on that Array frees it before the read. Refused at the read.
+func Swap(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let view: Slice<String> = names.Slice(0, 2);
+    var n: Int = 0;
+    for name in view {
+        ArraySet(names, 0, ToString(99));
+        Log(name);
+        n = n + 1;
+    }
+    return n;
+}
+func Main() -> Void { Log(Swap(5)); }

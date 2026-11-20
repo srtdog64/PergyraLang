@@ -8,6 +8,10 @@
 typedef struct ASTNode ASTNode;
 typedef struct SemanticContext SemanticContext;
 typedef struct Symbol Symbol;
+typedef struct Scope Scope;
+/* A String loan whose Array<String> storage source is not known: every
+ * owned release of a String element retires it. Zero means no loan. */
+#define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
 /* Conditional local-risk exclusion; no String source or cleanup grant. */
 bool semantic_indexed_string_nonowner_record(SemanticContext *ctx,
     const Symbol *candidate, ASTNode *value, ASTNode *sink, size_t actual_ordinal);
@@ -69,11 +73,27 @@ void semantic_indexed_string_borrow_record_assignment(
     SemanticContext *ctx);
 void semantic_indexed_string_borrow_invalidate_deep_drop(
     ASTNode *receiver, SemanticContext *ctx);
-/* An owned element replacement retires one payload. Conservatively
+/* An owned element replacement or pop retires one payload. Conservatively
  * invalidate every local String loan from that Array source; a later use
  * fails while direct reads used to compute the replacement remain valid. */
-void semantic_indexed_string_borrow_invalidate_owned_set(
+void semantic_indexed_string_borrow_invalidate_owned_element(
     ASTNode *receiver, SemanticContext *ctx);
+/* Loans across loop iterations (indexed_string_loop_loan_owner.c).
+ * A for-in binding of String elements is the element read
+ * `iterable[cursor]` and carries the loan that read carries: the Array<String>
+ * iterable's storage source, or an unknown source for any other iterable.
+ * Called where the binding is declared and again where each iteration binds
+ * the next element, so a release in one iteration does not outlive it. */
+void semantic_indexed_string_borrow_bind_iteration(
+    Symbol *binding, ASTNode *iterable, SemanticContext *ctx);
+/* String loans visible from `scope` (it and its enclosing scopes up to the
+ * routine) whose element was retired; `visible` (optional) receives how many
+ * String bindings are visible. A loop body that retires one more is checked
+ * again, so a read before the release in the body meets it in the next pass;
+ * each such pass retires at least one of the visible loans. A loop summary
+ * does not carry them. */
+size_t semantic_indexed_string_borrow_retired_loans(const Scope *scope,
+    size_t *visible);
 bool semantic_indexed_string_borrow_validate_use(
     Symbol *binding, ASTNode *use, SemanticContext *ctx);
 bool semantic_indexed_string_borrow_owner_transfer_allowed(

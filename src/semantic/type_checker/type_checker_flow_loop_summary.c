@@ -13,6 +13,7 @@
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loop_summary.h"
 #include "type_checker_flow_universe.h"
+#include "../indexed_string_borrow_owner.h"
 
 typedef struct
 {
@@ -298,6 +299,10 @@ loop_flow_summary_try_apply(SemanticContext *ctx,
      * under their current generation; the recorded normal flow still exports
      * through the existing summary owner. */
     if (entry->slice_permission_count != 0)
+        return false;
+    /* Nor does it carry retired String loans: a body read of one is refused
+     * only when the body is checked again. */
+    if (semantic_indexed_string_borrow_retired_loans(ctx->scope, NULL) != 0)
         return false;
     for (size_t i = 0; i < store->summary_count; i++) {
         LoopFlowSummary *summary = &store->summaries[i];

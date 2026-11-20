@@ -99,6 +99,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make language-keyword-registry-test-smoke'
     run 'make call-handoff-rule-test-smoke'
     run 'make native-unsafe-negative-refusal-test-smoke'
+    run 'make foreach-string-borrow-refusal-test-smoke'
     run 'make readonly-map-query-test-smoke'
     run 'make long-literal-exactness-test-smoke'
     run 'make string-window-extent-test-smoke'

@@ -18,8 +18,6 @@
 #include "formal_string_store_landing_owner.h"
 #include "type_checker/type_checker_internal.h"
 
-#define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
-
 static bool
 symbol_is_string_array(const Symbol *symbol)
 {
@@ -843,7 +841,7 @@ semantic_indexed_string_borrow_invalidate_deep_drop(
 }
 
 void
-semantic_indexed_string_borrow_invalidate_owned_set(
+semantic_indexed_string_borrow_invalidate_owned_element(
     ASTNode *receiver, SemanticContext *ctx)
 {
     indexed_string_borrow_invalidate_owner_source(receiver, ctx, false);
@@ -878,10 +876,10 @@ semantic_indexed_string_borrow_validate_use(
         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, use,
         "String '%s' borrows an Array<String> element that was replaced or released.\n"
         "Reason:\n"
-        "- an ownership-aware ArraySet or ArrayDropOwnedStrings retired a payload from the exact storage source\n"
+        "- an ownership-aware ArraySet, ArrayPop or ArrayDropOwnedStrings retired a payload from the exact storage source\n"
         "- using the indexed alias afterwards would read freed memory\n"
         "Fix:\n"
-        "- copy the String with Concat(\"\", value) before the deep drop\n"
+        "- copy the String with Concat(\"\", value) before the release\n"
         "- or keep the Array<String> owner live until the final alias use",
         binding->name != NULL ? binding->name : "<string>");
     return false;
