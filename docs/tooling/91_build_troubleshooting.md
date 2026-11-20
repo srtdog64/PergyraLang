@@ -687,7 +687,6 @@ tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_graph_projection.sh
 tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_break_exit_projection.sh
 tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_for_break_exit_projection.sh
 tests/self_hosted/parity/one_mir/one_mir_scalar_cfg_continue_backedge_projection.sh
-tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh
 tests/self_hosted/parity/public_route/public_nested_scalar_cfg_llvm_owner.sh
 tests/self_hosted/gates/self_hosted_component_contract_smoke.sh
 ```

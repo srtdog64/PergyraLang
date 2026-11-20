@@ -80,27 +80,3 @@ func DirectMirCfgDigestFromIndex(ref index: MirRoutineFactIndex) -> Int {
     }
     return DirectMirCfgBoundedDigest(hash);
 }
-
-func DirectMirCfgPhiBindingDigest(
-    phi_count: Int,
-    local_name: String,
-    result_name: String,
-    true_incoming: String,
-    false_incoming: String
-) -> Int {
-    if phi_count == 0 && local_name == "" && result_name == "" &&
-        true_incoming == "" && false_incoming == "" {
-        return 0;
-    }
-    if phi_count != 1 || StringLength(local_name) == 0 ||
-        StringLength(result_name) == 0 || StringLength(true_incoming) == 0 ||
-        StringLength(false_incoming) == 0 {
-        return 0;
-    }
-    var hash: Long = DirectMirCfgHashInt(29L, phi_count);
-    hash = DirectMirCfgHashString(hash, local_name);
-    hash = DirectMirCfgHashString(hash, result_name);
-    hash = DirectMirCfgHashString(hash, true_incoming);
-    hash = DirectMirCfgHashString(hash, false_incoming);
-    return DirectMirCfgBoundedDigest(hash);
-}

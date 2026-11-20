@@ -108,21 +108,6 @@ func DirectMirOptionMatchAbiFactWithDigest(
     );
 }
 
-func DirectMirOptionMatchAbiFactWithLayoutId(
-    fact: DirectMirOptionMatchAbiFact,
-    layout_id: Int
-) -> DirectMirOptionMatchAbiFact {
-    return DirectMirOptionMatchAbiFact(
-        fact.valid, fact.digest, layout_id, fact.type_name,
-        fact.size, fact.align, fact.tag_name, fact.tag_offset,
-        fact.tag_size, fact.tag_align, fact.value_name,
-        fact.value_offset, fact.value_size, fact.value_align,
-        fact.runtime_fn, fact.inner_c_type, fact.representation,
-        fact.discriminant, fact.some_tag, fact.none_tag,
-        fact.niche_none_pattern
-    );
-}
-
 func DirectMirOptionMatchAbiFactReady(
     ref fact: DirectMirOptionMatchAbiFact
 ) -> Bool {

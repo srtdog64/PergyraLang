@@ -1095,31 +1095,15 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_pressure_observation_owner.pgy" 20
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_backend_emission_owner.pgy" 500
-require_max_lines \
-    "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" 260
-require_max_lines \
-    "src/self_hosted/air/mir_option_match_graph_fact_owner.pgy" 120
-require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_option_match_abi_fact_owner.pgy" 140
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_option_match_abi_capture_owner.pgy" 60
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_option_match_abi_projection_owner.pgy" 120
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_plan_fact_owner.pgy" 110
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_plan_owner.pgy" 120
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_plan_mutation_owner.pgy" 70
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_emission_owner.pgy" 220
-require_max_lines \
     "src/self_hosted/mir_lower/abi_layout_admission_fact_owner.pgy" 80
 require_max_lines "src/self_hosted/mir_lower/match_json_fact_owner.pgy" 180
 # Ordered binding spans and their validation remain in the same typed-row owner.
-require_max_lines \
-    "src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy" 170
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_option_match_projection.sh" 200
 require_max_lines \
@@ -1127,13 +1111,7 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_array_literal_spine_owner.pgy" 92
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_array_int_plan_owner.pgy" 450
-require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_array_int_abi_projection_owner.pgy" 180
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_array_int_emission_owner.pgy" 320
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_array_int_projection.sh" 210
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy" 110
 require_max_lines \
@@ -2054,57 +2032,12 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_constructed_record_array_member_mutations.py" 360
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_owner.pgy" 240
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_fact_owner.pgy" 260
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_value_owner.pgy" 130
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_mutation_owner.pgy" 140
-require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_cfg_shape_fact_owner.pgy" 580
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_entry_fact_owner.pgy" 100
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_nested_cfg_shape_owner.pgy" 80
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_nested_cfg_emission_owner.pgy" 140
-require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_llvm_text_format_owner.pgy" 60
-require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 520
-require_max_lines \
-    "src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy" 200
-require_max_lines \
-    "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy" 230
-require_max_lines \
-    "src/self_hosted/air/mir_cfg_certificate_value_owner.pgy" 190
-require_max_lines \
-    "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy" 180
 require_max_lines "src/self_hosted/air/mir_cfg_identity_owner.pgy" 120
 require_max_lines "tests/self_hosted/fixtures/direct_mir_cfg_identity_digest.pgy" 30
 require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_cfg_identity_digest_owner.sh" 90
-require_max_lines \
-    "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy" 220
-require_max_lines \
-    "src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy" 360
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_loop_cfg_shape_owner.pgy" 280
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_loop_cfg_plan_fact_owner.pgy" 120
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_loop_cfg_emission_owner.pgy" 130
-require_max_lines \
-    "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy" 400
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_cfg_log_shape_owner.pgy" 100
-require_max_lines \
-    "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" 650
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_cfg_air_plan_projection.sh" 300
-require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_nested_case.sh" 80
-require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_loop_case.sh" 150
-require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_range_case.sh" 180
-require_max_lines "tests/self_hosted/parity/one_mir/one_mir_cfg_break_case.sh" 240
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_scalar_graph_admission_owner.pgy" 600
 require_max_lines \
@@ -2123,32 +2056,6 @@ literal_log_family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --t
     src/self_hosted/compiler/direct_mir/direct_mir_literal_log_emission_owner.pgy)" || fail "literal Log family measurement failed"
 [[ "$literal_log_family_lines" -le 560 ]] || \
     fail "compile-time declaration/literal Log family exceeds 560 LOC ($literal_log_family_lines)"
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_route_owner.pgy" 90
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_payload_free_enum_abi_owner.pgy" 100
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_fact_owner.pgy" 120
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_owner.pgy" 420
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_mutation_owner.pgy" 70
-require_max_lines \
-    "src/self_hosted/air/mir_identity_match_cfg_certificate_fact_owner.pgy" 220
-require_max_lines \
-    "src/self_hosted/air/mir_identity_match_cfg_certificate_mutation_owner.pgy" 50
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_enum_value_match_projection.sh" 160
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_enum_value_match_mutations.py" 160
-enum_value_match_family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
-    src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_route_owner.pgy \
-    src/self_hosted/compiler/direct_mir/direct_mir_payload_free_enum_abi_owner.pgy \
-    src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_fact_owner.pgy \
-    src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_owner.pgy \
-    src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_mutation_owner.pgy)" || fail "enum value-match family measurement failed"
-[[ "$enum_value_match_family_lines" -le 770 ]] || \
-    fail "enum value-match family exceeds 770 LOC ($enum_value_match_family_lines)"
 require_max_lines \
     "src/self_hosted/semantic/role_operator_vocabulary_owner.pgy" 220
 require_max_lines \

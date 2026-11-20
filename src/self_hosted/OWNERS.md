@@ -2112,10 +2112,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/mir_lower/abi_layout_admission_fact_owner.pgy` -- bounded
   required-layout row admission from instruction-owned spans. It parses the
   exact row once and returns the capture consumed by the Option match plan.
-- `src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy` --
-  routine-local typed match index. It opens each instruction span once and
-  owns pattern, variant, binding, and binding-type captures consumed by AIR;
-  certificate and backend owners may not reopen those JSON spans.
 - `src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy` -- pure CFG distance,
   blocked-reachability, structural-merge, and dominator-edge queries used by
   the routine fact index. Its allocation-free proofs return zero backedges for
@@ -2955,50 +2951,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   compatibility-evolution artifact projection over the owner rows.
 - `src/self_hosted/compiler/air_evidence_owner.pgy` -- hard-rung AIR evidence
   fact vocabulary for intent/effect/authority/coordination and MIR terminators.
-- `src/self_hosted/air/mir_cfg_certificate_owner.pgy` -- MIR-bound AIR
-  certificate issuer for the bounded direct CFG rung. It verifies the typed
-  block/terminator/merge-phi, nested-conditional, while-loop, integer-range,
-  six-block loop-break, or four-block identity-match inventory
-  once, binds MIR, CFG, predecessor-resolved phi, nested-spine, and loop-spine
-  facts, and permits only strict zero-fallback/zero-drift evidence with a
-  fixed-size identity guard.
-- `src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy` -- fixed-size
-  post-issuance readiness for the common certificate. It consumes only carried
-  identities and never reopens MIR, JSON, AST, or an expression graph.
-- `src/self_hosted/air/mir_cfg_certificate_value_owner.pgy` -- immutable
-  replacement constructors shared by issuance and repaired-digest negatives.
-- `src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy` -- repaired-
-  digest negative owner for outer, nested, while, range, loop-break, and
-  identity-match certificate facts.
-- `src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy` -- fixed-size v7
-  certificate identity shared by issuance and the target-neutral plan; it
-  carries nested, while, range, loop-break, and identity-match digests without
-  reopening MIR.
-- `src/self_hosted/air/mir_identity_match_cfg_certificate_fact_owner.pgy` --
-  optional common-CFG child binding the exact four-block topology, five
-  instruction roles, one SSA definition, and the two exact SSA uses. It owns
-  no enum declaration, ordinal, ABI, or target syntax.
-- `src/self_hosted/air/mir_identity_match_cfg_certificate_mutation_owner.pgy`
-  -- repaired-digest negative for the carried identity-match instruction rows.
 - `src/self_hosted/air/mir_cfg_identity_owner.pgy` -- stable digest functions
   over the already-built typed MIR routine index; it does not reopen a document
   or build another graph/certificate view.
-- `src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy` -- bounded
-  five-block nested-condition fact binding both branch rows to one entry SSA,
-  the inner direct-false merge, and the forward edge to the outer merge.
-- `src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy` -- bounded
-  four-block while-loop fact binding preheader, header, body, exit, backedge,
-  predecessor-resolved phi lanes, SSA uses, increment result, and loop-summary
-  metadata from the already-built routine index.
-- `src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy` -- bounded
-  four-block phi-free integer-range fact binding typed preheader/header/body/
-  exit roles, the range backedge, loop summary, iteration verdict, source
-  local, zero-use contract, and instruction identities from one routine index.
-- `src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy` -- bounded
-  six-block loop-break certificate binding preheader/header/decision/break/
-  empty-continuation/exit roles, the real continuation predecessor and its
-  forwarded definition, one header phi, normal/break exit SSA lanes, two Log
-  uses, break row identity, and one while summary from typed owners.
 - `src/self_hosted/compiler/artifact_zone_owner.pgy` -- comparable artifact
   kinds consumed by C/LLVM/self-hosted parity.
 - `src/self_hosted/compiler/region_plan_owner.pgy` -- verified region plan SoT
@@ -3342,11 +3297,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   target-neutral domain topology plan. It serializes exact ID edges and
   graph-derived bounds without revalidating or rebuilding the plan; digest
   mutation self-tests remain gate-only.
-- `src/self_hosted/compiler/direct_mir/direct_mir_backend_emission_owner.pgy` -- one text
-  emission dispatch responsibility containing both C and LLVM consumers. It
-  is the last artifact-producing `DirectMirCfgPlan` consumer and passes only
-  normalized facts to a responsibility-specific emitter; it owns no MIR/AIR
-  read path.
 - `src/self_hosted/compiler/direct_mir/direct_mir_compile_time_declaration_erasure_owner.pgy`
   -- exact compile-time declaration admission and zero-runtime-materialization
   receipt. Only declaration kinds explicitly owned by the compile-time
@@ -3364,42 +3314,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/direct_mir/direct_mir_literal_log_emission_owner.pgy` -- C and
   LLVM text emission from the verified literal-Log plan only. It cannot read
   MIR declarations or create runtime nominal storage.
-- `src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_owner.pgy` -- target-neutral
-  plan issuer. It derives the admitted bounded shape or enum identity-match
-  child from typed owners and issues one verified plan; no full outer
-  certificate survives issuance.
-- `src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_value_owner.pgy` -- immutable
-  fixed-plan replacement constructors used by the issuer and negative owner.
-- `src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_mutation_owner.pgy` -- repaired-
-  digest negative owner for target fingerprint, phi, nested, while, range, and
-  enum plan bindings.
-- `src/self_hosted/compiler/direct_mir/direct_mir_cfg_plan_fact_owner.pgy` -- fixed-size
-  v8 plan identity/readiness contract binding AIR/MIR/CFG/phi/nested/while/
-  range/enum digests, target capability, topology, and normalized shape before
-  emission. Break CFG execution is owned by the general scalar CFG plan.
-- `src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_route_owner.pgy` --
-  single-shot declaration-family route. Either captured declaration axis may
-  claim enum input, but exact admission remains downstream and claimed failure
-  cannot retry nominal, erasure, scalar, Option, or legacy CFG paths.
-- `src/self_hosted/compiler/direct_mir/direct_mir_payload_free_enum_abi_owner.pgy` --
-  target-neutral scalar-ordinal ABI fact with one materialization and zero
-  payload, aggregate layout, payload storage, or runtime helper facts.
-- `src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_fact_owner.pgy`
-  -- optional enum child carried by the one common CFG plan. It seals route,
-  declaration, selected ordinal, independent case literal, arm literals, SSA
-  identity, identity-match certificate, and ABI digests.
-- `src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_owner.pgy` --
-  exact enum declaration/value/match admission from persisted owners. It does
-  not consume display `expr0`, fixture names, or target syntax.
-- `src/self_hosted/compiler/direct_mir/direct_mir_enum_value_match_plan_mutation_owner.pgy`
-  -- repaired-digest negative binding selected ordinal to the enum ABI.
-- `src/self_hosted/air/mir_option_match_graph_fact_owner.pgy` -- exact persisted
-  graph shapes for the Option constructor, `IsSome`, `UnwrapOption`, match
-  subject, and both Log lanes.
-- `src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy` --
-  target-neutral seven-block Option match certificate. It binds exact CFG
-  successors, typed pattern/binding capture, SSA-use cardinality, graph shapes,
-  and the admitted ABI layout identity to one MIR/CFG digest.
 - `src/self_hosted/compiler/direct_mir/direct_mir_option_match_abi_fact_owner.pgy` --
   compact verified Option<Int> ABI receipt carrying every physical field needed
   to reconstruct and recheck the canonical layout identity; it owns no target
@@ -3411,34 +3325,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- target-bound C or LLVM storage, aggregate, extension, and field-index
   projection from the verified ABI receipt. The unselected backend mapping is
   absent and cannot consume the receipt.
-- `src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_plan_fact_owner.pgy`
-  -- fixed target-neutral Option match plan identity binding the AIR certificate
-  and ABI receipt.
-- `src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_plan_owner.pgy` -- one
-  admitted-plan issuer over the typed routine/use/match/ABI owners; it contains
-  no backend emission or general compiler fallback.
-- `src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_plan_mutation_owner.pgy`
-  -- repaired-digest negatives for certificate, canonical ABI identity, target
-  capability binding, and enclosing plan identity.
-- `src/self_hosted/compiler/direct_mir/direct_mir_option_match_cfg_emission_owner.pgy` --
-  last C/LLVM text consumers for the fixed Option match plan. Neither emitter
-  reads MIR JSON, reconstructs AIR, nor links Pergyra runtime symbols.
 - `src/self_hosted/compiler/direct_mir/direct_mir_array_int_graph_fact_owner.pgy` -- exact
   typed expression-graph owner for the bounded local `Array<Int>` literal,
   reassignment target, length call, and index/add topology. It consumes the
   program-lifetime expression index and never reopens the MIR document root.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_int_plan_owner.pgy` -- one target-
-  neutral runtime-free aggregate plan over typed routine identity, latest SSA
-  uses, graph facts, and the admitted canonical `Array<Int>` ABI row. Repaired-
-  digest target, length, index, and layout mutations fail during issuance.
 - `src/self_hosted/compiler/direct_mir/direct_mir_array_int_abi_projection_owner.pgy` --
   selected C or LLVM mapping for the verified array plan. The unselected
   backend spelling is absent, and physical field indices derive from the
   admitted offsets.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_int_emission_owner.pgy` -- final C
-  and textual LLVM consumers of the same fixed array plan. The bounded slice
-  materializes stack-backed storage and links no Pergyra runtime symbol; it is
-  not authority for general or runtime-bearing arrays.
 - `src/self_hosted/compiler/direct_mir/direct_mir_array_int_abi_fact_owner.pgy` -- one
   canonical captured `Array<Int>` ABI row predicate shared by local-value and
   returned-value direct-MIR plans, including every field offset, size, and
@@ -3589,27 +3483,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   closed action facts for the same single CFG plan: literal-log arms or typed
   Int assignment arms with a predecessor-resolved merge phi and Log use. It is
   a derived plan payload, not a second plan or backend reader.
-- `src/self_hosted/compiler/direct_mir/direct_mir_cfg_entry_fact_owner.pgy` -- shared
-  typed entry-local/result/literal projection used by every direct CFG shape.
-- `src/self_hosted/compiler/direct_mir/direct_mir_cfg_log_shape_owner.pgy` -- shared
-  target-neutral `Log(ToString(local))` graph shape; each topology owner keeps
-  its own SSA-use policy.
-- `src/self_hosted/compiler/direct_mir/direct_mir_nested_cfg_shape_owner.pgy` -- derives
-  outer/inner comparison literals and the nested Log payload from one issued
-  topology fact and the existing typed index/use owners.
-- `src/self_hosted/compiler/direct_mir/direct_mir_nested_cfg_emission_owner.pgy` -- one
-  nested-condition text responsibility containing both C and LLVM emitters;
-  it receives fixed facts, never a plan or MIR/AIR reader.
-- `src/self_hosted/compiler/direct_mir/direct_mir_loop_cfg_shape_owner.pgy` -- derives one
-  target-neutral while-loop payload from the issued loop certificate plus the
-  existing index/use owners, including condition, Log, increment, and
-  assignment-target graphs.
-- `src/self_hosted/compiler/direct_mir/direct_mir_loop_cfg_plan_fact_owner.pgy` -- fixed
-  loop certificate/shape compound fact carried by the one direct CFG plan;
-  repaired certificate or shape digests fail readiness.
-- `src/self_hosted/compiler/direct_mir/direct_mir_loop_cfg_emission_owner.pgy` -- one
-  loop-text responsibility containing both structured C and predecessor-bound
-  LLVM emission; it receives only fixed loop facts and the shared print ABI.
 - `src/self_hosted/compiler/direct_mir/direct_mir_llvm_text_format_owner.pgy` -- shared
   LLVM line-format byte encoding used by scalar and CFG text emitters.
 - `src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy` --

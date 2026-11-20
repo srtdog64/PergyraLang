@@ -4,7 +4,6 @@
 
 import "direct_mir_array_argument_plan_owner.pgy";
 import "direct_mir_array_int_abi_projection_owner.pgy";
-import "direct_mir_array_int_emission_owner.pgy";
 import "../symbol_table_owner.pgy";
 
 func DirectMirArrayArgumentEmitC(

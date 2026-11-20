@@ -170,32 +170,6 @@ func MirProgramEnumVariantIndexReady(
     return expected_payload_start == ArrayLength(index.param_types);
 }
 
-func MirProgramEnumVariantRowForOwnerAndName(
-    ref index: MirProgramEnumVariantIndex, owner: String, name: String
-) -> Option<Int> {
-    if !MirProgramEnumVariantIndexReady(index) || owner == "" || name == "" {
-        return None;
-    }
-    var found: Int = 0 - 1;
-    var row: Int = 0;
-    while row < ArrayLength(index.names) {
-        if index.owners[row] == owner && index.names[row] == name {
-            if found >= 0 { return None; }
-            found = row;
-        }
-        row = row + 1;
-    }
-    if found < 0 { return None; }
-    return Some(found);
-}
-
-func MirProgramEnumVariantPayloadFreeAt(
-    ref index: MirProgramEnumVariantIndex, row: Int
-) -> Bool {
-    return MirProgramEnumVariantIndexReady(index) && row >= 0 &&
-        row < ArrayLength(index.names) && index.param_counts[row] == 0;
-}
-
 func MirProgramEnumVariantOwnerForName(
     ref index: MirProgramEnumVariantIndex, variant: String
 ) -> String {

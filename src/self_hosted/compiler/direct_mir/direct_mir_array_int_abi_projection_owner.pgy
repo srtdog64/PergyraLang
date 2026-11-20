@@ -2,7 +2,6 @@
 // Only the selected backend fields are populated, so neither emitter can
 // infer the other backend's layout spelling.
 
-import "direct_mir_array_int_plan_owner.pgy";
 import "../target_projection_fact_owner.pgy";
 import "direct_mir_array_storage_abi_projection_owner.pgy";
 import "../../codegen/runtime_abi/string_runtime_symbol_owner.pgy";
@@ -144,18 +143,4 @@ func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
         Die("direct MIR Array<Int> ABI target mapping is invalid");
     }
     return projection;
-}
-
-func DirectMirArrayIntAbiProjectionFromPlan(
-    ref plan: DirectMirArrayIntPlan,
-    target: CompilerTargetProjectionFact
-) -> DirectMirArrayIntAbiProjection {
-    if !DirectMirArrayIntPlanReady(plan) {
-        Die("direct MIR Array<Int> ABI plan is invalid");
-    }
-    return DirectMirArrayIntAbiProjectionFromCanonicalLayout(
-        target, plan.abi_layout_id, plan.abi_size, plan.abi_align,
-        plan.data_offset, plan.length_offset, plan.capacity_offset,
-        plan.allocator_offset
-    );
 }
