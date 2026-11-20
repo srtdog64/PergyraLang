@@ -2320,6 +2320,9 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection/ast_collection_ownership_verdict_owner.pgy:600 \
     src/self_hosted/semantic/ast_collection/ast_collection_ownership_scan_owner.pgy:415 \
     src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_owner.pgy:240 \
+    src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_element_release_owner.pgy:250 \
+    src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_call_result_owner.pgy:65 \
+    src/self_hosted/semantic/ast_collection/ast_collection_fresh_string_result_plan_owner.pgy:185 \
     src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_source_policy_owner.pgy:125 \
     src/self_hosted/semantic/ast_collection/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy:20 \
     src/self_hosted/semantic/ast_collection/ast_collection_ownership_state_owner.pgy:80 \

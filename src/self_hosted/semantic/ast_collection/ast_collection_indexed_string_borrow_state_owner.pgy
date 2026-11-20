@@ -5,6 +5,9 @@ struct SemanticAstIndexedStringBorrowState {
     ok: Bool;
     source_storage_ids: Array<Int>;
     invalidated: Array<Bool>;
+    // The syntax id of the element release (an owned pop or set, or a call
+    // whose callee releases elements) that ended a row's loan; 0 otherwise.
+    release_sites: Array<Int>;
     map_payload_sources: HashMap<String, Int>;
     map_payload_syntax_ids: HashMap<String, Int>;
     map_payload_invalidations: HashMap<String, Int>;
@@ -26,10 +29,12 @@ func SemanticAstIndexedStringBorrowStateForLocals(
 ) -> SemanticAstIndexedStringBorrowState {
     var sources: Array<Int> = [];
     var invalidated: Array<Bool> = [];
+    var release_sites: Array<Int> = [];
     var row: Int = 0;
     while row < ArrayLength(locals.node_ids) {
         ArrayPush(sources, 0);
         ArrayPush(invalidated, false);
+        ArrayPush(release_sites, 0);
         row = row + 1;
     }
     let map_sources: HashMap<String, Int> = MapNew();
@@ -39,7 +44,7 @@ func SemanticAstIndexedStringBorrowStateForLocals(
     let loan_functions: HashMap<String, Int> = MapNew();
     let none: HashMap<String, Int> = MapNew();
     return SemanticAstIndexedStringBorrowState(
-        locals.ok, sources, invalidated, map_sources, map_syntax_ids, map_invalidations, map_functions,
+        locals.ok, sources, invalidated, release_sites, map_sources, map_syntax_ids, map_invalidations, map_functions,
         loan_functions, none
     );
 }
@@ -50,9 +55,12 @@ func SemanticAstIndexedStringBorrowStateRetire(
     // Replace field descriptors before retiring the exact last consumers.
     let source_storage_ids: Array<Int> = state.source_storage_ids;
     let invalidated: Array<Bool> = state.invalidated;
+    let release_sites: Array<Int> = state.release_sites;
     state.source_storage_ids = [];
     state.invalidated = [];
+    state.release_sites = [];
     SemanticAstIndexedStringBorrowSourceStorageRetire(source_storage_ids);
     SemanticAstIndexedStringBorrowInvalidationStorageRetire(invalidated);
+    SemanticAstIndexedStringBorrowSourceStorageRetire(release_sites);
     state.ok = false;
 }

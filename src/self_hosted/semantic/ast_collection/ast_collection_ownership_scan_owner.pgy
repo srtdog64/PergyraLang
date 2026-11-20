@@ -4,6 +4,7 @@
 import "ast_collection_ownership_statement_transition_owner.pgy";
 import "ast_collection_lifetime_event_order_owner.pgy";
 import "ast_collection_indexed_string_borrow_owner.pgy";
+import "ast_collection_indexed_string_borrow_element_release_owner.pgy";
 import "ast_collection_map_payload_use_owner.pgy";
 import "ast_collection_aggregate_release_transition_owner.pgy";
 import "../ast_owned_string_literal_transfer_owner.pgy";
@@ -43,6 +44,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     ref owned_string_store_nodes: Array<Int>,
     ref body_termination: SemanticAstBodyTerminationFacts,
     ref owned_result_plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    ref fresh_string_results: SemanticAstFreshStringResultPlan,
     ref definitions: SemanticAstCollectionDefinitionFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts,
     ref moved_use: SemanticAstCollectionMemberMoveUse,
@@ -331,20 +333,11 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         verdict = builtin_transition; return;
                     }
-                    if !SemanticAstIndexedStringBorrowRecordDeepDrop(
-                            artifact, signatures, locals,
-                            initializer_types.inferred_type_names, surfaces,
-                            definitions, storage, current_definitions,
-                            indexed_string_borrows, root_slot / 3,
-                            step.completed_call, node) {
-                        ArrayDrop(pending); ArrayDrop(prefixes);
-                        verdict = SemanticAstCollectionOwnershipVerdictError(
-                            "ast_artifact_invalid",
-                            SemanticError1("ast_artifact_invalid", "owner",
-                                "indexed_string_deep_drop"),
-                            surfaces.node_ids[root_slot / 3], node
-                        ); return;
-                    }
+                    let released: SemanticAstCollectionOwnershipVerdict = SemanticAstIndexedStringBorrowReleaseAtCallCompletion(
+                        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, assignments,
+                        definitions, storage, current_definitions, element_requirements, compiler_clone_expression_node_ids,
+                        indexed_string_borrows, root_slot, step.completed_call, node);
+                    if !released.ok { ArrayDrop(pending); ArrayDrop(prefixes); verdict = released; return; }
                     let loop_use: SemanticAstCollectionOwnershipVerdict = SemanticAstMapStringPayloadLoopUseAtMutation(
                         artifact, locals, initializer_types.inferred_type_names, surfaces,
                         indexed_string_borrows, root_slot, node);
@@ -393,17 +386,12 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                 call_effects, current_definitions, root_slot, ownership,
                 dispositions, origins, transition_states);
         if !returned_owned_result.ok { verdict = returned_owned_result; return; }
-        if !SemanticAstIndexedStringBorrowCompleteValue(
-                artifact, locals, initializer_types.inferred_type_names,
-                surfaces, assignments, definitions, storage,
-                current_definitions, indexed_string_borrows, root_slot) {
-            verdict = SemanticAstCollectionOwnershipVerdictError(
-                "ast_artifact_invalid",
-                SemanticError1("ast_artifact_invalid", "owner",
-                    "indexed_string_borrow_completion"),
-                surfaces.node_ids[root_slot / 3], -1
-            ); return;
-        }
+        // After a syntax's last lane, its owned pop or set releases an element.
+        let slot_completed: SemanticAstCollectionOwnershipVerdict = SemanticAstIndexedStringBorrowCompleteSlot(
+            artifact, locals, initializer_types.inferred_type_names, surfaces, assignments, definitions, storage,
+            current_definitions, compiler_clone_expression_node_ids, fresh_string_results, receipts, indexed_string_borrows,
+            root_slot);
+        if !slot_completed.ok { verdict = slot_completed; return; }
         root_slot = root_slot + 1;
     }
     let finalized: SemanticAstCollectionOwnershipVerdict =
