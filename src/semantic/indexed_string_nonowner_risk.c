@@ -809,11 +809,18 @@ static bool nonowner_promoted_use_current(SemanticContext *ctx,
  * those classifications.  The UNKNOWN String-use inventory can include
  * unrelated values in the routine; it is checked for structural currency but
  * is not paired to receiver effects by position.  Mixed, missing or malformed
- * evidence remains fail-closed. */
+ * evidence remains fail-closed.
+ *
+ * Promotion makes the receiver a payload owner, and its owned set, pop or
+ * drop frees a payload. Where the routine also takes a Slice view of the
+ * receiver, a use of unknown source may name one of those payloads, so
+ * promotion does not resolve a use that needs a copy: *uncovered reports
+ * it. */
 static bool nonowner_resolved_by_transfer_or_owned_after_selected_edges(
     SemanticContext *ctx,
-    const IndexedStringNonownerRisk *risk)
+    const IndexedStringNonownerRisk *risk, bool *uncovered)
 {
+    *uncovered = false;
     if (ctx == NULL || ctx->has_error || risk == NULL || risk->prepared ||
         risk->claims != NULL || risk->use_count == 0 ||
         risk->use_count > risk->use_capacity || risk->uses == NULL ||
@@ -992,6 +999,15 @@ static bool nonowner_resolved_by_transfer_or_owned_after_selected_edges(
         }
     }
 
+    bool viewed = owned_transition_count != 0 &&
+        semantic_indexed_string_nonowner_view_reaches(risk, claims);
+    for (size_t u = 0; viewed && u < risk->use_count; u++) {
+        if (semantic_indexed_string_nonowner_use_needs_copy(ctx, risk,
+                &risk->uses[u])) {
+            *uncovered = true;
+            return false;
+        }
+    }
     if (owned_transition_count == 0) {
         bool exact_own_handoff = receiver_transition_count == 0
             && declared_own_handoff_count == 1
@@ -1452,13 +1468,31 @@ bool semantic_indexed_string_nonowner_receipts(SemanticContext *ctx, bool prepar
     for (size_t i = 0; i < store->node_capacity; i++) {
         IndexedStringNonownerRisk *risk = store->nodes[i].indexed_string_nonowner;
         if (risk == NULL) continue;
+        bool uncovered = false;
         if (prepare && store->indexed_string_nonowner_count != 0 &&
             nonowner_resolved_by_transfer_or_owned_after_selected_edges(
-                ctx, risk)) {
+                ctx, risk, &uncovered)) {
             store->nodes[i].indexed_string_nonowner = NULL;
             store->indexed_string_nonowner_count--;
             semantic_indexed_string_nonowner_destroy(risk);
             continue;
+        }
+        if (uncovered) {
+            /* The receiver owns payloads a Slice view lends: each use that
+             * may keep one lands an independent copy, and the next analysis
+             * checks it again. */
+            ASTNode *landing = NULL;
+            if (semantic_indexed_string_nonowner_select_view_copies(ctx, risk,
+                    &landing)) {
+                if (first_landing == NULL) first_landing = landing;
+                continue;
+            }
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                landing != NULL ? landing : (ASTNode *)risk->definition,
+                "A String that may name an owned element of '%s' has no independent copy",
+                risk->binding_name != NULL ? risk->binding_name : "<array>");
+            return false;
         }
         bool prepared = !prepare ||
             semantic_indexed_string_nonowner_prepare(ctx, risk);

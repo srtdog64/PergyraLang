@@ -1,0 +1,20 @@
+// A struct field keeps view[0], which is names[0], and the owned ArraySet
+// frees it before row.name is read. Before 2026-11-20 the read printed freed
+// memory on native C and LLVM. The field stores a copy of the String.
+// Admitted; prints 5 77 2.
+struct Row {
+    name: String
+}
+func Hold(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let view: Slice<String> = names[0..2];
+    let row = Row { name: view[0] };
+    ArraySet(names, 0, ToString(99));
+    let filler = ToString(77);
+    Log(row.name);
+    Log(filler);
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Hold(5)); }

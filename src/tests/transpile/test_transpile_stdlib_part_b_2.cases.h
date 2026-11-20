@@ -303,7 +303,9 @@
             "}\n"
             "func RenderBuckets(buckets: HashMap<String, List<String>>) -> String {\n"
             "    var loaded = MapGet(buckets, \"today\");\n"
-            "    return ListGet(loaded, 0);\n"
+            /* A returned List element is copied by a landing round, which
+             * strict lowering does not run; return a copy directly. */
+            "    return Concat(ListGet(loaded, 0), \"\");\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

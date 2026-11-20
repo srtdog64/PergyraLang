@@ -52,5 +52,19 @@ bool semantic_indexed_string_nonowner_current(SemanticContext *ctx,
 bool semantic_indexed_string_nonowner_syntax_current(
     const IndexedStringNonownerRisk *risk);
 void semantic_indexed_string_nonowner_destroy(IndexedStringNonownerRisk *risk);
+/* Slice views of the excluded Array (indexed_string_nonowner_view.c). The
+ * routine views the Array and reads a String through a Slice. */
+bool semantic_indexed_string_nonowner_view_reaches(
+    const IndexedStringNonownerRisk *risk,
+    const FunctionParamFlowIndexClaims *claims);
+/* With the Array promoted and viewed, the use may keep one of its Strings
+ * and has no independent copy selected. */
+bool semantic_indexed_string_nonowner_use_needs_copy(SemanticContext *ctx,
+    const IndexedStringNonownerRisk *risk, const IndexedStringNonownerUse *use);
+/* Selects a copy at every use that needs one; *landing is the first such
+ * use. False, with *landing at the failing use, when a copy cannot be
+ * selected; false with *landing NULL when no use needs one. */
+bool semantic_indexed_string_nonowner_select_view_copies(SemanticContext *ctx,
+    const IndexedStringNonownerRisk *risk, ASTNode **landing);
 
 #endif

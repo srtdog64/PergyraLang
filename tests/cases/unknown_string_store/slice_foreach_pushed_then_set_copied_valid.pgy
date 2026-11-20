@@ -1,0 +1,20 @@
+// A for-in binding over a Slice view lends names[0] with the unknown source.
+// `out` keeps it, and the owned ArraySet frees it after the loop, before
+// out[0] is read. Before 2026-11-20 the read printed freed memory on native
+// C and LLVM. The String is copied where it is pushed. Admitted; prints
+// 5 77 1.
+func Gather(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var out: Array<String> = [];
+    for name in names[0..1] {
+        ArrayPush(out, name);
+    }
+    ArraySet(names, 0, ToString(99));
+    let filler = ToString(77);
+    Log(out[0]);
+    Log(filler);
+    return ArrayLength(out);
+}
+func Main() -> Void { Log(Gather(5)); }

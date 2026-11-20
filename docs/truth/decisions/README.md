@@ -63,3 +63,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-11-19 | [Claude takes over the GPT root lane's work](2026-11-19_claude_takes_over_gpt_root_lane.md) | in force |
 | 2026-11-20 | [ListSet and ListRemove retire String loans; a List loan keeps the unknown source](2026-11-20_list_string_release_retires_unknown_loans.md) | in force |
 | 2026-11-20 | [A call whose inout formal frees a String element retires the loans of its actual](2026-11-20_inout_call_freeing_an_element_retires_loans.md) | in force |
+| 2026-11-20 | [A String of unknown source stored past a List or a promoted Array is copied](2026-11-20_unknown_string_store_copied_past_list_or_promoted_array.md) | in force |

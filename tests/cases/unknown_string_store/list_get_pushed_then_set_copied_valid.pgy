@@ -1,0 +1,19 @@
+// `out` keeps the String ListGet lends, and ListSet frees that String before
+// out[0] is read. `out` does not own its elements, so before 2026-11-20 the
+// push stayed shallow and the read printed freed memory (the filler String
+// reuses it) on native C and LLVM. A ListGet loan has the unknown source and
+// the List may free it, so the push stores an owned copy. Admitted; prints
+// 5 77 1.
+func Gather(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    var out: Array<String> = [];
+    ArrayPush(out, ListGet(items, 0));
+    ListSet(items, 0, ToString(99));
+    let filler = ToString(77);
+    Log(out[0]);
+    Log(filler);
+    return ArrayLength(out);
+}
+func Main() -> Void { Log(Gather(5)); }

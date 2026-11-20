@@ -582,6 +582,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/indexed_string_definition_recipe.c \
                    $(SEMANTIC_DIR)/indexed_string_definition_flow.c \
                    $(SEMANTIC_DIR)/indexed_string_nonowner_risk.c \
+                   $(SEMANTIC_DIR)/indexed_string_nonowner_view.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_snapshot.c \
                    $(SEMANTIC_DIR)/collection_ownership_effect_capture.c \
                    $(SEMANTIC_DIR)/collection_ownership_source_snapshot.c \
@@ -5311,6 +5312,10 @@ foreach-string-borrow-refusal-test-smoke: $(PGY)
 .PHONY: inout-call-string-loan-refusal-test-smoke
 inout-call-string-loan-refusal-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/inout_call_string_loan_refusal_smoke.sh
+
+.PHONY: unknown-string-store-copy-test-smoke
+unknown-string-store-copy-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ownership/unknown_string_store_copy_smoke.sh
 
 .PHONY: process-args-utf8-test-smoke
 process-args-utf8-test-smoke:

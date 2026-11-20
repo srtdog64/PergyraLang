@@ -30,6 +30,21 @@ symbol_is_string_array(const Symbol *symbol)
     return element != NULL && type_equals(element, TYPE_STRING);
 }
 
+/* A List<String> owns its String elements: ListSet frees the one it
+ * replaces and ListRemove the one it removes. Its loans carry the unknown
+ * source (decision 2026-11-20_list_string_release_retires_unknown_loans). */
+static bool
+symbol_is_string_list(const Symbol *symbol)
+{
+    Type *element;
+    if (symbol == NULL ||
+        !type_is_constructed_named(symbol->type, "List") ||
+        type_constructed_arg_count(symbol->type) != 1)
+        return false;
+    element = type_constructed_arg(symbol->type, 0);
+    return element != NULL && type_equals(element, TYPE_STRING);
+}
+
 static uint32_t
 collection_storage_source_id(const Symbol *symbol)
 {
@@ -229,6 +244,60 @@ typedef struct {
     bool wanted;
 } IndexedStringStoreCopy;
 
+/* A store of a String that an owner in scope may free and no owner proves
+ * alive: `fact` is that owner's ownership fact for an Array<String>, NULL for
+ * a List<String>, which always owns its elements. A builtin store lands an
+ * owned copy; a declared callee's final summary decides whether it keeps the
+ * String; any other store is copied by the next analysis. Returns false
+ * where the walk over owners stops. */
+static bool
+indexed_string_store_unproven(ASTNode *expression, ASTNode *call,
+    ASTNode *callee, size_t ordinal, bool constructor, bool named,
+    bool refusal_tail_current, PgyCollectionOwnershipFact *fact,
+    SemanticContext *ctx, IndexedStringStoreCopy *copy)
+{
+    bool builtin_store = copy != NULL && call != NULL && callee == NULL
+        && !constructor;
+    if (builtin_store) {
+        copy->wanted = true;
+        if (!copy->refuse || !refusal_tail_current) return false;
+    }
+    /* A declared callee's final summary decides whether it keeps the
+     * String; that owner refuses it after Pass 2 if not. */
+    if (named && semantic_param_publication_pending(ctx)) {
+        if (semantic_indexed_string_named_call_record(ctx, expression, call, callee, ordinal))
+            return true;
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            expression, "A String argument has no current named-call receipt");
+        return false;
+    }
+    /* A retained scalar element invalidates the String lifetime, even
+     * though the Array descriptor never escaped. A builtin store's caller
+     * lands its copy; elsewhere a next analysis copies the String here. */
+    if (fact != NULL) {
+        fact->return_elements_owned = false;
+        fact->member_move_elements_current = false;
+    }
+    bool selected = false;
+    if (!builtin_store) {
+        selected = semantic_loan_copy_landing_select_string(ctx, expression);
+        if (!selected)
+            semantic_error(ctx, expression, "String copy landing selection failed");
+    }
+    if (selected)
+        semantic_loan_copy_landing_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, expression,
+            "A String element cannot cross an opaque boundary without a current non-retention proof");
+    else
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            expression, "A String element cannot cross an opaque boundary without a current non-retention proof");
+    if (selected) semantic_loan_copy_landing_refusal_tail_seal(ctx);
+    return true;
+}
+
 static void
 indexed_string_borrow_argument(ASTNode *expression,
     ASTNode *call, ASTNode *callee, size_t ordinal, bool constructor,
@@ -391,6 +460,16 @@ indexed_string_borrow_argument(ASTNode *expression,
     for (Scope *scope = ctx->scope; scope != NULL; scope = scope->kind == SCOPE_FUNCTION ? NULL : scope->parent) {
         for (size_t i = 0; i < scope->symbol_count; i++) {
             Symbol *owner = scope->symbols[i];
+            /* A String of unknown source may be an element of any List<String>
+             * in scope, which ListSet or ListRemove frees. */
+            if (source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
+                && symbol_is_string_list(owner)) {
+                if (!indexed_string_store_unproven(expression, call, callee,
+                        ordinal, constructor, named, refusal_tail_current,
+                        NULL, ctx, copy))
+                    return;
+                continue;
+            }
             if (!symbol_is_string_array(owner)
                 || (source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE
                     && collection_storage_source_id(owner) != source_id)) continue;
@@ -570,45 +649,10 @@ indexed_string_borrow_argument(ASTNode *expression,
                     fact->return_elements_owned = false;
                     fact->member_move_elements_current = false;
                 }
-            } else {
-                /* An Array<String> store of a String no owner proves alive
-                 * lands as an owned copy of that String. */
-                if (copy != NULL && call != NULL && callee == NULL && !constructor) {
-                    copy->wanted = true;
-                    if (!copy->refuse || !refusal_tail_current) return;
-                }
-                /* A declared callee's final summary decides whether it keeps
-                 * the String; that owner refuses it after Pass 2 if not. */
-                if (named && semantic_param_publication_pending(ctx)) {
-                    if (semantic_indexed_string_named_call_record(ctx, expression, call, callee, ordinal))
-                        continue;
-                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-                        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-                        expression, "A String argument has no current named-call receipt");
-                    return;
-                }
-                /* A retained scalar element invalidates the String lifetime, even
-                 * though the Array descriptor never escaped. A builtin store's caller
-                 * lands its copy; elsewhere a next analysis copies the String here. */
-                fact->return_elements_owned = false;
-                fact->member_move_elements_current = false;
-                bool selected = false;
-                if (!(copy != NULL && call != NULL && callee == NULL && !constructor)) {
-                    selected = semantic_loan_copy_landing_select_string(ctx, expression);
-                    if (!selected)
-                        semantic_error(ctx, expression, "String copy landing selection failed");
-                }
-                if (selected)
-                    semantic_loan_copy_landing_error_with_hints(ctx,
-                        PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
-                        PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, expression,
-                        "A String element cannot cross an opaque boundary without a current non-retention proof");
-                else
-                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-                        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-                        expression, "A String element cannot cross an opaque boundary without a current non-retention proof");
-                if (selected) semantic_loan_copy_landing_refusal_tail_seal(ctx);
-            }
+            } else if (!indexed_string_store_unproven(expression, call, callee,
+                    ordinal, constructor, named, refusal_tail_current, fact,
+                    ctx, copy))
+                return;
         }
     }
 }
@@ -814,12 +858,7 @@ indexed_string_borrow_invalidate_owner_source(
      * storage source of their own (`ListGet` and a for-in binding over a
      * List lend from the unknown source), so its releases retire the unknown
      * loans; its own source id below matches no loan. */
-    Type *list_element = owner != NULL
-        && type_is_constructed_named(owner->type, "List")
-        && type_constructed_arg_count(owner->type) == 1
-        ? type_constructed_arg(owner->type, 0) : NULL;
-    bool string_list = list_element != NULL && type_equals(list_element, TYPE_STRING);
-    if ((!symbol_is_string_array(owner) && !string_list) || ctx == NULL)
+    if ((!symbol_is_string_array(owner) && !symbol_is_string_list(owner)) || ctx == NULL)
         return;
     source_id = collection_storage_source_id(owner);
     if (source_id == 0)

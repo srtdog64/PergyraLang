@@ -1,0 +1,18 @@
+// The same store through a let: `name` lends items[0], `out` keeps it, and
+// ListSet frees it before out[0] is read. Before 2026-11-20 the read printed
+// freed memory on native C and LLVM. The push stores an owned copy.
+// Admitted; prints 5 77 1.
+func Gather(seed: Int) -> Int {
+    var items: List<String> = ListNew();
+    ListPush(items, ToString(seed));
+    ListPush(items, ToString(seed + 1));
+    var out: Array<String> = [];
+    let name: String = ListGet(items, 0);
+    ArrayPush(out, name);
+    ListSet(items, 0, ToString(99));
+    let filler = ToString(77);
+    Log(out[0]);
+    Log(filler);
+    return ArrayLength(out);
+}
+func Main() -> Void { Log(Gather(5)); }
