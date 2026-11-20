@@ -6,7 +6,7 @@ Checked 2026-11-20.
 
 | Item | Observed value |
 |---|---|
-| Last fully green published main | `9c4ac12af`: [CI 44635713417](https://github.com/srtdog64/PergyraLang/actions/runs/44635713417), all 33 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
+| Last fully green published main | `063997f25`: [CI 44722504413](https://github.com/srtdog64/PergyraLang/actions/runs/44722504413), all 33 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
 | Route deletion on main | `34ae17546` deleted the per-program-shape collection program route and its registry row ([evidence](../evidence/2026-11-19_collection_program_route_deleted.md)); green in [CI 44358794007](https://github.com/srtdog64/PergyraLang/actions/runs/44358794007) at `2c199fb28` |
 | `var` declarations in scalar CFG | `9a5d7362e`: scalar CFG reads them through the binding vocabulary owner ([evidence](../evidence/2026-11-19_scalar_cfg_mutable_declaration.md)); green in [CI 44463438926](https://github.com/srtdog64/PergyraLang/actions/runs/44463438926) |
 | Runtime helpers | `f0d16adaf`: String concat, record push and `Array<Bool>` type declared with the facts that emit them ([evidence](../evidence/2026-11-19_runtime_helper_materialization.md)); green in [CI 44488492111](https://github.com/srtdog64/PergyraLang/actions/runs/44488492111) |
@@ -17,8 +17,9 @@ Checked 2026-11-20.
 | General-route one-routine claim | `6ea9e53a8`: `single-program-shape` and the builtin claim owner deleted ([evidence](../evidence/2026-11-20_general_route_one_routine_claim.md)); green in [CI 44586979609](https://github.com/srtdog64/PergyraLang/actions/runs/44586979609) |
 | DRV-2 one-process memory | `bfc4280e3`: source-to-C within the 14 GiB bound at 12.1 GiB ([evidence](../evidence/2026-11-20_drv2_one_process_within_bound.md)); green in [CI 44604476482](https://github.com/srtdog64/PergyraLang/actions/runs/44604476482) |
 | General-route hoisted iterables | `5be0704a0`: returned-Array foreach and `Array<Int>` return routes deleted ([evidence](../evidence/2026-11-20_general_route_hoisted_iterables.md)); green in [CI 44623066636](https://github.com/srtdog64/PergyraLang/actions/runs/44623066636) |
-| One-routine scalar CFG route deleted | `9c4ac12af`: with its literal foreach receipts and the three collection BRIDGE families ([evidence](../evidence/2026-11-20_one_routine_scalar_cfg_route_deleted.md)); green in the first row's run |
-| Candidate on main | the enum value match, CFG shape, one-block `Array<Int>`, scalar block and Option match routes deleted ([evidence](../evidence/2026-11-20_one_routine_shape_routes_deleted.md)); CI result goes in [gates](gates.md) |
+| One-routine scalar CFG route deleted | `9c4ac12af`: with its literal foreach receipts and the three collection BRIDGE families ([evidence](../evidence/2026-11-20_one_routine_scalar_cfg_route_deleted.md)); green in [CI 44635713417](https://github.com/srtdog64/PergyraLang/actions/runs/44635713417) |
+| One-routine shape routes deleted | `3ca35ae4a` (gate fix `063997f25`): the enum value match, CFG shape, one-block `Array<Int>`, scalar block and Option match routes ([evidence](../evidence/2026-11-20_one_routine_shape_routes_deleted.md)); green in the first row's run |
+| Native String loans | `693536862` foreach binding and `4f10d62ab` `ListSet`/`ListRemove` green in the first row's run; candidates on main: `c5bbf595f` inout call that frees the element, `5b266edd5` unknown-source store copy; CI result goes in [gates](gates.md) |
 | Work tree | `D:\PergyraLang` on `main`; unrelated untracked folder preserved |
 | Linux validation | WSL `Ubuntu-C-WSL` `/root/ts2` builds the candidate; `/root/mg-main` is the GPT lane's copy (base `5b0d354fb` plus a source mirror) |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |
