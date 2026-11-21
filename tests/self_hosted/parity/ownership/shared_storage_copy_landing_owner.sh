@@ -26,8 +26,7 @@ DIRECT="direct MIR emission cannot carry"
 MEMBER="unproved_exclusive_member_mutation"
 LEAVES="allocator_lane_loan_leaves_routine"
 DESTROYED="allocator_lane_loan_read_after_destroy"
-# The `own` callee releases the elements it is handed (its element requirement).
-RELEASED="indexed_string_use_after_element_release"
+RELEASED="indexed_string_use_after_deep_drop"
 MAPLOAN="map_string_use_after_mutation"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }

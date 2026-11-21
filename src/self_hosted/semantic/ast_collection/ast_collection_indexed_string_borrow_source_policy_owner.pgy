@@ -6,7 +6,6 @@ import "ast_collection_map_payload_loan_state_owner.pgy";
 import "ast_collection_indexed_string_borrow_index_source_owner.pgy";
 import "../ast_expression/ast_expression_graph_member_view_owner.pgy";
 import "../builtin_argument_retention_projection_owner.pgy";
-import "ast_collection_indexed_string_borrow_call_result_owner.pgy";
 
 func SemanticAstIndexedStringBorrowUnknownSource() -> Int { return -1; }
 
@@ -47,11 +46,12 @@ func SemanticAstIndexedStringBorrowSourceForRoot(
     ref borrow_sources: Array<Int>,
     map_sources: HashMap<String, Int>, surface_row: Int, root: Int
 ) -> Int {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, root);
-    if !IsSome(kind) { return SemanticAstIndexedStringBorrowUnknownSource(); }
-    // A place read through a `ref` formal borrows the caller's storage, which
-    // nothing in this routine may release or alias with an inout or own one.
-    if SemanticAstBorrowedFormalPlaceLeaf(surfaces.expression_graph, root) >= 0 { return 0; }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        surfaces.expression_graph, root
+    );
+    if !IsSome(kind) {
+        return SemanticAstIndexedStringBorrowUnknownSource();
+    }
     // Static String bytes do not borrow any collection storage. This is not
     // an ownership/free grant; the value may still be a borrowed literal.
     if UnwrapOption(kind) == AstExpressionNodeStringLiteral() { return 0; }
@@ -81,17 +81,24 @@ func SemanticAstIndexedStringBorrowSourceForRoot(
         }
         return SemanticAstIndexedStringBorrowUnknownSource();
     }
-    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, root
+    );
     if MapHas(map_sources, ToString(root)) { return SemanticAstMapStringPayloadLoanSource(root); }
     if call.ok && ArrayLength(call.argument_nodes) == 1 &&
         SemanticAstIndexedStringBorrowResultCarriesArgument(surfaces.expression_graph, call.call_node, 0) {
         return SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types, surfaces,
             definitions, storage, current_definitions, borrow_sources, map_sources, surface_row, call.argument_nodes[0]);
     }
-    if call.ok && (SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "Concat") ||
-        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "StringConcat") ||
-        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "StringJoin") ||
-        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "TextBuilderFinish")) {
+    if call.ok &&
+        (SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "Concat") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "StringConcat") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "StringJoin") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "TextBuilderFinish")) {
         return 0;
     }
     // Any other call may return what a map payload loan argument points at,
@@ -117,19 +124,9 @@ func SemanticAstIndexedStringBorrowSourceForRoot(
         }
         if carried < -1 { return carried; }
     }
-    // A direct call's result borrows only what its arguments reach.
-    if call.ok && SemanticAstIndexedStringBorrowDirectCall(surfaces.expression_graph, call.call_node) {
-        var joined: Int = 0;
-        var argument: Int = 0;
-        while argument < ArrayLength(call.argument_nodes) {
-            joined = SemanticAstIndexedStringBorrowSourceJoin(joined, SemanticAstIndexedStringBorrowArgumentSource(artifact,
-                locals, inferred_types, surfaces, definitions, storage, current_definitions, borrow_sources, surface_row,
-                call.argument_nodes[argument]));
-            argument = argument + 1;
-        }
-        return joined;
+    if UnwrapOption(kind) != AstExpressionNodeIndex() {
+        return SemanticAstIndexedStringBorrowUnknownSource();
     }
-    if UnwrapOption(kind) != AstExpressionNodeIndex() { return SemanticAstIndexedStringBorrowUnknownSource(); }
     let source_id: Int = SemanticAstIndexedStringBorrowIndexSource(artifact, locals, inferred_types,
         surfaces, definitions, storage, current_definitions, surface_row, root);
     if source_id <= 0 { return SemanticAstIndexedStringBorrowUnknownSource(); }

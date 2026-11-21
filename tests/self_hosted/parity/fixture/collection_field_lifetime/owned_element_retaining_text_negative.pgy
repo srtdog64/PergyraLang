@@ -1,5 +1,4 @@
-// An owned element kept by a retaining String formal is copied where the
-// call takes it (a landed compiler Clone), so the copy outlives the release.
+// An owned element kept by a retaining String formal outlives the release.
 struct Named {
     name: String;
     count: Int;

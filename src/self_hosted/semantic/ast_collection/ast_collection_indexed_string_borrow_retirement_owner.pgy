@@ -1,30 +1,70 @@
-// Indexed String loan retirement at a direct deep drop: which loans of the
-// released source end.
+// Indexed String loan retirement at an own hand-off: whether the callee
+// drops the formal it is handed, and which loans of the released source end.
 import "ast_collection_definition_storage_authority_owner.pgy";
 import "ast_collection_indexed_string_borrow_source_policy_owner.pgy";
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "../ast_signature_fact_owner.pgy";
 import "ast_collection_indexed_string_borrow_state_owner.pgy";
+
+// The callee of `formal` deep-drops that formal itself
+// (ArrayDropOwnedStrings of the formal in its own body).
+func SemanticAstIndexedStringBorrowCalleeDropsFormal(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    formal: SemanticAstCollectionArgumentFormalTarget
+) -> Bool {
+    if !formal.ok || formal.signature_row < 0 ||
+        formal.signature_row >= ArrayLength(signatures.function_node_ids) { return false; }
+    let callee: Int = signatures.function_node_ids[formal.signature_row];
+    var surface: Int = 0;
+    while surface < ArrayLength(surfaces.node_ids) {
+        var lane: Int = 0;
+        while surfaces.function_node_ids[surface] == callee && lane < 3 {
+            let lane_index: Int = surface * 3 + lane;
+            if lane_index < ArrayLength(surfaces.expression_graph.has_roots) &&
+                surfaces.expression_graph.has_roots[lane_index] {
+                let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                    surfaces.expression_graph, surfaces.expression_graph.roots[lane_index]);
+                if call.ok && ArrayLength(call.argument_nodes) == 1 &&
+                    SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node,
+                        "ArrayDropOwnedStrings") {
+                    let dropped: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+                        surfaces.expression_graph, call.argument_nodes[0]);
+                    if dropped.ok && dropped.kind == SemanticExpressionBindingFormalParameter() &&
+                        dropped.syntax_id == formal.syntax_id { return true; }
+                }
+            }
+            lane = lane + 1;
+        }
+        surface = surface + 1;
+    }
+    return false;
+}
 
 // The String loans of the storage `row`'s current definition holds are
 // invalidated: the storage they borrow is retired. A direct deep drop also
 // retires every loan of unknown storage, and every loan when the dropped
-// storage is unknown.
+// storage is unknown. A hand-off to a dropping callee (`exact`) retires only
+// the loans proved to borrow that one known storage.
 func SemanticAstIndexedStringBorrowRetireSource(
     ref definitions: SemanticAstCollectionDefinitionFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts,
     ref current_definitions: Array<Int>,
-    inout state: SemanticAstIndexedStringBorrowState, binding_row: Int
+    inout state: SemanticAstIndexedStringBorrowState, binding_row: Int,
+    exact: Bool
 ) -> Void {
     var source_id: Int = SemanticAstCollectionDefinitionStorageSource(
         storage, definitions, binding_row,
         current_definitions[binding_row]
     );
+    if source_id <= 0 && exact { return; }
     if source_id <= 0 {
         source_id = SemanticAstIndexedStringBorrowUnknownSource();
     }
     var row: Int = 0;
     while row < ArrayLength(state.source_storage_ids) {
-        if SemanticAstIndexedStringBorrowInvalidatedByDrop(
-                state.source_storage_ids[row], source_id) {
+        if (exact && state.source_storage_ids[row] == source_id) ||
+            (!exact && SemanticAstIndexedStringBorrowInvalidatedByDrop(
+                state.source_storage_ids[row], source_id)) {
             state.invalidated[row] = true;
         }
         row = row + 1;
