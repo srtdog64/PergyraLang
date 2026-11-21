@@ -15,9 +15,11 @@ and executable gates stay authoritative.
   `mir.execution_graph` carrier rows are deleted (V1 self-host generality).
 - Priority: one emitter organized by MIR instruction kind; facts from their
   owners (no source-spelling recovery); fail closed; behavioral gates.
-- Forbidden: a new per-program-shape intent route; name matching to recover
-  a receiver field or an intent participant; skipping a backend; weakening
-  an intent gate's negative.
+- Forbidden: a new per-program-shape intent route; recovering a receiver
+  field or an intent participant from text the declarations do not own
+  (field lookup by name within the receiver's declared type, as member
+  access already does, is the declared-name lookup, not recovery);
+  skipping a backend; weakening an intent gate's negative.
 
 ## Whole chain (observed on the base revision)
 
@@ -48,15 +50,33 @@ and executable gates stay authoritative.
 
 ## Slices (dependency order)
 
-1. Receiver field identity. The self-host semantic already resolves an
-   implicit receiver field for typing
-   (`ast_expression_owner_field_environment_owner.pgy`). It publishes that
-   resolution as an expression binding identity (a new owner-field binding
-   kind with the field's syntax id and ordinal); the MIR writer and reader
-   carry it; the general route reads it as a member of the receiver, and an
-   `owner_field` definition as a store to that member. Native MIR without
-   the identity stays refused. Gate: implicit-field subject actions equal on
-   four legs; a leaf whose identity is forged is refused.
+1. Receiver field access without `self.`. Observed MIR (self-host producer):
+   `self.value = self.value + 1` is an `assign` instruction (target
+   `self.value`, `arg1` `default_param`), which the general route already
+   stores through the receiver cell. `value = value + 1` is a `def`
+   (`arg0` `value`, `arg1` `owner_field`, result `value.1`), and the leaf
+   `value` carries `binding_kind: none` and no `local_ref`. Locals in this
+   MIR carry no `local_ref` either: the general route already resolves a
+   leaf against the routine's local inventory by name and a member against
+   its declared type's fields by name. So, in a routine whose receiver is an
+   identity cell or logical record: the local ref plan does not count an
+   `owner_field` definition as a local; the CFG plan stores it to the
+   receiver's field, the operation the `assign` form gets; a leaf that is
+   neither a local nor a parameter reads the receiver field of that name,
+   and a name that is neither fails closed. An MIR owner-field binding kind
+   would need the native producer, the self-host producer, the readers and
+   the native/self MIR parity gates; it is not needed for this slice.
+   Gate: implicit-field subject actions equal on four legs; an `owner_field`
+   definition naming no receiver field is refused.
+   Reached owners: `DirectMirIdentityCellStoreFromOwners`
+   (`direct_mir_identity_cell_store_admission_owner.pgy`) admits only a
+   three-node `self.field` target graph (an `assign`, or a `def` that
+   rebinds `self`); the `owner_field` definition has a one-leaf target and
+   defines the SSA value `value.1`. `DirectMirScalarCfgLocalRefPlanFromOwners`
+   counts every `def` as a local definition named by `arg0`. The open
+   question before editing: whether later uses of the `owner_field` SSA
+   value (`value.1`) appear in the routine's use facts, and so whether the
+   store needs a value row or can take `result = -1` like an `assign`.
 2. `Clone` of a subject: a fresh identity cell copying the source cell's
    fields, admitted wherever an inline constructor is (a zone's subject
    slot included), on C and LLVM.
