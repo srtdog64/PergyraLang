@@ -7,12 +7,12 @@ import "ast_collection_indexed_string_borrow_source_policy_owner.pgy";
 import "ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_map_payload_event_owner.pgy";
-import "ast_collection_formal_effect_identity_owner.pgy";
-import "../ast_signature_fact_owner.pgy";
 
 import "ast_collection_indexed_string_borrow_state_owner.pgy";
 import "ast_collection_indexed_string_borrow_retirement_owner.pgy";
 import "ast_collection_indexed_string_borrow_store_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
+import "ast_collection_fresh_string_result_plan_owner.pgy";
 
 func SemanticAstIndexedStringBorrowUseAtEvent(
     artifact: AstTreeArtifact,
@@ -58,6 +58,7 @@ func SemanticAstIndexedStringBorrowUseAtEvent(
             surfaces.node_ids[surface_row]) {
         var boundary: String = "indexed_string_use_after_deep_drop";
         if !dropped { boundary = "map_string_use_after_mutation"; }
+        if dropped && state.release_sites[binding.row] > 0 { boundary = "indexed_string_use_after_element_release"; }
         return SemanticAstCollectionOwnershipVerdictError(
             "borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary",
@@ -76,7 +77,8 @@ func SemanticAstIndexedStringBorrowCompleteValue(
     ref assignments: SemanticAstAssignmentFacts,
     ref definitions: SemanticAstCollectionDefinitionFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts,
-    ref current_definitions: Array<Int>,
+    ref current_definitions: Array<Int>, ref clone_nodes: Array<Int>,
+    ref fresh_string_results: SemanticAstFreshStringResultPlan,
     inout state: SemanticAstIndexedStringBorrowState,
     root_slot: Int
 ) -> Bool {
@@ -142,7 +144,10 @@ func SemanticAstIndexedStringBorrowCompleteValue(
                         artifact, locals, inferred_types, surfaces, definitions, storage,
                         current_definitions, state.source_storage_ids, state.map_payload_none, surface_row,
                         call.argument_nodes[argument]);
-                    if incoming > 0 { carried = SemanticAstIndexedStringBorrowSourceJoin(carried, incoming); }
+                    if incoming > 0 && !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
+                            clone_nodes, call.argument_nodes[argument]) {
+                        carried = SemanticAstIndexedStringBorrowSourceJoin(carried, incoming);
+                    }
                 }
                 argument = argument + 1;
             }
@@ -150,6 +155,7 @@ func SemanticAstIndexedStringBorrowCompleteValue(
         if IsSome(declared) {
             state.source_storage_ids[target_row] = carried;
             state.invalidated[target_row] = false;
+            state.release_sites[target_row] = 0;
         } else if carried != 0 {
             state.source_storage_ids[target_row] = SemanticAstIndexedStringBorrowSourceJoin(
                 state.source_storage_ids[target_row], carried);
@@ -168,9 +174,17 @@ func SemanticAstIndexedStringBorrowCompleteValue(
             current_definitions, state.source_storage_ids, state.map_payload_none, surface_row, root
         );
     }
+    // A value a selected compiler Clone copies is fresh text and borrows nothing.
+    if incoming != 0 && SemanticAstCollectionExclusiveCompilerCloneNodeSelected(clone_nodes, root) { incoming = 0; }
+    // So is a call to a function whose String result is always fresh text.
+    if incoming != 0 && SemanticAstFreshStringResultCall(fresh_string_results, surfaces.expression_graph, root) { incoming = 0; }
+    // UnwrapOption of a fixed Option local takes the loan of the call that made it.
+    if incoming != 0 { incoming = SemanticAstOptionPayloadUnwrappedSource(fresh_string_results.fixed_locals, artifact, locals,
+        inferred_types, surfaces, state.source_storage_ids, surface_row, root, incoming); }
     if IsSome(declared) {
         state.source_storage_ids[target_row] = incoming;
         state.invalidated[target_row] = false;
+        state.release_sites[target_row] = 0;
     } else {
         state.source_storage_ids[target_row] =
             SemanticAstIndexedStringBorrowSourceJoin(
@@ -180,12 +194,11 @@ func SemanticAstIndexedStringBorrowCompleteValue(
     return true;
 }
 
-// A deep drop retires the storage source of its Array<String> argument. So
-// does a user call that takes the Array by `own` when the callee deep-drops
-// that formal: a String element loan of it cannot outlive the call.
+// A direct deep drop retires the storage source of its Array<String>
+// argument. A call whose callee releases elements of an argument is an
+// element release (ast_collection_indexed_string_borrow_element_release_owner).
 func SemanticAstIndexedStringBorrowRecordDeepDrop(
     artifact: AstTreeArtifact,
-    ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
@@ -195,34 +208,14 @@ func SemanticAstIndexedStringBorrowRecordDeepDrop(
     inout state: SemanticAstIndexedStringBorrowState,
     surface_row: Int, call_node: Int, terminal_root: Int
 ) -> Bool {
-    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-        surfaces.expression_graph, terminal_root
-    );
     if !SemanticAstCollectionOwnershipBuiltinCall(
             surfaces.expression_graph, call_node,
             "ArrayDropOwnedStrings") {
-        if !call.ok || call.call_node != call_node { return true; }
-        var ordinal: Int = 0;
-        while ordinal < ArrayLength(call.argument_nodes) {
-            let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
-                signatures, surfaces.expression_graph, call_node, ordinal);
-            var mode: Int = -1;
-            if formal.ok {
-                let found: Option<Int> = SemanticAstFunctionParamModeAt(signatures, formal.signature_row, formal.ordinal);
-                if IsSome(found) { mode = UnwrapOption(found); }
-            }
-            let handed: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
-                artifact, locals, inferred_types, surfaces, surface_row, call.argument_nodes[ordinal]);
-            if mode == 2 && handed.ok && handed.row < ArrayLength(current_definitions) &&
-                handed.row < ArrayLength(inferred_types) && inferred_types[handed.row] == "Array<String>" &&
-                SemanticAstIndexedStringBorrowCalleeDropsFormal(signatures, surfaces, formal) {
-                SemanticAstIndexedStringBorrowRetireSource(definitions, storage, current_definitions, state, handed.row,
-                    true);
-            }
-            ordinal = ordinal + 1;
-        }
         return true;
     }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, terminal_root
+    );
     if !call.ok || call.call_node != call_node ||
         ArrayLength(call.argument_nodes) != 1 {
         return false;
@@ -235,6 +228,6 @@ func SemanticAstIndexedStringBorrowRecordDeepDrop(
     if !binding.ok || binding.row >= ArrayLength(current_definitions) {
         return true;
     }
-    SemanticAstIndexedStringBorrowRetireSource(definitions, storage, current_definitions, state, binding.row, false);
+    SemanticAstIndexedStringBorrowRetireSource(definitions, storage, current_definitions, state, binding.row);
     return true;
 }

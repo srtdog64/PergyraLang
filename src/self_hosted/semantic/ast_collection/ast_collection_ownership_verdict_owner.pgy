@@ -23,6 +23,7 @@ import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_assignment_alias_owner.pgy";
 import "ast_collection_definition_transition_owner.pgy";
 import "ast_collection_owned_result_plan_owner.pgy";
+import "ast_collection_fresh_string_result_plan_owner.pgy";
 import "ast_collection_owned_result_definition_owner.pgy";
 import "ast_collection_owned_result_return_owner.pgy";
 import "ast_collection_ownership_binding_move_use_owner.pgy";
@@ -429,6 +430,12 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
                 aggregate_release_plan.diagnostic_reason),
             aggregate_release_plan.diagnostic_syntax_id, -1);
     }
+    let fresh_string_results: SemanticAstFreshStringResultPlan = SemanticAstFreshStringResultPlanFromResolvedFacts(
+        artifact, signatures, locals, initializer_types, surfaces, statements, assignments, owned_string_results);
+    if !fresh_string_results.ok {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "collection_fresh_string_result_plan"), -1, -1);
+    }
     var indexed_string_borrows: SemanticAstIndexedStringBorrowState =
         SemanticAstIndexedStringBorrowStateForLocals(locals);
     if !indexed_string_borrows.ok {
@@ -459,7 +466,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         statements, assignments, formal_effects,
         owned_string_store_clone_nodes, owned_string_store_nodes,
         body_termination,
-        owned_result_plan,
+        owned_result_plan, fresh_string_results,
         definitions, storage, moved_use, element_requirements, field_requirements,
         ownership, dispositions, origins, transition_states, origin_syntax_ids,
         source_binding_syntax_ids, member_path_starts, member_path_counts,

@@ -291,7 +291,7 @@ INPUTS=(
     element_escape_member_path_positive.pgy element_escape_free_body_positive.pgy
     element_escape_released_member_negative.pgy element_escape_empty_then_owned_negative.pgy
     owned_element_observe_positive.pgy owned_element_literal_escape_negative.pgy
-    owned_element_push_escape_negative.pgy owned_element_retaining_text_negative.pgy
+    owned_element_push_escape_negative.pgy owned_element_retaining_text_landed_positive.pgy
     exclusive_thread_inout_positive.pgy exclusive_local_alias_restore_positive.pgy
     exclusive_inout_alias_restore_positive.pgy exclusive_thread_direct_push_positive.pgy
     exclusive_rebind_chain_positive.pgy exclusive_destination_field_positive.pgy
@@ -759,7 +759,6 @@ element_escape_released_member_negative.pgy|unproved_formal_element_use_entry|ke
 element_escape_empty_then_owned_negative.pgy|ArrayPushOwnedString|ArrayPushOwnedString(names, Concat("x", "y"))|Main
 owned_element_literal_escape_negative.pgy|owned_element_escape|b|Main
 owned_element_push_escape_negative.pgy|owned_element_escape|b|Main
-owned_element_retaining_text_negative.pgy|indexed_string_use_after_deep_drop|StringLength(named.name)|Main
 exclusive_sibling_array_argument_negative.pgy|unproved_exclusive_sink_entry|facts|Main
 exclusive_stale_failure_value_negative.pgy|unproved_exclusive_member_mutation|types|Grow
 exclusive_stale_failure_consumed_negative.pgy|unproved_exclusive_member_mutation|types|Grow

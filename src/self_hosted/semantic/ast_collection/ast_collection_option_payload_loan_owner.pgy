@@ -1,0 +1,145 @@
+// The String an Option<String> local holds, read back by UnwrapOption.
+//
+// A direct call's result borrows only storage its arguments reach, and an
+// Option it returns holds no more. So `UnwrapOption(o)` takes the loan of
+// the direct call that initializes `o` when `o` is fixed and so is every
+// String local that call takes. A fixed local is a normal String or
+// Option<String> binding that no whole-local assignment targets and no call
+// may rebind: a String local the domain exposure facts list, or an
+// Option<String> local handed to a declared function (an inout formal could
+// rebind it), is not fixed. An assignment whose target does not resolve
+// unfixes its routine. Any other UnwrapOption stays unresolved.
+import "../ast_assignment_fact_owner.pgy";
+import "../ast_local_binding_identity_owner.pgy";
+import "../ast_owned_string_result_domain_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_indexed_string_borrow_call_result_owner.pgy";
+
+// An Option<String> local handed to a declared (not builtin) call is not fixed.
+func SemanticAstOptionPayloadUnfixHandedOptions(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, inout fixed: Array<Bool>
+) -> Bool {
+    let graph_roots: Int = ArrayLength(surfaces.expression_graph.roots);
+    var last_root: Int = -1;
+    var slot: Int = 0;
+    while slot < graph_roots {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            var node: Int = last_root + 1;
+            while node <= root {
+                let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+                    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+                    if !edge.ok { return false; }
+                    let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                        artifact, locals, inferred_types, surfaces, slot / 3, edge.argument_node);
+                    let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, edge.call_node);
+                    let builtin: Bool = IsSome(name) && SemanticAstCollectionOwnershipBuiltinCall(
+                        surfaces.expression_graph, edge.call_node, UnwrapOption(name));
+                    if binding.ok && binding.type_name == "Option<String>" && binding.row < ArrayLength(fixed) && !builtin {
+                        fixed[binding.row] = false;
+                    }
+                }
+                node = node + 1;
+            }
+            last_root = root;
+        }
+        slot = slot + 1;
+    }
+    return true;
+}
+
+func SemanticAstOptionPayloadFixedLocals(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts
+) -> Array<Bool> {
+    var fixed: Array<Bool> = [];
+    var rebound: HashMap<String, Int> = MapNew();
+    var row: Int = 0;
+    while row < ArrayLength(owned_string_results.domain_exposures.string_written_source_syntax_ids) {
+        MapSet(rebound, ToString(owned_string_results.domain_exposures.string_written_source_syntax_ids[row]), 1);
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(locals.node_ids) {
+        let text: Bool = inferred_types[row] == "String" && row < ArrayLength(owned_string_results.writes.written_binding_rows) &&
+            owned_string_results.writes.written_binding_rows[row] == 0;
+        ArrayPush(fixed, (text || inferred_types[row] == "Option<String>") &&
+            locals.binding_kinds[row] == SemanticAstLocalBindingKindNormal() && locals.binding_indices[row] == 0 &&
+            !MapHas(rebound, ToString(locals.node_ids[row])));
+        row = row + 1;
+    }
+    var unfixed_routines: HashMap<String, Int> = MapNew();
+    row = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        if assignments.target_is_indexed[row] == 0 && assignments.target_texts[row] == assignments.target_root_names[row] {
+            let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, assignments.node_ids[row], AstExpressionLaneAtom());
+            var binding: SemanticAstLocalBindingIdentity = SemanticAstLocalBindingIdentityUnresolved();
+            if IsSome(target) {
+                binding = SemanticAstScopedLocalBindingIdentityForGraphLeaf(artifact, locals, inferred_types,
+                    assignments.function_node_ids[row], assignments.node_ids[row], surfaces.expression_graph, UnwrapOption(target));
+            }
+            if !binding.ok || binding.row < 0 || binding.row >= ArrayLength(fixed) {
+                MapSet(unfixed_routines, ToString(assignments.function_node_ids[row]), 1);
+            } else {
+                fixed[binding.row] = false;
+            }
+        }
+        row = row + 1;
+    }
+    let handed: Bool = SemanticAstOptionPayloadUnfixHandedOptions(artifact, locals, inferred_types, surfaces, fixed);
+    row = 0;
+    while row < ArrayLength(fixed) {
+        if !handed || MapHas(unfixed_routines, ToString(locals.function_node_ids[row])) { fixed[row] = false; }
+        row = row + 1;
+    }
+    return fixed;
+}
+
+// The loan `UnwrapOption(o)` at `root` reads back, or `unresolved` when the
+// rule above does not apply.
+func SemanticAstOptionPayloadUnwrappedSource(
+    ref fixed: Array<Bool>, artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref borrow_sources: Array<Int>, surface_row: Int, root: Int, unresolved: Int
+) -> Int {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
+    if !call.ok || ArrayLength(call.argument_nodes) != 1 ||
+        !SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "UnwrapOption") { return unresolved; }
+    let held: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(artifact, locals,
+        inferred_types, surfaces.function_node_ids[surface_row], surfaces.node_ids[surface_row], surfaces.expression_graph,
+        call.argument_nodes[0]);
+    if !held.ok || held.type_name != "Option<String>" || held.row >= ArrayLength(fixed) || !fixed[held.row] { return unresolved; }
+    let made_root: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, held.declaration_node_id, AstExpressionLaneValue());
+    if !IsSome(made_root) { return unresolved; }
+    let made: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, UnwrapOption(made_root));
+    if !made.ok || !SemanticAstIndexedStringBorrowDirectCall(surfaces.expression_graph, made.call_node) { return unresolved; }
+    var joined: Int = 0;
+    var argument: Int = 0;
+    while argument < ArrayLength(made.argument_nodes) {
+        let node: Int = made.argument_nodes[argument];
+        let found: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+        if !IsSome(found) { return unresolved; }
+        let kind: Int = UnwrapOption(found);
+        // Logic, comparison, arithmetic and literals yield a primitive or fresh text.
+        let plain: Bool = (kind >= AstExpressionNodeLogicalOr() && kind <= AstExpressionNodeModulo()) ||
+            kind == AstExpressionNodeLogicalNot() || kind == AstExpressionNodeNegate() ||
+            (kind >= AstExpressionNodeFloatLiteral() && kind <= AstExpressionNodeStringLiteral());
+        if !plain {
+            if kind != AstExpressionNodeLeaf() { return unresolved; }
+            let passed: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(artifact, locals,
+                inferred_types, locals.function_node_ids[held.row], held.declaration_node_id, surfaces.expression_graph, node);
+            if !passed.ok || passed.row >= ArrayLength(fixed) || passed.row >= ArrayLength(borrow_sources) { return unresolved; }
+            if passed.type_name == "String" {
+                if !fixed[passed.row] { return unresolved; }
+                joined = SemanticAstIndexedStringBorrowSourceJoin(joined, borrow_sources[passed.row]);
+            } else if !SemanticAstIndexedStringBorrowPrimitiveType(passed.type_name) {
+                return unresolved;
+            }
+        }
+        argument = argument + 1;
+    }
+    return joined;
+}

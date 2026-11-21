@@ -1,0 +1,72 @@
+// The loan a direct call's String result may carry. No global storage holds
+// an Array<String> element, so the callee can return only storage its
+// arguments reach. A literal, a primitive or arithmetic reaches none, a place
+// read through a `ref` formal reaches only the caller's storage, a String
+// local carries its own loan, and an Array<String> local (or its element) its
+// storage. Any other argument is unresolved. A member call is never direct:
+// its receiver is not among the call's arguments.
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "../ast_borrowed_new_binding_verdict_owner.pgy";
+import "../ast_local_binding_identity_owner.pgy";
+
+// A declared function called by name, with every argument in its spine.
+func SemanticAstIndexedStringBorrowDirectCall(ref graph: SemanticExpressionGraphFacts, call_node: Int) -> Bool {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call_node);
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, call_node);
+    return IsSome(target) && UnwrapOption(target) > 0 && IsSome(kind) &&
+        (UnwrapOption(kind) == SemanticCallTargetDirect() || UnwrapOption(kind) == SemanticCallTargetNamespace());
+}
+
+// Int, Bool, Long and Float, alone or as the elements of an Array.
+func SemanticAstIndexedStringBorrowPrimitiveType(type_name: String) -> Bool {
+    var scalar: String = type_name;
+    let element: Option<String> = SemanticArrayElementType(type_name);
+    if IsSome(element) { scalar = UnwrapOption(element); }
+    return scalar == "Int" || scalar == "Bool" || scalar == "Long" || scalar == "Float";
+}
+
+// The loan source one argument of a direct call reaches: 0 for none, an
+// exact storage id, or -1 when unresolved.
+func SemanticAstIndexedStringBorrowArgumentSource(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>, ref borrow_sources: Array<Int>,
+    surface_row: Int, argument: Int
+) -> Int {
+    if SemanticAstBorrowedFormalPlaceLeaf(surfaces.expression_graph, argument) >= 0 { return 0; }
+    let found: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, argument);
+    if !IsSome(found) { return -1; }
+    let kind: Int = UnwrapOption(found);
+    // Logic, comparison, arithmetic and literals yield a primitive or fresh text.
+    if (kind >= AstExpressionNodeLogicalOr() && kind <= AstExpressionNodeModulo()) ||
+        kind == AstExpressionNodeLogicalNot() || kind == AstExpressionNodeNegate() ||
+        (kind >= AstExpressionNodeFloatLiteral() && kind <= AstExpressionNodeStringLiteral()) {
+        return 0;
+    }
+    var place: Int = argument;
+    if kind == AstExpressionNodeIndex() {
+        let base: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, argument);
+        if !IsSome(base) { return -1; }
+        place = UnwrapOption(base);
+    } else if kind != AstExpressionNodeLeaf() {
+        return -1;
+    }
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, surfaces.function_node_ids[surface_row],
+        surfaces.node_ids[surface_row], surfaces.expression_graph, place);
+    if !binding.ok || binding.row >= ArrayLength(borrow_sources) ||
+        binding.row >= ArrayLength(current_definitions) {
+        return -1;
+    }
+    if SemanticAstIndexedStringBorrowPrimitiveType(binding.type_name) { return 0; }
+    if kind == AstExpressionNodeLeaf() && binding.type_name == "String" { return borrow_sources[binding.row]; }
+    if SemanticAstCollectionOwnershipIsStringArray(binding.type_name) {
+        let source: Int = SemanticAstCollectionDefinitionStorageSource(
+            storage, definitions, binding.row, current_definitions[binding.row]);
+        if source > 0 { return source; }
+    }
+    return -1;
+}
