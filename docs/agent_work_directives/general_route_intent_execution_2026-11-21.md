@@ -73,10 +73,20 @@ and executable gates stay authoritative.
    three-node `self.field` target graph (an `assign`, or a `def` that
    rebinds `self`); the `owner_field` definition has a one-leaf target and
    defines the SSA value `value.1`. `DirectMirScalarCfgLocalRefPlanFromOwners`
-   counts every `def` as a local definition named by `arg0`. The open
-   question before editing: whether later uses of the `owner_field` SSA
-   value (`value.1`) appear in the routine's use facts, and so whether the
-   store needs a value row or can take `result = -1` like an `assign`.
+   counts every `def` as a local definition named by `arg0`.
+   MIR treats the field as an SSA variable: in
+   `value = value + 1; value = value + 2; Log(value)` the defs use
+   `value.0` (the field at entry) then `value.1`, and `Log` uses `value.2`.
+   Design: a receiver-field local ref kind. The local ref plan gives an
+   `owner_field` definition's `arg0` a local of that kind (its value rows
+   `value.N`, entry `value.0` included); the local inventory matches it
+   against the receiver declaration's fields instead of the source locals;
+   the value type is the field's type; the C and LLVM emitters declare no
+   storage for it, read it as the receiver cell's member and write each
+   definition through to that member, so a call that changes the field
+   between two reads is seen. An `assign`/`def` on `self` keeps its
+   existing store path. (This replaces the "leaf that is neither a local
+   nor a parameter" reading above: the reads arrive as uses of `value.N`.)
 2. `Clone` of a subject: a fresh identity cell copying the source cell's
    fields, admitted wherever an inline constructor is (a zone's subject
    slot included), on C and LLVM.
