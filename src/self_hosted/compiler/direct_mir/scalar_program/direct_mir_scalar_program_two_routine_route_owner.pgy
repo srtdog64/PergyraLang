@@ -1,5 +1,6 @@
 // Typed header claim for the bounded two-routine scalar program route.
 
+import "../../../semantic/ast_entrypoint_selection_policy_owner.pgy";
 import "../direct_mir_routine_signature_fact_owner.pgy";
 import "../../abi_layout_row_owner.pgy";
 import "../scalar_cfg/direct_mir_scalar_cfg_type_family_owner.pgy";
@@ -30,7 +31,7 @@ func DirectMirScalarProgramTwoRoutineRowsFromAdmitted(
         if !DirectMirRoutineSignatureFactReady(signature) {
             return DirectMirScalarProgramTwoRoutineRows(false, -1, -1);
         }
-        if admitted.routines.names[row] == "Main" {
+        if SemanticEntrypointSingleRuntimeCallableSelected(admitted.routines.names[row]) {
             if entrypoint_row >= 0 || signature.return_type != "Void" ||
                 signature.param_count != 0 {
                 return DirectMirScalarProgramTwoRoutineRows(false, -1, -1);

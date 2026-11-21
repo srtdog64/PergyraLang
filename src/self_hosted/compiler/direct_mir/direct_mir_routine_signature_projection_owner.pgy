@@ -123,15 +123,3 @@ func DirectMirRoutineSignatureFactAt(
     return DirectMirRoutineSignatureWithGenericEnvelopeAt(
         routines, row, expected_instruction_count, no_generics, bindings);
 }
-
-func DirectMirRoutineNoParamSignatureReady(
-    ref routines: MirProgramRoutineIndex,
-    row: Int,
-    expected_return: String,
-    expected_instruction_count: Int
-) -> Bool {
-    let fact: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(routines, row, expected_instruction_count);
-    return DirectMirRoutineSignatureFactReady(fact) &&
-        fact.return_type == expected_return && fact.param_count == 0;
-}
-

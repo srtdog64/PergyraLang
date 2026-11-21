@@ -53,42 +53,6 @@ func DirectMirObjectNumberEquals(
     return IsSome(value_opt) && UnwrapOption(value_opt) == expected;
 }
 
-// Collection admission belongs to the route; this shared frontier never
-// discards or grants permission for an owned lifetime row.
-func DirectMirRoutineHasNoUnsupportedMetadataExceptLoop(
-    ref routine: JsonObjectFactTable
-) -> Bool {
-    return DirectMirObjectArrayEmpty(routine, "generics") &&
-        DirectMirObjectArrayEmpty(routine, "params") &&
-        !JsonObjectFactHasField(routine, "function_param_flow_summary_count") &&
-        !JsonObjectFactHasField(routine, "function_param_flow_summaries") &&
-        DirectMirObjectArrayEmpty(routine, "resource_flow_symbols") &&
-        DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
-        DirectMirObjectNumberEquals(routine, "resource_flow_symbol_count", "0") &&
-        DirectMirObjectNumberEquals(routine, "destructure_type_fact_count", "0");
-}
-
-func DirectMirRoutineHasNoUnsupportedFactsExceptLoop(
-    ref routine: JsonObjectFactTable
-) -> Bool {
-    return DirectMirRoutineHasNoUnsupportedMetadataExceptLoop(routine) &&
-        DirectMirObjectArrayEmpty(routine, "collection_ownership_facts") &&
-        DirectMirObjectNumberEquals(
-            routine, "collection_ownership_fact_count", "0"
-        );
-}
-
-func DirectMirRoutineHasNoUnsupportedFacts(
-    ref routine: JsonObjectFactTable) -> Bool {
-    return DirectMirRoutineHasNoUnsupportedFactsExceptLoop(routine) &&
-        DirectMirObjectArrayEmpty(routine, "loop_flow_summaries") &&
-        DirectMirObjectArrayEmpty(routine, "loop_flow_states") &&
-        DirectMirObjectArrayEmpty(routine, "iteration_type_facts") &&
-        DirectMirObjectNumberEquals(routine, "loop_flow_summary_count", "0") &&
-        DirectMirObjectNumberEquals(routine, "loop_flow_state_count", "0") &&
-        DirectMirObjectNumberEquals(routine, "iteration_type_fact_count", "0");
-}
-
 func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
     let length: Int = StringLength(literal);
     if length < 2 || CharCode(literal, length, 0) != 34 ||
@@ -100,49 +64,6 @@ func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
         i = i + 1;
     }
     return Some(Substring(literal, 1, length - 2));
-}
-
-func DirectMirProgramCommonEnvelopeForRoutineNameReady(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    expected_name: String
-) -> Bool {
-    let json: String = admitted.routines.source_json;
-    let generic_specializations: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
-        admitted.document.root, "generic_method_specializations");
-    let declaration_count: Int =
-        JsonArrayObjectFactCount(admitted.document.declarations);
-    let plain_envelope: Bool = !admitted.domain_topology_plan.present &&
-        JsonObjectFactCount(admitted.document.root) == 5;
-    let topology_envelope: Bool = admitted.domain_topology_plan.present &&
-        admitted.domain_topology_plan.valid &&
-        admitted.domain_topology_plan.plan_digest != 0 &&
-        ArrayLength(admitted.domain_topology_plan.node_names) > 0 &&
-        JsonObjectFactCount(admitted.document.root) == 6 &&
-        declaration_count > 0;
-    if !admitted.document.valid || admitted.document.routines.json != json ||
-        (!plain_envelope && !topology_envelope) ||
-        !MirProgramRoutineIndexStructureReady(admitted.routines) ||
-        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
-        !JsonArrayObjectFactTableReady(
-            admitted.document.parallel_capture_boundaries) ||
-        JsonArrayObjectFactCount(
-            admitted.document.parallel_capture_boundaries) != 0 ||
-        !JsonArrayObjectFactTableReady(generic_specializations) ||
-        JsonArrayObjectFactCount(generic_specializations) != 0 ||
-        JsonArrayObjectFactCount(admitted.document.routines) != 1 ||
-        MirProgramRoutineIndexCount(admitted.routines) != 1 ||
-        admitted.routines.kinds[0] != "function" ||
-        admitted.routines.owners[0] != "" ||
-        admitted.routines.names[0] != expected_name ||
-        admitted.routines.routine_block_counts[0] < 1 {
-        return false;
-    }
-    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[0], admitted.routines.ends[0]);
-    return JsonObjectFactTableReady(routine) &&
-        JsonObjectFactStringFieldEquals(routine, "name", expected_name) &&
-        JsonObjectFactStringFieldEquals(routine, "kind", "function") &&
-        JsonObjectFactStringFieldEquals(routine, "return", "Void");
 }
 
 func DirectMirLogInstructionEnvelopeReady(

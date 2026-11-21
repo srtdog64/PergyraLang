@@ -82,12 +82,6 @@ func CallableReceiverNominalKindKnown(nominal_kind: String) -> Bool {
         nominal_kind == "enum" || nominal_kind == "extern";
 }
 
-func CallableReceiverNominalKindOwnsCompileTimeContractOnly(
-    nominal_kind: String
-) -> Bool {
-    return nominal_kind == "ability";
-}
-
 func CallableReceiverNominalKindUsesMutableIdentity(
     nominal_kind: String
 ) -> Bool {

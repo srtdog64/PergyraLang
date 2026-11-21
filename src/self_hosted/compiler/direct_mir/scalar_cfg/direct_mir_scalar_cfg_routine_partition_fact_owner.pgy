@@ -1,5 +1,6 @@
 // Canonical ownership ranges for routines stored in one flat scalar GraphPlan.
 
+import "../../../semantic/ast_entrypoint_selection_policy_owner.pgy";
 import "../direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
@@ -186,7 +187,7 @@ func DirectMirScalarCfgRoutinePartitionReady(
                   fact.receiver_carriages[row])) ||
             (row == fact.entrypoint_ordinal &&
              (fact.roles[row] != DirectMirScalarCfgRoutineRoleEntrypoint() ||
-              fact.names[row] != "Main" || fact.instance_keys[row] != "" ||
+              !SemanticEntrypointSingleRuntimeCallableSelected(fact.names[row]) || fact.instance_keys[row] != "" ||
               fact.receiver_carriages[row] != "none" ||
               !DirectMirScalarCfgEntrypointReturnTypeSupported(
                   fact.return_types[row]) ||

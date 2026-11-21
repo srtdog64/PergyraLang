@@ -253,7 +253,9 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
     while row < routine_count {
         let signature: DirectMirRoutineSignatureFact =
             DirectMirRoutineInstanceSignatureAt(routine_instances, row);
-        if signature.name == "Main" {
+        // The inventory seals the selected entrypoint (Main, or a unique
+        // lowercase main) at row 0.
+        if row == 0 {
             if !DirectMirRoutineSignatureFactReady(signature) ||
                 entrypoint_row >= 0 ||
                 !DirectMirScalarCfgEntrypointReturnTypeSupported(

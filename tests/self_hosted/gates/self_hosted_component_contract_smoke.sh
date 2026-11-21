@@ -1954,22 +1954,6 @@ require_max_lines "tests/self_hosted/parity/direct_mir/direct_mir_cfg_identity_d
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_scalar_graph_admission_owner.pgy" 600
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_compile_time_declaration_erasure_owner.pgy" 280
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_literal_log_plan_owner.pgy" 220
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_literal_log_emission_owner.pgy" 100
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_compile_time_declaration_literal_projection.sh" 130
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_compile_time_declaration_literal_mutations.py" 110
-literal_log_family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
-    src/self_hosted/compiler/direct_mir/direct_mir_compile_time_declaration_erasure_owner.pgy \
-    src/self_hosted/compiler/direct_mir/direct_mir_literal_log_plan_owner.pgy \
-    src/self_hosted/compiler/direct_mir/direct_mir_literal_log_emission_owner.pgy)" || fail "literal Log family measurement failed"
-[[ "$literal_log_family_lines" -le 560 ]] || \
-    fail "compile-time declaration/literal Log family exceeds 560 LOC ($literal_log_family_lines)"
-require_max_lines \
     "src/self_hosted/semantic/role_operator_vocabulary_owner.pgy" 220
 require_max_lines \
     "src/self_hosted/semantic/role_operator_resolution_owner.pgy" 340

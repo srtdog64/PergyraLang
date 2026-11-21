@@ -23,6 +23,7 @@ Checked 2026-11-21.
 | Self-host element release (reverted) | `1484fa609` failed [CI 44836830024](https://github.com/srtdog64/PergyraLang/actions/runs/44836830024) in the codegen bootstrap: gen2 refused `src/self_hosted/tools/completeness_impact_planner` (an `UnwrapOption` loan ended by another array's owned set); reverted by `c371e2b49` |
 | Role operator and two-routine routes deleted (candidate) | 47 owners and their 5 stale gates ([evidence](../evidence/2026-11-21_role_operator_two_routine_routes_deleted.md)); CI result goes in [gates](gates.md) |
 | Nominal literal route deleted (candidate) | the general route builds subject and vessel literals and `Hero(7)` as identity cells ([evidence](../evidence/2026-11-21_nominal_literal_route_deleted.md)); CI result goes in [gates](gates.md) |
+| Literal Log route deleted (candidate) | the one-routine dispatch is the general route alone; a lowercase `main` entry is selected by the entrypoint policy ([evidence](../evidence/2026-11-21_literal_log_route_deleted.md)); CI result goes in [gates](gates.md) |
 | Work tree | `D:\PergyraLang` on `main`; unrelated untracked folder preserved |
 | Linux validation | WSL `Ubuntu-C-WSL` `/root/ts2` builds the candidate; `/root/mg-main` is the GPT lane's copy (base `5b0d354fb` plus a source mirror) |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Lowercase `func main()` is selected once by semantic signature facts.  The
-# installed source-to-MIR/source-to-C paths consume that identity. The LLVM leg
-# is bounded to the existing one-routine, one-literal-Log direct-MIR envelope.
+# installed source-to-MIR/source-to-C paths consume that identity. On the LLVM
+# leg the general direct-MIR route's routine inventory selects the same entry
+# with the entrypoint selection policy; MIR without Main or main is refused.
 # Forbidden fallbacks: SemanticAstArtifactIsMainFunction,
 # CodegenAstArenaIsMainFunction, entrypoint_name_rescan,
-# lowercase_backend_exception, direct_mir_literal_log_uppercase_only_read.
+# lowercase_backend_exception, direct_mir_uppercase_only_entry_read.
 
 set -euo pipefail
 
@@ -121,7 +122,7 @@ set +e
 worker_mir_rc=$?
 set -e
 [[ "$worker_mir_rc" -ne 0 && ! -e "$WORK_DIR/worker.ll" ]] || fail "worker MIR emitted an LLVM artifact"
-grep -Fq "direct MIR literal Log program envelope is invalid" \
+grep -Fq "generic routine inventory has no unique entrypoint" \
     "$WORK_DIR/worker-mir.out" "$WORK_DIR/worker-mir.err" || fail "worker MIR escaped entrypoint policy"
 
 sed 's/^func main(/func worker(/' "$ROOT_DIR/$SOURCE" >"$WORK_DIR/worker.pgy"
