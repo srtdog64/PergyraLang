@@ -107,28 +107,37 @@ slot_builtin_runtime_fn(TranspilerCtx *ctx,
         operation);
 }
 
-static bool
-slot_builtin_require_machine_fact(TranspilerCtx *ctx,
-                                  ASTNode *source_call,
-                                  RIRMachineContactKind expected)
+/* The machine contact fact of a device call is the one MIR attached to the
+ * resource-op lowered from that call's RIR contact op; the call's source
+ * identity selects it. No enclosing statement instruction stands in. */
+bool
+transpiler_machine_contact_fact_require(TranspilerCtx *ctx,
+                                        ASTNode *source_call,
+                                        RIRMachineContactKind expected)
 {
-    const MIRInstruction *inst = ctx != NULL ? ctx->active_mir_instruction : NULL;
-    if (ctx != NULL && ctx->active_mir_routine != NULL
-        && source_call != NULL) {
-        const MIRInstruction *source_inst =
-            mir_abi_resource_runtime_instruction_for_source(
-                ctx->active_mir_routine,
-                ast_node_stable_id(source_call));
-        if (source_inst == NULL) {
-            transpiler_set_backend_error_with_hints(
-                ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_INSPECT_MIR_INVENTORY,
-                "C device operation is missing its lowered machine-layer fact");
-            return false;
-        }
-        inst = source_inst;
+    const MIRInstruction *inst = NULL;
+    if (ctx == NULL)
+        return false;
+    if (ctx->active_mir_routine == NULL || source_call == NULL) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C device operation has no active MIR routine or source call (operation=%s)",
+            rir_machine_contact_kind_name(expected));
+        return false;
+    }
+    inst = mir_abi_resource_runtime_instruction_for_source(
+        ctx->active_mir_routine, ast_node_stable_id(source_call));
+    if (inst == NULL) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C device operation is missing its lowered machine-layer fact");
+        return false;
     }
     if (!transpiler_machine_layer_projection_is_bound(ctx)) {
         transpiler_set_backend_error_with_hints(
@@ -140,7 +149,7 @@ slot_builtin_require_machine_fact(TranspilerCtx *ctx,
             rir_machine_contact_kind_name(expected));
         return false;
     }
-    if (inst != NULL
+    if (inst->kind == MIR_INST_RESOURCE_OP
         && inst->machine_contact_kind == expected
         && mir_machine_layer_fact_is_valid(inst)) {
         return true;
@@ -237,7 +246,7 @@ emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (!slot_builtin_require_machine_fact(
+    if (!transpiler_machine_contact_fact_require(
             ctx, call, RIR_MACHINE_CONTACT_CLAIM))
         return NULL;
     (void)call;
@@ -541,7 +550,7 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "DeviceWrite", 2))
         return NULL;
-    if (!slot_builtin_require_machine_fact(
+    if (!transpiler_machine_contact_fact_require(
             ctx, call, RIR_MACHINE_CONTACT_WRITE))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
@@ -588,7 +597,7 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "DeviceRead", 1))
         return NULL;
-    if (!slot_builtin_require_machine_fact(
+    if (!transpiler_machine_contact_fact_require(
             ctx, call, RIR_MACHINE_CONTACT_READ))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
@@ -625,7 +634,7 @@ emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "ReleaseDeviceSlot", 1))
         return NULL;
-    if (!slot_builtin_require_machine_fact(
+    if (!transpiler_machine_contact_fact_require(
             ctx, call, RIR_MACHINE_CONTACT_RELEASE))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
@@ -663,7 +672,7 @@ emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "SubmitDeviceRead", 1))
         return NULL;
-    if (!slot_builtin_require_machine_fact(ctx, call,
+    if (!transpiler_machine_contact_fact_require(ctx, call,
             RIR_MACHINE_CONTACT_SUBMIT_READ))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);

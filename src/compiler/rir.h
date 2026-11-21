@@ -357,8 +357,6 @@ const char *rir_resource_state_name(RIRResourceState state);
 const char *rir_op_kind_name(RIROpKind kind);
 const char *rir_machine_contact_kind_name(RIRMachineContactKind kind);
 bool        rir_machine_contact_kind_is_present(RIRMachineContactKind kind);
-const RIROp *rir_scope_find_op_by_ast(const RIRScope *scope,
-                                      const ASTNode *ast);
 RIRResourceState rir_merge_state_for_kind(RIRResourceKind kind,
                                           RIRResourceState a,
                                           RIRResourceState b,

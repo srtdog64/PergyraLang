@@ -264,9 +264,9 @@ llvm_slot_runtime_row_for_operation(ASTNode *node,
             return NULL;
         }
     }
-    const MIRInstruction *machine_inst = source_inst != NULL
-        ? source_inst
-        : (ctx != NULL ? ctx->current_mir_instruction : NULL);
+    /* Only a contact resource-op carries a machine fact (MIR validation
+     * refuses one anywhere else), so only the source operation is checked. */
+    const MIRInstruction *machine_inst = source_inst;
     if (machine_inst != NULL
         && rir_machine_contact_kind_is_present(
             machine_inst->machine_contact_kind)

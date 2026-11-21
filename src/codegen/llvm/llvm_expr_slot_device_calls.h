@@ -2,6 +2,11 @@
 #define PGY_LLVM_EXPR_SLOT_DEVICE_CALLS_H
 
 #include "llvm_internal.h"
+#include "../../compiler/rir.h"
+
+bool llvm_machine_contact_fact_require(ASTNode *source_call,
+                                       LLVMGenCtx *ctx,
+                                       RIRMachineContactKind expected);
 
 bool llvm_emit_slot_builtin_call(ASTNode *node,
                                  LLVMGenCtx *ctx,

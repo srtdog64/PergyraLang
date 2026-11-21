@@ -2,6 +2,11 @@
 #define PGY_TRANSPILER_SLOT_BUILTIN_EMIT_H
 
 #include "../transpiler.h"
+#include "../../compiler/rir.h"
+
+bool transpiler_machine_contact_fact_require(TranspilerCtx *ctx,
+                                             ASTNode *source_call,
+                                             RIRMachineContactKind expected);
 
 char *emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx);

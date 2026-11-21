@@ -34,7 +34,6 @@
 #include "mir/mir_cleanup.h"
 #include "mir/mir_intent.h"
 #include "mir/mir_hir_fact_transfer.h"
-#include "mir/mir_machine_layer.h"
 #include "mir/mir_surface_usage.h"
 #include "mir/mir_stmt_population.h"
 #include "mir/mir_timing.h"
@@ -464,8 +463,6 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                        mir_apply_ssa_rename(&routine));
         MIR_TIMED_STEP(MIR_TIMING_STMT_INSTS,
                        mir_populate_stmt_instructions(&routine));
-        MIR_TIMED_STEP(MIR_TIMING_STMT_INSTS,
-                       mir_enrich_machine_layer_facts(&routine));
         MIR_TIMED_STEP(MIR_TIMING_STMT_INSTS,
                        mir_link_resource_runtime_facts(&routine));
         MIR_TIMED_STEP(MIR_TIMING_USE_EDGES,

@@ -2,7 +2,7 @@
 #include "llvm_internal.h"
 #include "../codegen_slot_type_policy.h"
 #include "parser/ast_api.h"
-#include "../../compiler/mir/mir_machine_layer.h"
+#include "llvm_expr_slot_device_calls.h"
 
 static char *
 llvm_stmt_first_call_type_arg_name(ASTNode *call)
@@ -139,19 +139,9 @@ llvm_stmt_emit_claim_slot_let(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (pgy_codegen_call_name_is_claim_device_slot(callee)) {
-        const MIRInstruction *machine_inst = ctx->current_mir_instruction;
-        if (!llvm_machine_layer_projection_is_bound(ctx)
-            || machine_inst == NULL
-            || machine_inst->machine_contact_kind
-                != RIR_MACHINE_CONTACT_CLAIM
-            || !mir_machine_layer_fact_is_valid(machine_inst)) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_INSPECT_MIR_INVENTORY,
-                "LLVM ClaimDeviceSlot let-binding requires a valid MIR machine-layer claim fact");
+        if (!llvm_machine_contact_fact_require(
+                init, ctx, RIR_MACHINE_CONTACT_CLAIM))
             return true;
-        }
         char *inner = NULL;
         GenericParams *generic_args = ast_type_generic_args(type_ann);
         GenericParam *inner_param = ast_generic_param_at(generic_args, 0);

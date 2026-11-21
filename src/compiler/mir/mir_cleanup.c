@@ -2,6 +2,7 @@
 
 #include "mir_base_helpers.h"
 #include "mir_cleanup_fact_names.h"
+#include "mir_machine_layer.h"
 
 #include <stddef.h>
 #include <stdarg.h>
@@ -116,6 +117,8 @@ mir_add_cleanup_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIR
     inst.arg1 = op->arg0;
     inst.rir_op = op;
     inst.ast = op->ast;
+    if (!mir_attach_machine_layer_fact(&inst, op))
+        return false;
     mir_instruction_capture_source_provenance(&inst, op->ast);
     return mir_cleanup_commit_instruction(routine, block, &inst);
 }

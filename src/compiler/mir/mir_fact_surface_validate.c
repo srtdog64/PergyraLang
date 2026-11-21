@@ -301,11 +301,7 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                               expected->runtime_fn) != 0
                     || actual->runtime_call_abi_id == 0
                     || actual->runtime_call_abi_id
-                        != expected->runtime_call_abi_id
-                    || (rir_machine_contact_kind_is_present(
-                            inst->machine_contact_kind)
-                        && !mir_machine_layer_fact_matches_runtime_operation(
-                            inst, actual->resource_op_name))) {
+                        != expected->runtime_call_abi_id) {
                     if (error_message != NULL) {
                         *error_message = mir_strdup_fmt(
                             "MIR routine '%s' block[%zu] instruction[%zu] resource consumer is missing its lowered runtime-call ABI row fact",

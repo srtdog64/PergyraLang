@@ -9,6 +9,7 @@
 #include "../../semantic/diag_codes.h"
 #include "../codegen_slot_type_policy.h"
 #include "transpiler_context.h"
+#include "transpiler_slot_builtin_emit.h"
 #include "transpiler_slot_runtime_row.h"
 #include "transpiler_format.h"
 #include "transpiler_symbols.h"
@@ -253,7 +254,14 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
     }
 
     if (is_device_slot) {
-        const char *claim_fn = transpiler_let_slot_runtime_fn(
+        const char *claim_fn = NULL;
+        if (!transpiler_machine_contact_fact_require(
+                ctx, init, RIR_MACHINE_CONTACT_CLAIM)) {
+            free(*ann_type_name_io);
+            *ann_type_name_io = NULL;
+            return true;
+        }
+        claim_fn = transpiler_let_slot_runtime_fn(
             ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, slot_inner, "Claim");
         if (claim_fn == NULL) {
             free(*ann_type_name_io);

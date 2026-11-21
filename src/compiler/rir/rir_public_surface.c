@@ -206,18 +206,6 @@ rir_scope_op_at(const RIRScope *scope, size_t index)
     return &scope->ops[index];
 }
 
-const RIROp *
-rir_scope_find_op_by_ast(const RIRScope *scope, const ASTNode *ast)
-{
-    if (scope == NULL || ast == NULL)
-        return NULL;
-    for (size_t i = 0; i < scope->op_count; i++) {
-        if (scope->ops[i].ast == ast)
-            return &scope->ops[i];
-    }
-    return NULL;
-}
-
 size_t
 rir_scope_state_summary_count(const RIRScope *scope)
 {

@@ -238,6 +238,25 @@ mir_validate_with_receipt(
                     }
                     return false;
                 }
+                /* A machine fact belongs to the instruction lowered from a
+                 * RIR contact op, and only to it: MIR attaches it from that
+                 * op's identity, never to the statement around the call. */
+                if ((inst->machine_layer_fact_present
+                     || inst->machine_layer_fact_required
+                     || rir_machine_contact_kind_is_present(
+                            inst->machine_contact_kind))
+                    && (inst->rir_op == NULL
+                        || !rir_machine_contact_kind_is_present(
+                               inst->rir_op->machine_contact_kind))) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] instruction[%zu] carries a machine-layer fact without a machine contact op",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            j,
+                            k);
+                    }
+                    return false;
+                }
                 if (inst->machine_layer_fact_required
                     || (inst->rir_op != NULL
                         && rir_machine_contact_kind_is_present(

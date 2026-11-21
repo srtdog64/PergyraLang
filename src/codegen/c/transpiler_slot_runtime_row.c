@@ -197,9 +197,9 @@ transpiler_slot_runtime_row_for_source_operation(TranspilerCtx *ctx,
             return NULL;
         }
     }
-    const MIRInstruction *machine_inst = source_inst != NULL
-        ? source_inst
-        : inst;
+    /* Only a contact resource-op carries a machine fact (MIR validation
+     * refuses one anywhere else), so only the source operation is checked. */
+    const MIRInstruction *machine_inst = source_inst;
     if (machine_inst != NULL
         && rir_machine_contact_kind_is_present(machine_inst->machine_contact_kind)
         && !mir_machine_layer_fact_matches_runtime_operation(

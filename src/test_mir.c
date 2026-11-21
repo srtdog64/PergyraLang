@@ -19,6 +19,7 @@
 #include "compiler/mir/mir_parallel_capture_facts.h"
 #include "compiler/mir/mir_abi_layout.h"
 #include "compiler/mir/mir_dce.h"
+#include "compiler/mir/mir_machine_layer.h"
 #include "compiler/mir/mir_ssa_rename.h"
 #include "compiler/mir/mir_decl_headers.h"
 #include "compiler/mir/mir_type_helpers.h"
@@ -954,6 +955,7 @@ test_mir_carries_region_escape_facts(void)
 #include "tests/mir/test_mir_lowering_part_h_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_i.cases.h"
 #include "tests/mir/test_mir_runtime_call_abi.cases.h"
+#include "tests/mir/test_mir_machine_contact_identity.cases.h"
 #include "tests/mir/test_mir_lexical_binding_identity.cases.h"
 #include "tests/mir/test_mir_lexical_binding_identity_part_2.cases.h"
 #include "tests/mir/test_mir_collection_ownership_validation.cases.h"
@@ -993,6 +995,7 @@ test_mir_lowering(void)
     test_mir_lowering_part_h_2();
     test_mir_lowering_part_i();
     test_mir_runtime_call_abi_facts();
+    test_mir_machine_contact_identity();
     test_mir_collection_ownership_validation();
     test_mir_collection_handoff();
 }

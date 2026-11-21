@@ -49,46 +49,6 @@ mir_attach_machine_layer_fact(MIRInstruction *inst, const RIROp *op)
 }
 
 bool
-mir_attach_machine_layer_fact_for_ast(MIRRoutine *routine,
-                                      MIRInstruction *inst,
-                                      const ASTNode *ast)
-{
-    const RIROp *op = NULL;
-    const ASTNode *lookup = ast;
-
-    if (routine == NULL || inst == NULL || routine->rir_scope == NULL
-        || ast == NULL)
-        return true;
-    op = rir_scope_find_op_by_ast(routine->rir_scope, lookup);
-    if (op == NULL && ast->type == AST_LET_DECL)
-        lookup = ast_let_initializer((ASTNode *)ast);
-    if (op == NULL && lookup != NULL)
-        op = rir_scope_find_op_by_ast(routine->rir_scope, lookup);
-    if (op == NULL)
-        return true;
-    return mir_attach_machine_layer_fact(inst, op);
-}
-
-bool
-mir_enrich_machine_layer_facts(MIRRoutine *routine)
-{
-    if (routine == NULL)
-        return false;
-    for (size_t b = 0; b < routine->block_count; b++) {
-        MIRBasicBlock *block = &routine->blocks[b];
-        for (size_t i = 0; i < block->instruction_count; i++) {
-            MIRInstruction *inst = &block->instructions[i];
-            if (inst->machine_layer_fact_present)
-                continue;
-            if (!mir_attach_machine_layer_fact_for_ast(routine, inst,
-                                                       inst->ast))
-                return false;
-        }
-    }
-    return true;
-}
-
-bool
 mir_machine_layer_fact_is_valid(const MIRInstruction *inst)
 {
     const PgyMachineLayerTargetManifest *manifest;

@@ -101,41 +101,44 @@ llvm_slot_builtin_error_out(ASTNode *node, LLVMGenCtx *ctx,
     return true;
 }
 
-static bool
-llvm_slot_builtin_require_machine_fact(ASTNode *node,
-                                       LLVMGenCtx *ctx,
-                                       RIRMachineContactKind expected,
-                                       LLVMValueRef *out)
+/* The machine contact fact of a device call is the one MIR attached to the
+ * resource-op lowered from that call's RIR contact op; the call's source
+ * identity selects it. No enclosing statement instruction stands in. */
+bool
+llvm_machine_contact_fact_require(ASTNode *source_call,
+                                  LLVMGenCtx *ctx,
+                                  RIRMachineContactKind expected)
 {
-    const MIRInstruction *inst = ctx != NULL ? ctx->current_mir_instruction : NULL;
-    if (ctx != NULL && ctx->current_mir_routine != NULL && node != NULL) {
-        const MIRInstruction *source_inst =
-            mir_abi_resource_runtime_instruction_for_source(
-                ctx->current_mir_routine,
-                ast_node_stable_id(node));
-        if (source_inst == NULL) {
-            return llvm_slot_builtin_error_out(
-                node, ctx,
-                "LLVM device operation is missing its lowered machine-layer fact",
-                out);
+    const MIRInstruction *inst = NULL;
+    const char *message = NULL;
+    if (ctx == NULL)
+        return false;
+    if (ctx->current_mir_routine == NULL || source_call == NULL) {
+        message = "LLVM device operation has no active MIR routine or source call";
+    } else {
+        inst = mir_abi_resource_runtime_instruction_for_source(
+            ctx->current_mir_routine, ast_node_stable_id(source_call));
+        if (inst == NULL) {
+            message = "LLVM device operation is missing its lowered machine-layer fact";
+        } else if (!llvm_machine_layer_projection_is_bound(ctx)) {
+            message = "LLVM machine-layer projection is not admitted";
+        } else if (inst->kind != MIR_INST_RESOURCE_OP
+                   || inst->machine_contact_kind != expected
+                   || !mir_machine_layer_fact_is_valid(inst)) {
+            message = "LLVM machine builtin requires valid MIR machine-layer fact";
         }
-        inst = source_inst;
     }
-    if (!llvm_machine_layer_projection_is_bound(ctx)) {
-        return llvm_slot_builtin_error_out(
-            node, ctx,
-            "LLVM machine-layer projection is not admitted",
-            out);
-    }
-    if (inst != NULL
-        && inst->machine_contact_kind == expected
-        && mir_machine_layer_fact_is_valid(inst)) {
+    if (message == NULL)
         return true;
+    if (!ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, source_call,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s (operation=%s)", message,
+            rir_machine_contact_kind_name(expected));
     }
-    return llvm_slot_builtin_error_out(
-        node, ctx,
-        "LLVM machine builtin requires valid MIR machine-layer fact",
-        out);
+    return false;
 }
 
 static const MIRResourceRuntimeRow *
@@ -184,20 +187,20 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     op = llvm_slot_builtin_lookup(callee_name);
 
     if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_READ
-        && !llvm_slot_builtin_require_machine_fact(
-            node, ctx, RIR_MACHINE_CONTACT_READ, out))
+        && !llvm_machine_contact_fact_require(
+            node, ctx, RIR_MACHINE_CONTACT_READ))
         return true;
     if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_WRITE
-        && !llvm_slot_builtin_require_machine_fact(
-            node, ctx, RIR_MACHINE_CONTACT_WRITE, out))
+        && !llvm_machine_contact_fact_require(
+            node, ctx, RIR_MACHINE_CONTACT_WRITE))
         return true;
     if (op == LLVM_SLOT_BUILTIN_OP_RELEASE_DEVICE_SLOT
-        && !llvm_slot_builtin_require_machine_fact(
-            node, ctx, RIR_MACHINE_CONTACT_RELEASE, out))
+        && !llvm_machine_contact_fact_require(
+            node, ctx, RIR_MACHINE_CONTACT_RELEASE))
         return true;
     if (op == LLVM_SLOT_BUILTIN_OP_SUBMIT_DEVICE_READ
-        && !llvm_slot_builtin_require_machine_fact(
-            node, ctx, RIR_MACHINE_CONTACT_SUBMIT_READ, out))
+        && !llvm_machine_contact_fact_require(
+            node, ctx, RIR_MACHINE_CONTACT_SUBMIT_READ))
         return true;
 
     if (op == LLVM_SLOT_BUILTIN_OP_WRITE) {
