@@ -68,6 +68,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_general_route_collection_iteration_owner.sh'
     run 'bash tests/self_hosted/parity/ownership/element_release_loan_refusal_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_general_route_collection_programs_owner.sh'
+    run 'bash tests/self_hosted/parity/direct_mir/direct_mir_general_route_nominal_literal_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_mutable_declaration_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/default_route_native_runtime_parity_owner.sh'
     run 'bash tests/self_hosted/parity/mir/phi_dominance_reuse_owner.sh'

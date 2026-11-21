@@ -1851,44 +1851,9 @@ for inferred_member_owner_cap in \
 done
 require_max_lines "tests/self_hosted/parity/semantic/generic_member_parameter_identity_cases.py" 80
 require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_passive_nominal_literal_projection.sh" 200
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_mutable_nominal_identity_projection.sh" 200
-require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_nominal_literal_mutations.py" 260
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_exact_json_array_cardinality_owner.pgy" 90
-shared_nominal_total=0
-while IFS='|' read -r owner cap; do
-    require_max_lines \
-        "src/self_hosted/compiler/$owner" "$cap"
-    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "src/self_hosted/compiler/$owner")" || fail "source-size measurement failed: $owner"
-    shared_nominal_total=$((shared_nominal_total + source_size_lines))
-done <<'SHARED_NOMINAL_OWNER_CAPS'
-direct_mir/direct_mir_nominal_literal_declaration_fact_owner.pgy|180
-direct_mir/direct_mir_nominal_literal_graph_fact_owner.pgy|150
-direct_mir/direct_mir_nominal_literal_program_identity_owner.pgy|200
-direct_mir/direct_mir_nominal_literal_route_fact_owner.pgy|110
-direct_mir/direct_mir_nominal_literal_instruction_envelope_owner.pgy|100
-direct_mir/direct_mir_nominal_literal_abi_absence_owner.pgy|120
-direct_mir/direct_mir_nominal_literal_program_admission_owner.pgy|220
-direct_mir/direct_mir_nominal_literal_projection_owner.pgy|110
-SHARED_NOMINAL_OWNER_CAPS
-[[ "$shared_nominal_total" -le 900 ]] || \
-    fail "shared nominal literal owner cap exceeded: $shared_nominal_total/900"
-mutable_identity_total=0
-while IFS='|' read -r owner cap; do
-    require_max_lines "src/self_hosted/compiler/$owner" "$cap"
-    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "src/self_hosted/compiler/$owner")" || fail "source-size measurement failed: $owner"
-    mutable_identity_total=$((mutable_identity_total + source_size_lines))
-done <<'MUTABLE_IDENTITY_OWNER_CAPS'
-direct_mir/direct_mir_mutable_nominal_identity_plan_owner.pgy|180
-direct_mir/direct_mir_mutable_nominal_identity_target_projection_owner.pgy|100
-direct_mir/direct_mir_mutable_nominal_identity_c_emission_owner.pgy|90
-direct_mir/direct_mir_mutable_nominal_identity_llvm_emission_owner.pgy|90
-MUTABLE_IDENTITY_OWNER_CAPS
-[[ "$mutable_identity_total" -le 384 ]] || \
-    fail "mutable nominal identity owner cap exceeded: $mutable_identity_total/384"
 for constructed_member_owner in \
     direct_mir/direct_mir_three_routine_classification_owner.pgy \
     direct_mir/direct_mir_three_routine_classification_fact_owner.pgy \

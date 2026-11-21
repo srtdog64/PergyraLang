@@ -181,20 +181,6 @@ func MirProgramDeclarationFieldIdentityFieldIndex(
     return 0 - 1;
 }
 
-func MirProgramDeclarationFieldIdentityMatchesType(
-    ref index: MirProgramDeclarationFieldIdentityIndex,
-    owner_name: String,
-    field_name: String,
-    source_syntax_id: String,
-    expected_type_name: String
-) -> Bool {
-    let i: Int = MirProgramDeclarationFieldIdentityFieldIndex(
-        index, owner_name, field_name, source_syntax_id
-    );
-    return i >= 0 && StringLength(expected_type_name) > 0 &&
-        index.field_type_names[i] == expected_type_name;
-}
-
 func MirProgramDeclarationFieldIdentitySourceMatchesType(
     ref index: MirProgramDeclarationFieldIdentityIndex,
     owner_name: String,
