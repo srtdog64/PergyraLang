@@ -2,7 +2,7 @@
 
 Owner: Claude lane, holding the GPT root lane's work since 2026-11-19
 ([decision](../decisions/2026-11-19_claude_takes_over_gpt_root_lane.md)).
-Checked 2026-11-21.
+Checked 2026-11-22.
 
 | Item | Observed value |
 |---|---|
@@ -24,6 +24,7 @@ Checked 2026-11-21.
 | Role operator and two-routine routes deleted (`d9ce69940`, CI green) | 47 owners and their 5 stale gates ([evidence](../evidence/2026-11-21_role_operator_two_routine_routes_deleted.md)); CI result goes in [gates](gates.md) |
 | Nominal literal route deleted (`71e3c60a9`, CI green) | the general route builds subject and vessel literals and `Hero(7)` as identity cells ([evidence](../evidence/2026-11-21_nominal_literal_route_deleted.md)); CI result goes in [gates](gates.md) |
 | Literal Log route deleted (`fa04a953d`, green with `a6e62d339`) | the one-routine dispatch is the general route alone; a lowercase `main` entry is selected by the entrypoint policy ([evidence](../evidence/2026-11-21_literal_log_route_deleted.md)); CI result goes in [gates](gates.md) |
+| Machine contact identity (`b19ec51fd`, `fcbbefe92`; CI result goes in [gates](gates.md)) | one MIR row per contact event, read only from that row on native and self-host; `semantic.machine_layer_transition` CLOSED ([evidence](../evidence/2026-11-22_machine_contact_identity_closed.md)) |
 | Work tree | `D:\PergyraLang` on `main`; unrelated untracked folder preserved |
 | Linux validation | WSL `Ubuntu-C-WSL` `/root/ts2` builds the candidate; `/root/mg-main` is the GPT lane's copy (base `5b0d354fb` plus a source mirror) |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |
