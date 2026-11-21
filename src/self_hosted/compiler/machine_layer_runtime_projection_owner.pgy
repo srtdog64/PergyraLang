@@ -15,13 +15,19 @@ func CompilerRuntimeCallAbiMachineLayerContactNameAt(index: Int) -> String {
     if index == 4 { return "submit-read"; }
     return "";
 }
-func CompilerRuntimeCallAbiMachineLayerContactNameForSource(source_name: String) -> String {
-    if source_name == "ClaimDeviceSlot" { return "claim"; }
-    if source_name == "DeviceRead" { return "read"; }
-    if source_name == "DeviceWrite" { return "write"; }
-    if source_name == "ReleaseDeviceSlot" { return "release"; }
-    if source_name == "SubmitDeviceRead" { return "submit-read"; }
+func CompilerRuntimeCallAbiMachineLayerContactSourceAt(index: Int) -> String {
+    if index == 0 { return "ClaimDeviceSlot"; }
+    if index == 1 { return "DeviceRead"; }
+    if index == 2 { return "DeviceWrite"; }
+    if index == 3 { return "ReleaseDeviceSlot"; }
+    if index == 4 { return "SubmitDeviceRead"; }
     return "";
+}
+func CompilerRuntimeCallAbiMachineLayerContactNameForSource(source_name: String) -> String {
+    var i: Int = 0;
+    while i < CompilerRuntimeCallAbiMachineLayerContactCount() &&
+        CompilerRuntimeCallAbiMachineLayerContactSourceAt(i) != source_name { i = i + 1; }
+    return CompilerRuntimeCallAbiMachineLayerContactNameAt(i);
 }
 func CompilerRuntimeCallAbiMachineLayerDeviceScalarType(type_name: String) -> String {
     let prefix: String = "DeviceSlot<";

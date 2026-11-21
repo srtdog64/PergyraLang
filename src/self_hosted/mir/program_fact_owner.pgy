@@ -352,54 +352,56 @@ func SelfMirCfgAddInstruction(
 
 func SelfMirCfgAttachLastExpr0Graph(
     cfg: SelfMirCfgRows,
-    view: SemanticExpressionGraphView,
-    declaration: SelfHostMachineLayerDeclaration
+    view: SemanticExpressionGraphView
 ) -> SelfMirCfgRows {
     cfg.instructions.expr0_graphs = SelfMirExpressionGraphAttachLast(
         cfg.instructions.expr0_graphs, view);
-    let machine: SelfMirMachineLayerProjection =
-        SelfMirMachineLayerProjectionForGraph(
-            view.graph, view.root_id, declaration
-        );
+    return cfg;
+}
+
+// The machine row of one contact resource-op, the last instruction added.
+func SelfMirCfgAttachLastMachineLayerRow(
+    cfg: SelfMirCfgRows,
+    machine: SelfMirMachineLayerProjection
+) -> SelfMirCfgRows {
     let instruction_index: Int = ArrayLength(cfg.instructions.ids) - 1;
-    if instruction_index >= 0 {
-        ArraySet(cfg.instructions.machine_contact_kinds, instruction_index, Clone(machine.contact_kind));
-        ArraySet(
-            cfg.instructions.machine_layer_manifest_ids, instruction_index, Clone(machine.manifest_id)
-        );
-        ArraySet(
-            cfg.instructions.machine_layer_physical_grant_ids, instruction_index,
-            Clone(machine.physical_grant)
-        );
-        ArraySet(
-            cfg.instructions.machine_layer_physical_bases, instruction_index,
-            machine.physical_base
-        );
-        ArraySet(
-            cfg.instructions.machine_layer_physical_sizes, instruction_index,
-            machine.physical_size
-        );
-        ArraySet(
-            cfg.instructions.machine_layer_physical_modes, instruction_index,
-            Clone(machine.physical_mode)
-        );
-        ArraySet(
-            cfg.instructions.machine_layer_runtime_operations, instruction_index,
-            Clone(machine.runtime_operation)
-        );
-        ArraySet(
-            cfg.instructions.machine_layer_hardware_adequate, instruction_index,
-            machine.hardware_adequate
-        );
-        ArraySet(
-            cfg.instructions.machine_layer_authority_required, instruction_index,
-            machine.authority_required
-        );
-        ArraySet(
-            cfg.instructions.machine_layer_live_lease_required, instruction_index,
-            machine.live_lease_required
-        );
-    }
+    if instruction_index < 0 { return cfg; }
+    ArraySet(cfg.instructions.machine_contact_kinds, instruction_index, Clone(machine.contact_kind));
+    ArraySet(
+        cfg.instructions.machine_layer_manifest_ids, instruction_index, Clone(machine.manifest_id)
+    );
+    ArraySet(
+        cfg.instructions.machine_layer_physical_grant_ids, instruction_index,
+        Clone(machine.physical_grant)
+    );
+    ArraySet(
+        cfg.instructions.machine_layer_physical_bases, instruction_index,
+        machine.physical_base
+    );
+    ArraySet(
+        cfg.instructions.machine_layer_physical_sizes, instruction_index,
+        machine.physical_size
+    );
+    ArraySet(
+        cfg.instructions.machine_layer_physical_modes, instruction_index,
+        Clone(machine.physical_mode)
+    );
+    ArraySet(
+        cfg.instructions.machine_layer_runtime_operations, instruction_index,
+        Clone(machine.runtime_operation)
+    );
+    ArraySet(
+        cfg.instructions.machine_layer_hardware_adequate, instruction_index,
+        machine.hardware_adequate
+    );
+    ArraySet(
+        cfg.instructions.machine_layer_authority_required, instruction_index,
+        machine.authority_required
+    );
+    ArraySet(
+        cfg.instructions.machine_layer_live_lease_required, instruction_index,
+        machine.live_lease_required
+    );
     return cfg;
 }
 

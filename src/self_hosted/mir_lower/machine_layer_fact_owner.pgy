@@ -19,6 +19,9 @@ import "program_declaration_index_owner.pgy";
 import "../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 import "../lib/string_window_within.pgy";
+import "program_instruction_expression_index_owner.pgy";
+import "expression_graph_sequence_owner.pgy";
+import "../mir/machine_layer_projection_owner.pgy";
 
 // Domain-only admission receipt shared by the source semantic C path and the
 // complete machine-layer consumer.  Domain codegen must not depend on routine
@@ -278,6 +281,184 @@ func MirMachineLayerInstructionRuntimeOperation(
     );
 }
 
+// The machine contact kind an instruction row names, or empty.
+func MirMachineContactKindAt(ref routines: MirProgramRoutineIndex, row: Int) -> String {
+    let start: Int = routines.instruction_machine_contact_starts[row];
+    let end: Int = routines.instruction_machine_contact_ends[row];
+    if start < 0 || end <= start ||
+        JsonCharCodeAt(routines.source_json, routines.source_json_extent, end, start) !=
+            JsonAsciiCode("\"") {
+        return "";
+    }
+    let decoded: Option<String> = JsonStringValueSpanning(
+        routines.source_json, routines.source_json_extent, start, end);
+    if !IsSome(decoded) { return ""; }
+    return UnwrapOption(decoded);
+}
+
+// Whether any node of the persisted graph at [start, end) carries a call
+// target that names a machine contact. It reads each node's target field in
+// place, building nothing, so the coverage check costs one read of the
+// graphs. An unreadable graph answers true and the full read decides.
+func MirMachineContactGraphNamesContactAt(
+    json: String, json_extent: Int, start: Int, end: Int,
+    inout scratch: Array<Int>
+) -> Bool {
+    if start < 0 || end <= start { return false; }
+    if !MirObjectFieldValueBoundsAtBounds(
+            json, json_extent, start, end, "nodes", scratch) ||
+        JsonCharCodeAt(json, json_extent, scratch[1], scratch[0]) !=
+            JsonAsciiCode("[") {
+        return true;
+    }
+    let nodes_end: Int = scratch[1];
+    var cursor: Int = scratch[0] + 1;
+    while cursor < nodes_end {
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, nodes_end);
+        if cursor >= nodes_end { return false; }
+        let c: Int = JsonCharCodeAt(json, json_extent, nodes_end, cursor);
+        if c == JsonAsciiCode("]") { return false; }
+        if c == JsonAsciiCode(",") {
+            cursor = cursor + 1;
+            continue;
+        }
+        let node_end: Option<Int> =
+            JsonObjectEndWithin(json, json_extent, cursor, nodes_end);
+        if !IsSome(node_end) { return true; }
+        if MirObjectFieldValueBoundsAtBounds(json, json_extent, cursor,
+                UnwrapOption(node_end), "call_target_name", scratch) {
+            var i: Int = 0;
+            while i < CompilerRuntimeCallAbiMachineLayerContactCount() {
+                let source: String = CompilerRuntimeCallAbiMachineLayerContactSourceAt(i);
+                if scratch[1] - scratch[0] == StringLength(source) + 2 &&
+                    StringWindowSubEquals(json, json_extent, scratch[1] - 1,
+                        scratch[0] + 1, StringLength(source), source) {
+                    return true;
+                }
+                i = i + 1;
+            }
+        }
+        cursor = UnwrapOption(node_end);
+    }
+    return false;
+}
+
+// Append the "<contact>:<slot>" key of each machine contact call in one
+// expression graph of an instruction, read by the owner the producer uses.
+// A claim stands for the local `claim_slot` its definition declares.
+func MirMachineContactKeysAppend(
+    ref routines: MirProgramRoutineIndex, row: Int, graph_slot: Int,
+    claim_slot: String, inout keys: Array<String>
+) -> Bool {
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(routines.instruction_expressions, row);
+    let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(
+        routines.source_json, routines.source_json_extent, expression, graph_slot);
+    if !JsonObjectFactTableReady(graph) { return true; }
+    let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(), graph);
+    if !sequence.ok || ArrayLength(sequence.roots) != 1 { return false; }
+    let root: Int = sequence.roots[0];
+    let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, sequence.roots, [true], sequence.arena);
+    let calls: Array<Int> = SelfMirMachineLayerContactCalls(facts, root);
+    var i: Int = 0;
+    while i < ArrayLength(calls) {
+        let target: Option<String> =
+            SemanticExpressionGraphCallTargetName(facts, calls[i]);
+        if !IsSome(target) { return false; }
+        let contact: String =
+            CompilerRuntimeCallAbiMachineLayerContactNameForSource(UnwrapOption(target));
+        var slot: String = SelfMirMachineLayerContactSlot(facts, calls[i], root);
+        if contact == "claim" { slot = claim_slot; }
+        if contact == "" { return false; }
+        // A call without a slot argument keeps an empty slot, which no
+        // contact row names, so the coverage check reports it.
+        ArrayPush(keys, Concat(contact, Concat(":", slot)));
+        i = i + 1;
+    }
+    return true;
+}
+
+// Every machine contact call a routine evaluates has its own contact
+// resource-op row in that routine, and every contact row has its call: the
+// rows and the calls are equal multisets of "<contact>:<slot>". Where a row
+// stands is the producer's choice (the native producer gathers a scope's
+// rows at its start, the self-host producer puts them before the
+// instruction), so only the routine's set is checked. A row missing, extra
+// or naming another slot fails closed. An instruction that names no contact
+// is passed after one in-place read of its graphs.
+func MirMachineContactCoverageError(ref routines: MirProgramRoutineIndex) -> String {
+    var scratch: Array<Int> = [0, 0];
+    var routine: Int = 0;
+    while routine < ArrayLength(routines.routine_block_starts) {
+        var rows: Array<String> = [];
+        var calls: Array<String> = [];
+        var block: Int = routines.routine_block_starts[routine];
+        let block_end: Int = block + routines.routine_block_counts[routine];
+        while block < block_end {
+            let first: Int = routines.block_instruction_starts[block];
+            var r: Int = first;
+            while r < first + routines.block_instruction_counts[block] {
+                var contact: String = "";
+                if routines.instruction_kinds[r] == "resource-op" {
+                    contact = MirMachineContactKindAt(routines, r);
+                }
+                if contact != "" {
+                    ArrayPush(rows, Concat(contact, Concat(":", MirObjectStringFactAtBounds(
+                        routines.source_json, routines.source_json_extent,
+                        routines.instruction_starts[r], routines.instruction_ends[r], "arg0"))));
+                } else {
+                    let expression: MirProgramInstructionExpressionFact =
+                        MirProgramInstructionExpressionIndexAt(routines.instruction_expressions, r);
+                    if MirMachineContactGraphNamesContactAt(
+                            routines.source_json, routines.source_json_extent,
+                            expression.expr0_graph_start, expression.expr0_graph_end, scratch) ||
+                        MirMachineContactGraphNamesContactAt(
+                            routines.source_json, routines.source_json_extent,
+                            expression.expr1_graph_start, expression.expr1_graph_end, scratch) {
+                        var claim_slot: String = "";
+                        if routines.instruction_kinds[r] == "def" {
+                            claim_slot = MirObjectStringFactAtBounds(
+                                routines.source_json, routines.source_json_extent,
+                                routines.instruction_starts[r], routines.instruction_ends[r], "arg0");
+                        }
+                        if !MirMachineContactKeysAppend(routines, r, 0, claim_slot, calls) ||
+                            !MirMachineContactKeysAppend(routines, r, 1, claim_slot, calls) {
+                            return "machine contact call graph is unreadable";
+                        }
+                    }
+                }
+                r = r + 1;
+            }
+            block = block + 1;
+        }
+        var c: Int = 0;
+        while c < ArrayLength(calls) {
+            var found: Int = 0 - 1;
+            var p: Int = 0;
+            while p < ArrayLength(rows) && found < 0 {
+                if rows[p] == calls[c] { found = p; }
+                p = p + 1;
+            }
+            if found < 0 {
+                return Concat("machine contact call has no contact row: ", calls[c]);
+            }
+            ArraySet(rows, found, "");
+            c = c + 1;
+        }
+        var q: Int = 0;
+        while q < ArrayLength(rows) {
+            if rows[q] != "" {
+                return Concat("contact row has no call in its routine: ", rows[q]);
+            }
+            q = q + 1;
+        }
+        routine = routine + 1;
+    }
+    return "";
+}
+
 // Validate all machine-layer objects without rebuilding the native manifest
 // or walking source/AST data.  Missing/null machine_layer is permitted for
 // non-contact instructions; a present malformed object is always fatal.
@@ -302,6 +483,11 @@ func MirMachineLayerRoutineIndexFactsReady(
             return false;
         }
         instruction_row = instruction_row + 1;
+    }
+    let coverage_error: String = MirMachineContactCoverageError(routines);
+    if coverage_error != "" {
+        Log(Concat("MIR-LOWER ERROR: ", coverage_error));
+        return false;
     }
     return true;
 }

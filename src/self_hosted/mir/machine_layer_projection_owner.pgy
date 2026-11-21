@@ -4,9 +4,12 @@
 // operation table.  It consumes semantic expression-graph call-target facts
 // already attached to the instruction and fills the checked self-host runtime
 // row.  It never searches source text or guesses a backend operation.
+// Each contact call of an expression gets its own row, as the native
+// producer gives each RIR contact op its own resource-op.
 
 import "../semantic/ast_expression/ast_expression_graph_fact_owner.pgy";
 import "../semantic/ast_expression/ast_expression_call_target_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
 import "../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 
@@ -95,6 +98,21 @@ func SelfMirMachineLayerProjectionForGraph(
     if graph.arena.topology.node_kinds[call_root] != AstExpressionNodeCall() {
         return SelfMirMachineLayerProjectionEmpty();
     }
+    return SelfMirMachineLayerProjectionForCall(graph, call_root, declaration);
+}
+
+// The row for one call node of an expression graph: empty when the call
+// names no machine contact, invalid when its carried target is missing.
+func SelfMirMachineLayerProjectionForCall(
+    ref graph: SemanticExpressionGraphFacts,
+    call_root: Int,
+    declaration: SelfHostMachineLayerDeclaration
+) -> SelfMirMachineLayerProjection {
+    if !graph.ok || call_root < 0 ||
+        call_root >= SemanticExpressionGraphArenaNodeCount(graph.arena) ||
+        graph.arena.topology.node_kinds[call_root] != AstExpressionNodeCall() {
+        return SelfMirMachineLayerProjectionEmpty();
+    }
     let source_name_opt: Option<String> =
         SemanticExpressionGraphCallTargetName(graph, call_root);
     if !IsSome(source_name_opt) || UnwrapOption(source_name_opt) == "" {
@@ -133,6 +151,72 @@ func SelfMirMachineLayerProjectionForGraph(
         CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(contact_index),
         1, 1, 1
     );
+}
+
+// The call nodes of one expression graph that name a machine contact, in
+// the graph's evaluation (arena) order. A call without a carried target is
+// not one: the root projection above refuses that missing fact.
+func SelfMirMachineLayerContactCalls(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> Array<Int> {
+    var calls: Array<Int> = [];
+    if !graph.ok || root_id < 0 ||
+        root_id >= SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        return calls;
+    }
+    let start_opt: Option<Int> =
+        SemanticExpressionGraphSubtreeStart(graph, root_id);
+    if !IsSome(start_opt) { return calls; }
+    var node: Int = UnwrapOption(start_opt);
+    while node <= root_id {
+        if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
+            var contact: Int = 0;
+            while contact < CompilerRuntimeCallAbiMachineLayerContactCount() {
+                if graph.arena.call_target_names[node] ==
+                    CompilerRuntimeCallAbiMachineLayerContactSourceAt(contact) {
+                    ArrayPush(calls, node);
+                    contact = CompilerRuntimeCallAbiMachineLayerContactCount();
+                }
+                contact = contact + 1;
+            }
+        }
+        node = node + 1;
+    }
+    return calls;
+}
+
+// The slot local a contact call acts on: the leaf of its first argument.
+// Empty when the call has no argument (a claim) or the argument is not a
+// named leaf.
+func SelfMirMachineLayerContactSlot(
+    ref graph: SemanticExpressionGraphFacts,
+    call_node: Int,
+    root_id: Int
+) -> String {
+    var node: Int = call_node + 1;
+    while node <= root_id {
+        if graph.arena.topology.node_kinds[node] ==
+            AstExpressionNodeCallArgument() {
+            let left: Option<Int> =
+                SemanticExpressionGraphLeftChild(graph, node);
+            if IsSome(left) && UnwrapOption(left) == call_node {
+                let right: Option<Int> =
+                    SemanticExpressionGraphRightChild(graph, node);
+                if !IsSome(right) ||
+                    graph.arena.topology.node_kinds[UnwrapOption(right)] !=
+                        AstExpressionNodeLeaf() {
+                    return "";
+                }
+                let text: Option<String> = SemanticExpressionGraphNodeText(
+                    graph, UnwrapOption(right));
+                if !IsSome(text) { return ""; }
+                return UnwrapOption(text);
+            }
+        }
+        node = node + 1;
+    }
+    return "";
 }
 
 func SelfMirMachineLayerProjectionReady(

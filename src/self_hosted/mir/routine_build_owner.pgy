@@ -147,9 +147,19 @@ func SelfMirRoutineAttachLastExpressionGraph(
             build, "MIR instruction is missing its semantic expression graph"
         );
     }
-    var cfg: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(
-        build.cfg, view, declaration
-    );
+    // The root contact's operation selects the statement's runtime-call ABI
+    // row; the contact's machine row is on its own resource-op, added before
+    // this instruction by SelfMirRoutineAddMachineContactRows.
+    let root_machine: SelfMirMachineLayerProjection =
+        SelfMirMachineLayerProjectionForGraph(
+            view.graph, view.root_id, declaration
+        );
+    if !root_machine.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR machine-layer projection is invalid"
+        );
+    }
+    var cfg: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(build.cfg, view);
     var instruction_index: Int = ArrayLength(cfg.instructions.ids) - 1;
     if instruction_index < 0 ||
         cfg.instructions.expr0_graphs.has_roots[instruction_index] != 1 {
@@ -159,7 +169,8 @@ func SelfMirRoutineAttachLastExpressionGraph(
     }
     let runtime_abi: SelfMirRoutineExpressionRuntimeAbiResult =
         SelfMirRoutineExpressionRuntimeAbiAttach(
-            cfg, view, build.local_names, build.local_types);
+            cfg, view, root_machine.runtime_operation,
+            build.local_names, build.local_types);
     if !runtime_abi.ok {
         return SelfMirRoutineBuildError(
             build, runtime_abi.diagnostic_message);
@@ -173,6 +184,102 @@ func SelfMirRoutineAttachLastExpressionGraph(
         )
     );
     build.cfg = cfg;
+    return build;
+}
+
+// One resource-op per machine contact call of `view`, in evaluation order,
+// each carrying that contact's machine row, slot and runtime-call ABI row.
+// Called before the instruction that evaluates `view` is added, so the
+// rows precede it as the native producer's resource-ops precede theirs.
+// `claim_slot` is the local a root ClaimDeviceSlot() initializes.
+func SelfMirRoutineAddMachineContactRows(
+    build: SelfMirRoutineBuild,
+    view: SemanticExpressionGraphView,
+    declaration: SelfHostMachineLayerDeclaration,
+    claim_slot: String
+) -> SelfMirRoutineBuild {
+    if !view.ok { return build; }
+    let calls: Array<Int> =
+        SelfMirMachineLayerContactCalls(view.graph, view.root_id);
+    if ArrayLength(calls) == 0 { return build; }
+    // First every contact's slot and its local row, read while the build is
+    // unchanged; then the rows.
+    var slots: Array<String> = [];
+    var slot_rows: Array<Int> = [];
+    var i: Int = 0;
+    while i < ArrayLength(calls) {
+        let call: Int = calls[i];
+        let machine: SelfMirMachineLayerProjection =
+            SelfMirMachineLayerProjectionForCall(view.graph, call, declaration);
+        if !machine.ok || machine.contact_kind == "" {
+            return SelfMirRoutineBuildError(
+                build, "MIR machine-layer projection is invalid"
+            );
+        }
+        var slot: String = SelfMirMachineLayerContactSlot(
+            view.graph, call, view.root_id);
+        if machine.contact_kind == "claim" {
+            // A claim initializes the local its let declares; it takes no
+            // slot argument and has no other place to stand.
+            let root_call: Option<Int> = SemanticExpressionGraphLeftChild(
+                view.graph, view.root_id);
+            if claim_slot == "" ||
+                (call != view.root_id &&
+                 !(IsSome(root_call) && UnwrapOption(root_call) == call)) {
+                return SelfMirRoutineBuildError(
+                    build, "MIR machine claim is not a let initializer"
+                );
+            }
+            slot = Concat("", claim_slot);
+        }
+        if slot == "" {
+            return SelfMirRoutineBuildError(
+                build, "MIR machine contact has no slot local"
+            );
+        }
+        let slot_row: Option<Int> = SelfMirRoutineLocalIndex(build, slot);
+        if !IsSome(slot_row) {
+            return SelfMirRoutineBuildError(
+                build, "MIR machine contact slot is not a routine local"
+            );
+        }
+        ArrayPush(slots, slot);
+        ArrayPush(slot_rows, UnwrapOption(slot_row));
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(calls) {
+        let machine: SelfMirMachineLayerProjection =
+            SelfMirMachineLayerProjectionForCall(
+                view.graph, calls[i], declaration);
+        let fact: CompilerRuntimeCallAbiFact =
+            CompilerRuntimeCallAbiFactForNativeResource(
+                build.local_types[slot_rows[i]], machine.runtime_operation);
+        if !fact.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR machine contact runtime-call ABI row is not declared"
+            );
+        }
+        var no_uses: Array<String> = [];
+        build = SelfMirRoutineAddInstruction(
+            build, "resource-op", machine.runtime_operation, "", slots[i], "",
+            "", "", "", no_uses
+        );
+        var cfg: SelfMirCfgRows =
+            SelfMirCfgAttachLastSlotAnchor(build.cfg, slots[i]);
+        cfg = SelfMirCfgAttachLastMachineLayerRow(cfg, machine);
+        cfg = SelfMirCfgAttachLastRuntimeCallAbi(
+            cfg, build.local_types[slot_rows[i]], machine.runtime_operation,
+            fact);
+        let row: Int = ArrayLength(cfg.instructions.ids) - 1;
+        if cfg.instructions.runtime_call_abi.present[row] != 1 {
+            return SelfMirRoutineBuildError(
+                build, "MIR machine contact runtime-call ABI attachment failed"
+            );
+        }
+        build.cfg = cfg;
+        i = i + 1;
+    }
     return build;
 }
 

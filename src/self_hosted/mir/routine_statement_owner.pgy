@@ -107,7 +107,8 @@ func SelfMirLowerGraphOwnedSimpleStatement(
     build: SelfMirRoutineBuild,
     kind: Int,
     payload: String,
-    graph: SemanticExpressionGraphView
+    graph: SemanticExpressionGraphView,
+    declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirRoutineBuild {
     if !graph.ok {
         return SelfMirRoutineBuildError(
@@ -124,6 +125,8 @@ func SelfMirLowerGraphOwnedSimpleStatement(
         arg0 = "Exit";
     }
     let uses: Array<String> = SelfMirExpressionGraphUses(build, graph);
+    build = SelfMirRoutineAddMachineContactRows(build, graph, declaration, "");
+    if !build.ok { return build; }
     build = SelfMirRoutineAddInstruction(
         build, "stmt", "stmt", "", arg0, "", expression, "",
         "AST_CALL", uses
@@ -142,7 +145,8 @@ func SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
     auxiliary_payload: String,
     target_graph: SemanticExpressionGraphView,
     value_graph: SemanticExpressionGraphView,
-    auxiliary_graph: SemanticExpressionGraphView
+    auxiliary_graph: SemanticExpressionGraphView,
+    declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirRoutineBuild {
     let target_local: Option<Int> =
         SelfMirCollectionMutationTargetLocal(build, target_graph);
@@ -193,6 +197,10 @@ func SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
         );
         arg0 = "ArrayPush";
     }
+    build = SelfMirRoutineAddMachineContactRows(build, value_graph, declaration, "");
+    if !build.ok { return build; }
+    build = SelfMirRoutineAddMachineContactRows(build, auxiliary_graph, declaration, "");
+    if !build.ok { return build; }
     build = SelfMirRoutineAddInstruction(
         build, "stmt", "stmt", "", arg0, "", expression,
         secondary_expression, "AST_CALL", uses

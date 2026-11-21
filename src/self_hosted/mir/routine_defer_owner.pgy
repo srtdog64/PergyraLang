@@ -108,13 +108,18 @@ func SelfMirLowerDeferFromArtifact(
             }
         }
         if routings[index] == "Assign" { lane = AstExpressionLaneValue(); }
+        let deferred_graph: SemanticExpressionGraphView = SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces, statement_id, lane);
+        build = SelfMirRoutineAddMachineContactRows(
+            build, deferred_graph, input.machine_declaration, ""
+        );
+        if !build.ok { return build; }
         build = SelfMirRoutineAttachLastExpressionGraph(
             SelfMirRoutineAddInstruction(
                 build, "stmt", opcode, "", routings[index], part, "{...}", "",
                 "AST_DEFER_STMT", empty_uses
             ),
-            SemanticAstExpressionGraphForNode(
-                input.analysis.expression_surfaces, statement_id, lane),
+            deferred_graph,
             input.machine_declaration
         );
         if routings[index] == "Assign" {

@@ -410,4 +410,147 @@ if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_MISSING_REL" "$MACHINE_MANIFEST_REL" >"
 fi
 grep -Fq -- 'MIR machine-layer facts are missing or invalid' "$BAD_MISSING_OUT"
 
-echo "[self-host-mir-machine-layer] MIR/AIR declaration rows and self-host C DeviceSlot/RemoteFuture lowering are wired; malformed owner identity fails closed"
+# One contact row per contact call. A statement with two contacts and a
+# contact nested in another call's argument each get their own resource-op
+# row, from both producers, conditions included, and the MIR consumer
+# refuses a routine whose rows and contact calls differ: a row missing,
+# extra or naming another slot. The native producer gathers a scope's rows at
+# its start, so only the routine's set is compared. A contact in a range
+# bound is checked on self-host MIR only: the MIR consumer refuses native MIR
+# for a range loop for another reason ("no loop-init owner"). Before 2026-11-22 the self-host
+# producer projected only a statement's root call (no row here) and the
+# consumer accepted MIR without the rows.
+CONTACTS_CASE="$BUILD_DIR/device_slot_contacts.pgy"
+CONTACTS_REL=".tmp/self_hosted/mir_machine_layer/device_slot_contacts.pgy"
+cat >"$CONTACTS_CASE" <<'PGY'
+func Main() -> Void {
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    let other: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(other, 7);
+    let sum: Int = DeviceRead(dev) + DeviceRead(other);
+    Log(DeviceRead(other));
+    if DeviceRead(dev) > 0 { Log(1); }
+    while DeviceRead(other) > 10 { Log(2); }
+    ReleaseDeviceSlot(dev);
+    ReleaseDeviceSlot(other);
+    Log(sum);
+}
+PGY
+CONTACTS_SELF_MIR="$BUILD_DIR/device_slot_contacts.self.mirjson"
+CONTACTS_NATIVE_MIR="$BUILD_DIR/device_slot_contacts.native.mirjson"
+if ! (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
+    "$CONTACTS_REL" --machine-manifest-json "$MACHINE_MANIFEST_REL" \
+    >"$CONTACTS_SELF_MIR" 2>&1); then
+    echo "[self-host-mir-machine-layer] self-host producer rejected the contacts case" >&2
+    cat "$CONTACTS_SELF_MIR" >&2
+    exit 1
+fi
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    "$(pgy_path_for_compiler "$PGY" "$CONTACTS_CASE")" >"$CONTACTS_NATIVE_MIR")
+"$PY_BIN" - "$CONTACTS_SELF_MIR" "$CONTACTS_NATIVE_MIR" "$BUILD_DIR" <<'PY'
+import json, sys
+self_path, native_path, out_dir = sys.argv[1:]
+expected = sorted(["claim:dev", "claim:other", "write:other", "read:dev",
+                   "read:other", "read:other", "read:dev", "read:other",
+                   "release:dev", "release:other"])
+def load(path):
+    data = open(path, "rb").read()
+    text = data.decode("utf-16") if data.startswith((b"\xff\xfe", b"\xfe\xff")) else data.decode("utf-8")
+    return json.loads(text)
+def contact_rows(doc):
+    rows = []
+    for routine in doc["routines"]:
+        for block in routine["blocks"]:
+            for inst in block["instructions"]:
+                if inst.get("machine_contact_kind") or inst.get("machine_layer"):
+                    if inst.get("kind") != "resource-op":
+                        raise SystemExit("machine row outside a contact resource-op: %s" % inst.get("kind"))
+                    rows.append("%s:%s" % (inst["machine_contact_kind"], inst["arg0"]))
+    return sorted(rows)
+for name, path in (("self", self_path), ("native", native_path)):
+    doc = load(path)
+    rows = contact_rows(doc)
+    if rows != expected:
+        raise SystemExit("%s contact rows %s, expected %s" % (name, rows, expected))
+    top = max(inst["id"] for r in doc["routines"] for b in r["blocks"] for inst in b["instructions"])
+    for how in ("drop", "slot", "extra"):
+        mutated = load(path)
+        done = False
+        for routine in mutated["routines"]:
+            for block in routine["blocks"]:
+                ins = block["instructions"]
+                for i, inst in enumerate(ins):
+                    if done or inst.get("kind") != "resource-op" or inst.get("machine_contact_kind") != "read" or inst.get("arg0") != "dev":
+                        continue
+                    if how == "drop":
+                        del ins[i]
+                    elif how == "slot":
+                        inst["arg0"] = "other"
+                        inst["slot_anchor"] = "other"
+                    else:
+                        extra = json.loads(json.dumps(inst))
+                        extra["id"] = top + 1
+                        ins.insert(i, extra)
+                    done = True
+                    break
+        if not done:
+            raise SystemExit("%s MIR has no read:dev contact row" % name)
+        with open("%s/device_slot_contacts.%s.%s.mirjson" % (out_dir, name, how), "w", encoding="utf-8") as out:
+            out.write(json.dumps(mutated, separators=(",", ":")))
+PY
+LOOP_CASE="$BUILD_DIR/device_slot_contacts_loop.pgy"
+cat >"$LOOP_CASE" <<'PGY'
+func Main() -> Void {
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    for i in 0..DeviceRead(dev) { Log(i); }
+    ReleaseDeviceSlot(dev);
+}
+PGY
+LOOP_MIR="$BUILD_DIR/device_slot_contacts_loop.self.mirjson"
+if ! (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
+    ".tmp/self_hosted/mir_machine_layer/device_slot_contacts_loop.pgy" \
+    --machine-manifest-json "$MACHINE_MANIFEST_REL" >"$LOOP_MIR" 2>&1) ||
+    ! (cd "$ROOT_DIR" && "$LOWER_BIN" \
+        ".tmp/self_hosted/mir_machine_layer/device_slot_contacts_loop.self.mirjson" \
+        "$MACHINE_MANIFEST_REL" >"$BUILD_DIR/device_slot_contacts_loop.out" 2>&1); then
+    echo "[self-host-mir-machine-layer] range-bound contact row was not produced or admitted" >&2
+    cat "$LOOP_MIR" "$BUILD_DIR/device_slot_contacts_loop.out" >&2
+    exit 1
+fi
+"$PY_BIN" - "$LOOP_MIR" <<'PY'
+import json, sys
+doc = json.load(open(sys.argv[1], encoding="utf-8"))
+rows = sorted("%s:%s" % (i["machine_contact_kind"], i["arg0"])
+              for r in doc["routines"] for b in r["blocks"] for i in b["instructions"]
+              if i.get("machine_contact_kind"))
+if rows != ["claim:dev", "read:dev", "release:dev"]:
+    raise SystemExit("range-bound contact rows: %s" % rows)
+PY
+for producer in self native; do
+    contacts_rel=".tmp/self_hosted/mir_machine_layer/device_slot_contacts.$producer.mirjson"
+    if ! (cd "$ROOT_DIR" && "$LOWER_BIN" "$contacts_rel" "$MACHINE_MANIFEST_REL" \
+        >"$BUILD_DIR/device_slot_contacts.$producer.out" 2>&1); then
+        echo "[self-host-mir-machine-layer] $producer contact rows were rejected" >&2
+        cat "$BUILD_DIR/device_slot_contacts.$producer.out" >&2
+        exit 1
+    fi
+    for how in drop slot extra; do
+        expected_error='machine contact call has no contact row: read:dev'
+        [[ "$how" == extra ]] &&
+            expected_error='contact row has no call in its routine: read:dev'
+        bad_out="$BUILD_DIR/device_slot_contacts.$producer.$how.out"
+        if (cd "$ROOT_DIR" && "$LOWER_BIN" \
+            ".tmp/self_hosted/mir_machine_layer/device_slot_contacts.$producer.$how.mirjson" \
+            "$MACHINE_MANIFEST_REL" >"$bad_out" 2>&1); then
+            echo "[self-host-mir-machine-layer] $producer MIR with a $how contact row was accepted" >&2
+            exit 1
+        fi
+        grep -Fq -- "$expected_error" "$bad_out" || {
+            echo "[self-host-mir-machine-layer] $producer $how contact row refused for another reason" >&2
+            cat "$bad_out" >&2
+            exit 1
+        }
+    done
+done
+
+echo "[self-host-mir-machine-layer] MIR/AIR declaration rows and self-host C DeviceSlot/RemoteFuture lowering are wired; one contact row per contact call; malformed owner identity fails closed"

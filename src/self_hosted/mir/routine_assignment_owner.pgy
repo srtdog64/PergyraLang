@@ -140,6 +140,14 @@ func SelfMirLowerAssignmentFromArtifact(
         SelfMirUsesAppendUnique(uses, Concat("", value_uses[value_use_i]));
         value_use_i = value_use_i + 1;
     }
+    build = SelfMirRoutineAddMachineContactRows(
+        build, target_graph, input.machine_declaration, ""
+    );
+    if !build.ok { return build; }
+    build = SelfMirRoutineAddMachineContactRows(
+        build, value_graph, input.machine_declaration, ""
+    );
+    if !build.ok { return build; }
     if SelfMirAssignmentStoresThroughIdentityReceiver(
             input, build, assignment_index, local_index, target, target_text) {
         // A plain store is named `assign`, as the native producer names it.

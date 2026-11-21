@@ -91,6 +91,10 @@ func SelfMirLowerLetFromArtifact(
     let local_version: Int = build.local_versions[UnwrapOption(added_local)];
     var nominal_type: String = "";
     if SelfMirTypeIsNominal(input, local_type) { nominal_type = local_type; }
+    build = SelfMirRoutineAddMachineContactRows(
+        build, initializer_graph, input.machine_declaration, local_name
+    );
+    if !build.ok { return build; }
     build = SelfMirRoutineAddInstruction(
         build, "def", UnwrapOption(opcode), SelfMirSsaName(local_name, local_version),
         local_name, nominal_type, expression, local_type,

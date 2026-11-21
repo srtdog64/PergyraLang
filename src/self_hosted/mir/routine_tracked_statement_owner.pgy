@@ -60,7 +60,7 @@ func SelfMirLowerTrackedStatementFromArtifact(
             );
         }
         build = SelfMirLowerGraphOwnedSimpleStatement(
-            build, kind, payload, simple_graph
+            build, kind, payload, simple_graph, input.machine_declaration
         );
         return SelfMirRoutineAttachLastExpressionGraph(
             build, simple_graph, input.machine_declaration
@@ -100,7 +100,7 @@ func SelfMirLowerTrackedStatementFromArtifact(
         }
         build = SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
             build, kind, payload, value_payload, auxiliary_payload,
-            target_graph, value_graph, auxiliary_graph
+            target_graph, value_graph, auxiliary_graph, input.machine_declaration
         );
         build = SelfMirRoutineAttachLastSourceStatement(build, node_id);
         build = SelfMirRoutineAttachLastCollectionMutationTargetGraph(
@@ -164,6 +164,8 @@ func SelfMirLowerTrackedStatementFromArtifact(
         }
         let return_uses: Array<String> =
             SelfMirExpressionGraphUses(build, return_graph);
+        build = SelfMirRoutineAddMachineContactRows(build, return_graph, input.machine_declaration, "");
+        if !build.ok { return build; }
         build = SelfMirRoutineAddInstruction(
             build, "return", "return", "", "", "", payload, "",
             return_source_type, return_uses

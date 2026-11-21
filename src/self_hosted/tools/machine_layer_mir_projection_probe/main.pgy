@@ -17,6 +17,15 @@ struct MachineProbeProgramGraph {
     root_ids: Array<Int>;
 }
 
+// Each probe statement calls one contact on `dev`, as a source program does.
+func MachineProbeCallText(index: Int) -> String {
+    if index == 0 { return "ClaimDeviceSlot()"; }
+    if index == 1 { return "DeviceRead(dev)"; }
+    if index == 2 { return "DeviceWrite(dev, current)"; }
+    if index == 3 { return "ReleaseDeviceSlot(dev)"; }
+    return "SubmitDeviceRead(dev)";
+}
+
 func MachineProbeProgramExpressionGraph() -> MachineProbeProgramGraph {
     var kinds: Array<Int> = [];
     var texts: Array<String> = [];
@@ -35,15 +44,21 @@ func MachineProbeProgramExpressionGraph() -> MachineProbeProgramGraph {
         let built: SemanticExpressionGraphBuild =
             SemanticExpressionGraphImportSerializedParserFact(
                 kinds, texts, left_children, right_children,
-                target_kinds, target_names, "ClaimDeviceSlot()"
+                target_kinds, target_names, MachineProbeCallText(i)
             );
-        if !built.ok || built.root_id < 0 ||
-            kinds[built.root_id] != AstExpressionNodeCall() {
+        // A call with arguments is rooted at its argument lane; the call
+        // node at the bottom of that lane carries the target.
+        var call: Int = built.root_id;
+        while built.ok && call >= 0 &&
+            kinds[call] == AstExpressionNodeCallArgument() {
+            call = left_children[call];
+        }
+        if !built.ok || call < 0 || kinds[call] != AstExpressionNodeCall() {
             Log("machine probe program graph build failed");
             Exit(1);
         }
-        ArraySet(target_kinds, built.root_id, SemanticCallTargetDirect());
-        ArraySet(target_names, built.root_id, call_target_names[i]);
+        ArraySet(target_kinds, call, SemanticCallTargetDirect());
+        ArraySet(target_names, call, call_target_names[i]);
         ArrayPush(root_ids, built.root_id);
         ArrayPush(has_roots, true);
         i = i + 1;
@@ -89,6 +104,9 @@ func MachineProbeGraphWithoutTarget() -> SemanticExpressionGraphView {
     return SemanticExpressionGraphView(true, built.root_id, graph);
 }
 
+// One probe statement whose root call names a machine contact: the
+// contact's own resource-op row first, then the statement, as the routine
+// builder emits them.
 func MachineProbeAddCall(
     cfg: SelfMirCfgRows,
     id: Int,
@@ -104,25 +122,41 @@ func MachineProbeAddCall(
     graph_view: SemanticExpressionGraphView,
     declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirCfgRows {
-    let added: SelfMirCfgRows = SelfMirCfgAddInstruction(
-        cfg, 0, id, kind, name, result, arg0, arg1, expression, "",
-        source_type, uses
-    );
-    let projected: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(
-        added, graph_view, declaration
-    );
-    let typed: SelfMirCfgRows = SelfMirCfgAttachLastAbiTypeName(
-        projected, abi_type_name
-    );
-    let instruction_index: Int = ArrayLength(typed.instructions.ids) - 1;
-    let operation: String =
-        typed.instructions.machine_layer_runtime_operations[
-            instruction_index
-        ];
+    let machine: SelfMirMachineLayerProjection =
+        SelfMirMachineLayerProjectionForGraph(
+            graph_view.graph, graph_view.root_id, declaration
+        );
+    let operation: String = machine.runtime_operation;
     let abi_fact: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFactForNativeResource(
             "DeviceSlot<Int>", operation
         );
+    let no_uses: Array<String> = [];
+    let contact: SelfMirCfgRows = SelfMirCfgAddInstruction(
+        cfg, 0, id * 2, "resource-op", operation, "", "dev", "", "", "",
+        "", no_uses
+    );
+    let anchored: SelfMirCfgRows = SelfMirCfgAttachLastSlotAnchor(
+        contact, "dev"
+    );
+    var contact_row: SelfMirCfgRows = SelfMirCfgAttachLastMachineLayerRow(
+        anchored, machine
+    );
+    if abi_fact.ok {
+        contact_row = SelfMirCfgAttachLastRuntimeCallAbi(
+            contact_row, "DeviceSlot<Int>", operation, abi_fact
+        );
+    }
+    let added: SelfMirCfgRows = SelfMirCfgAddInstruction(
+        contact_row, 0, id * 2 + 1, kind, name, result, arg0, arg1,
+        expression, "", source_type, uses
+    );
+    let projected: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(
+        added, graph_view
+    );
+    let typed: SelfMirCfgRows = SelfMirCfgAttachLastAbiTypeName(
+        projected, abi_type_name
+    );
     if !abi_fact.ok {
         return typed;
     }
@@ -141,7 +175,7 @@ func MachineProbeFacts(
     let no_ints: Array<Int> = [];
     let cfg1: SelfMirCfgRows = MachineProbeAddCall(
         cfg0, 0, "def", "ssa-def", "dev.1", "dev", "",
-        "ClaimDeviceSlot()", "AST_LET_DECL", "DeviceSlot<Int>", no_uses,
+        MachineProbeCallText(0), "AST_LET_DECL", "DeviceSlot<Int>", no_uses,
         SemanticExpressionGraphView(
             true, program_graph.root_ids[0], program_graph.graph
         ),
@@ -149,7 +183,7 @@ func MachineProbeFacts(
     );
     let cfg2: SelfMirCfgRows = MachineProbeAddCall(
         cfg1, 1, "def", "ssa-def", "current.1", "current", "",
-        "ClaimDeviceSlot()", "AST_LET_DECL", "Int", ["dev.1"],
+        MachineProbeCallText(1), "AST_LET_DECL", "Int", ["dev.1"],
         SemanticExpressionGraphView(
             true, program_graph.root_ids[1], program_graph.graph
         ),
@@ -157,7 +191,7 @@ func MachineProbeFacts(
     );
     let cfg3: SelfMirCfgRows = MachineProbeAddCall(
         cfg2, 2, "stmt", "stmt", "", "DeviceWrite", "current",
-        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1", "current.1"],
+        MachineProbeCallText(2), "AST_CALL", "", ["dev.1", "current.1"],
         SemanticExpressionGraphView(
             true, program_graph.root_ids[2], program_graph.graph
         ),
@@ -165,7 +199,7 @@ func MachineProbeFacts(
     );
     let cfg4: SelfMirCfgRows = MachineProbeAddCall(
         cfg3, 3, "stmt", "stmt", "", "ReleaseDeviceSlot", "",
-        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1"],
+        MachineProbeCallText(3), "AST_CALL", "", ["dev.1"],
         SemanticExpressionGraphView(
             true, program_graph.root_ids[3], program_graph.graph
         ),
@@ -173,7 +207,7 @@ func MachineProbeFacts(
     );
     let cfg5: SelfMirCfgRows = MachineProbeAddCall(
         cfg4, 4, "stmt", "stmt", "", "SubmitDeviceRead", "",
-        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1"],
+        MachineProbeCallText(4), "AST_CALL", "", ["dev.1"],
         SemanticExpressionGraphView(
             true, program_graph.root_ids[4], program_graph.graph
         ),

@@ -322,6 +322,10 @@ func SelfMirLowerMatchFromArtifact(
                 build, "MIR match materialization LocalRef disappeared"
             );
         }
+        build = SelfMirRoutineAddMachineContactRows(
+            build, match_graph, input.machine_declaration, ""
+        );
+        if !build.ok { return build; }
         build = SelfMirRoutineAddInstruction(
             build, "def", "ssa-def", SelfMirSsaName(synthetic_name, 1),
             synthetic_name, "", match_value, synthetic_type,

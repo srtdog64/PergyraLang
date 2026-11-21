@@ -76,24 +76,23 @@ func SelfMirLowerForFromArtifact(
     let iteration_local: Int = ArrayLength(build.local_names) - 1;
     let preheader: Int = build.current_block;
     let init_uses: Array<String> = SelfMirNoUses();
+    var init_graph: SemanticExpressionGraphView = iteration_graph;
+    if !iteration.collection_hoisted {
+        init_graph = SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces, node_id, AstExpressionLaneValue());
+    }
+    build = SelfMirRoutineAddMachineContactRows(
+        build, init_graph, input.machine_declaration, ""
+    );
+    if !build.ok { return build; }
     build = SelfMirRoutineAddInstruction(
         build, "loop-init", "loop-init", "", binding, "",
         start, stop, "AST_FOR_LOOP", init_uses
     );
     build = SelfMirRoutineAttachLastPrimaryLocalRef(build, iteration_local);
-    if iteration.collection_hoisted {
-        build = SelfMirRoutineAttachLastExpressionGraph(
-            build, iteration_graph,
-            input.machine_declaration
-        );
-    } else {
-        build = SelfMirRoutineAttachLastExpressionGraph(
-            build, SemanticAstExpressionGraphForNode(
-                input.analysis.expression_surfaces,
-                node_id, AstExpressionLaneValue()
-            ), input.machine_declaration
-        );
-    }
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build, init_graph, input.machine_declaration
+    );
     build = SelfMirRoutineAddBlock(build);
     let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineSetSuccessors(build, preheader, header, -1);
@@ -116,6 +115,10 @@ func SelfMirLowerForFromArtifact(
     }
     let branch_uses: Array<String> =
         SelfMirExpressionGraphUses(build, branch_graph);
+    build = SelfMirRoutineAddMachineContactRows(
+        build, branch_graph, input.machine_declaration, ""
+    );
+    if !build.ok { return build; }
     build = SelfMirRoutineAddInstruction(
         build, "branch", "branch", "", binding, "", start,
         stop, "AST_FOR_LOOP", branch_uses
