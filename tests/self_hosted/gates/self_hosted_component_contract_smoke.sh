@@ -1803,50 +1803,13 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_struct_argument_mutations.py" 190
 for value_flow_owner_cap in \
-    direct_mir/direct_mir_nominal_abi_row_equality_owner.pgy:40 \
-    direct_mir/direct_mir_struct_value_flow_program_admission_owner.pgy:95 \
-    direct_mir/direct_mir_struct_value_flow_program_identity_owner.pgy:230 \
-    direct_mir/direct_mir_struct_value_flow_graph_fact_owner.pgy:260 \
-    direct_mir/direct_mir_struct_value_flow_instruction_admission_owner.pgy:200 \
-    direct_mir/direct_mir_struct_value_flow_abi_fact_owner.pgy:180 \
-    direct_mir/direct_mir_struct_value_flow_plan_owner.pgy:230 \
-    direct_mir/direct_mir_struct_value_flow_c_emission_owner.pgy:180 \
-    direct_mir/direct_mir_struct_value_flow_llvm_emission_owner.pgy:140 \
-    direct_mir/direct_mir_struct_value_flow_projection_owner.pgy:40; do
+    direct_mir/direct_mir_nominal_abi_row_equality_owner.pgy:40; do
     value_flow_owner="${value_flow_owner_cap%%:*}"
     value_flow_cap="${value_flow_owner_cap##*:}"
     require_max_lines "src/self_hosted/compiler/$value_flow_owner" "$value_flow_cap"
 done
 require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_struct_value_flow_projection.sh" 200
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_struct_value_flow_mutations.py" 240
-for option_value_flow_owner_cap in \
-    direct_mir/direct_mir_two_routine_nominal_classification_owner.pgy:150 \
-    direct_mir/direct_mir_two_routine_nominal_program_admission_owner.pgy:90 \
-    direct_mir/direct_mir_two_routine_nominal_projection_owner.pgy:55 \
-    direct_mir/direct_mir_option_struct_value_flow_program_admission_owner.pgy:30 \
-    direct_mir/direct_mir_option_struct_value_flow_program_identity_owner.pgy:230 \
-    direct_mir/direct_mir_option_struct_value_flow_graph_shape_owner.pgy:140 \
-    direct_mir/direct_mir_option_struct_value_flow_graph_fact_owner.pgy:180 \
-    direct_mir/direct_mir_option_struct_value_flow_instruction_admission_owner.pgy:280 \
-    direct_mir/direct_mir_option_struct_value_flow_abi_fact_owner.pgy:220 \
-    direct_mir/direct_mir_option_struct_value_flow_plan_owner.pgy:180 \
-    direct_mir/direct_mir_option_struct_value_flow_c_emission_owner.pgy:190 \
-    direct_mir/direct_mir_option_struct_value_flow_llvm_emission_owner.pgy:220 \
-    direct_mir/direct_mir_option_struct_value_flow_projection_owner.pgy:40; do
-    option_value_flow_owner="${option_value_flow_owner_cap%%:*}"
-    option_value_flow_cap="${option_value_flow_owner_cap##*:}"
-    require_max_lines \
-        "src/self_hosted/compiler/$option_value_flow_owner" \
-        "$option_value_flow_cap"
-done
-require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy" 110
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_option_struct_value_flow_projection.sh" 180
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_option_struct_value_flow_mutations.py" 260
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_generic_struct_value_flow_projection.sh" 190
 require_max_lines \
@@ -1875,33 +1838,18 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_inferred_generic_scalar_mutations.py" 280
 for inferred_member_owner_cap in \
-    direct_mir/direct_mir_two_routine_shape_owner.pgy:80 \
-    direct_mir/direct_mir_two_routine_classification_owner.pgy:120 \
     direct_mir/direct_mir_inferred_generic_member_routine_array_shape_owner.pgy:50 \
-    direct_mir/direct_mir_inferred_generic_member_program_admission_owner.pgy:70 \
-    direct_mir/direct_mir_inferred_generic_member_specialization_fact_owner.pgy:160 \
     direct_mir/direct_mir_generic_member_signature_fact_owner.pgy:190 \
-    direct_mir/direct_mir_inferred_generic_member_declaration_fact_owner.pgy:170 \
-    direct_mir/direct_mir_inferred_generic_member_host_kind_fact_owner.pgy:60 \
     direct_mir/direct_mir_inferred_generic_member_graph_fact_owner.pgy:180 \
     direct_mir/direct_mir_inferred_generic_member_program_identity_owner.pgy:190 \
     direct_mir/direct_mir_inferred_generic_member_instruction_admission_owner.pgy:220 \
-    direct_mir/direct_mir_inferred_generic_member_representation_fact_owner.pgy:100 \
-    direct_mir/direct_mir_inferred_generic_member_plan_owner.pgy:120 \
-    direct_mir/direct_mir_member_receiver_target_projection_owner.pgy:90 \
-    direct_mir/direct_mir_inferred_generic_member_c_emission_owner.pgy:100 \
-    direct_mir/direct_mir_inferred_generic_member_llvm_emission_owner.pgy:100 \
-    direct_mir/direct_mir_inferred_generic_member_projection_owner.pgy:40; do
+    direct_mir/direct_mir_inferred_generic_member_representation_fact_owner.pgy:100; do
     inferred_member_owner="${inferred_member_owner_cap%%:*}"
     inferred_member_cap="${inferred_member_owner_cap##*:}"
     require_max_lines \
         "src/self_hosted/compiler/$inferred_member_owner" "$inferred_member_cap"
 done
 require_max_lines "tests/self_hosted/parity/semantic/generic_member_parameter_identity_cases.py" 80
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_inferred_generic_member_projection.sh" 200
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_inferred_generic_member_mutations.py" 360
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_passive_nominal_literal_projection.sh" 200
 require_max_lines \
@@ -2060,26 +2008,6 @@ require_max_lines \
     "src/self_hosted/semantic/role_operator_vocabulary_owner.pgy" 220
 require_max_lines \
     "src/self_hosted/semantic/role_operator_resolution_owner.pgy" 340
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_role_operator_declaration_fact_owner.pgy" 310
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_role_operator_plan_owner.pgy" 560
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_role_operator_abi_projection_owner.pgy" 140
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_role_operator_emission_owner.pgy" 150
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_role_operator_projection.sh" 220
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_role_operator_mutations.py" 220
-role_operator_family_lines=$((
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_operator_declaration_fact_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_operator_plan_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_operator_abi_projection_owner.pgy) +
-    $(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir/direct_mir_role_operator_emission_owner.pgy)
-))
-[[ "$role_operator_family_lines" -le 1200 ]] || \
-    fail "role operator direct family exceeds 1200 LOC ($role_operator_family_lines)"
 require_max_lines \
     "tests/self_hosted/parity/domain/role_override_mir_replacement.sh" 380
 require_max_lines \

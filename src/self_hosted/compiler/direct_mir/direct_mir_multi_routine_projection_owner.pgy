@@ -2,12 +2,7 @@
 import "direct_mir_legacy_intent_program_projection_owner.pgy";
 import "direct_mir_composite_intent_program_projection_owner.pgy";
 import "direct_mir_nested_intent_program_projection_owner.pgy";
-import "direct_mir_two_routine_nominal_projection_owner.pgy";
-import "direct_mir_two_routine_classification_owner.pgy";
-import "direct_mir_inferred_generic_nominal_projection_owner.pgy";
-import "direct_mir_inferred_generic_member_projection_owner.pgy";
 import "direct_mir_multi_routine_terminal_projection_owner.pgy";
-import "direct_mir_role_operator_emission_owner.pgy";
 import "scalar_program/direct_mir_scalar_program_projection_owner.pgy";
 import "scalar_program/direct_mir_scalar_program_route_admission_owner.pgy";
 import "direct_mir_pressure_observation_owner.pgy";
@@ -33,8 +28,6 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
         Die("direct MIR multi-routine runtime ABI owner is incomplete");
     }
     let line_format: String = StringRuntimeCIntLineFormat();
-    if DirectMirRoleOperatorProgramCandidate(admitted) { return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirRoleOperatorForTarget(
-        admitted, target_projection, is_llvm, formatted_print, line_format)); }
     let intent_payload: Option<String> = CompileAdmittedDirectMirLegacyIntentProgramLlvmIfClaimed(admitted, is_llvm);
     if IsSome(intent_payload) { return CodegenRoutePayloadEmitted(UnwrapOption(intent_payload)); }
     let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);
@@ -56,32 +49,6 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
             admitted, scalar_program_route, target_projection,
             observe_pressure
         );
-    }
-    if DirectMirTwoRoutineNominalProgramCandidate(admitted) {
-        let two_routine: DirectMirTwoRoutineClassificationFact =
-            DirectMirTwoRoutineClassificationFromAdmitted(admitted);
-        if !DirectMirTwoRoutineClassificationFactReady(two_routine) {
-            Die("direct MIR two-routine classification is invalid");
-        }
-        if two_routine.kind ==
-            DirectMirTwoRoutineInferredGenericNominal() {
-            return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirInferredGenericNominal(
-                admitted, two_routine, is_llvm, formatted_print, line_format
-            ));
-        }
-        if DirectMirTwoRoutineInferredMemberKindMatches(
-            two_routine.kind, two_routine.shape.nominal_kind
-        ) {
-            return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirInferredGenericMember(
-                admitted, two_routine, is_llvm, formatted_print, line_format
-            ));
-        }
-        if two_routine.kind != DirectMirTwoRoutineClosedNominal() {
-            Die("direct MIR two-routine classification is unsupported");
-        }
-        return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirTwoRoutineNominal(
-            admitted, is_llvm, formatted_print, line_format
-        ));
     }
     return CompileAdmittedDirectMirTerminalMultiRoutine(admitted, target_projection, is_llvm, formatted_print, line_format, scalar_program_admission);
 }

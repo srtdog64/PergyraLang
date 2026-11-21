@@ -66,3 +66,4 @@ tests/self_hosted/parity/direct_mir/direct_mir_scalar_runtime_value_lifecycle_ow
 tests/self_hosted/parity/mir/expression_root_consumption_owner.sh	Not wired into any target; only a removed source-text check named it (2026-10-13). Run by hand until a target owns it.
 tests/self_hosted/parity/ownership/slice_length_codegen_source_owner.sh	Not wired into any target; only a removed source-text check named it (2026-10-13). Run by hand until a target owns it.
 tests/self_hosted/parity/ownership/call_handoff_differential_measure.sh	Manual G2 call hand-off row measurement (slice S2); writes counts and differences, no pass pin until slice S5.
+tests/self_hosted/parity/domain/role_receiver_canonicalization_owner.sh	Manual isolated parity probe; its only caller, the role operator direct-MIR gate, was deleted with that route. Fails on main at oracle MIR canonicalization (call_handoff_missing); not current CI evidence.

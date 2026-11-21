@@ -1,7 +1,25 @@
 // Exact one-field class declaration with two unique empty-contract methods.
 
-import "direct_mir_inferred_generic_member_declaration_fact_owner.pgy";
+import "../../mir_lower/declaration_method_contract_fact_owner.pgy";
+import "../../mir_lower/program_declaration_index_owner.pgy";
+import "../../air/mir_cfg_identity_owner.pgy";
 import "direct_mir_exact_json_array_cardinality_owner.pgy";
+
+// The method row carries no requires, zone, cause, authority, capability or effect.
+func DirectMirGenericMemberEmptyFunctionContractReady(
+    ref contract: MirDeclarationMethodContractFact
+) -> Bool {
+    return contract.valid && contract.diagnostic == "" &&
+        contract.callable_kind == "function" &&
+        ArrayLength(contract.requires_bases) == 0 &&
+        ArrayLength(contract.requires_actual_starts) == 0 &&
+        ArrayLength(contract.requires_actual_counts) == 0 &&
+        ArrayLength(contract.requires_actual_names) == 0 &&
+        contract.within_zone == "" && contract.causes_name == "" &&
+        ArrayLength(contract.authorized_by_names) == 0 &&
+        !contract.caps_present && ArrayLength(contract.cap_names) == 0 &&
+        !contract.effects_present && ArrayLength(contract.effect_names) == 0;
+}
 
 struct DirectMirConstructedGenericMemberDeclarationFact {
     let valid: Bool;
@@ -157,7 +175,7 @@ func DirectMirConstructedGenericMemberDeclarationFactAtDocument(
         if JsonObjectFactCount(method) != 5 || !IsSome(method_name) ||
             !IsSome(method_return) || !IsSome(callable_kind) ||
             UnwrapOption(callable_kind) != "function" ||
-            !DirectMirInferredGenericMemberEmptyFunctionContractReady(
+            !DirectMirGenericMemberEmptyFunctionContractReady(
                 contract
             ) {
             return InvalidDirectMirConstructedGenericMemberDeclarationFact();

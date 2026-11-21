@@ -21,18 +21,6 @@ func DirectMirInferredGenericMemberVesselRepresentation() -> String {
     return "internal_single_int_mutable_identity_vessel";
 }
 
-func DirectMirInferredGenericMemberRepresentationForHost(
-    ref host: DirectMirInferredGenericMemberHostKindFact
-) -> String {
-    if !DirectMirInferredGenericMemberHostKindFactReady(host) {
-        Die("direct MIR inferred member host representation is invalid");
-    }
-    if CallableReceiverNominalKindUsesMutableIdentity(host.kind) {
-        return DirectMirInferredGenericMemberVesselRepresentation();
-    }
-    return DirectMirInferredGenericMemberRepresentation();
-}
-
 func DirectMirInferredGenericMemberRepresentationFactDigest(
     ref fact: DirectMirInferredGenericMemberRepresentationFact
 ) -> Int {
@@ -59,40 +47,4 @@ func DirectMirInferredGenericMemberRepresentationFactReady(
               DirectMirInferredGenericMemberVesselRepresentation() &&
           fact.receiver_carriage ==
               CallableReceiverCarriageMutableIdentity()));
-}
-
-func DirectMirInferredGenericMemberRepresentationFactFromInstructions(
-    ref identity: DirectMirInferredGenericMemberProgramIdentity,
-    ref instructions: DirectMirInferredGenericMemberInstructionAdmission
-) -> DirectMirInferredGenericMemberRepresentationFact {
-    if !DirectMirInferredGenericMemberProgramIdentityReady(identity) ||
-        !DirectMirInferredGenericMemberInstructionAdmissionReady(instructions) ||
-        !DirectMirInferredGenericMemberHostCarriageReady(
-            identity.declaration.host,
-            identity.generic_method.receiver_carriage
-        ) ||
-        instructions.constructor.abi_layout_id_start < 0 ||
-        instructions.constructor.abi_layout_required_start < 0 ||
-        instructions.constructor.abi_layout_start < 0 {
-        Die("direct MIR inferred member representation input is invalid");
-    }
-    let fact: DirectMirInferredGenericMemberRepresentationFact =
-        DirectMirInferredGenericMemberRepresentationFact(
-            true, 0, identity.declaration.name,
-            identity.declaration.field_name, identity.declaration.field_type,
-            DirectMirInferredGenericMemberRepresentationForHost(
-                identity.declaration.host
-            ), identity.generic_method.receiver_carriage
-        );
-    let verified: DirectMirInferredGenericMemberRepresentationFact =
-        DirectMirInferredGenericMemberRepresentationFact(
-            fact.valid,
-            DirectMirInferredGenericMemberRepresentationFactDigest(fact),
-            fact.type_name, fact.field_name, fact.field_type,
-            fact.representation, fact.receiver_carriage
-        );
-    if !DirectMirInferredGenericMemberRepresentationFactReady(verified) {
-        Die("direct MIR inferred member representation fact is invalid");
-    }
-    return verified;
 }
