@@ -41,8 +41,10 @@ MEMBER_ALIAS="direct MIR Array<String> alias of a parameter member grows storage
 CLONE_LANDING="direct MIR emission cannot carry the 1 compiler Clone landing(s)"
 NO_HANDOFF="direct MIR Array<String> constructor input has no hand-off fact"
 LENT_INOUT="owned local lent to a ref formal is released while an inout argument of the same call may hold its Strings"
-# The MIR reader refuses the routine whose member move claims a hand-off.
-FORGED_HANDOFF="direct MIR compile-time declaration erasure declaration schema is invalid"
+# The general route refuses the routine whose member move claims a hand-off:
+# its value-result ABI no longer seals (the same MIR without the forged
+# hand-off runs above).
+FORGED_HANDOFF="scalar program route rejected: owner=scalar-program-route stage=array-int-value-result-abi"
 TAKEN="owned local taken by a record or call result is already held by another owner"
 TAKEN_AGAIN="owned local taken by a record or call result is taken again on each pass of a loop"
 
