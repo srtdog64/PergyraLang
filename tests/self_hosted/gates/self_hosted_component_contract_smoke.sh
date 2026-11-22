@@ -2186,7 +2186,7 @@ require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir
 require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy" 125
 require_max_lines "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy" 55
 require_max_lines "src/self_hosted/compiler/direct_mir/direct_mir_nominal_abi_row_identity_owner.pgy" 35
-require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" 23
+require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" 24
 require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_call_callee_syntax_owner.pgy" 90
 require_max_lines "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy" 20
 

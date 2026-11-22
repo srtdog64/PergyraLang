@@ -20,6 +20,7 @@ import "../semantic/ast_statement_fact_owner.pgy";
 import "../semantic/ast_statement_type_query_owner.pgy";
 import "../semantic/ast_generic_specialization_query_owner.pgy";
 import "../semantic/role_operator_resolution_owner.pgy";
+import "region_site_projection_owner.pgy";
 func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtifactAnalysis,
     ref input: SelfMirRoutineInput, signature_index: Int, build: SelfMirRoutineBuild,
     initializer_types: SemanticAstInitializerTypeFacts,
@@ -340,7 +341,7 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
         facts.parallel_captures, facts.routines, facts.cfg,
         facts.instruction_abi_receipts,
         facts.collection_ownership_receipts,
-        facts.expression_graph, facts.intent_execution);
+        facts.expression_graph, facts.intent_execution, facts.region_sites);
     let initializer_rows: SelfMirInitializerRows =
         SelfMirInitializerRowsFromSemantic(initializer_types);
     let iteration_rows: SelfMirIterationRows =
@@ -472,6 +473,10 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
         intent_i = intent_i + 1;
     }
     SelfMirArtifactPressureStage(observe_pressure, "intent-lowering:done");
+    let region_sites: SemanticRegionEscapeSites = SemanticRegionEscapeSitesCollect(
+        traversal_artifact.arena, analysis.signatures, analysis.expression_surfaces);
+    facts.region_sites = SelfMirRegionSitesFromSemantic(region_sites,
+        SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena));
     SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
         traversal_artifact
     );

@@ -6,6 +6,7 @@ import "direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_
 import "direct_mir/scalar_program/direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
 import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_region_scope_owner.pgy";
 
 func DirectMirOwnedLocalLifetimeRequire(ref plan: DirectMirScalarCfgGraphPlan,
     ref lifetime: DirectMirOwnedLocalLifetimeFact) -> Void {
@@ -226,7 +227,8 @@ func DirectMirOwnedLocalInitialization(ref plan: DirectMirScalarCfgGraphPlan,
     DirectMirOwnedLocalLifetimeRequire(plan, lifetime);
     var row: Int = plan.routines.local_starts[routine];
     let end: Int = row + plan.routines.local_counts[routine];
-    var output: String = "";
+    // The routine region opens with the owned locals and closes with them.
+    var output: String = DirectMirScalarCfgRegionInitialization(plan, routine, llvm);
     if llvm {
         var parameter: Int = plan.routines.parameter_starts[routine];
         let parameter_end: Int = parameter +
@@ -267,7 +269,7 @@ func DirectMirOwnedLocalExitCleanup(ref plan: DirectMirScalarCfgGraphPlan,
     DirectMirOwnedLocalLifetimeRequire(plan, lifetime);
     var row: Int = plan.routines.local_starts[routine];
     let end: Int = row + plan.routines.local_counts[routine];
-    var output: String = "";
+    var output: String = DirectMirScalarCfgRegionExitCleanup(plan, routine, llvm);
     while row < end {
         if lifetime.local_modes[row] > 0 {
             if llvm {

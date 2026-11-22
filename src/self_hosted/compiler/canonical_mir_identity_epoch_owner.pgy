@@ -561,7 +561,7 @@ func CanonicalMirIdentityEpochRebindProgramFacts(
         facts.routines, facts.cfg,
         facts.instruction_abi_receipts,
         facts.collection_ownership_receipts,
-        facts.expression_graph, facts.intent_execution
+        facts.expression_graph, facts.intent_execution, facts.region_sites
     );
     return CanonicalMirProgramIdentityEpoch(
         SelfMirProgramFactsReady(rebound), rebound

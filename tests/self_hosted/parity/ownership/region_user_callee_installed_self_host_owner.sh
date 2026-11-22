@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # One call-duration readonly String temporary through installed source and MIR C/LLVM.
 # Source C allocates it in the function region (semantic/region_escape_site_owner.pgy)
-# and frees the region before returning; LeakSanitizer sees no leak.
+# and frees the region before returning; LeakSanitizer sees no leak. The MIR
+# carries the site (`expr0_region_sites`), so direct-MIR C and LLVM do the same.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -55,8 +56,13 @@ for backend in c llvm; do
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
 done
 require_text "$WORK_DIR/direct.c" 'static void pgy_scalar_routine_1(const char* pgy_param_0)'
-require_text "$WORK_DIR/direct.c" 'pgy_scalar_routine_1(pgy_concat("left", "right"))'
+require_text "$WORK_DIR/direct.c" 'PgyRegion __pgy_region = pgy_region_create(0);'
+require_text "$WORK_DIR/direct.c" 'pgy_scalar_routine_1(pgy_region_string_concat(&__pgy_region, "left", "right"))'
+require_text "$WORK_DIR/direct.c" 'pgy_region_destroy(&__pgy_region);'
+reject_text "$WORK_DIR/direct.c" 'pgy_scalar_routine_1(pgy_concat('
+require_text "$WORK_DIR/direct.ll" '%pgy.expr.0.2 = call ptr @pgy.region.concat(ptr %pgy.region, ptr @pgy.scalar.string.0, ptr @pgy.scalar.string.1)'
 require_text "$WORK_DIR/direct.ll" 'call void @pgy.scalar.routine.1(ptr %pgy.expr.0.2)'
+require_text "$WORK_DIR/direct.ll" 'call void @pgy.region.free(ptr %pgy.region)'
 require_text "$WORK_DIR/direct.ll" 'define internal void @pgy.scalar.routine.1(ptr %pgy.param.0)'
 
 (cd "$ROOT_DIR" && "$DRIVER" "$SOURCE_REL" --emit-c-verified) \
@@ -143,12 +149,14 @@ for stem in direct source public; do
     "$WORK_DIR/$stem-c.exe" | tr -d '\r' >"$WORK_DIR/$stem-c.run"
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$stem-c.run" || fail "$stem C execution drifted"
 done
-"$CC" -x c -std=c11 -g -fsanitize=address -fno-omit-frame-pointer \
-    -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread "$WORK_DIR/source.c" \
-    -o "$WORK_DIR/source-asan.exe" >/dev/null 2>"$WORK_DIR/source-asan.compile.err" ||
-    fail "source C did not compile under AddressSanitizer"
-ASAN_OPTIONS=detect_leaks=1 "$WORK_DIR/source-asan.exe" >"$WORK_DIR/source-asan.run" \
-    2>"$WORK_DIR/source-asan.err" || fail "source C leaked or failed under LeakSanitizer"
+for stem in source direct; do
+    "$CC" -x c -std=c11 -g -fsanitize=address -fno-omit-frame-pointer \
+        -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread "$WORK_DIR/$stem.c" \
+        -o "$WORK_DIR/$stem-asan.exe" >/dev/null 2>"$WORK_DIR/$stem-asan.compile.err" ||
+        fail "$stem C did not compile under AddressSanitizer"
+    ASAN_OPTIONS=detect_leaks=1 "$WORK_DIR/$stem-asan.exe" >"$WORK_DIR/$stem-asan.run" \
+        2>"$WORK_DIR/$stem-asan.err" || fail "$stem C leaked or failed under LeakSanitizer"
+done
 "$CC" -x c -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread \
     "$WORK_DIR/addressable.c" -o "$WORK_DIR/addressable.exe" >/dev/null \
     2>"$WORK_DIR/addressable.compile.err" || fail "addressable C did not compile"

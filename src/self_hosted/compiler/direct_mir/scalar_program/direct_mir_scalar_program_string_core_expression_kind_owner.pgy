@@ -15,6 +15,9 @@ func DirectMirScalarProgramExprToIntString() -> Int { return 27; }
 func DirectMirScalarProgramExprStringJoin() -> Int { return 69; }
 func DirectMirScalarProgramExprToStringString() -> Int { return 70; }
 func DirectMirScalarProgramExprStringClone() -> Int { return 151; }
+// A String `+` the region escape owner certified: allocated from the routine
+// region, never released on its own (not a fresh String kind).
+func DirectMirScalarProgramExprRegionConcatString() -> Int { return 159; }
 
 // These two normalized expressions share the StringConcat runtime ABI.  The
 // complete fresh-String classification lives with the full expression-kind

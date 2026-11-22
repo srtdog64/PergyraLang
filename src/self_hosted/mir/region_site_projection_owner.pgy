@@ -1,0 +1,43 @@
+// MIR projection of the self-host region escape owner's sites
+// (semantic/region_escape_site_owner.pgy). The program facts keep the sites
+// as ascending semantic graph node ids; each instruction's JSON lists the
+// sites inside its graph window, as indices into that window, under
+// `expr0_region_sites` / `expr1_region_sites`. No list means no site (heap).
+
+import "../semantic/region_escape_site_owner.pgy";
+
+// Ascending, unique node ids of the sites, below `node_count`.
+func SelfMirRegionSitesFromSemantic(
+    ref sites: SemanticRegionEscapeSites, node_count: Int
+) -> Array<Int> {
+    var marked: Array<Bool> = [];
+    var i: Int = 0;
+    while i < node_count {
+        ArrayPush(marked, false);
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(sites.site_nodes) {
+        let node: Int = sites.site_nodes[i];
+        if node >= 0 && node < node_count { ArraySet(marked, node, true); }
+        i = i + 1;
+    }
+    var ordered: Array<Int> = [];
+    i = 0;
+    while i < node_count {
+        if marked[i] { ArrayPush(ordered, i); }
+        i = i + 1;
+    }
+    return ordered;
+}
+
+// The first position of `sites` whose node is at least `node`.
+func SelfMirRegionSiteLowerBound(ref sites: Array<Int>, node: Int) -> Int {
+    var low: Int = 0;
+    var high: Int = ArrayLength(sites);
+    while low < high {
+        let middle: Int = low + (high - low) / 2;
+        if sites[middle] < node { low = middle + 1; } else { high = middle; }
+    }
+    return low;
+}

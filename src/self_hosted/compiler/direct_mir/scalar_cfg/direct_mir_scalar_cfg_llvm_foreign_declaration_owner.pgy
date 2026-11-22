@@ -12,9 +12,11 @@ import "../scalar_program/direct_mir_scalar_program_llvm_slice_expression_owner.
 import "../scalar_program/direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
 import "../../mir_compound_assignment_readiness_owner.pgy";
 import "../../mir_compound_arithmetic_projection_owner.pgy";
+import "direct_mir_scalar_cfg_region_scope_owner.pgy";
 func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraphPlan, return_clone_reached: Bool) -> String {
     // The String concat definition calls strlen, malloc and memcpy.
-    let concat: Bool = DirectMirScalarProgramStringConcatMaterializationReached(plan, return_clone_reached);
+    let concat: Bool = DirectMirScalarProgramStringConcatMaterializationReached(plan, return_clone_reached) ||
+        DirectMirScalarCfgRegionReached(plan);
     let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement = DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
     if !array_int_runtime.valid { Die("direct MIR LLVM Array<Int> runtime requirement is invalid"); }
     let slice_any: Bool = DirectMirScalarProgramSliceAnyReached(plan.program.expressions);
@@ -145,7 +147,9 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     // inside an expression all free; an unused declaration costs nothing.
     output = Concat(output, "declare void @free(ptr)
 ");
-    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.logical_record.present || slice_any { output = Concat(output, "declare void @abort()\n"); }
+    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.logical_record.present || slice_any ||
+        DirectMirScalarCfgRegionReached(plan) { output = Concat(output, "declare void @abort()\n"); }
+    output = Concat(output, DirectMirScalarCfgRegionLlvmDefinitions(plan));
     output = Concat(output, DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(plan));
     // Storage materialization includes get even without a source-level read.
     if scalar_array_index || string_array_storage || bounded_array_set || slice_any || DirectMirScalarProgramExpressionContainsKind(

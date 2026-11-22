@@ -8,6 +8,6 @@ import "direct_mir_scalar_program_string_index_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_string_core_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprTaskIsCancelled() -> Int { return 143; }
-// The highest stable identity: SetStringSize (158) follows SeedRandom (157),
-// RandomInt (156) and UnwrapOptionPayloadEnum (155).
-func DirectMirScalarProgramExpressionKindLast() -> Int { return 158; }
+// The highest stable identity: RegionConcatString (159) follows SetStringSize
+// (158), SeedRandom (157), RandomInt (156) and UnwrapOptionPayloadEnum (155).
+func DirectMirScalarProgramExpressionKindLast() -> Int { return 159; }

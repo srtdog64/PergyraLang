@@ -34,6 +34,7 @@ import "../../../codegen/runtime_abi/host_io_runtime_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_scalar_value_result_owner.pgy";
 import "direct_mir_scalar_cfg_program_c_routine_emission_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_payload_free_enum_result_preamble_owner.pgy";
+import "direct_mir_scalar_cfg_region_scope_owner.pgy";
 
 func DirectMirScalarCfgEmitProgramC(
     ref plan: DirectMirScalarCfgGraphPlan, formatted_print: CompilerRuntimeCallAbiFact,
@@ -53,6 +54,7 @@ func DirectMirScalarCfgEmitProgramC(
         plan.program.expressions, DirectMirScalarProgramExprArrayDropStorage()) {
         TextBuilderAppend(output, "#include <string.h>\n");
     }
+    TextBuilderAppend(output, DirectMirScalarCfgRegionCIncludes(plan));
     TextBuilderAppend(output, DirectMirScalarProgramCExternalRuntimePreamble(plan.program.expressions));
     if DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprCheckedAddInt()) ||
             DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprCheckedMulInt()) {

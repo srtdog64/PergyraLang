@@ -2,6 +2,7 @@
 
 import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "../scalar_cfg/direct_mir_scalar_cfg_local_emission_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_region_scope_owner.pgy";
 import "direct_mir_scalar_program_c_expression_owner.pgy";
 import "direct_mir_scalar_program_c_option_int_owner.pgy";
 import "direct_mir_scalar_program_option_int_try_admission_owner.pgy";
@@ -39,8 +40,9 @@ func DirectMirScalarProgramCOptionIntTryDefinition(
     var output: String = Concat("    ", Concat(
         DirectMirScalarProgramCOptionIntTypeName(), Concat(" ", Concat(
         temporary, Concat(" = ", Concat(operand, ";\n"))))));
-    output = Concat(output, Concat("    if (!", Concat(
-        UnwrapOption(present), ") {\n        return ")));
+    // The early return is a routine exit: it frees the routine region.
+    output = Concat(output, Concat("    if (!", Concat(UnwrapOption(present), ") {\n")));
+    output = Concat(output, Concat(DirectMirScalarCfgRegionExitCleanup(plan, routine, false), "        return "));
     output = Concat(output, Concat(UnwrapOption(absent), ";\n    }\n    "));
     output = Concat(output, DirectMirScalarCfgCLocal(plan, result));
     output = Concat(output, Concat(" = ", Concat(

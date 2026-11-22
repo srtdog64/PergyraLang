@@ -252,7 +252,8 @@ func MachineProbeFacts(
             SelfMirCollectionOwnershipReceiptRowsEmpty(),
             ArrayLength(cfg5.instructions.ids)
         ), program_graph.graph, MirIntentExecutionPlanFromFacts(
-            MirIntentStepTransitionFactsEmpty(), MirIntentTerminalTransitionFactsEmpty())
+            MirIntentStepTransitionFactsEmpty(), MirIntentTerminalTransitionFactsEmpty()),
+        no_ints
     );
 }
 

@@ -2,7 +2,9 @@
 
 Status: slices 1 and 2 landed in `8be12fd7a`
 ([evidence](../truth/evidence/2026-11-22_selfhost_source_c_region_allocation.md));
-slices 3 and 4 open. One edit lane (Claude). Base revision `bcd9fbea0`. User decision 2026-11-22: close
+slice 3 (direct MIR) landed
+([evidence](../truth/evidence/2026-11-22_selfhost_direct_mir_region_allocation.md));
+slice 4 open. One edit lane (Claude). Base revision `bcd9fbea0`. User decision 2026-11-22: close
 `resource.region_allocation_plan` by implementing region allocation on the
 self-host route. Integration gates: `region_user_callee_installed_self_host_owner.sh`,
 `region_backend_wiring_smoke.sh`, `region_call_temporary_smoke.sh` and the
@@ -79,6 +81,48 @@ authoritative.
    sites; LLVM declares the region runtime. Gate: installed direct C/LLVM
    equal to source C/LLVM; a forged site row (outside its scope, on a
    non-concat node) is refused.
+   Slice 3 design (survey 2026-11-22):
+   - Carriage: an instruction's graph is a window `[start, start+count)` of
+     the one semantic graph (`expression_graph_fact_owner.pgy`), JSON index =
+     node - start. The producer writes `expr0_region_sites` /
+     `expr1_region_sites` (JSON indices of certified nodes in that lane's
+     window) only when non-empty, so programs without sites keep their MIR
+     SHA; precedent `expr0_local_refs` (rows, append, validation, JSON and
+     the generated memory projection, `scripts/render_mir_json_memory_projection.py`).
+     Native MIR has no such field: absent means heap.
+   - Consumer: direct-MIR admission (`expression_admission_owner.pgy`,
+     `AppendExpressionNode`) has the instruction table and the JSON node
+     index; a String `+` listed there gets a new expression kind (region
+     concat). It must stay out of the fresh-String retirement kind lists
+     (`expression_kind_id_owner.pgy`, `string_core_expression_kind_owner.pgy`).
+     A routine with a region-concat node creates the region at entry and
+     destroys it at every exit, beside `DirectMirOwnedLocalInitialization` /
+     `DirectMirOwnedLocalExitCleanup` (C routine and block-exit owners; LLVM
+     emission owner). The `?` early returns skip owned cleanup today
+     (`*_option_int_try_owner.pgy`): destroy there too, or refuse the pair.
+   - LLVM: define internal region helpers in the module, as `@pgy_concat`
+     is defined (`string_llvm_materialization_owner.pgy`), so artifacts still
+     link with bare `clang -x ir`; C includes the region runtime headers.
+   - Gates that move: `region_user_callee_installed_self_host_owner.sh`
+     (direct C pin, direct.ll == source.ll), `one_mir_string_builtin_program_projection.sh`
+     (fixture `string_concat_op.pgy` has sites; MIR SHA pin), general emitter
+     coverage, owned String result composition/reachable proof.
+   Slice 3 result: program facts carry `region_sites`
+   (`mir/region_site_projection_owner.pgy`, computed in
+   `artifact_lower_owner.pgy` before the arena retires); the instruction
+   writer emits `expr0/expr1_region_sites` only when non-empty. Direct-MIR
+   admission reads the lane's list (`direct_mir_scalar_program_region_site_owner.pgy`),
+   refuses a malformed list or an index past the graph before the node loop
+   and a listed non-concat node inside it, and turns a listed String `+`
+   into kind 159 `DirectMirScalarProgramExprRegionConcatString`. C and LLVM
+   string emitters project kind 159 to the routine region; the retiring
+   String observer takes the region pointer, so fresh operands (`ToString`)
+   are still released. `scalar_cfg/direct_mir_scalar_cfg_region_scope_owner.pgy`
+   decides per routine from its admitted expression rows; the region opens
+   with the owned-local initialization and is freed with the owned-local exit
+   cleanup and on the Option<Int> `?` early return (C and LLVM try owners).
+   LLVM defines internal `@pgy.region.concat` / `@pgy.region.free` over
+   malloc, so artifacts link without the runtime library.
 4. Delete `region_plan_owner.pgy` and its manifest gate; update the
    installed self-host region gate from heap to region output; close the row.
 

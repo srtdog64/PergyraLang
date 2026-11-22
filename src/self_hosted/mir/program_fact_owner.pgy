@@ -129,6 +129,8 @@ struct SelfMirProgramFacts {
     collection_ownership_receipts: SelfMirCollectionOwnershipReceiptRows;
     expression_graph: SemanticExpressionGraphFacts;
     intent_execution: MirIntentExecutionPlan;
+    // Ascending semantic graph node ids of the region escape owner's sites.
+    region_sites: Array<Int>;
 }
 
 func SelfMirParamCarriageName(abi_kind: Int) -> String {
@@ -209,6 +211,7 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
 func SelfMirProgramFactsEmpty(
     artifact_node_count: Int
 ) -> SelfMirProgramFacts {
+    let no_region_sites: Array<Int> = [];
     return SelfMirProgramFacts(
         true, "", "", artifact_node_count,
         SelfMirDeclarationRowsEmpty(),
@@ -221,7 +224,8 @@ func SelfMirProgramFactsEmpty(
         SelfMirInstructionAbiReceiptRowsEmpty(),
         SelfMirCollectionOwnershipReceiptRowsEmpty(),
         SemanticExpressionGraphFactsEmpty(), MirIntentExecutionPlanFromFacts(
-            MirIntentStepTransitionFactsEmpty(), MirIntentTerminalTransitionFactsEmpty())
+            MirIntentStepTransitionFactsEmpty(), MirIntentTerminalTransitionFactsEmpty()),
+        no_region_sites
     );
 }
 
@@ -253,7 +257,7 @@ func SelfMirProgramFactsWithDomainTopology(
         facts.routines, facts.cfg,
         facts.instruction_abi_receipts,
         facts.collection_ownership_receipts,
-        facts.expression_graph, facts.intent_execution
+        facts.expression_graph, facts.intent_execution, facts.region_sites
     );
 }
 

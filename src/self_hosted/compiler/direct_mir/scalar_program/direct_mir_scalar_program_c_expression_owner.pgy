@@ -207,8 +207,10 @@ func DirectMirScalarProgramCExpressionValues(
             kind != DirectMirScalarProgramExprArrayStringPushOwned() {
             var right_value: String = right;
             if right_value == "" { right_value = "NULL"; }
-            value = DirectMirOwnedStringObserverCName(kind) + "(" + left + ", " + right_value +
-                ", " + ToString(retire[node - start]) + ")";
+            var region_argument: String = "";
+            if kind == DirectMirScalarProgramExprRegionConcatString() { region_argument = "&__pgy_region, "; }
+            value =DirectMirOwnedStringObserverCName(kind) + "(" + region_argument + left + ", " +
+                right_value + ", " + ToString(retire[node - start]) + ")";
         }
         ArrayPush(values, value);
         node = node + 1;

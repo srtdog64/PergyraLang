@@ -228,6 +228,33 @@ func SelfMirJsonDestructureFieldsWriteMemory(
     return true;
 }
 
+func SelfMirJsonRegionSitesWriteMemory(
+    ref sites: Array<Int>, rows: SelfMirExpressionGraphRows,
+    instruction_index: Int, name: String, inout fragments: Array<String>
+) -> Bool {
+    if instruction_index < 0 ||
+        instruction_index >= ArrayLength(rows.has_roots) {
+        return false;
+    }
+    if rows.has_roots[instruction_index] != 1 { return true; }
+    let start: Int = rows.node_starts[instruction_index];
+    let end: Int = start + rows.node_counts[instruction_index];
+    var at: Int = SelfMirRegionSiteLowerBound(sites, start);
+    if at >= ArrayLength(sites) || sites[at] >= end { return true; }
+    JsonProjectionAppend(fragments, ",\"");
+    JsonProjectionAppend(fragments, name);
+    JsonProjectionAppend(fragments, "\":[");
+    var first: Bool = true;
+    while at < ArrayLength(sites) && sites[at] < end {
+        if !first { JsonProjectionAppend(fragments, ","); }
+        JsonOwnedFragmentAppend(fragments, ToString(sites[at] - start));
+        first = false;
+        at = at + 1;
+    }
+    JsonProjectionAppend(fragments, "]");
+    return true;
+}
+
 func SelfMirJsonInstructionWriteMemory(
     facts: SelfMirProgramFacts,
     instruction_index: Int,
@@ -391,6 +418,10 @@ func SelfMirJsonInstructionWriteMemory(
         JsonProjectionAppend(fragments, ",\"binding_source_syntax_id\":");
         JsonOwnedFragmentAppend(fragments, ToString(rows.binding_source_syntax_ids[instruction_index]));
     }
+    if !SelfMirJsonRegionSitesWriteMemory(facts.region_sites, rows.expr0_graphs,
+            instruction_index, "expr0_region_sites", fragments) ||
+        !SelfMirJsonRegionSitesWriteMemory(facts.region_sites, rows.expr1_graphs,
+            instruction_index, "expr1_region_sites", fragments) { return false; }
     if emit_local_refs && !SelfMirJsonLocalRefsWriteMemory(
         facts.cfg.local_refs, instruction_index, fragments
     ) { return false; }

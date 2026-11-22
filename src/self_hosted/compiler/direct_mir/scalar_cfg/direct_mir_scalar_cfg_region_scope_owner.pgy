@@ -1,0 +1,90 @@
+// Routine region of the direct-MIR route. A routine whose admitted
+// expressions hold a region concat (DirectMirScalarProgramExprRegionConcatString,
+// from the self-host region escape owner's MIR sites) creates its region at
+// entry and frees it at every exit, beside the owned-local initialization
+// and exit cleanup. C uses the runtime region (pgy_runtime_region_inline.h);
+// LLVM defines a malloc-backed region in the module, as it defines its
+// String concat, so an artifact links without the runtime library.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_string_core_expression_kind_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_expression_kind_query_owner.pgy";
+
+func DirectMirScalarCfgExpressionRowUsesRegion(
+    ref plan: DirectMirScalarCfgGraphPlan, row: Int
+) -> Bool {
+    if row < 0 || row >= ArrayLength(plan.program.expressions.graph_starts) { return false; }
+    var node: Int = plan.program.expressions.graph_starts[row];
+    let end: Int = node + plan.program.expressions.graph_counts[row];
+    while node < end {
+        if plan.program.expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprRegionConcatString() {
+            return true;
+        }
+        node = node + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarCfgRoutineUsesRegion(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> Bool {
+    var block: Int = plan.routines.block_starts[routine];
+    let block_end: Int = block + plan.routines.block_counts[routine];
+    while block < block_end {
+        if DirectMirScalarCfgExpressionRowUsesRegion(
+                plan, plan.program.block_condition_expression_rows[block]) ||
+            DirectMirScalarCfgExpressionRowUsesRegion(
+                plan, plan.program.block_return_expression_rows[block]) {
+            return true;
+        }
+        var operation: Int = plan.block_operation_starts[block];
+        let operation_end: Int = operation + plan.block_operation_counts[block];
+        while operation < operation_end {
+            if DirectMirScalarCfgExpressionRowUsesRegion(
+                    plan, plan.program.operation_expression_rows[operation]) ||
+                DirectMirScalarCfgExpressionRowUsesRegion(
+                    plan, plan.program.operation_secondary_expression_rows[operation]) {
+                return true;
+            }
+            operation = operation + 1;
+        }
+        block = block + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarCfgRegionInitialization(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, llvm: Bool
+) -> String {
+    if !DirectMirScalarCfgRoutineUsesRegion(plan, routine) { return ""; }
+    if llvm {
+        return "  %pgy.region = alloca ptr\n  store ptr null, ptr %pgy.region\n";
+    }
+    return "    PgyRegion __pgy_region = pgy_region_create(0);\n";
+}
+
+func DirectMirScalarCfgRegionExitCleanup(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, llvm: Bool
+) -> String {
+    if !DirectMirScalarCfgRoutineUsesRegion(plan, routine) { return ""; }
+    if llvm { return "  call void @pgy.region.free(ptr %pgy.region)\n"; }
+    return "    pgy_region_destroy(&__pgy_region);\n";
+}
+
+func DirectMirScalarCfgRegionReached(ref plan: DirectMirScalarCfgGraphPlan) -> Bool {
+    return DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprRegionConcatString());
+}
+
+// The module's region: a list of malloc blocks, each a next pointer then the
+// text; free walks the list.
+func DirectMirScalarCfgRegionLlvmDefinitions(ref plan: DirectMirScalarCfgGraphPlan) -> String {
+    if !DirectMirScalarCfgRegionReached(plan) { return ""; }
+    return "define internal ptr @pgy.region.concat(ptr %region, ptr %a, ptr %b) {\nentry:\n  %la = call i64 @strlen(ptr %a)\n  %lb = call i64 @strlen(ptr %b)\n  %text_size = add i64 %la, %lb\n  %payload = add i64 %text_size, 1\n  %size = add i64 %payload, 8\n  %block = call ptr @malloc(i64 %size)\n  %failed = icmp eq ptr %block, null\n  br i1 %failed, label %oom, label %ok\noom:\n  call void @abort()\n  unreachable\nok:\n  %head = load ptr, ptr %region\n  store ptr %head, ptr %block\n  store ptr %block, ptr %region\n  %text = getelementptr i8, ptr %block, i64 8\n  %copied_a = call ptr @memcpy(ptr %text, ptr %a, i64 %la)\n  %tail = getelementptr i8, ptr %text, i64 %la\n  %copied_b = call ptr @memcpy(ptr %tail, ptr %b, i64 %lb)\n  %end = getelementptr i8, ptr %tail, i64 %lb\n  store i8 0, ptr %end\n  ret ptr %text\n}\n\ndefine internal void @pgy.region.free(ptr %region) {\nentry:\n  %first = load ptr, ptr %region\n  br label %loop\nloop:\n  %current = phi ptr [ %first, %entry ], [ %next, %body ]\n  %done = icmp eq ptr %current, null\n  br i1 %done, label %exit, label %body\nbody:\n  %next = load ptr, ptr %current\n  call void @free(ptr %current)\n  br label %loop\nexit:\n  store ptr null, ptr %region\n  ret void\n}\n\n";
+}
+
+func DirectMirScalarCfgRegionCIncludes(ref plan: DirectMirScalarCfgGraphPlan) -> String {
+    if !DirectMirScalarCfgRegionReached(plan) { return ""; }
+    return "#include <stdlib.h>\n#include <string.h>\n#include \"pgy_runtime_panic_contract.h\"\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_runtime_region_inline.h\"\n";
+}

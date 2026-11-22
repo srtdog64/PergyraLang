@@ -33,6 +33,9 @@ func DirectMirScalarProgramCStringExpression(
         }
         return Some(Concat(value, " != 0)"));
     }
+    if kind == DirectMirScalarProgramExprRegionConcatString() {
+        return Some("pgy_region_string_concat(&__pgy_region, " + left + ", " + right + ")");
+    }
     if kind == DirectMirScalarProgramExprConcatString() ||
             kind == DirectMirScalarProgramExprStringClone() {
         if !CompilerRuntimeCallAbiStringConcatFactReady(

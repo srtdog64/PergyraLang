@@ -5,7 +5,8 @@ import "direct_mir/scalar_program/direct_mir_scalar_program_direct_call_readines
 func DirectMirOwnedStringObserverResultType(kind: Int) -> String {
     // This prelude emits a two-operand observer wrapper.  N-ary and host-I/O
     // fresh String producers own their result, but are not this wrapper shape.
-    if DirectMirScalarProgramConcatBackedFreshStringExpressionKind(kind) {
+    if DirectMirScalarProgramConcatBackedFreshStringExpressionKind(kind) ||
+        kind == DirectMirScalarProgramExprRegionConcatString() {
         return "String";
     }
     if kind == DirectMirScalarProgramExprStringLength() ||

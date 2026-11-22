@@ -59,6 +59,10 @@ func DirectMirScalarProgramLlvmStringExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, output, compared);
     }
+    if kind == DirectMirScalarProgramExprRegionConcatString() {
+        return DirectMirScalarProgramLlvmStringExpression(true, true, "  " + result +
+            " = call ptr @pgy.region.concat(ptr %pgy.region, ptr " + left + ", ptr " + right + ")\n", result);
+    }
     if kind == DirectMirScalarProgramExprConcatString() ||
             kind == DirectMirScalarProgramExprStringClone() {
         if !CompilerRuntimeCallAbiStringConcatFactReady(

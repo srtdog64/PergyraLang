@@ -196,7 +196,8 @@ func DirectMirScalarProgramExpressionNodeReady(
         kind == DirectMirScalarProgramExprLogicalOr();
     let string_binary: Bool = kind == DirectMirScalarProgramExprEqualString() ||
         kind == DirectMirScalarProgramExprNotEqualString() ||
-        kind == DirectMirScalarProgramExprConcatString();
+        kind == DirectMirScalarProgramExprConcatString() ||
+        kind == DirectMirScalarProgramExprRegionConcatString();
     if (!int_binary && !long_binary && !bool_binary && !string_binary) ||
         left < 0 || right < 0 ||
         local_binding != -1 || param != -1 || literal != "" || callable != -1 {
@@ -204,7 +205,8 @@ func DirectMirScalarProgramExpressionNodeReady(
     }
     if string_binary {
         var expected_type: String = CompilerAbiLayoutBoolTypeName();
-        if kind == DirectMirScalarProgramExprConcatString() {
+        if kind == DirectMirScalarProgramExprConcatString() ||
+            kind == DirectMirScalarProgramExprRegionConcatString() {
             expected_type = CompilerAbiLayoutStringTypeName();
         }
         return type_name == expected_type &&
