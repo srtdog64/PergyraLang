@@ -2,9 +2,10 @@
 
 Status: slices 1 and 2 landed in `8be12fd7a`
 ([evidence](../truth/evidence/2026-11-22_selfhost_source_c_region_allocation.md));
-slice 3 (direct MIR) landed
+slice 3 (direct MIR) landed in `c6c7ff395`
 ([evidence](../truth/evidence/2026-11-22_selfhost_direct_mir_region_allocation.md));
-slice 4 open. One edit lane (Claude). Base revision `bcd9fbea0`. User decision 2026-11-22: close
+slice 4 closed the row
+([evidence](../truth/evidence/2026-11-22_region_allocation_plan_closed.md)). One edit lane (Claude). Base revision `bcd9fbea0`. User decision 2026-11-22: close
 `resource.region_allocation_plan` by implementing region allocation on the
 self-host route. Integration gates: `region_user_callee_installed_self_host_owner.sh`,
 `region_backend_wiring_smoke.sh`, `region_call_temporary_smoke.sh` and the
@@ -125,6 +126,11 @@ authoritative.
    malloc, so artifacts link without the runtime library.
 4. Delete `region_plan_owner.pgy` and its manifest gate; update the
    installed self-host region gate from heap to region output; close the row.
+   Slice 4 result: the model, its manifest, golden, gate, Makefile target,
+   line caps, OWNERS entries and artifact kind `region_plan` are deleted
+   (the installed gate moved to region output in slice 3); the row is
+   `CLOSED` with `selfhost_unreached_region_plan_model` as a forbidden
+   fallback.
 
 ## Unknowns
 

@@ -3139,14 +3139,6 @@ call-handoff-rule-test-smoke: $(PGY)
 selfhost-reachability-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/selfhost_reachability_contract_smoke.sh
 
-# Verified region plan owner gate (WO-REG-1 REG-1d, docs/197): the origin
-# surface owns the plan contract, the producer's refusals, and the fail-closed
-# asymmetry (a lookup MISS is HEAP, so an incomplete escape pass costs speed
-# and never correctness). Golden + LLVM-leg parity + projection pins.
-selfhost-region-plan-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/gates/selfhost_region_plan_smoke.sh
-.PHONY: selfhost-region-plan-test-smoke
-
 parallel-production-contract-test-smoke: \
 		channel-pool-starvation-test-smoke \
 		nested-parallel-witness-test-smoke \
@@ -3230,8 +3222,7 @@ redteam-repair-contract-test-smoke: \
 		emitted-c-warning-clean-test-smoke \
 		backend-compare-bc-on-test-smoke \
 		parallel-join-test-smoke \
-		selfhost-reachability-contract-test-smoke \
-		selfhost-region-plan-test-smoke
+		selfhost-reachability-contract-test-smoke
 
 artifact-atomic-runtime-test-smoke:
 	"$(BASH)" tests/runtime/runtime_artifact_atomic_transaction_smoke.sh

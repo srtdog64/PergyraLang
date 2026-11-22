@@ -540,9 +540,6 @@ require_max_lines "src/self_hosted/parallel/lane_policy_manifest.pgy" 600
 require_max_lines "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" 600
 require_max_lines "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy" 600
 
-require_max_lines "src/self_hosted/compiler/region_plan_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/region_plan_manifest.pgy" 600
-
 require_max_lines "src/self_hosted/compiler/reachability_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/reachability_manifest.pgy" 600
 require_max_lines "src/self_hosted/hir/ast_expression_graph_owner.pgy" 600

@@ -737,6 +737,15 @@ directly to an approved synchronous sink; return, assignment, nested helper,
 and unresolved-identity cases remain HEAP. Complete allocation-site ownership
 remains open.
 
+2026-11-22: the self-host route now allocates the certified sites. The
+self-host semantic owner (`region_escape_site_owner.pgy`) certifies the native
+rule's call-duration `+` spines; source C and the direct-MIR C/LLVM routes
+(from the `expr0/expr1_region_sites` the self-host MIR carries) allocate them
+from a function region freed on every exit. The A.3 origin surface
+(`region_plan_owner.pgy`, its manifest, golden, gate and artifact kind) was
+never reached by a production route and is deleted; the registry row is
+`CLOSED` ([directive](../agent_work_directives/selfhost_region_allocation_2026-11-22.md)).
+
 Process note worth keeping: the earlier "blocked" reading was correct at the
 time but the *response* was too passive. What unblocked the track was checking
 whether the tree still built (it did), then landing every piece that did not
