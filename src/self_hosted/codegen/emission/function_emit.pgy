@@ -18,6 +18,7 @@ import "function_global_env_owner.pgy";
 import "role_receiver_binding_owner.pgy";
 import "implicit_receiver_c_parameter_owner.pgy";
 import "stmt_emit.pgy";
+import "region_scope_emit_owner.pgy";
 func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
                    receiver_facts: CodegenCallableReceiverFacts,
@@ -285,6 +286,10 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     var body_ret: String = ret_type;
     if is_main {
         body_ret = AbiLayoutCEntrypointBodyReturnType();
+    }
+    if CodegenRegionFunctionUsesRegion(base_env, function_node_id) {
+        prologue = Concat(prologue, CodegenRegionCreateLine());
+        copyout = Concat(copyout, CodegenRegionDestroyLine());
     }
     var routine_defers: String = "";
     let base_local_rows: String = base_env.local_rows;

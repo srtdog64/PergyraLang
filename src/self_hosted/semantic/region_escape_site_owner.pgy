@@ -1,0 +1,144 @@
+// Self-host region escape owner (`resource.region_allocation_plan`).
+//
+// A String `+` whose operand is a String literal, or whose left child is such
+// a `+`, may be allocated from its function's region when its value goes
+// directly to an argument that lives only for one synchronous call: an
+// argument the builtin retention registry marks borrowed, a Log statement's
+// value, or a readonly `ref` formal of a direct user call (the checker keeps
+// that formal from escaping). Every `+` of the left spine is a site, as in the
+// native owner (src/semantic/region_escape_fact.c). A Concat/StringConcat call
+// in such a position is released by the owned String temporary plan, so it
+// is not a site here. Anything else stays on the heap.
+
+import "ast_expression/ast_expression_surface_fact_owner.pgy";
+import "ast_expression/ast_expression_graph_call_view_owner.pgy";
+import "ast_expression/ast_expression_graph_node_view_owner.pgy";
+import "ast_builtin_argument_retention_call_fact_owner.pgy";
+import "builtin_argument_retention_projection_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_collection/ast_collection_formal_effect_identity_owner.pgy";
+import "../hir/typed_ast_arena_owner.pgy";
+
+struct SemanticRegionEscapeSites {
+    // Graph node of each site and the function node that owns it, in the
+    // order the surfaces list them; a node can appear once per consumer.
+    site_nodes: Array<Int>;
+    site_functions: Array<Int>;
+}
+
+// Whether `node` is a certified concat shape: a `+` with a String literal
+// operand, or whose left child is one.
+func SemanticRegionEscapeConcat(
+    ref graph: SemanticExpressionGraphFacts, node: Int
+) -> Bool {
+    var current: Int = node;
+    while current >= 0 &&
+        current < SemanticExpressionGraphArenaNodeCount(graph.arena) &&
+        graph.arena.topology.node_kinds[current] == AstExpressionNodeAdd() {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, current);
+        let right: Option<Int> = SemanticExpressionGraphRightChild(graph, current);
+        if !IsSome(left) || !IsSome(right) { return false; }
+        if graph.arena.topology.node_kinds[UnwrapOption(left)] ==
+                AstExpressionNodeStringLiteral() ||
+            graph.arena.topology.node_kinds[UnwrapOption(right)] ==
+                AstExpressionNodeStringLiteral() {
+            return true;
+        }
+        current = UnwrapOption(left);
+    }
+    return false;
+}
+
+// Every concat of the left spine rooted at a borrowed argument is a site.
+func SemanticRegionEscapeAppendSpine(
+    ref graph: SemanticExpressionGraphFacts, argument: Int, function_node: Int,
+    inout site_nodes: Array<Int>, inout site_functions: Array<Int>
+) -> Void {
+    var current: Int = argument;
+    while SemanticRegionEscapeConcat(graph, current) {
+        ArrayPush(site_nodes, current);
+        ArrayPush(site_functions, function_node);
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, current);
+        if !IsSome(left) { return; }
+        current = UnwrapOption(left);
+    }
+}
+
+// Whether argument `ordinal` of the call at `call_node` is borrowed for the
+// call only.
+func SemanticRegionEscapeArgumentBorrowed(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    call_node: Int, ordinal: Int
+) -> Bool {
+    let builtin: Option<String> =
+        SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
+            surfaces, call_node);
+    if IsSome(builtin) {
+        return SemanticBuiltinArgumentBorrowedForIdentity(
+            UnwrapOption(builtin), ordinal);
+    }
+    let target: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph, call_node, ordinal);
+    if !target.ok { return false; }
+    let mode: Option<Int> = SemanticAstFunctionParamModeAt(
+        signatures, target.signature_row, target.ordinal);
+    return IsSome(mode) && UnwrapOption(mode) == 3;
+}
+
+func SemanticRegionEscapeSitesCollect(
+    arena: AstArena,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticRegionEscapeSites {
+    var site_nodes: Array<Int> = [];
+    var site_functions: Array<Int> = [];
+    var row: Int = 0;
+    while row < ArrayLength(surfaces.node_ids) {
+        let function_node: Int = surfaces.function_node_ids[row];
+        var lane: Int = 0;
+        while function_node > 0 && lane < 3 &&
+            TypedAstArenaNodeKindIsCallable(arena, function_node) {
+            let root_opt: Option<Int> = SemanticExpressionGraphRootAt(
+                surfaces.expression_graph, row, lane);
+            var start_opt: Option<Int> = None;
+            if IsSome(root_opt) {
+                start_opt = SemanticExpressionGraphSubtreeStart(
+                    surfaces.expression_graph, UnwrapOption(root_opt));
+            }
+            if IsSome(root_opt) && IsSome(start_opt) {
+                let root: Int = UnwrapOption(root_opt);
+                if lane == AstExpressionLaneAtom() && TypedAstArenaNodeKindIs(
+                        arena, surfaces.node_ids[row], TypedAstKindLogStmtTag()) {
+                    SemanticRegionEscapeAppendSpine(surfaces.expression_graph,
+                        root, function_node, site_nodes, site_functions);
+                }
+                var node: Int = UnwrapOption(start_opt);
+                while node <= root {
+                    if surfaces.expression_graph.arena.topology.node_kinds[node] ==
+                            AstExpressionNodeCall() {
+                        let call: SemanticCallSpineView =
+                            SemanticCallSpineViewForCallNodeWithin(
+                                surfaces.expression_graph, node, root);
+                        var ordinal: Int = 0;
+                        while call.ok && ordinal < ArrayLength(call.argument_nodes) {
+                            if SemanticRegionEscapeArgumentBorrowed(
+                                    signatures, surfaces, node, ordinal) {
+                                SemanticRegionEscapeAppendSpine(
+                                    surfaces.expression_graph,
+                                    call.argument_nodes[ordinal], function_node,
+                                    site_nodes, site_functions);
+                            }
+                            ordinal = ordinal + 1;
+                        }
+                    }
+                    node = node + 1;
+                }
+            }
+            lane = lane + 1;
+        }
+        row = row + 1;
+    }
+    return SemanticRegionEscapeSites(site_nodes, site_functions);
+}

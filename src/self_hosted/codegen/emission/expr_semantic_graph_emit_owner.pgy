@@ -18,6 +18,7 @@ import "expr_semantic_index_emit_owner.pgy";
 import "runtime_call_rewrite_owner.pgy";
 import "../runtime_abi/checked_division_runtime_owner.pgy";
 import "../../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
+import "region_scope_emit_owner.pgy";
 struct CodegenSemanticLeafBindingProjection {
     place_ready: Bool;
     applies: Bool;
@@ -263,7 +264,7 @@ func RewriteExprFromSemanticGraphTrackedRaw(
          AstExpressionNodeIsScalarLeaf(UnwrapOption(right_kind)) &&
          UnwrapOption(right_kind) != AstExpressionNodeLeaf()) {
         return RewriteSemanticBinaryOperationTracked(
-            graph, kind, text, left_id, right_id, left, right, env, owned_fragments
+            graph, kind, text, node_id, left_id, right_id, left, right, env, owned_fragments
         );
     }
     var left_name: String = Concat("__pgy_binary_l_", ToString(node_id));
@@ -277,7 +278,7 @@ func RewriteExprFromSemanticGraphTrackedRaw(
         right_name = Concat(right_name, "_");
     }
     let operation: CodegenCExpressionText = RewriteSemanticBinaryOperationTracked(
-        graph, kind, text, left_id, right_id, left_name, right_name, env, owned_fragments
+        graph, kind, text, node_id, left_id, right_id, left_name, right_name, env, owned_fragments
     );
     return CodegenCExpressionTextOwned(owned_fragments, CodegenCOrderedBinaryExpression(
         left, right, left_name, right_name, operation.text
@@ -285,7 +286,7 @@ func RewriteExprFromSemanticGraphTrackedRaw(
 }
 func RewriteSemanticBinaryOperationTracked(
     ref graph: SemanticExpressionGraphFacts, kind: Int, text: String,
-    left_id: Int, right_id: Int, left: String, right: String,
+    node_id: Int, left_id: Int, right_id: Int, left: String, right: String,
     env: CodegenTypeEnv, inout owned_fragments: Array<String>
 ) -> CodegenCExpressionText {
     if kind == AstExpressionNodeCoalesce() {
@@ -423,6 +424,11 @@ func RewriteSemanticBinaryOperationTracked(
             var op_name: String = LookupKindType(
                 env, Concat(left_kind, "+"), "op"
             );
+            if op_name == "" && left_kind == "String" &&
+                CodegenRegionSiteAt(env, node_id) {
+                return CodegenCExpressionTextOwned(
+                    owned_fragments, CodegenRegionConcatCall(left, right));
+            }
             if op_name == "" && left_kind == "String" {
                 op_name = StringRuntimeCConcatFn();
             }

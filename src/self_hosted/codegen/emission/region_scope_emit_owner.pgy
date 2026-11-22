@@ -1,0 +1,54 @@
+// C emission owner for the function region of the self-host region escape
+// owner's sites (semantic/region_escape_site_owner.pgy). The sites reach the
+// emitters as codegen environment rows; a function with a site creates its
+// region in the prologue and destroys it in the cleanup every return runs.
+
+import "../../semantic/region_escape_site_owner.pgy";
+import "../type_facts/type_env.pgy";
+
+func CodegenRegionSiteKey(node: Int) -> String {
+    return Concat("__pgy_region_site_", ToString(node));
+}
+
+func CodegenRegionFunctionKey(function_node: Int) -> String {
+    return Concat("__pgy_region_fn_", ToString(function_node));
+}
+
+// Environment rows for the sites: one per site node, one per function.
+func CodegenRegionSiteRows(ref sites: SemanticRegionEscapeSites) -> String {
+    var rows: String = "";
+    var i: Int = 0;
+    while i < ArrayLength(sites.site_nodes) {
+        rows = Concat(rows, Concat(CodegenRegionSiteKey(sites.site_nodes[i]), "=rg:1|"));
+        rows = Concat(rows, Concat(
+            CodegenRegionFunctionKey(sites.site_functions[i]), "=rg:1|"));
+        i = i + 1;
+    }
+    return rows;
+}
+
+func CodegenRegionFunctionUsesRegion(ref env: CodegenTypeEnv, function_node: Int) -> Bool {
+    return LookupKindType(env, CodegenRegionFunctionKey(function_node), "rg") == "1";
+}
+
+func CodegenRegionSiteAt(ref env: CodegenTypeEnv, node: Int) -> Bool {
+    return LookupKindType(env, CodegenRegionSiteKey(node), "rg") == "1";
+}
+
+func CodegenRegionCreateLine() -> String {
+    return "    PgyRegion __pgy_region = pgy_region_create(0);\n";
+}
+
+func CodegenRegionDestroyLine() -> String {
+    return "    pgy_region_destroy(&__pgy_region);\n";
+}
+
+func CodegenRegionConcatCall(left: String, right: String) -> String {
+    return Concat("pgy_region_string_concat(&__pgy_region, ", Concat(
+        left, Concat(", ", Concat(right, ")"))));
+}
+
+// The region runtime and the panic contract and budget charge it needs.
+func CodegenRegionRuntimeCIncludes() -> String {
+    return "#include <stdlib.h>\n#include <string.h>\n#include \"pgy_runtime_panic_contract.h\"\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_runtime_region_inline.h\"\n";
+}

@@ -45,6 +45,7 @@ import "intent_execution_plan_emit_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
 import "../runtime_abi/checked_builtin_runtime_owner.pgy";
 import "../runtime_abi/checked_division_runtime_owner.pgy";
+import "region_scope_emit_owner.pgy";
 func CheckFunction(count: Int, arena: AstArena, signatures: SemanticAstFunctionSignatureFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
                    assignments: SemanticAstAssignmentFacts, statements: SemanticAstStatementFacts,
@@ -351,8 +352,11 @@ func GenerateCUnitFromReadySemanticFacts(
     );
     if observe_pressure { Log("[codegen-pressure-stage] role-dispatch:done"); }
     if observe_pressure { Log("[codegen-pressure-stage] base-env:start"); }
+    let region_sites: SemanticRegionEscapeSites = SemanticRegionEscapeSitesCollect(
+        arena, signatures, semantic_analysis.expression_surfaces);
+    let region_rows: String = CodegenRegionSiteRows(region_sites);
     var base_env: CodegenTypeEnv = CodegenTypeEnvSealPresealRows(
-        CodegenTypeEnvAppendPresealRows(runtime_env, operator_rows)
+        CodegenTypeEnvAppendPresealRows(runtime_env, Concat(operator_rows, region_rows))
     );
     if observe_pressure { Log("[codegen-pressure-stage] base-env:done"); }
     if observe_pressure { Log("[codegen-pressure-stage] runtime-usage:start"); }
@@ -470,6 +474,7 @@ func GenerateCUnitFromReadySemanticFacts(
         TextBuilderAppend(output, "#include <errno.h>\n#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }
     if uses_float { TextBuilderAppend(output, "#include <math.h>\n"); }
+    if region_rows != "" { TextBuilderAppend(output, CodegenRegionRuntimeCIncludes()); }
     TextBuilderAppend(output, "\n");
     if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_host_runtime, uses_hashmap) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
     // Emitted unconditionally: the helpers are static inline, so a program

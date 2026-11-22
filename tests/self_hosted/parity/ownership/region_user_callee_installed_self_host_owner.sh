@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # One call-duration readonly String temporary through installed source and MIR C/LLVM.
+# Source C allocates it in the function region (semantic/region_escape_site_owner.pgy)
+# and frees the region before returning; LeakSanitizer sees no leak.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -82,7 +84,10 @@ cmp -s "$WORK_DIR/direct.ll" "$WORK_DIR/source.ll" || fail "source LLVM differs 
 cmp -s "$WORK_DIR/direct.ll" "$WORK_DIR/public.ll" || fail "public LLVM differs from direct MIR"
 ! grep -Fq '[pipeline timing]' "$WORK_DIR/public-c.err" "$WORK_DIR/public-llvm.err" || fail "public route retried native pipeline"
 require_text "$WORK_DIR/source.c" 'void Sink(const char* value)'
-require_text "$WORK_DIR/source.c" 'Sink(pgy_concat("left", "right"))'
+require_text "$WORK_DIR/source.c" 'PgyRegion __pgy_region = pgy_region_create(0);'
+require_text "$WORK_DIR/source.c" 'Sink(pgy_region_string_concat(&__pgy_region, "left", "right"))'
+require_text "$WORK_DIR/source.c" 'pgy_region_destroy(&__pgy_region);'
+reject_text "$WORK_DIR/source.c" 'Sink(pgy_concat('
 reject_text "$WORK_DIR/source.c" 'Sink(&pgy_concat('
 (cd "$ROOT_DIR" && "$DRIVER" "$ADDRESSABLE_REL" --emit-c-verified) \
     >"$WORK_DIR/addressable.c" 2>"$WORK_DIR/addressable.err" || fail "addressable source C failed"
@@ -138,6 +143,12 @@ for stem in direct source public; do
     "$WORK_DIR/$stem-c.exe" | tr -d '\r' >"$WORK_DIR/$stem-c.run"
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$stem-c.run" || fail "$stem C execution drifted"
 done
+"$CC" -x c -std=c11 -g -fsanitize=address -fno-omit-frame-pointer \
+    -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread "$WORK_DIR/source.c" \
+    -o "$WORK_DIR/source-asan.exe" >/dev/null 2>"$WORK_DIR/source-asan.compile.err" ||
+    fail "source C did not compile under AddressSanitizer"
+ASAN_OPTIONS=detect_leaks=1 "$WORK_DIR/source-asan.exe" >"$WORK_DIR/source-asan.run" \
+    2>"$WORK_DIR/source-asan.err" || fail "source C leaked or failed under LeakSanitizer"
 "$CC" -x c -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread \
     "$WORK_DIR/addressable.c" -o "$WORK_DIR/addressable.exe" >/dev/null \
     2>"$WORK_DIR/addressable.compile.err" || fail "addressable C did not compile"
