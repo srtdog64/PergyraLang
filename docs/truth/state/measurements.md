@@ -1,8 +1,21 @@
 # Measurements
 
 Owner: Claude lane (GPT root lane's work since 2026-11-19). Checked
-2026-11-20. Heavy measurements ran serially in WSL; the tree and driver
+2026-11-22. Heavy measurements ran serially in WSL; the tree and driver
 hashes are in each linked record.
+
+## Self-host generality (V1 goal 2)
+
+Default-route LLVM sweep of the fixed 1,398 programs against native; method
+and clusters in the [baseline record](../evidence/2026-11-22_selfhost_generality_failure_clusters.md).
+Remeasure at each landing that touches the default route.
+
+| Revision | Equal | Native refuses | Non-equal | First-error clusters | `direct_mir/` files, lines |
+|---|---:|---:|---:|---:|---|
+| `cc27d42c6` | 529 | 295 | 574 (0 wrong output) | 118 (11 = 50%, 32 = 80%) | 817, 74,935 |
+
+Full DRV-2 MIR: first refusal at transition ordinal 1438 (last measured on
+v11, [blocker](blocker.md)).
 
 ## Complete DRV-2 (`driver_rung2_main.pgy`)
 
