@@ -6,7 +6,7 @@ Checked 2026-11-22.
 
 | Item | Observed value |
 |---|---|
-| Last fully green published main | `a6e62d339`: [CI 44873304965](https://github.com/srtdog64/PergyraLang/actions/runs/44873304965), all 33 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
+| Last fully green published main | `bcd9fbea0`: [CI 44964127410](https://github.com/srtdog64/PergyraLang/actions/runs/44964127410), all 33 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
 | Route deletion on main | `34ae17546` deleted the per-program-shape collection program route and its registry row ([evidence](../evidence/2026-11-19_collection_program_route_deleted.md)); green in [CI 44358794007](https://github.com/srtdog64/PergyraLang/actions/runs/44358794007) at `2c199fb28` |
 | `var` declarations in scalar CFG | `9a5d7362e`: scalar CFG reads them through the binding vocabulary owner ([evidence](../evidence/2026-11-19_scalar_cfg_mutable_declaration.md)); green in [CI 44463438926](https://github.com/srtdog64/PergyraLang/actions/runs/44463438926) |
 | Runtime helpers | `f0d16adaf`: String concat, record push and `Array<Bool>` type declared with the facts that emit them ([evidence](../evidence/2026-11-19_runtime_helper_materialization.md)); green in [CI 44488492111](https://github.com/srtdog64/PergyraLang/actions/runs/44488492111) |
@@ -24,7 +24,7 @@ Checked 2026-11-22.
 | Role operator and two-routine routes deleted (`d9ce69940`, CI green) | 47 owners and their 5 stale gates ([evidence](../evidence/2026-11-21_role_operator_two_routine_routes_deleted.md)); CI result goes in [gates](gates.md) |
 | Nominal literal route deleted (`71e3c60a9`, CI green) | the general route builds subject and vessel literals and `Hero(7)` as identity cells ([evidence](../evidence/2026-11-21_nominal_literal_route_deleted.md)); CI result goes in [gates](gates.md) |
 | Literal Log route deleted (`fa04a953d`, green with `a6e62d339`) | the one-routine dispatch is the general route alone; a lowercase `main` entry is selected by the entrypoint policy ([evidence](../evidence/2026-11-21_literal_log_route_deleted.md)); CI result goes in [gates](gates.md) |
-| Machine contact identity (`b19ec51fd`, `fcbbefe92`; CI result goes in [gates](gates.md)) | one MIR row per contact event, read only from that row on native and self-host; `semantic.machine_layer_transition` CLOSED ([evidence](../evidence/2026-11-22_machine_contact_identity_closed.md)) |
+| Machine contact identity (`b19ec51fd`, `fcbbefe92`; CI green) | one MIR row per contact event, read only from that row on native and self-host; `semantic.machine_layer_transition` CLOSED ([evidence](../evidence/2026-11-22_machine_contact_identity_closed.md)) |
 | Self-host source C regions (`8be12fd7a`; CI result goes in [gates](gates.md)) | call-duration `+` concatenations come from a function region freed on every exit; direct-MIR routes still heap ([evidence](../evidence/2026-11-22_selfhost_source_c_region_allocation.md), slices 1-2 of the [plan](../../agent_work_directives/selfhost_region_allocation_2026-11-22.md)) |
 | Work tree | `D:\PergyraLang` on `main`; unrelated untracked folder preserved |
 | Linux validation | WSL `Ubuntu-C-WSL` `/root/ts2` builds the candidate; `/root/mg-main` is the GPT lane's copy (base `5b0d354fb` plus a source mirror) |
