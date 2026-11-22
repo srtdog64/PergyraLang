@@ -228,7 +228,7 @@ func SelfMirJsonDestructureFieldsWriteMemory(
     return true;
 }
 
-func SelfMirJsonRegionSitesWriteMemory(
+func SelfMirJsonLaneSitesWriteMemory(
     ref sites: Array<Int>, rows: SelfMirExpressionGraphRows,
     instruction_index: Int, name: String, inout fragments: Array<String>
 ) -> Bool {
@@ -239,7 +239,7 @@ func SelfMirJsonRegionSitesWriteMemory(
     if rows.has_roots[instruction_index] != 1 { return true; }
     let start: Int = rows.node_starts[instruction_index];
     let end: Int = start + rows.node_counts[instruction_index];
-    var at: Int = SelfMirRegionSiteLowerBound(sites, start);
+    var at: Int = SelfMirSortedNodeLowerBound(sites, start);
     if at >= ArrayLength(sites) || sites[at] >= end { return true; }
     JsonProjectionAppend(fragments, ",\"");
     JsonProjectionAppend(fragments, name);
@@ -418,10 +418,14 @@ func SelfMirJsonInstructionWriteMemory(
         JsonProjectionAppend(fragments, ",\"binding_source_syntax_id\":");
         JsonOwnedFragmentAppend(fragments, ToString(rows.binding_source_syntax_ids[instruction_index]));
     }
-    if !SelfMirJsonRegionSitesWriteMemory(facts.region_sites, rows.expr0_graphs,
+    if !SelfMirJsonLaneSitesWriteMemory(facts.region_sites, rows.expr0_graphs,
             instruction_index, "expr0_region_sites", fragments) ||
-        !SelfMirJsonRegionSitesWriteMemory(facts.region_sites, rows.expr1_graphs,
-            instruction_index, "expr1_region_sites", fragments) { return false; }
+        !SelfMirJsonLaneSitesWriteMemory(facts.region_sites, rows.expr1_graphs,
+            instruction_index, "expr1_region_sites", fragments) ||
+        !SelfMirJsonLaneSitesWriteMemory(facts.clone_sites, rows.expr0_graphs,
+            instruction_index, "expr0_clone_sites", fragments) ||
+        !SelfMirJsonLaneSitesWriteMemory(facts.clone_sites, rows.expr1_graphs,
+            instruction_index, "expr1_clone_sites", fragments) { return false; }
     if emit_local_refs && !SelfMirJsonLocalRefsWriteMemory(
         facts.cfg.local_refs, instruction_index, fragments
     ) { return false; }

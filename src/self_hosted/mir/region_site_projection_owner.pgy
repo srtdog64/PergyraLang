@@ -30,14 +30,3 @@ func SelfMirRegionSitesFromSemantic(
     }
     return ordered;
 }
-
-// The first position of `sites` whose node is at least `node`.
-func SelfMirRegionSiteLowerBound(ref sites: Array<Int>, node: Int) -> Int {
-    var low: Int = 0;
-    var high: Int = ArrayLength(sites);
-    while low < high {
-        let middle: Int = low + (high - low) / 2;
-        if sites[middle] < node { low = middle + 1; } else { high = middle; }
-    }
-    return low;
-}

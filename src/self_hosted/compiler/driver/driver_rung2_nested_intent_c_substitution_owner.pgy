@@ -5,11 +5,15 @@ import "../direct_mir/direct_mir_nested_intent_program_projection_owner.pgy";
 import "../domain_topology_graph_plan_consumer_owner.pgy";
 import "driver_pipeline_owner.pgy";
 import "../../mir_lower/mir_json_input_owner.pgy";
+import "../direct_mir/scalar_program/direct_mir_scalar_program_compiler_clone_site_owner.pgy";
 
 func DriverRung2NestedIntentCSubstitutionIfClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target_projection: CompilerTargetProjectionFact
 ) -> Option<CompilerEmissionArtifact> {
+    // This route does not run the expression admission that copies compiler
+    // Clone sites; the general consumer derives them again.
+    if DirectMirScalarProgramCompilerCloneSitesPresent(admitted) { return None; }
     if MirProgramRoutineIndexCount(admitted.routines) != 4 ||
         MirProgramDeclarationIndexCount(
             admitted.domain_runtime_admission.declarations) != 2 {

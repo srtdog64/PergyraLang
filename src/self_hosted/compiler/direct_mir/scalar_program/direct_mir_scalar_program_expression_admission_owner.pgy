@@ -23,7 +23,7 @@ import "direct_mir_scalar_program_leaf_identity_fact_owner.pgy";
 import "direct_mir_scalar_program_declared_callable_value_admission_owner.pgy";
 import "direct_mir_scalar_program_call_ordinal_binding_owner.pgy";
 import "direct_mir_scalar_program_expression_source_range_owner.pgy";
-import "direct_mir_scalar_program_region_site_owner.pgy";
+import "direct_mir_scalar_program_compiler_clone_site_owner.pgy";
 func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpressionSet,
     ref instruction: JsonObjectFactTable, ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
     global_row: Int, local_instruction: Int, ref locals: DirectMirScalarCfgLocalRefPlan,
@@ -39,8 +39,10 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
     var lane: Int = -1;
     if graph_field == "expr0_graph" { lane = 0; }
     if graph_field == "expr1_graph" { lane = 1; }
-    let region_sites: DirectMirScalarProgramRegionSites =
-        DirectMirScalarProgramRegionSitesForLane(instruction, lane);
+    let region_sites: DirectMirScalarProgramLaneSites =
+        DirectMirScalarProgramLaneSitesForLane(instruction, lane, "region");
+    let clone_sites: DirectMirScalarProgramLaneSites =
+        DirectMirScalarProgramLaneSitesForLane(instruction, lane, "clone");
     var sequence: MirExpressionGraphSequence = DirectMirScalarCfgExpressionSequenceForField(instruction, graph_field);
     if !facts.valid || !sequence.ok || ArrayLength(sequence.roots) != 1 {
         return DirectMirScalarProgramExpressionAdmissionRejected(facts, "graph-sequence", -1);
@@ -53,9 +55,12 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
     DirectMirScalarProgramBindCallOrdinals(
         sequence, routine_instances, caller_ordinal, global_row, lane);
     let total_count: Int = ArrayLength(sequence.arena.topology.node_kinds);
-    let region_failure: String = DirectMirScalarProgramRegionSitesFailure(region_sites, total_count);
-    if region_failure != "" {
-        return DirectMirScalarProgramExpressionAdmissionRejected(facts, region_failure, -1);
+    var site_failure: String = DirectMirScalarProgramLaneSitesFailure(region_sites, total_count, "region");
+    if site_failure == "" {
+        site_failure = DirectMirScalarProgramLaneSitesFailure(clone_sites, total_count, "clone");
+    }
+    if site_failure != "" {
+        return DirectMirScalarProgramExpressionAdmissionRejected(facts, site_failure, -1);
     }
     let source_range: DirectMirScalarProgramExpressionSourceRange =
         DirectMirScalarProgramExpressionSourceRangeFromGraph(
@@ -532,7 +537,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
             }
             kind = classified.kind; type_name = classified.type_name;
             literal = classified.literal;
-            if DirectMirScalarProgramRegionSiteListed(region_sites, node) {
+            if DirectMirScalarProgramLaneSiteListed(region_sites, node) {
                 if kind != DirectMirScalarProgramExprConcatString() {
                     failed_stage = "region-site-kind"; failed_node = node; break;
                 }
@@ -553,6 +558,17 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
         if ArrayLength(call_arguments) > 2 {
             nary_operands = DirectMirScalarProgramNaryOperandsAppend(nary_operands, ArrayLength(kinds) - 1,
                 call_arguments);
+        }
+        if DirectMirScalarProgramLaneSiteListed(clone_sites, node) {
+            // A compiler Clone landing: its consumer reads a copy.
+            let clone: DirectMirScalarProgramBuiltinSignatureFact =
+                DirectMirScalarProgramCompilerCloneSignature(type_name);
+            if !clone.valid { failed_stage = "clone-site-type"; failed_node = node; break; }
+            let landed_row: Int = ArrayLength(kinds) - 1;
+            DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows, params,
+                member_ordinals, literals, callable_rows, runtime_call_abi_ids, clone.expression_kind,
+                clone.return_type, landed_row, -1, -1, -1, -1,
+                DirectMirScalarProgramCompilerCloneLiteral(lane, node), -1, clone.runtime_call_abi_id);
         }
         ArrayPush(source_rows, ArrayLength(kinds) - 1);
         node = node + 1;

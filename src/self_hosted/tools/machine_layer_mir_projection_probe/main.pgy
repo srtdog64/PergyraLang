@@ -253,7 +253,7 @@ func MachineProbeFacts(
             ArrayLength(cfg5.instructions.ids)
         ), program_graph.graph, MirIntentExecutionPlanFromFacts(
             MirIntentStepTransitionFactsEmpty(), MirIntentTerminalTransitionFactsEmpty()),
-        no_ints
+        no_ints, no_ints
     );
 }
 

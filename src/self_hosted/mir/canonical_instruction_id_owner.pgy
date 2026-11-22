@@ -87,6 +87,6 @@ func SelfMirCanonicalInstructionIds(facts: SelfMirProgramFacts) -> SelfMirProgra
                 instructions.collection_mutation_target_graphs
             ), facts.cfg.local_refs
         ), facts.instruction_abi_receipts, facts.collection_ownership_receipts,
-        facts.expression_graph, plan, facts.region_sites
+        facts.expression_graph, plan, facts.region_sites, facts.clone_sites
     );
 }

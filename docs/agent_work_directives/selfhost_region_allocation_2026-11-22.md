@@ -112,7 +112,7 @@ authoritative.
    (`mir/region_site_projection_owner.pgy`, computed in
    `artifact_lower_owner.pgy` before the arena retires); the instruction
    writer emits `expr0/expr1_region_sites` only when non-empty. Direct-MIR
-   admission reads the lane's list (`direct_mir_scalar_program_region_site_owner.pgy`),
+   admission reads the lane's list (`direct_mir_scalar_program_region_site_owner.pgy`, since renamed `..._lane_site_owner.pgy`),
    refuses a malformed list or an index past the graph before the node loop
    and a listed non-concat node inside it, and turns a listed String `+`
    into kind 159 `DirectMirScalarProgramExprRegionConcatString`. C and LLVM

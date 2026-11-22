@@ -6,7 +6,9 @@
 #   or a formal, grows that binding (it used to be skipped). A by-value
 #   argument the callee grows that the caller uses again is copied where the
 #   call takes it (decision 2026-10-22); the round-trip C route emits the
-#   copy, and a direct MIR route, whose MIR carries no copy, refuses.
+#   copy, and the self-host MIR carries it, so the direct MIR LLVM route
+#   copies an Array argument as well. Direct MIR has no record copy: a record
+#   argument is refused there (today before its site is read).
 # - A member-path growth of a copy whose source is read again, a String
 #   finished with a pool that leaves its routine or is read after the pool's
 #   destroy, and a String element read after its Array was handed to `own`
@@ -22,7 +24,8 @@ pgy_prepend_windows_runtime_paths
 LABEL="self-host-shared-storage-copy-landing"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-DIRECT="direct MIR emission cannot carry"
+# The direct MIR consumer, not the front end, refused the program.
+DIRECT="CODEGEN ERROR: direct MIR"
 MEMBER="unproved_exclusive_member_mutation"
 LEAVES="allocator_lane_loan_leaves_routine"
 DESTROYED="allocator_lane_loan_read_after_destroy"
@@ -208,12 +211,12 @@ run() {
         fail "$name output drifted on $backend: $(cat "$WORK_DIR/$name-$backend.run")"
 }
 
-# The copy lands on the round-trip C route; the direct MIR LLVM route, whose
-# MIR carries no copy, refuses.
-for name in formal_member_grown inout_hand_off; do
-    run "$name" c
-    refuse "$name" --emit-llvm ll "$DIRECT"
-done
+# The copies land on the round-trip C route. The direct MIR LLVM route copies
+# the Array argument the MIR lists and refuses the record argument.
+run formal_member_grown c
+refuse formal_member_grown --emit-llvm ll "$DIRECT"
+run inout_hand_off c
+run inout_hand_off llvm
 for flag in --emit-c --emit-llvm; do
     extension=c
     [[ "$flag" == --emit-llvm ]] && extension=ll
@@ -227,4 +230,4 @@ run neighbours c
 run neighbours llvm
 run map_read_first c
 
-echo "[$LABEL] PASS landed=2 refused=12 admitted=1x2+1 evidence=$WORK_REL"
+echo "[$LABEL] PASS landed=2+1 refused=11 admitted=1x2+1 evidence=$WORK_REL"

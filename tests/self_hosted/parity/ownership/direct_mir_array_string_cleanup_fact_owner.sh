@@ -4,9 +4,9 @@
 # holder has its storage. A local whose storage and elements the semantic fact
 # leaves unknown (a call result; an alias of a `ref` formal is refused earlier,
 # in semantic, as native does), a local handed to a
-# callee that grows it without a hand-off fact (again on every loop
-# iteration, through an alias whose formal is read after it grew, or with an
-# element the self-host cannot classify), a local given to two records or
+# callee that grows it without a hand-off fact (through an alias whose formal
+# is read after it grew, or with an element the self-host cannot classify), a
+# local given to two records or
 # to a record in a loop that does not declare it, and an alias of an inout
 # member that grows in place, and a record lent to a ref formal beside an
 # inout output that may keep its Strings are refused with no artifact; none is
@@ -16,6 +16,9 @@
 # --mir-json route too; with the hand-off removed, or forged onto a member move,
 # the route refuses it. A callee that reads a member of a record it is given
 # by value releases nothing, so the caller's record releases it once.
+# A local handed again on every loop iteration to a callee that grows it is
+# copied where the call takes it: the self-host MIR carries that compiler
+# Clone landing, so the callee grows the copy and the program runs.
 # A local handed once to a callee that grows its formal through a local alias
 # is handed off: the alias is in the formal's storage closure (slice S3), so
 # the caller releases nothing and the program runs. The closure is per
@@ -37,8 +40,9 @@ DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/p
 NO_ROW="direct MIR Array<String> cleanup requires an admitted ownership row"
 SHARED="direct MIR Array<String> cleanup refuses storage another holder still has"
 MEMBER_ALIAS="direct MIR Array<String> alias of a parameter member grows storage the member still names"
-# A compiler Clone the source analysis selected that MIR does not carry.
-CLONE_LANDING="direct MIR emission cannot carry the 1 compiler Clone landing(s)"
+# A compiler Clone landing at a binding whose ownership row still names the
+# member move it copies.
+LANDED_MEMBER_MOVE="stage=collection_ownership_transition"
 NO_HANDOFF="direct MIR Array<String> constructor input has no hand-off fact"
 LENT_INOUT="owned local lent to a ref formal is released while an inout argument of the same call may hold its Strings"
 # The general route refuses the routine whose member move claims a hand-off:
@@ -227,6 +231,7 @@ func Main() -> Void {
 }
 EOF
 printf '5\n' >"$WORK_DIR/grown_handoff.expected"
+printf '5\n5\n' >"$WORK_DIR/grown_loop.expected"
 printf '6\na\n' >"$WORK_DIR/alias_other_formal.expected"
 # A record whose owned Strings are lent to a ref formal while the same call
 # writes an inout output: the callee stores borrowed Strings of the loan in
@@ -408,7 +413,6 @@ refuse call_result --emit-c c "$NO_ROW"
 refuse call_result --emit-llvm ll "$NO_ROW"
 refuse formal_alias --emit-c c "boundary: new_binding"
 refuse formal_alias --emit-llvm ll "boundary: new_binding"
-refuse grown_loop --emit-c c "$SHARED"
 refuse alias_read_after --emit-c c "$SHARED"
 refuse alias_read_after --emit-llvm ll "$SHARED"
 refuse alias_loop_rebind --emit-c c "boundary: unproved_exclusive_member_mutation"
@@ -420,9 +424,10 @@ refuse alias_owned_element --emit-llvm ll "$SHARED"
 refuse constructor_twice --emit-llvm ll "$NO_HANDOFF"
 refuse constructor_loop --emit-llvm ll "$NO_HANDOFF"
 # member_alias's unassigned focus part is a Clone landing at its definition
-# (decision 2026-11-12), which MIR does not carry: the source route stops
-# there. The backend's own alias guard is reached from the MIR below.
-refuse member_alias --emit-llvm ll "$CLONE_LANDING"
+# (decision 2026-11-12). The MIR carries it, but the binding's ownership row
+# still names the member move, so the transition admission refuses. The
+# backend's own alias guard is reached from the MIR below without its site.
+refuse member_alias --emit-llvm ll "$LANDED_MEMBER_MOVE"
 refuse lent_beside_inout --emit-llvm ll "$LENT_INOUT"
 refuse record_then_return --emit-llvm ll "$TAKEN"
 refuse record_twice --emit-llvm ll "$TAKEN"
@@ -458,6 +463,7 @@ for backend in c llvm; do
     run_admitted record_single_owner "$backend" 0
     run_admitted grown_handoff "$backend" 0
     run_admitted alias_other_formal "$backend" 0
+    run_admitted grown_loop "$backend" 0
 done
 
 # Native MIR into the installed backend (--mir-json): the native semantic
@@ -535,8 +541,24 @@ done
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/member_alias.pgy" \
     -o "$WORK_REL/member_alias.mir.json") >"$WORK_DIR/member_alias.mir.log" 2>&1 ||
     fail "self-host MIR producer rejected member_alias"
+# The MIR as a producer that did not carry the copy would write it.
+python3 - "$WORK_DIR/member_alias.mir.json" "$WORK_DIR/member_alias.uncopied.mir.json" <<'PY' ||
+import json
+import sys
+
+document = json.load(open(sys.argv[1], encoding="utf-8"))
+removed = 0
+for routine in document["routines"]:
+    for block in routine["blocks"]:
+        for instruction in block["instructions"]:
+            removed += instruction.pop("expr0_clone_sites", None) is not None
+if removed != 1:
+    raise SystemExit(f"member_alias MIR carries {removed} compiler Clone site lists, expected 1")
+json.dump(document, open(sys.argv[2], "w", encoding="utf-8"))
+PY
+    fail "member_alias MIR does not carry its compiler Clone site"
 set +e
-(cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm "$WORK_REL/member_alias.mir.json" \
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm "$WORK_REL/member_alias.uncopied.mir.json" \
     -o "$WORK_REL/member_alias.direct.ll") >"$WORK_DIR/member_alias.direct.log" 2>&1
 rc=$?
 set -e
@@ -673,4 +695,4 @@ for backend in c llvm; do
     grep -Fq 'stage=collection_ownership_transition' "$WORK_DIR/nested_missing_end.$backend.log" ||
         fail "missing nested end was refused before the transition proof on $backend"
 done
-echo "[$LABEL] PASS refused=18+4+6+2 admitted=8x2+native-mir-2x2+binding-6+nested-2 evidence=$WORK_REL"
+echo "[$LABEL] PASS refused=17+4+6+2 admitted=9x2+native-mir-2x2+binding-6+nested-2 evidence=$WORK_REL"

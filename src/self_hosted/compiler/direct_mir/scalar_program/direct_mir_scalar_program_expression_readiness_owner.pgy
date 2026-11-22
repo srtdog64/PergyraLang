@@ -30,6 +30,7 @@ import "direct_mir_scalar_program_external_runtime_expression_readiness_owner.pg
 import "direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_slice_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_float_literal_readiness_owner.pgy";
+import "direct_mir_scalar_program_lane_site_owner.pgy";
 func DirectMirScalarProgramExpressionNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Bool {
     if node < 0 || node >= ArrayLength(facts.node_kinds) { return false; }
@@ -174,11 +175,13 @@ func DirectMirScalarProgramExpressionNodeReady(
             literal == "" && callable == -1;
     }
     if kind == DirectMirScalarProgramExprStringClone() {
+        // A compiler Clone node names the site it copies.
         return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&
             left < node &&
             facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
             right == -1 && local_binding == -1 && param == -1 &&
-            literal == "" && callable == -1;
+            (literal == "" || DirectMirScalarProgramCompilerCloneLiteralReady(literal)) &&
+            callable == -1;
     }
     if kind == DirectMirScalarProgramExprStringLength() {
         return type_name == CompilerAbiLayoutIntTypeName() && left >= 0 &&

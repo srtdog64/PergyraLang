@@ -485,6 +485,7 @@ func SelfMirAppendIntentRoutine(
             facts.collection_ownership_receipts,
             ArrayLength(build.cfg.instructions.ids)
         ),
-        facts.expression_graph, facts.intent_execution, facts.region_sites
+        facts.expression_graph, facts.intent_execution, facts.region_sites,
+        facts.clone_sites
     );
 }

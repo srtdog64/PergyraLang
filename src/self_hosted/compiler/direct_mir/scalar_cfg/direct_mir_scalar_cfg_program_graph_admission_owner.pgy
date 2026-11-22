@@ -7,6 +7,7 @@ import "../scalar_program/direct_mir_scalar_program_callable_inventory_owner.pgy
 import "../direct_mir_option_match_abi_fact_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
 import "../direct_mir_routine_instance_input_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_compiler_clone_site_owner.pgy";
 // A probe that only seals a plan treats a routine refusal as fatal.
 func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput, own route: DirectMirScalarProgramRouteFact) -> DirectMirScalarCfgGraphPlan {
     var refusal: String = "";
@@ -56,6 +57,8 @@ func DirectMirScalarCfgProgramGraphPlanAdmission(ref admitted: MirMachineLayerAd
             DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty()
         );
     var cfg_digests: Array<Int> = [];
+    var routine_first_rows: Array<Int> = [];
+    var routine_row_counts: Array<Int> = [];
     var parameter_flow_masks: Array<Int> = [];
     var parameter_array_preserved: Array<Int> = [];
     var ordinal: Int = 0;
@@ -69,6 +72,8 @@ func DirectMirScalarCfgProgramGraphPlanAdmission(ref admitted: MirMachineLayerAd
                 admitted, route.routine_rows[ordinal], signature.parameters.names);
         }
         ArrayPush(cfg_digests, DirectMirCfgDigestFromIndex(input.index));
+        ArrayPush(routine_first_rows, input.index.instruction_facts.global_start);
+        ArrayPush(routine_row_counts, ArrayLength(input.index.instruction_facts.starts));
         input = DirectMirRoutineInstanceGraphInput(
             input, admitted.routines.source_json, admitted.routines.source_json_extent, route.routine_instances, ordinal);
         var flow_row: Int = 0;
@@ -117,6 +122,15 @@ func DirectMirScalarCfgProgramGraphPlanAdmission(ref admitted: MirMachineLayerAd
             Die(Concat("direct MIR scalar CFG program routine admission is invalid: ordinal=",
                 ToString(ordinal))); }
         ordinal = ordinal + 1;
+    }
+    // Every compiler Clone site the MIR lists is copied, or the program is
+    // refused: no admission may emit a landing program without its copy.
+    let uncopied: Int = DirectMirScalarProgramCompilerCloneUncopiedRow(
+        admitted, routine_first_rows, routine_row_counts, routine_state.expressions);
+    if uncopied >= 0 {
+        refusal = Concat("direct MIR compiler Clone site was copied by no admission: row=",
+            ToString(uncopied));
+        return DirectMirScalarCfgGraphPlanRefused();
     }
     let partition: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgProgramRoutinePartitionFromOwners(

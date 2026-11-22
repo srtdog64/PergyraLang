@@ -73,7 +73,8 @@ func SelfMirProgramDomainFactsFromReadyArtifact(
             facts.generic_specializations, facts.parallel_captures,
             facts.routines, facts.cfg, facts.instruction_abi_receipts,
             facts.collection_ownership_receipts,
-            facts.expression_graph, facts.intent_execution, facts.region_sites
+            facts.expression_graph, facts.intent_execution, facts.region_sites,
+        facts.clone_sites
         ),
         domain_graph
     );

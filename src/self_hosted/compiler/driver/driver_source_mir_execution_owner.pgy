@@ -98,8 +98,7 @@ func DriverSourceMirProducePayloadAdmitted(
             DriverSourceMirExecutionOutcomeSchema(),
             DriverSourceMirRequestMode(request),
             source_path,
-            payload,
-            DriverCompilerCloneLandingCount(projection.facts)
+            payload
         )
     );
 }

@@ -1,0 +1,92 @@
+// Site lists of one admitted instruction lane in self-host MIR: ascending
+// window indices of the lane's graph under `expr<lane>_<family>_sites`.
+// - `region` (mir/region_site_projection_owner.pgy): a String `+` whose value
+//   lives only for one call; the direct-MIR route allocates it from the
+//   routine region (DirectMirScalarProgramExprRegionConcatString).
+// - `clone` (mir/clone_site_projection_owner.pgy): a compiler Clone landing;
+//   the admission copies it as an explicit Clone would
+//   (direct_mir_scalar_program_compiler_clone_site_owner.pgy).
+// An absent list means no site; a malformed one is refused.
+
+import "../../../lib/json_fact_table.pgy";
+import "../../../mir_lower/expression_graph_persisted_read_owner.pgy";
+
+struct DirectMirScalarProgramLaneSites {
+    ok: Bool;
+    // Ascending window indices of the lane's graph.
+    nodes: Array<Int>;
+}
+
+func DirectMirScalarProgramLaneSitesForLane(
+    ref instruction: JsonObjectFactTable, lane: Int, family: String
+) -> DirectMirScalarProgramLaneSites {
+    var nodes: Array<Int> = [];
+    if lane != 0 && lane != 1 {
+        return DirectMirScalarProgramLaneSites(true, nodes);
+    }
+    let field: String = "expr" + ToString(lane) + "_" + family + "_sites";
+    let kind: Option<String> = JsonObjectFactValueKind(instruction, field);
+    if !IsSome(kind) { return DirectMirScalarProgramLaneSites(true, nodes); }
+    var bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(instruction, field, bounds) {
+        return DirectMirScalarProgramLaneSites(false, nodes);
+    }
+    let end: Int = bounds[1] - 1;
+    var cursor: Int = bounds[0] + 1;
+    var element_start: Int = cursor;
+    while cursor <= end {
+        let c: Int = JsonCharCodeAt(instruction.json, instruction.json_extent, bounds[1], cursor);
+        if c == JsonAsciiCode(",") || cursor == end {
+            let value: Option<Int> =
+                MirExpressionGraphIndexWithin(
+                    instruction.json, instruction.json_extent, element_start, cursor);
+            if !IsSome(value) ||
+                (ArrayLength(nodes) > 0 &&
+                 UnwrapOption(value) <= nodes[ArrayLength(nodes) - 1]) {
+                return DirectMirScalarProgramLaneSites(false, nodes);
+            }
+            ArrayPush(nodes, UnwrapOption(value));
+            element_start = cursor + 1;
+        }
+        cursor = cursor + 1;
+    }
+    return DirectMirScalarProgramLaneSites(ArrayLength(nodes) > 0, nodes);
+}
+
+// Why a lane's `family` site list cannot be read against its graph of
+// `count` nodes; "" when it can.
+func DirectMirScalarProgramLaneSitesFailure(
+    ref sites: DirectMirScalarProgramLaneSites, count: Int, family: String
+) -> String {
+    if !sites.ok { return family + "-site-list"; }
+    let n: Int = ArrayLength(sites.nodes);
+    if n > 0 && sites.nodes[n - 1] >= count { return family + "-site-window"; }
+    return "";
+}
+
+func DirectMirScalarProgramLaneSiteListed(
+    ref sites: DirectMirScalarProgramLaneSites, node: Int
+) -> Bool {
+    var i: Int = 0;
+    while i < ArrayLength(sites.nodes) {
+        if sites.nodes[i] == node { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+// The literal of the Clone node the admission adds over compiler Clone site
+// `node` of `lane`; readiness accepts it where an explicit Clone has none.
+func DirectMirScalarProgramCompilerCloneLiteralPrefix() -> String {
+    return "compiler-clone:";
+}
+
+func DirectMirScalarProgramCompilerCloneLiteral(lane: Int, node: Int) -> String {
+    return DirectMirScalarProgramCompilerCloneLiteralPrefix() + ToString(lane) + ":" + ToString(node);
+}
+
+func DirectMirScalarProgramCompilerCloneLiteralReady(literal: String) -> Bool {
+    let prefix: String = DirectMirScalarProgramCompilerCloneLiteralPrefix();
+    return StringLength(literal) > StringLength(prefix) &&
+        Substring(literal, 0, StringLength(prefix)) == prefix;
+}

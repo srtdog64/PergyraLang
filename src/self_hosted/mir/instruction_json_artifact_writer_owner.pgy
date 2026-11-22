@@ -23,7 +23,6 @@ import "local_ref_json_projection_owner.pgy";
 import "../lib/json_emit.pgy";
 import "parallel_capture_json_projection_owner.pgy";
 import "../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
-import "region_site_projection_owner.pgy";
 
 func SelfMirJsonOptionalStringWriteFile(
     output: Int,
@@ -247,8 +246,20 @@ func SelfMirJsonDestructureFieldsWriteFile(
     return true;
 }
 
-// The region sites inside one lane's graph window, as window indices.
-func SelfMirJsonRegionSitesWriteFile(
+// The first position of the ascending `sites` whose node is at least `node`.
+func SelfMirSortedNodeLowerBound(ref sites: Array<Int>, node: Int) -> Int {
+    var low: Int = 0;
+    var high: Int = ArrayLength(sites);
+    while low < high {
+        let middle: Int = low + (high - low) / 2;
+        if sites[middle] < node { low = middle + 1; } else { high = middle; }
+    }
+    return low;
+}
+
+// The sites (ascending graph node ids: region sites, compiler Clone sites)
+// inside one lane's graph window, as window indices; nothing when none is.
+func SelfMirJsonLaneSitesWriteFile(
     ref sites: Array<Int>, rows: SelfMirExpressionGraphRows,
     instruction_index: Int, name: String, output: Int
 ) -> Bool {
@@ -259,7 +270,7 @@ func SelfMirJsonRegionSitesWriteFile(
     if rows.has_roots[instruction_index] != 1 { return true; }
     let start: Int = rows.node_starts[instruction_index];
     let end: Int = start + rows.node_counts[instruction_index];
-    var at: Int = SelfMirRegionSiteLowerBound(sites, start);
+    var at: Int = SelfMirSortedNodeLowerBound(sites, start);
     if at >= ArrayLength(sites) || sites[at] >= end { return true; }
     CompilerArtifactWrite(output, ",\"");
     CompilerArtifactWrite(output, name);
@@ -438,10 +449,14 @@ func SelfMirJsonInstructionWriteFile(
         CompilerArtifactWrite(output, ",\"binding_source_syntax_id\":");
         JsonOwnedFragmentWriteFile(output, ToString(rows.binding_source_syntax_ids[instruction_index]));
     }
-    if !SelfMirJsonRegionSitesWriteFile(facts.region_sites, rows.expr0_graphs,
+    if !SelfMirJsonLaneSitesWriteFile(facts.region_sites, rows.expr0_graphs,
             instruction_index, "expr0_region_sites", output) ||
-        !SelfMirJsonRegionSitesWriteFile(facts.region_sites, rows.expr1_graphs,
-            instruction_index, "expr1_region_sites", output) { return false; }
+        !SelfMirJsonLaneSitesWriteFile(facts.region_sites, rows.expr1_graphs,
+            instruction_index, "expr1_region_sites", output) ||
+        !SelfMirJsonLaneSitesWriteFile(facts.clone_sites, rows.expr0_graphs,
+            instruction_index, "expr0_clone_sites", output) ||
+        !SelfMirJsonLaneSitesWriteFile(facts.clone_sites, rows.expr1_graphs,
+            instruction_index, "expr1_clone_sites", output) { return false; }
     if emit_local_refs && !SelfMirJsonLocalRefsWriteFile(
         facts.cfg.local_refs, instruction_index, output
     ) { return false; }

@@ -13,6 +13,7 @@ Remeasure at each landing that touches the default route.
 | Revision | Equal | Native refuses | Non-equal | First-error clusters | `direct_mir/` files, lines |
 |---|---:|---:|---:|---:|---|
 | `cc27d42c6` | 529 | 295 | 574 (0 wrong output) | 118 (11 = 50%, 32 = 80%) | 817, 74,935 |
+| S5c slice 1 ([record](../evidence/2026-11-22_selfhost_compiler_clone_carriage.md)) | 535 | 295 | 568 (0 wrong output) | 119 (11 = 50%, 34 = 80%) | 818, 75,096 |
 
 Full DRV-2 MIR: first refusal at transition ordinal 1438 (last measured on
 v11, [blocker](blocker.md)).

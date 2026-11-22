@@ -4,7 +4,6 @@
 
 import "driver_rung2_execution_owner.pgy";
 import "driver_source_llvm_intent_protocol_owner.pgy";
-import "driver_compiler_clone_route_owner.pgy";
 
 func DriverRung2PublishMirPayloadLlvmArtifactForIdentity(
     execution_identity: String,
@@ -30,11 +29,6 @@ func DriverRung2PublishMirPayloadLlvmArtifactForIdentity(
                 "source LLVM publication requires an admitted MIR receipt and destination"
             )
         );
-    }
-    // Direct MIR LLVM emits from the MIR payload, which carries no landing.
-    if source_receipt.compiler_clone_landings > 0 {
-        return DriverLlvmPayloadRouteRefused(DriverCompilerCloneDirectRouteRefusal(
-            source_receipt.compiler_clone_landings, "direct-mir-llvm"));
     }
     let target_projection: CompilerTargetProjectionFact =
         CompilerTargetProjectionFactFromOwner(

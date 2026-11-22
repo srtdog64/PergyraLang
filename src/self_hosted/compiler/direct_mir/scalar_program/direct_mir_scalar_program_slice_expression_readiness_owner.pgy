@@ -1,6 +1,7 @@
 // Exact normalized shape for Slice<T> construction and ownership transfer.
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_lane_site_owner.pgy";
 
 func DirectMirScalarProgramSliceExpressionNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
@@ -14,7 +15,9 @@ func DirectMirScalarProgramSliceExpressionNodeReady(
     if facts.node_local_rows[node] != -1 ||
         facts.node_parameter_ordinals[node] != -1 ||
         facts.node_member_ordinals[node] != -1 ||
-        facts.node_literals[node] != "" ||
+        (facts.node_literals[node] != "" &&
+         !(kind == DirectMirScalarProgramExprArrayClone() &&
+           DirectMirScalarProgramCompilerCloneLiteralReady(facts.node_literals[node]))) ||
         facts.node_callable_rows[node] != -1 ||
         facts.node_runtime_call_abi_ids[node] != -1 {
         return Some(false);

@@ -1,0 +1,108 @@
+// Compiler Clone sites in direct MIR (self-host MIR `expr0_clone_sites` /
+// `expr1_clone_sites`, written by mir/clone_site_projection_owner.pgy from the
+// semantic compiler Clone owner). The expression admission appends a listed
+// node as usual and then a Clone node over it, resolved through the explicit
+// Clone signature, so the node's consumer reads a copy exactly as if the
+// source had written `Clone(node)`. The Clone node's literal names the site
+// it copies; a site no admission copies refuses the whole program, so no
+// direct route emits a landing program without its copy.
+
+import "../../../mir_lower/machine_layer_fact_owner.pgy";
+import "../../../lib/json_fact_table.pgy";
+import "direct_mir_scalar_program_lane_site_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
+import "direct_mir_scalar_program_collection_clone_signature_owner.pgy";
+
+// The explicit Clone signature for a value of `type_name`; invalid when
+// direct MIR has no Clone for that type.
+func DirectMirScalarProgramCompilerCloneSignature(
+    type_name: String
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let named: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBuiltinSignatureFactFromName("Clone");
+    if !named.valid { return named; }
+    let actual: Array<String> = [Concat("", type_name)];
+    return DirectMirScalarProgramCollectionCloneSignature(
+        named, "Clone", actual, type_name);
+}
+
+// The listed sites of one instruction lane that have no Clone node in the
+// admitted graphs of that instruction.
+func DirectMirScalarProgramCompilerCloneLaneUncopied(
+    ref instruction: JsonObjectFactTable, lane: Int, global_row: Int,
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Int {
+    let sites: DirectMirScalarProgramLaneSites =
+        DirectMirScalarProgramLaneSitesForLane(instruction, lane, "clone");
+    if !sites.ok { return ArrayLength(sites.nodes) + 1; }
+    var missing: Int = 0;
+    var i: Int = 0;
+    while i < ArrayLength(sites.nodes) {
+        let literal: String = DirectMirScalarProgramCompilerCloneLiteral(lane, sites.nodes[i]);
+        var found: Bool = false;
+        var graph: Int = 0;
+        while graph < ArrayLength(expressions.graph_global_rows) && !found {
+            if expressions.graph_global_rows[graph] == global_row {
+                let end: Int = expressions.graph_starts[graph] + expressions.graph_counts[graph];
+                var row: Int = expressions.graph_starts[graph];
+                while row < end && !found {
+                    if expressions.node_literals[row] == literal { found = true; }
+                    row = row + 1;
+                }
+            }
+            graph = graph + 1;
+        }
+        if !found { missing = missing + 1; }
+        i = i + 1;
+    }
+    return missing;
+}
+
+// The first instruction row, within the routines' row ranges, holding a
+// compiler Clone site no admission copied; -1 when every site was copied.
+func DirectMirScalarProgramCompilerCloneUncopiedRow(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref first_rows: Array<Int>, ref row_counts: Array<Int>,
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Int {
+    var routine: Int = 0;
+    while routine < ArrayLength(first_rows) {
+        var row: Int = first_rows[routine];
+        let end: Int = row + row_counts[routine];
+        while row < end {
+            let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json, admitted.routines.source_json_extent,
+                admitted.routines.instruction_starts[row],
+                admitted.routines.instruction_ends[row]);
+            if DirectMirScalarProgramCompilerCloneLaneUncopied(instruction, 0, row, expressions) != 0 ||
+                DirectMirScalarProgramCompilerCloneLaneUncopied(instruction, 1, row, expressions) != 0 {
+                return row;
+            }
+            row = row + 1;
+        }
+        routine = routine + 1;
+    }
+    return -1;
+}
+
+// True when any instruction of the program lists a compiler Clone site. A
+// per-shape route that does not run the expression admission must not claim
+// such a program.
+func DirectMirScalarProgramCompilerCloneSitesPresent(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    var row: Int = 0;
+    while row < ArrayLength(admitted.routines.instruction_starts) {
+        let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json, admitted.routines.source_json_extent,
+            admitted.routines.instruction_starts[row],
+            admitted.routines.instruction_ends[row]);
+        if IsSome(JsonObjectFactValueKind(instruction, "expr0_clone_sites")) ||
+            IsSome(JsonObjectFactValueKind(instruction, "expr1_clone_sites")) {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}

@@ -1,0 +1,122 @@
+// MIR projection of the compiler Clone landings
+// (semantic/ast_expression/ast_expression_graph_compiler_clone_owner.pgy;
+// decisions 2026-10-22 and 2026-11-12). The program facts keep, as ascending
+// semantic graph node ids, every landing that no collection receipt copies;
+// each instruction's JSON lists the ones inside its graph window, as window
+// indices, under `expr0_clone_sites` / `expr1_clone_sites`. A direct MIR
+// emitter copies a listed node as an explicit Clone would; MIR without a list
+// has no such landing.
+//
+// The one landing a receipt already copies is the stored value of an owned
+// String push or set: its instruction's collection receipt (owned-string-push,
+// owned-string-set) makes the direct emitter store a copy. A landing that is
+// the argument of a declared routine or of a constructor inside such a store
+// is still listed: the receipt copies the stored value, not the argument.
+
+import "program_fact_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_node_view_owner.pgy";
+import "../semantic/ast_expression/ast_expression_graph_consumer_owner.pgy";
+
+// The node that consumes `node`: the sealed consumer row, or the first later
+// row whose operands name it; -1 when none does.
+func SelfMirCloneSiteConsumer(ref graph: SemanticExpressionGraphFacts, node: Int) -> Int {
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if graph.arena.shape_ready && ArrayLength(graph.arena.consumer_rows) == count {
+        return graph.arena.consumer_rows[node];
+    }
+    var row: Int = node + 1;
+    while row < count {
+        if SemanticExpressionGraphRowConsumes(graph.arena.topology, row, node) { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+// The expression nodes of instructions whose collection receipt is an owned
+// String push (1) or set (4). Rows that do not line up with the instructions
+// mark nothing.
+func SelfMirCloneSiteReceiptNodes(ref facts: SelfMirProgramFacts, node_count: Int) -> Array<Bool> {
+    var marked: Array<Bool> = [];
+    var node: Int = 0;
+    while node < node_count {
+        ArrayPush(marked, false);
+        node = node + 1;
+    }
+    let instruction_count: Int = ArrayLength(facts.cfg.instructions.ids);
+    if !facts.collection_ownership_receipts.valid ||
+        ArrayLength(facts.collection_ownership_receipts.effect_kinds) != instruction_count ||
+        ArrayLength(facts.cfg.instructions.expr0_graphs.has_roots) != instruction_count ||
+        ArrayLength(facts.cfg.instructions.expr0_graphs.node_starts) != instruction_count ||
+        ArrayLength(facts.cfg.instructions.expr0_graphs.node_counts) != instruction_count {
+        return marked;
+    }
+    var instruction: Int = 0;
+    while instruction < instruction_count {
+        let effect: Int = facts.collection_ownership_receipts.effect_kinds[instruction];
+        if (effect == 1 || effect == 4) &&
+            facts.cfg.instructions.expr0_graphs.has_roots[instruction] != 0 {
+            let first: Int = facts.cfg.instructions.expr0_graphs.node_starts[instruction];
+            let end: Int = first + facts.cfg.instructions.expr0_graphs.node_counts[instruction];
+            var row: Int = first;
+            while row < end {
+                if row >= 0 && row < node_count { ArraySet(marked, row, true); }
+                row = row + 1;
+            }
+        }
+        instruction = instruction + 1;
+    }
+    return marked;
+}
+
+// True when the landing `node` is the argument of a call to a declared
+// routine or a constructor (`targets` holds their syntax ids).
+func SelfMirCloneSiteCallArgument(
+    ref facts: SelfMirProgramFacts, ref targets: HashMap<String, Int>, node: Int
+) -> Bool {
+    let node_count: Int = ArrayLength(facts.expression_graph.arena.compiler_clone_kinds);
+    if !facts.expression_graph.ok ||
+        node_count != SemanticExpressionGraphArenaNodeCount(facts.expression_graph.arena) {
+        return false;
+    }
+    let consumer: Int = SelfMirCloneSiteConsumer(facts.expression_graph, node);
+    if consumer < 0 { return false; }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+        facts.expression_graph, consumer);
+    if !edge.ok || edge.argument_node != node { return false; }
+    let found: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+        facts.expression_graph, edge.call_node);
+    var target: Int = 0;
+    if IsSome(found) { target = UnwrapOption(found); }
+    return MapHas(targets, ToString(target));
+}
+
+// Ascending node ids of the landings a direct MIR emitter must copy.
+func SelfMirCloneSitesFromFacts(ref facts: SelfMirProgramFacts) -> Array<Int> {
+    let node_count: Int = ArrayLength(facts.expression_graph.arena.compiler_clone_kinds);
+    var targets: HashMap<String, Int> = MapNew();
+    var row: Int = 0;
+    while row < ArrayLength(facts.routines.node_ids) {
+        MapSet(targets, ToString(facts.routines.node_ids[row]), 1);
+        row = row + 1;
+    }
+    // A constructor call targets its nominal declaration.
+    row = 0;
+    while row < ArrayLength(facts.declarations.source_syntax_ids) {
+        if facts.declarations.source_syntax_ids[row] > 0 {
+            MapSet(targets, ToString(facts.declarations.source_syntax_ids[row]), 1);
+        }
+        row = row + 1;
+    }
+    let receipt: Array<Bool> = SelfMirCloneSiteReceiptNodes(facts, node_count);
+    var sites: Array<Int> = [];
+    var node: Int = 0;
+    while node < node_count {
+        if facts.expression_graph.arena.compiler_clone_kinds[node] == 1 &&
+            (!receipt[node] || SelfMirCloneSiteCallArgument(facts, targets, node)) {
+            ArrayPush(sites, node);
+        }
+        node = node + 1;
+    }
+    return sites;
+}
