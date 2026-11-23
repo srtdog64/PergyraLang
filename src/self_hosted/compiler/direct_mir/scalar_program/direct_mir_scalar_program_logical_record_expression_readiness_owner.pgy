@@ -2,6 +2,7 @@
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_index_expression_owner.pgy";
+import "direct_mir_scalar_program_lane_site_owner.pgy";
 func DirectMirScalarProgramLogicalRecordArgumentRows(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Array<Int> {
     var rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node);
@@ -27,7 +28,11 @@ func DirectMirScalarProgramLogicalRecordExpressionNodeReady(
         if facts.node_types[node] == "" ||
             (nary && (facts.node_lefts[node] != -1 || facts.node_rights[node] != -1)) ||
             facts.node_local_rows[node] != -1 || facts.node_parameter_ordinals[node] != -1 ||
-            facts.node_member_ordinals[node] != -1 || facts.node_literals[node] != "" ||
+            facts.node_member_ordinals[node] != -1 ||
+            // A record copy's constructor names the compiler Clone site it copies.
+            (facts.node_literals[node] != "" &&
+             (kind != DirectMirScalarProgramExprLogicalRecordConstructor() ||
+              !DirectMirScalarProgramCompilerCloneLiteralReady(facts.node_literals[node]))) ||
             facts.node_callable_rows[node] != -1 {
             return false;
         }

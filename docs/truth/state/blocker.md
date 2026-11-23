@@ -42,9 +42,9 @@ Native refuses a String foreach or index loan read after a set, pop or drop
    [S4](../evidence/2026-11-17_s4_native_array_formal_class.md)). S5a (one
    later-use definition, Unproved moves) is an unlanded branch. Before S6
    deletes the backend sharing guard, `alias_read_after` must move or be
-   refused: with the guard off it double-frees. S5c (`seed`, owned-element
-   Clone) needs compiler Clones carried in direct MIR: 174 chosen, 0 in
-   MIR statement text. `semantic.hashmap_collection_ownership` stays ACTIVE.
+   refused: with the guard off it double-frees. S5c: direct MIR copies String,
+   Array and record landings; Map copies and a landed initializer's `clone`
+   row are open. `semantic.hashmap_collection_ownership` stays ACTIVE.
 4. Compiler temporaries released at last use
    ([decision](../decisions/2026-11-16_compiler_temporaries_are_released_at_last_use.md)):
    DRV-2 fits its bound by less waste; the driver still releases almost nothing.
@@ -52,8 +52,8 @@ Native refuses a String foreach or index loan read after a set, pop or drop
    zone slot and subject path; `x = values` from a ref formal; generic
    `ref value: T`; reserved zone/role/effect names. F2 branch, unlanded.
    A `List` passed to a `ref` formal is refused even for `ListSize`. Native
-   admits a `ref` formal stored in a local constructor; self-host refuses.
+   admits a `ref` formal stored in a local constructor; self-host refuses. A `ref` formal moved into a growing callee: native refuses, self-host copies it ([record](../evidence/2026-11-23_selfhost_record_clone.md)).
 
 ## Falsifiers kept
 
-- `direct_mir_array_string_cleanup_fact_owner.sh`: refused 18+4+6+2, admitted 8x2 plus retained/nested cases; call-handoff row reader: 44.
+- `direct_mir_array_string_cleanup_fact_owner.sh`: refused 17+4+6+2, admitted 9x2 plus retained/nested cases; call-handoff row reader: 44.

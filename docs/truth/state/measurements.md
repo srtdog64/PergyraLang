@@ -1,7 +1,7 @@
 # Measurements
 
 Owner: Claude lane (GPT root lane's work since 2026-11-19). Checked
-2026-11-22. Heavy measurements ran serially in WSL; the tree and driver
+2026-11-23. Heavy measurements ran serially in WSL; the tree and driver
 hashes are in each linked record.
 
 ## Self-host generality (V1 goal 2)
@@ -14,6 +14,7 @@ Remeasure at each landing that touches the default route.
 |---|---:|---:|---:|---:|---|
 | `cc27d42c6` | 529 | 295 | 574 (0 wrong output) | 118 (11 = 50%, 32 = 80%) | 817, 74,935 |
 | S5c slice 1 ([record](../evidence/2026-11-22_selfhost_compiler_clone_carriage.md)) | 535 | 295 | 568 (0 wrong output) | 119 (11 = 50%, 34 = 80%) | 818, 75,096 |
+| S5c slice 2 ([record](../evidence/2026-11-23_selfhost_record_clone.md)) | 542 | 295 | 561 (0 wrong output) | 119 (11 = 50%, 33 = 80%) | 819, 75,426 |
 
 Full DRV-2 MIR: first refusal at transition ordinal 1438 (last measured on
 v11, [blocker](blocker.md)).

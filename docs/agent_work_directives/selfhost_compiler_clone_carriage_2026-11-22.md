@@ -1,8 +1,10 @@
 # Self-host compiler Clone carriage through MIR (S5c, 2026-11-22)
 
-Status: slice 1 implemented on `309301eeb` (run record:
+Status: slice 1 landed as `f027156e6` (run record:
 [evidence](../truth/evidence/2026-11-22_selfhost_compiler_clone_carriage.md));
-slices 2-3 open. One edit lane (Claude). User
+slice 2's record copy implemented on `f027156e6` (run record:
+[evidence](../truth/evidence/2026-11-23_selfhost_record_clone.md)); the
+`clone` row of a landed initializer and slice 3 open. One edit lane (Claude). User
 decision 2026-11-22: S5c is the next rung after the region row. It is the
 S5c step of the [one hand-off rule decision](../truth/decisions/2026-11-16_one_handoff_rule_for_both_front_ends.md)
 and a condition of `semantic.hashmap_collection_ownership`. Integration gate:
@@ -73,10 +75,22 @@ the SoT registry and gates stay authoritative.
      record landing are refused on both backends.
 2. Record copy: a direct-MIR deep Clone of a logical record (String and
    Array fields copied, scalars copied, nested records recursively).
-   Found in slice 1: the MIR ownership row of a landed initializer still
-   names the source it copies (a member move for `member_alias`), so the
-   transition admission refuses it. The producer should write a `clone`
-   row there; fix it in this slice.
+   - Implemented: `direct_mir_scalar_program_logical_record_clone_owner.pgy`
+     plans the copy by the record layout and the admission appends it for a
+     record landing and for an explicit `Clone(record)`. A field with no
+     direct-MIR copy (a map, an `Array<Bool>`, an Option of a record) and a
+     source that is not a place (a call result) are refused.
+   - Not done: the `clone` row of a landed initializer. Found in slice 1:
+     the MIR ownership row of a landed initializer still names the source it
+     copies (a member move for `member_alias`), so the transition admission
+     refuses it. Restating the row at projection is not enough: native
+     analyzes the reloaded AST, where the initializer is `Clone(member)`,
+     so its later pushes get their own copies; the self-host verdict was
+     computed before the landing and `member_alias` pushes a borrowed
+     literal into the copy. A restated row claims owned elements the pushes
+     break, and direct MIR refuses the restated row too. The fix is a
+     self-host analysis that treats a selected landing as the source's
+     `Clone(...)` before the rows are final.
 3. Map copy, if direct MIR admits the Map programs otherwise.
 
 ## Unknowns

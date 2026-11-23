@@ -3,10 +3,13 @@
 # (mir/clone_site_projection_owner.pgy, direct MIR
 # direct_mir_scalar_program_compiler_clone_site_owner.pgy). The self-host MIR
 # lists each landing as `expr0_clone_sites` / `expr1_clone_sites`; direct C and
-# LLVM copy it as an explicit Clone would, so an Array or String a later write
-# would otherwise share runs as native does, with no memory error under
-# AddressSanitizer. The installed default LLVM route takes the same copies.
-# A site of a type direct MIR cannot copy, a malformed list, an index past the
+# LLVM copy it as an explicit Clone would, so an Array, String or record a
+# later write would otherwise share runs as native does, with no memory error
+# under AddressSanitizer. A record is copied field by field
+# (direct_mir_scalar_program_logical_record_clone_owner.pgy), as an explicit
+# Clone of a record is. The installed default LLVM route takes the same copies.
+# A site of a type direct MIR cannot copy (a record with a map field), a record
+# Clone of a value that is not a place, a malformed list, an index past the
 # graph, and a site in a lane no admission reads are refused on both backends.
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -25,22 +28,84 @@ fail() { echo "[$LABEL] $*" >&2; exit 1; }
 [[ -x "$DRIVER" ]] || fail "missing installed self-host driver: $DRIVER"
 rm -rf "$WORK_DIR"; mkdir -p "$WORK_DIR"
 
-# Each program has one landing: an Array binding initializer, an Array
-# argument beside the same Array given inout (before and after it), a String
-# element kept by the callee, and a String element given to an opaque call.
+# Each of the first programs has one landing: an Array binding initializer, an
+# Array argument beside the same Array given inout (before and after it), a
+# String element kept by the callee, and a String element given to an opaque
+# call. The record programs land a record argument a callee grows (twice, on
+# each loop pass, and before a read of the caller's copy) or whose field alias
+# an inout callee writes.
 STEMS="local_copy_source_sorted_landed_valid by_value_argument_before_its_inout_landed_valid by_value_argument_beside_its_inout_landed_valid string_element_kept_by_callee_landed_valid string_element_tostring_opaque_call_landed_valid"
+RECORD_STEMS="default_aggregate_move_reuse_landed_valid default_aggregate_move_loop_reuse_landed_valid by_value_formal_array_sorted_landed_valid by_value_field_alias_written_by_inout_callee_landed_valid"
+for stem in $STEMS $RECORD_STEMS; do cp "$ROOT_DIR/$FIXTURES/$stem.pgy" "$WORK_DIR/$stem.pgy"; done
+# A nested record (a record, an Int, an Array<Int>, a String and an
+# Array<String> inside) landed at a growing callee's argument.
+cat >"$WORK_DIR/nested_record_landed.pgy" <<'EOF'
+struct Inner {
+    n: Int;
+    ids: Array<Int>;
+}
+
+struct Outer {
+    inner: Inner;
+    tag: String;
+    names: Array<String>;
+}
+
+func Grow(o: Outer) -> Outer {
+    var ids: Array<Int> = o.inner.ids;
+    var names: Array<String> = o.names;
+    ArraySet(ids, 0, 9);
+    ArrayPush(ids, 5);
+    ArrayPush(names, "z");
+    return Outer(Inner(o.inner.n + 1, ids), "new", names);
+}
+
+func Main() -> Int {
+    let o: Outer = Outer(Inner(2, [1, 2]), "t", ["a"]);
+    let p: Outer = Grow(o);
+    Print(ToString(ArrayLength(o.inner.ids) + ArrayLength(p.inner.ids) + ArrayLength(o.names) + ArrayLength(p.names)));
+    Print(ToString(o.inner.ids[0] * 10 + p.inner.n));
+    Print(o.tag);
+    return 0;
+}
+EOF
+# An explicit Clone of a three-field record: writing the copy's Array leaves
+# the source's as it was.
+cat >"$WORK_DIR/explicit_record_clone.pgy" <<'EOF'
+struct Inner {
+    n: Int;
+    tag: String;
+}
+
+struct Outer {
+    inner: Inner;
+    ids: Array<Int>;
+    flag: Bool;
+}
+
+func Main() -> Int {
+    let p: Outer = Outer(Inner(4, "t"), [1, 2], true);
+    let q: Outer = Clone(p);
+    var ids: Array<Int> = q.ids;
+    ArraySet(ids, 0, 9);
+    Print(ToString(p.ids[0] * 10 + ids[0]));
+    Print(q.inner.tag);
+    Print(ToString(q.inner.n));
+    return 0;
+}
+EOF
 "$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
     -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/runtime.o" 2>/dev/null ||
     fail "runtime object did not compile"
-for stem in $STEMS; do
-    cp "$ROOT_DIR/$FIXTURES/$stem.pgy" "$WORK_DIR/$stem.pgy"
+for stem in $STEMS $RECORD_STEMS nested_record_landed explicit_record_clone; do
     "$PGY" --native-pipeline --backend=c "$WORK_DIR/$stem.pgy" -o "$WORK_DIR/$stem.native.exe" \
         >/dev/null 2>"$WORK_DIR/$stem.native.err" || fail "$stem native compile failed"
     "$WORK_DIR/$stem.native.exe" | tr -d '\r' >"$WORK_DIR/$stem.native.run"
     (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/$stem.pgy" \
         -o "$WORK_REL/$stem.mir.json") >/dev/null 2>"$WORK_DIR/$stem.mir.err" ||
         fail "$stem MIR production failed"
-    grep -Eq '"expr[01]_clone_sites":\[[0-9]' "$WORK_DIR/$stem.mir.json" ||
+    [[ "$stem" == explicit_record_clone ]] ||
+        grep -Eq '"expr[01]_clone_sites":\[[0-9]' "$WORK_DIR/$stem.mir.json" ||
         fail "$stem MIR carries no compiler Clone site"
     for backend in c llvm; do
         suffix=c; [[ "$backend" == llvm ]] && suffix=ll
@@ -101,6 +166,25 @@ for how in ("malformed", "window", "int", "lane"):
         site["expr1_clone_sites"] = [0]
     open("%s/forged_%s.mir.json" % (out, how), "w", encoding="utf-8").write(json.dumps(d, separators=(",", ":")))
 PY
+# A record with a map field has no direct-MIR copy; an explicit Clone of a
+# record call result is not a place the field-by-field copy may read again.
+for refused in local_copy_map_held_at_field_changed_landed_valid:clone-site-type \
+    default_aggregate_move_cloned_growth_landed_valid:record-clone-source; do
+    stem="${refused%%:*}"; expect="stage=${refused##*:}"
+    cp "$ROOT_DIR/$FIXTURES/$stem.pgy" "$WORK_DIR/$stem.pgy"
+    (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/$stem.pgy" \
+        -o "$WORK_REL/$stem.mir.json") >/dev/null 2>"$WORK_DIR/$stem.mir.err" ||
+        fail "$stem MIR production failed"
+    for backend in c llvm; do
+        if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" "$WORK_REL/$stem.mir.json" \
+            -o "$WORK_REL/$stem.direct.$backend.out") >"$WORK_DIR/$stem.direct-$backend.log" 2>&1; then
+            fail "direct $backend copied $stem's record without a copy for each field"
+        fi
+        grep -Fq "$expect" "$WORK_DIR/$stem.direct-$backend.log" ||
+            fail "direct $backend refused $stem for another reason: $(grep -m1 -o 'CODEGEN ERROR.*' "$WORK_DIR/$stem.direct-$backend.log")"
+    done
+done
+
 for how in malformed window int lane; do
     case "$how" in
         malformed) expect='clone-site-list' ;;
@@ -117,4 +201,4 @@ for how in malformed window int lane; do
             fail "direct $backend refused the forged compiler Clone site ($how) for another reason: $(grep -m1 -o 'CODEGEN ERROR.*' "$WORK_DIR/forged_$how.$backend.log")"
     done
 done
-echo "[$LABEL] 5 compiler Clone landings (Array binding and arguments, String elements) copied on direct C and LLVM from the MIR sites and on the default LLVM route, run as native with no memory error; 4 forged sites refused on both backends"
+echo "[$LABEL] 10 programs with compiler Clone landings (Array binding and arguments, String elements, flat and nested record arguments) and an explicit record Clone copied on direct C and LLVM, and a landing on the default LLVM route, run as native with no memory error; a map-field record and a record call result refused; 4 forged sites refused on both backends"

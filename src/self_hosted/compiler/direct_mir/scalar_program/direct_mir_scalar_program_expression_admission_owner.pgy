@@ -24,6 +24,7 @@ import "direct_mir_scalar_program_declared_callable_value_admission_owner.pgy";
 import "direct_mir_scalar_program_call_ordinal_binding_owner.pgy";
 import "direct_mir_scalar_program_expression_source_range_owner.pgy";
 import "direct_mir_scalar_program_compiler_clone_site_owner.pgy";
+import "direct_mir_scalar_program_logical_record_clone_owner.pgy";
 func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpressionSet,
     ref instruction: JsonObjectFactTable, ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
     global_row: Int, local_instruction: Int, ref locals: DirectMirScalarCfgLocalRefPlan,
@@ -552,23 +553,55 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
             }
             }
         }
-        DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows, params,
-            member_ordinals, literals, callable_rows, runtime_call_abi_ids, kind, type_name, left, right,
-            local_row, param, member_ordinal, literal, call_callable, runtime_call_abi_id);
-        if ArrayLength(call_arguments) > 2 {
-            nary_operands = DirectMirScalarProgramNaryOperandsAppend(nary_operands, ArrayLength(kinds) - 1,
-                call_arguments);
+        // A record copy (an explicit Clone of a record, or a compiler Clone
+        // landing on one) is appended once as its field-by-field copy.
+        var record_source: Int = -1;
+        var record_literal: String = "";
+        if kind == DirectMirScalarProgramExprLogicalRecordCloneLowering() {
+            if ArrayLength(call_arguments) != 1 ||
+                !DirectMirScalarProgramLogicalRecordClonePlace(kinds, lefts, call_arguments[0]) {
+                failed_stage = "record-clone-source"; failed_node = node; break;
+            }
+            record_source = call_arguments[0];
+        } else {
+            DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows, params,
+                member_ordinals, literals, callable_rows, runtime_call_abi_ids, kind, type_name, left, right,
+                local_row, param, member_ordinal, literal, call_callable, runtime_call_abi_id);
+            if ArrayLength(call_arguments) > 2 {
+                nary_operands = DirectMirScalarProgramNaryOperandsAppend(nary_operands, ArrayLength(kinds) - 1,
+                    call_arguments);
+            }
         }
         if DirectMirScalarProgramLaneSiteListed(clone_sites, node) {
             // A compiler Clone landing: its consumer reads a copy.
-            let clone: DirectMirScalarProgramBuiltinSignatureFact =
-                DirectMirScalarProgramCompilerCloneSignature(type_name);
-            if !clone.valid { failed_stage = "clone-site-type"; failed_node = node; break; }
             let landed_row: Int = ArrayLength(kinds) - 1;
-            DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows, params,
-                member_ordinals, literals, callable_rows, runtime_call_abi_ids, clone.expression_kind,
-                clone.return_type, landed_row, -1, -1, -1, -1,
-                DirectMirScalarProgramCompilerCloneLiteral(lane, node), -1, clone.runtime_call_abi_id);
+            if DirectMirScalarProgramLogicalRecordRow(logical_record, type_name) >= 0 {
+                if record_source >= 0 ||
+                    !DirectMirScalarProgramLogicalRecordClonePlace(kinds, lefts, landed_row) {
+                    failed_stage = "clone-site-source"; failed_node = node; break;
+                }
+                record_source = landed_row;
+                record_literal = DirectMirScalarProgramCompilerCloneLiteral(lane, node);
+            } else {
+                let clone: DirectMirScalarProgramBuiltinSignatureFact =
+                    DirectMirScalarProgramCompilerCloneSignature(type_name);
+                if !clone.valid { failed_stage = "clone-site-type"; failed_node = node; break; }
+                DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows, params,
+                    member_ordinals, literals, callable_rows, runtime_call_abi_ids, clone.expression_kind,
+                    clone.return_type, landed_row, -1, -1, -1, -1,
+                    DirectMirScalarProgramCompilerCloneLiteral(lane, node), -1, clone.runtime_call_abi_id);
+            }
+        }
+        if record_source >= 0 {
+            let named: DirectMirScalarProgramBuiltinSignatureFact =
+                DirectMirScalarProgramBuiltinSignatureFactFromName("Clone");
+            if !DirectMirScalarProgramLogicalRecordCloneAppendTo(kinds, types, lefts, rights, local_rows,
+                    params, member_ordinals, literals, callable_rows, runtime_call_abi_ids, nary_operands,
+                    named, logical_record, type_name, record_source, record_literal) {
+                failed_stage = "record-clone-field";
+                if record_literal != "" { failed_stage = "clone-site-type"; }
+                failed_node = node; break;
+            }
         }
         ArrayPush(source_rows, ArrayLength(kinds) - 1);
         node = node + 1;
