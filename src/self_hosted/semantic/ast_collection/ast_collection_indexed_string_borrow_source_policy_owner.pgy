@@ -7,6 +7,7 @@ import "ast_collection_indexed_string_borrow_index_source_owner.pgy";
 import "../ast_expression/ast_expression_graph_member_view_owner.pgy";
 import "../builtin_argument_retention_projection_owner.pgy";
 import "ast_collection_indexed_string_borrow_call_result_owner.pgy";
+import "ast_collection_iteration_string_loan_owner.pgy";
 
 func SemanticAstIndexedStringBorrowUnknownSource() -> Int { return -1; }
 
@@ -56,13 +57,9 @@ func SemanticAstIndexedStringBorrowSourceForRoot(
     // an ownership/free grant; the value may still be a borrowed literal.
     if UnwrapOption(kind) == AstExpressionNodeStringLiteral() { return 0; }
     if UnwrapOption(kind) == AstExpressionNodeLeaf() {
-        let alias: SemanticAstLocalBindingIdentity =
-            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
-                artifact, locals, inferred_types,
-                surfaces.function_node_ids[surface_row],
-                surfaces.node_ids[surface_row],
-                surfaces.expression_graph, root
-            );
+        let alias: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(artifact,
+            locals, inferred_types, surfaces.function_node_ids[surface_row], surfaces.node_ids[surface_row],
+            surfaces.expression_graph, root);
         if alias.ok && alias.type_name == "String" &&
             alias.row < ArrayLength(borrow_sources) {
             return borrow_sources[alias.row];
@@ -70,7 +67,11 @@ func SemanticAstIndexedStringBorrowSourceForRoot(
         if alias.ok && alias.row < ArrayLength(borrow_sources) && borrow_sources[alias.row] < -1 {
             return borrow_sources[alias.row];
         }
-        return 0;
+        if alias.ok { return 0; }
+        // A leaf no local declares may be a foreach binding, which lends the
+        // element it reads.
+        return SemanticAstIterationStringLoanSource(artifact, locals, inferred_types, surfaces,
+            definitions, storage, current_definitions, surface_row, root);
     }
     if UnwrapOption(kind) == AstExpressionNodeMemberAccess() && MapSize(map_sources) > 0 {
         let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, root);

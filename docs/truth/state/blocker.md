@@ -14,13 +14,13 @@ The general emitter leaks the deleted collection route's `ToString` results and 
 nonempty record-field retirement leaks 32 bytes per backend (S2). The
 one-process full DRV-2 source-to-C now ends within its 14 GiB bound at
 12.1 GiB ([measurements](measurements.md)). Of 2,746 corpus programs default LLVM
-runs one unlike native (a foreach String pushed, then read after the walked Array's
-set: freed memory) and default C nine: that one, five `Float` prints, a zone
-refresh, a party role call, a skipped `defer` ([record](../evidence/2026-11-24_selfhost_element_write_copies.md)).
+runs none unlike native and default C eight: five `Float` prints, a zone refresh,
+a party role call, a skipped `defer` ([record](../evidence/2026-11-24_selfhost_foreach_string_loans.md)). Of the 718 native refuses, default C runs 91; six of them read freed memory
+(`inout_call_string_loan/`: an `inout` callee's owned `ArraySet` frees a loan).
 Default C, through the MIR-to-AST round trip, also prints garbage for a
 foreach whose body pushes to the walked local ([record](../evidence/2026-11-19_general_route_collection_iteration.md)). Generality: the one-routine dispatch is the general route alone; the intent and three-routine routes remain ([intent plan](../../agent_work_directives/general_route_intent_execution_2026-11-21.md), first slice: receiver field binding identity in MIR).
 Native refuses a String foreach or index loan read after a set, pop or drop
-(2026-11-20 [record](../evidence/2026-11-20_native_foreach_string_borrow_refusal.md)), and after `ListSet`/`ListRemove` refuses the List foreach loan and copies a `let` one ([record](../evidence/2026-11-20_native_list_string_loan_retirement.md)); a List or Slice element stored past its release is copied ([record](../evidence/2026-11-20_native_unknown_string_store_copy.md)). A loan held across an `inout` call that frees it is refused or copied ([record](../evidence/2026-11-20_native_inout_call_string_loan_retirement.md)); a release before a `break` read after the loop still reads freed memory. The self-host front end refuses a String loan read after an owned pop or set, or after a call that releases the element ([record](../evidence/2026-11-21_selfhost_element_release_loan_refusal.md)); reassigning the array (`names = []`) under a live loan still reads freed memory.
+(2026-11-20 [record](../evidence/2026-11-20_native_foreach_string_borrow_refusal.md)), and after `ListSet`/`ListRemove` refuses the List foreach loan and copies a `let` one ([record](../evidence/2026-11-20_native_list_string_loan_retirement.md)); a List or Slice element stored past its release is copied ([record](../evidence/2026-11-20_native_unknown_string_store_copy.md)). A loan held across an `inout` call that frees it is refused or copied ([record](../evidence/2026-11-20_native_inout_call_string_loan_retirement.md)); a release before a `break` read after the loop still reads freed memory. The self-host front end refuses a String loan read after an owned pop or set, or after a call that releases the element ([record](../evidence/2026-11-21_selfhost_element_release_loan_refusal.md)), and since 2026-11-24 a `for` binding over an `Array<String>` local lends its element and a whole reassignment of proved storage ends its loans; a loan of unproved storage still survives a reassignment.
 
 ## Objective card
 

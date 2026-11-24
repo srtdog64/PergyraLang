@@ -114,7 +114,6 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make self-host-codegen-seed-receipt-test-smoke'
     run 'make self-host-domain-runtime-zone-sync-test-smoke'
     run 'make ci-step-runner-test-smoke'
-    run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" release-primary-debug-section-hygiene-test-smoke'
     run 'make grammar-examples-compile-test-smoke'
     run 'make source-utf8-test-smoke'
     run 'make backend-fail-closed-test-smoke'
@@ -125,6 +124,9 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make CC="$CI_LINUX_CC" structured-spawn-lifecycle-test-smoke'
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" clean'
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" test-all'
+    # After test-all, which builds the same binary with the same flags in the
+    # cleaned CI build directory; before it, this build was thrown away by the clean.
+    run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" release-primary-debug-section-hygiene-test-smoke'
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" hir-function-param-flow-summary-test-smoke air-function-param-flow-summary-test-smoke'
 fi
 

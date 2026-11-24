@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The self-hosted front end refuses an Array<String> element release while a
-# String that borrows an element of that array is read afterwards.
+# The self-hosted front end refuses an Array<String> element release, or a
+# whole reassignment of the array, while a String that borrows an element of
+# that array is read afterwards. A `for` binding borrows the element it reads.
 # - An owned pop or set (collection receipt effects 5 and 4) frees one
 #   element; a call that hands the array to a formal whose callee pops or
 #   deep-drops it may free any (the formal's element requirement).
@@ -426,6 +427,122 @@ func Main() -> Void {
 }
 PGY
 
+# A `for` binding over an Array<String> local borrows the element it reads
+# (decision 2026-11-20_foreach_string_binding_lends_its_element). Pushed into
+# another Array, the loan goes with it; the owned set frees the element, and
+# out[0] is read. Native copies at the push and prints 5 99 2; before
+# 2026-11-24 the self-host front end recorded no loan for the binding and both
+# default routes printed freed memory.
+cat >"$WORK_DIR/foreach_pushed_then_set.pgy" <<'PGY'
+func Gather(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var out: Array<String> = [];
+    for name in names {
+        ArrayPush(out, name);
+    }
+    ArraySet(names, 0, ToString(99));
+    Log(out[0]);
+    return ArrayLength(out);
+}
+func Main() -> Void { Log(Gather(5)); }
+PGY
+
+# The binding kept in an outer String (native refuses it too).
+cat >"$WORK_DIR/foreach_kept_then_set.pgy" <<'PGY'
+func Keep(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var kept: String = "";
+    for name in names {
+        kept = name;
+    }
+    ArraySet(names, 1, ToString(99));
+    Log(kept);
+    return 1;
+}
+func Main() -> Void { Log(Keep(5)); }
+PGY
+
+# Reassigning an Array<String> local releases the storage it held, so a loan
+# of that storage read afterwards reads freed memory (both default routes
+# before 2026-11-24, for an index loan and for a pushed foreach binding).
+cat >"$WORK_DIR/reassigned_under_loan.pgy" <<'PGY'
+func Gather(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    let first: String = names[0];
+    names = [];
+    ArrayPush(names, ToString(7));
+    Log(first);
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Gather(5)); }
+PGY
+
+cat >"$WORK_DIR/foreach_pushed_then_reassigned.pgy" <<'PGY'
+func Gather(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    var out: Array<String> = [];
+    for name in names {
+        ArrayPush(out, name);
+    }
+    names = [];
+    Log(out[0]);
+    return ArrayLength(out);
+}
+func Main() -> Void { Log(Gather(5)); }
+PGY
+
+# Neighbours: no release after the push, a reassignment after the last read,
+# and a reassignment of another array.
+cat >"$WORK_DIR/foreach_pushed_kept.pgy" <<'PGY'
+func Gather(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    var out: Array<String> = [];
+    for name in names {
+        ArrayPush(out, name);
+    }
+    Log(out[0]);
+    Log(names[1]);
+    return ArrayLength(out);
+}
+func Main() -> Void { Log(Gather(5)); }
+PGY
+
+cat >"$WORK_DIR/read_then_reassigned.pgy" <<'PGY'
+func Gather(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    let first: String = names[0];
+    Log(first);
+    names = [];
+    ArrayPush(names, ToString(7));
+    Log(names[0]);
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Gather(5)); }
+PGY
+
+cat >"$WORK_DIR/other_array_reassigned.pgy" <<'PGY'
+func Gather(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    var other: Array<String> = [];
+    ArrayPush(other, ToString(8));
+    let first: String = names[0];
+    other = [];
+    Log(first);
+    return ArrayLength(other);
+}
+func Main() -> Void { Log(Gather(5)); }
+PGY
+
 DEFAULT_LEGS=(default-c default-llvm)
 flags_for() {
     case "$1" in
@@ -537,6 +654,10 @@ refused unfixed_argument_option_pop indexed_string_use_after_element_release
 refused inout_formal_top_pop indexed_string_use_after_element_release
 refused pop_loop_carried indexed_string_loop_use_after_element_release
 refused pop_rebound_loop indexed_string_loop_use_after_element_release
+refused foreach_pushed_then_set indexed_string_use_after_element_release
+refused foreach_kept_then_set indexed_string_use_after_element_release
+refused reassigned_under_loan indexed_string_use_after_deep_drop
+refused foreach_pushed_then_reassigned indexed_string_use_after_deep_drop
 admitted pop_after_last_read $'3\n2\n1\n3'
 admitted pop_fresh_copy $'2\n1\n2'
 admitted fresh_result_pop $'22\n1'
@@ -544,6 +665,9 @@ admitted unwrapped_option_set $'6!\n1'
 admitted other_array_pop $'1\n0'
 admitted set_reads_loan $'5x\n2'
 admitted ref_formal_loan $'x\n2\nx0\nx1'
+admitted foreach_pushed_kept $'5\n6\n2'
+admitted read_then_reassigned $'5\n7\n1'
+admitted other_array_reassigned $'5\n0'
 copied_where_taken copied_argument_before_release '75'
 
-echo "[$LABEL] 12 element releases under a live String loan refused on the MIR producer and both default routes; 7 neighbours equal on both routes and clean under ASan; a loan copied where it is taken admitted: PASS"
+echo "[$LABEL] 16 element releases or reassignments under a live String loan refused on the MIR producer and both default routes; 10 neighbours equal on both routes and clean under ASan; a loan copied where it is taken admitted: PASS"

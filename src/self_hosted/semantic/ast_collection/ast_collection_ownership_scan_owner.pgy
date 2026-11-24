@@ -362,6 +362,8 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                 MapSet(retired_arguments, ToString(definition_use.retirement_source), definition_use.retirement_site);
             }
         }
+        SemanticAstIndexedStringBorrowRetireReassigned(definitions, storage, current_definitions,
+            initializer_types.inferred_type_names, indexed_string_borrows, root_slot);
         let completed: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCompleteDefinition(
             artifact, locals, surfaces, definitions, storage, root_slot, current_definitions, call_effects,
             ownership, dispositions, origins, origin_syntax_ids, transition_states, source_binding_syntax_ids);

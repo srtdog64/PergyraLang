@@ -1,0 +1,55 @@
+// The loan a `for x in xs` binding over String elements carries
+// (decision 2026-11-20_foreach_string_binding_lends_its_element). The binding
+// reads `xs[cursor]`, so it borrows what that read borrows: the storage source
+// of an `Array<String>` local, or an unknown source (-1) for a `Slice<String>`
+// local, as `let x = view[i]` does. The local binding facts hold no foreach
+// binding, so a leaf naming one is found here, from the nearest enclosing
+// `for` statement that declares the name. -1 is the loan policy's unknown
+// source (SemanticAstIndexedStringBorrowUnknownSource), which imports this owner.
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "../ast_local_binding_identity_owner.pgy";
+import "../ast_expression/ast_expression_graph_view_owner.pgy";
+
+func SemanticAstIterationStringLoanSource(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>, surface_row: Int, leaf: Int
+) -> Int {
+    let text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, leaf);
+    if !IsSome(text) { return 0; }
+    let function_id: Int = surfaces.function_node_ids[surface_row];
+    var ancestor: Option<Int> = TypedAstArenaParentId(artifact.arena, surfaces.node_ids[surface_row]);
+    var remaining: Int = artifact.count;
+    while IsSome(ancestor) && remaining > 0 {
+        let candidate: Int = UnwrapOption(ancestor);
+        if candidate == function_id { return 0; }
+        let variable: Option<String> = TypedAstArenaAtomText(artifact.arena, candidate);
+        if TypedAstArenaNodeKindIs(artifact.arena, candidate, TypedAstKindForStmtTag()) &&
+            IsSome(variable) && UnwrapOption(variable) == UnwrapOption(text) {
+            let iterable: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, candidate, AstExpressionLaneValue());
+            if !IsSome(iterable) { return -1; }
+            let walked: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                artifact, locals, inferred_types, function_id, candidate,
+                surfaces.expression_graph, UnwrapOption(iterable));
+            if !walked.ok { return 0; }
+            if walked.type_name == "Slice<String>" { return -1; }
+            if !SemanticAstCollectionOwnershipIsStringArray(walked.type_name) ||
+                walked.row >= ArrayLength(current_definitions) {
+                return 0;
+            }
+            let source: Int = SemanticAstCollectionDefinitionStorageSource(
+                storage, definitions, walked.row, current_definitions[walked.row]);
+            if source <= 0 { return -1; }
+            return source;
+        }
+        ancestor = TypedAstArenaParentId(artifact.arena, candidate);
+        remaining = remaining - 1;
+    }
+    return 0;
+}

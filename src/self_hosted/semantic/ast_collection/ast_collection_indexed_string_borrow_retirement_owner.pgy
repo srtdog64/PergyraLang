@@ -1,8 +1,9 @@
-// Indexed String loan retirement at a direct deep drop: which loans of the
-// released source end.
+// Indexed String loan retirement at a direct deep drop or a whole reassignment
+// of an Array<String> local: which loans of the released source end.
 import "ast_collection_definition_storage_authority_owner.pgy";
 import "ast_collection_indexed_string_borrow_source_policy_owner.pgy";
 import "ast_collection_indexed_string_borrow_state_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
 
 // The String loans of the storage `row`'s current definition holds are
 // invalidated: the storage they borrow is retired. A direct deep drop also
@@ -28,5 +29,38 @@ func SemanticAstIndexedStringBorrowRetireSource(
             state.invalidated[row] = true;
         }
         row = row + 1;
+    }
+}
+
+// A whole reassignment of an Array<String> local releases the storage its
+// previous definition held, so the loans of that storage end. The caller runs
+// this at the value lane before the new definition completes, while
+// `current_definitions` still names the old one. Unlike a direct deep drop, a
+// reassignment ends only the loans proved to borrow the storage it releases.
+// A loan of unknown source joins a formal's text or a call result as well, and
+// ending every such loan at each reassignment refuses the compiler's own
+// source; a loan of a local's unproved storage (a call result read by index)
+// is therefore not ended here.
+func SemanticAstIndexedStringBorrowRetireReassigned(
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>, ref inferred_types: Array<String>,
+    inout state: SemanticAstIndexedStringBorrowState, slot: Int
+) -> Void {
+    if slot % 3 != AstExpressionLaneValue() || slot / 3 >= ArrayLength(definitions.surface_rows) { return; }
+    let assigned: Int = definitions.surface_rows[slot / 3];
+    if assigned < definitions.local_count || assigned >= ArrayLength(definitions.binding_rows) { return; }
+    let row: Int = definitions.binding_rows[assigned];
+    if row < 0 || row >= ArrayLength(inferred_types) || row >= ArrayLength(current_definitions) ||
+        !SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) {
+        return;
+    }
+    let released: Int = SemanticAstCollectionDefinitionStorageSource(
+        storage, definitions, row, current_definitions[row]);
+    if released <= 0 { return; }
+    var loan: Int = 0;
+    while loan < ArrayLength(state.source_storage_ids) {
+        if state.source_storage_ids[loan] == released { state.invalidated[loan] = true; }
+        loan = loan + 1;
     }
 }
