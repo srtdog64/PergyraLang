@@ -6,6 +6,7 @@ import "../dir_text_artifact_owner.pgy";
 import "driver_source_c_stdout_execution_owner.pgy";
 import "driver_source_mir_json_diagnostic_stdout_owner.pgy";
 import "driver_pipeline_owner.pgy";
+import "driver_rung2_copy_report_owner.pgy";
 import "driver_mir_c_stdout_execution_owner.pgy";
 import "../canonical_mir_execution_owner.pgy";
 import "../compatibility_evolution_owner.pgy";
@@ -41,10 +42,10 @@ func DriverRung2ExecuteReadRequest(
             );
         case DriverCliSourceDirStdout(source_path):
             Log(CompileSourceDirTextVerified(source_path));
+        case DriverCliSourceCopyReportStdout(source_path):
+            DriverRung2CopyReportForSource(source_path);
         case DriverCliMachineManifestStdout(manifest_path):
-            Log(SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified(
-                manifest_path
-            ));
+            Log(SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified(manifest_path));
         case DriverCliSourceCStdout(source_path):
             DriverRung2CliLogSourceCPayloadOrDie(
                 compiler_world, source_path, SourceCDefault(false)

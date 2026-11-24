@@ -15,8 +15,8 @@ nonempty record-field retirement leaks 32 bytes per backend (S2). The
 one-process full DRV-2 source-to-C now ends within its 14 GiB bound at
 12.1 GiB ([measurements](measurements.md)). Of 2,746 corpus programs default LLVM
 runs none unlike native and default C eight: five `Float` prints, a zone refresh,
-a party role call, a skipped `defer` ([record](../evidence/2026-11-24_selfhost_foreach_string_loans.md)). Of the 718 native refuses, default C runs 91; six of them read freed memory
-(`inout_call_string_loan/`: an `inout` callee's owned `ArraySet` frees a loan).
+a party role call, a skipped `defer` ([record](../evidence/2026-11-24_selfhost_foreach_string_loans.md)). Of the 718 native refuses, default C runs 85, none reading freed memory under ASan
+(the six `inout_call_string_loan/` ones are refused since 2026-11-24, [record](../evidence/2026-11-24_review_batch_inout_set_copy_report_word_tiers.md)).
 Default C, through the MIR-to-AST round trip, also prints garbage for a
 foreach whose body pushes to the walked local ([record](../evidence/2026-11-19_general_route_collection_iteration.md)). Generality: the one-routine dispatch is the general route alone; the intent and three-routine routes remain ([intent plan](../../agent_work_directives/general_route_intent_execution_2026-11-21.md), first slice: receiver field binding identity in MIR).
 Native refuses a String foreach or index loan read after a set, pop or drop

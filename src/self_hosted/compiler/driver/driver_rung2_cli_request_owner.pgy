@@ -12,6 +12,7 @@ enum DriverRung2CliRequest {
     DriverCliSourceAstStdout(String, Bool),
     DriverCliSourceCapabilityManifestStdout(String),
     DriverCliSourceDirStdout(String),
+    DriverCliSourceCopyReportStdout(String),
     DriverCliMachineManifestStdout(String),
     DriverCliSourceCStdout(String),
     DriverCliSourceCManifestStdout(String, String),
@@ -92,6 +93,12 @@ func DriverRung2CliRequestFromArgsOrDie(
             DriverRung2CliPathOperandOrDie(
                 args[1], "capability manifest source path"
             )
+        );
+    }
+    if args[0] == "--report-copies-verified" {
+        if count != 2 { Die("copy report mode requires one source path"); }
+        return DriverCliSourceCopyReportStdout(
+            DriverRung2CliPathOperandOrDie(args[1], "copy report source path")
         );
     }
     if args[0] == "--emit-dir-verified" {

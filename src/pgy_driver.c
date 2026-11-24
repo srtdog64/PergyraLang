@@ -68,6 +68,7 @@ static const DriverOptionSpec k_driver_options[] = {
     { "--opt=dev", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_DEV },
     { "--opt=release", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_RELEASE },
     { "--repl", DRIVER_OPTION_BOOL, offsetof(DriverFlags, repl), true },
+    { "--report-copies", DRIVER_OPTION_BOOL, offsetof(DriverFlags, report_copies), true },
     { "--rir", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_rir), true },
     { "--rir-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_rir_json), true },
     { "--run", DRIVER_OPTION_BOOL, offsetof(DriverFlags, do_run), true },
@@ -250,6 +251,19 @@ main(int argc, char *argv[])
             return 1;
         }
         return driver_run_pipeline(&flags);
+    }
+    /* The copy report reads the installed self-host driver's ownership
+     * verdict; the native pipeline has no such report, so the request is
+     * refused there rather than compiled without it. */
+    if (flags.report_copies) {
+        const char *mode = driver_self_host_source_stdout_mode(&flags);
+        if (mode == NULL || flags.native_pipeline
+            || pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE"))) {
+            fprintf(stderr,
+                    "pgy: --report-copies takes one source file and no other mode, on the installed self-host driver\n");
+            return 1;
+        }
+        return driver_run_self_host_source_stdout(argv[0], mode, flags.source_path);
     }
     /* Every delegation below hands the compile to the installed self-host
      * driver. --native-pipeline is the one declared opt-out, checked before

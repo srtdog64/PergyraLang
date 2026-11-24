@@ -35,6 +35,9 @@ func DriverRung2ExecuteInstalledRequest(
         case DriverCliSourceDirStdout(source_path):
             DriverRung2ExecuteReadRequest(
                 compiler_world, request, compatibility_view);
+        case DriverCliSourceCopyReportStdout(source_path):
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliMachineManifestStdout(manifest_path):
             DriverRung2ExecuteReadRequest(
                 compiler_world, request, compatibility_view);

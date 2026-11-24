@@ -17,7 +17,8 @@ driver_run_self_host_source_stdout(const char *launcher_path,
             && strcmp(mode, "--tokens-json-diagnostic-verified") != 0
             && strcmp(mode, "--ast-json-diagnostic-verified") != 0
             && strcmp(mode, "--emit-capability-manifest-verified") != 0
-            && strcmp(mode, "--emit-dir-verified") != 0)) {
+            && strcmp(mode, "--emit-dir-verified") != 0
+            && strcmp(mode, "--report-copies-verified") != 0)) {
         fprintf(stderr, "pgy: unknown self-host source stdout mode\n");
         return 1;
     }

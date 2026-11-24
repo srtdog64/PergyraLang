@@ -68,6 +68,9 @@ MODULE은 기존 문법 문맥 비트이고, GENERAL이라고 의미 소유자�
 두 번째 단어 목록을 수동으로 유지하지 않는다. 사용 지침은
 [레지스트리 계약](../semantics/language_keyword_registry.md), 실제 parser 관측은
 [생성 구현 inventory](../semantics/language_word_implementation_inventory.generated.md)를 읽는다.
+어떤 단어도 필수가 아니다. 문서상 1급(핵심)과 2급(도메인이 커질 때) 구분은
+[단어 등급](language_word_tiers.generated.md)에 있고, 등급표
+`language_word_tiers.tsv`는 레지스트리 게이트가 레지스트리와 대조한다.
 
 ### 1.4 자체호스팅 프런티어
 

@@ -18,12 +18,12 @@ Remeasure at each landing that touches the default route.
 
 Every corpus program (2,746; native refuses 718), default C and LLVM against
 native LLVM; the table above saw neither the C route nor programs without a
-`var` ([record](../evidence/2026-11-24_selfhost_element_write_copies.md); `db571be36`: C 1,417 / 598 / 13).
+`var` ([record](../evidence/2026-11-24_selfhost_element_write_copies.md); `db571be36`: C 1,417 / 598 / 13; `72c2d2747`: C 1,421 / 598 / 9 / 92).
 
 | Revision | C equal / self refuses / other output / runs a native refusal | LLVM, same columns |
 |---|---|---|
-| element writes `72c2d2747` | 1,421 / 598 / 9 / 92 | 831 / 1,196 / 1 / 25 |
-| foreach loans ([record](../evidence/2026-11-24_selfhost_foreach_string_loans.md)) | 1,421 / 599 / 8 / 91 | 831 / 1,197 / 0 / 24 |
+| foreach loans `0a9053745` ([record](../evidence/2026-11-24_selfhost_foreach_string_loans.md)) | 1,421 / 599 / 8 / 91 | 831 / 1,197 / 0 / 24 |
+| inout set releases ([record](../evidence/2026-11-24_review_batch_inout_set_copy_report_word_tiers.md)) | 1,418 / 602 / 8 / 85 | 828 / 1,200 / 0 / 18 |
 
 Full DRV-2 MIR: first refusal at transition ordinal 1438 (last measured on
 v11, [blocker](blocker.md)).

@@ -64,7 +64,8 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
         || strcmp(argv[0], "--ast") == 0
         || strcmp(argv[0], "--ast-json-diagnostic-verified") == 0
         || strcmp(argv[0], "--emit-capability-manifest-verified") == 0
-        || strcmp(argv[0], "--emit-dir-verified") == 0;
+        || strcmp(argv[0], "--emit-dir-verified") == 0
+        || strcmp(argv[0], "--report-copies-verified") == 0;
     mir_json_mode = strcmp(argv[0], "--mir-json") == 0;
     mir_producer_mode = strcmp(argv[0], "--emit-mir-json-verified") == 0;
     mir_canonicalize_mode = strcmp(argv[0], "--canonicalize-mir-json") == 0;
@@ -94,7 +95,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
             || (argc == 2
                 && strcmp(argv[1], "--emit-c-verified") != 0))) {
         fprintf(stderr,
-                "pgy: --self-driver supports --tokens/--ast <source.pgy>, --emit-capability-manifest-verified/--emit-dir-verified <source.pgy>, <source.pgy> [--emit-c-verified], --emit-mir-json-verified <source.pgy>, --canonicalize-mir-json <file>, or --mir-json <file>\n");
+                "pgy: --self-driver supports --tokens/--ast <source.pgy>, --emit-capability-manifest-verified/--emit-dir-verified/--report-copies-verified <source.pgy>, <source.pgy> [--emit-c-verified], --emit-mir-json-verified <source.pgy>, --canonicalize-mir-json <file>, or --mir-json <file>\n");
         return 1;
     }
 

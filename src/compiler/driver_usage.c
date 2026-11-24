@@ -44,6 +44,7 @@ driver_print_usage(void)
         "  pgy --tokens <source.pgy>     dump token stream\n"
         "  pgy --ast    <source.pgy>     dump merged/normalized AST\n"
         "  pgy --dir    <source.pgy>     dump lowered DIR summary\n"
+        "  pgy --report-copies <source.pgy>  list the copies the compiler inserted\n"
         "  pgy --native-pipeline --rir <source.pgy>  explicit native RIR summary\n"
         "  pgy --native-pipeline --rir-json <source.pgy>  explicit native RIR JSON\n"
         "  pgy --machine-manifest-json   dump native machine declaration JSON\n"

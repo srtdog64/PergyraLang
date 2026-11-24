@@ -130,6 +130,25 @@ func Drain(seed: Int) -> Int {
 func Main() -> Void { Log(Drain(1)); }
 PGY
 
+# An `inout` callee's owned set frees the element it replaces, as its pop
+# does. It read freed memory on both default routes before 2026-11-24
+# (native refuses it).
+cat >"$WORK_DIR/inout_callee_set.pgy" <<'PGY'
+func Replace(inout names: Array<String>) -> Void {
+    ArraySet(names, 0, ToString(99));
+}
+func Run(seed: Int) -> Int {
+    var names: Array<String> = [];
+    ArrayPush(names, ToString(seed));
+    ArrayPush(names, ToString(seed + 1));
+    let name: String = names[0];
+    Replace(names);
+    Log(name);
+    return ArrayLength(names);
+}
+func Main() -> Void { Log(Run(5)); }
+PGY
+
 # The loan is an earlier argument of the call that pops through its callee.
 cat >"$WORK_DIR/argument_before_release.pgy" <<'PGY'
 func PopLen(inout xs: Array<String>) -> Int {
@@ -645,6 +664,7 @@ copied_where_taken() {
 refused pop_index_alias indexed_string_use_after_element_release
 refused set_index_alias indexed_string_use_after_element_release
 refused inout_callee_pop indexed_string_use_after_element_release
+refused inout_callee_set indexed_string_use_after_element_release
 refused argument_before_release indexed_string_use_after_element_release
 refused returned_loan_pop indexed_string_use_after_element_release
 refused joined_local_result_pop indexed_string_use_after_element_release
@@ -670,4 +690,4 @@ admitted read_then_reassigned $'5\n7\n1'
 admitted other_array_reassigned $'5\n0'
 copied_where_taken copied_argument_before_release '75'
 
-echo "[$LABEL] 16 element releases or reassignments under a live String loan refused on the MIR producer and both default routes; 10 neighbours equal on both routes and clean under ASan; a loan copied where it is taken admitted: PASS"
+echo "[$LABEL] 17 element releases or reassignments under a live String loan refused on the MIR producer and both default routes; 10 neighbours equal on both routes and clean under ASan; a loan copied where it is taken admitted: PASS"

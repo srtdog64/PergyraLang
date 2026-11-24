@@ -59,7 +59,7 @@ driver_self_host_source_stdout_mode(const DriverFlags *flags)
     if (flags == NULL || flags->source_path == NULL || flags->output_path != NULL
         || (flags->dump_tokens ? 1 : 0) + (flags->dump_ast ? 1 : 0)
             + (flags->dump_capability_manifest ? 1 : 0)
-            + (flags->dump_dir ? 1 : 0) != 1
+            + (flags->dump_dir ? 1 : 0) + (flags->report_copies ? 1 : 0) != 1
         || flags->emit_c_only || flags->emit_llvm_ir || flags->do_run
         || flags->dump_rir || flags->dump_rir_json
         || flags->dump_machine_manifest_json || flags->dump_air
@@ -73,12 +73,12 @@ driver_self_host_source_stdout_mode(const DriverFlags *flags)
         || flags->runtime_mode != RUNTIME_DEFAULT
         || flags->machine_layer_physical_manifest != NULL)
         return NULL;
+    if (flags->report_copies)
+        return flags->diag_format == DIAG_FORMAT_TEXT ? "--report-copies-verified" : NULL;
     if (flags->dump_tokens)
-        return flags->diag_format == DIAG_FORMAT_JSON
-            ? "--tokens-json-diagnostic-verified" : "--tokens";
+        return flags->diag_format == DIAG_FORMAT_JSON ? "--tokens-json-diagnostic-verified" : "--tokens";
     if (flags->dump_ast)
-        return flags->diag_format == DIAG_FORMAT_JSON
-            ? "--ast-json-diagnostic-verified" : "--ast";
+        return flags->diag_format == DIAG_FORMAT_JSON ? "--ast-json-diagnostic-verified" : "--ast";
     return flags->dump_capability_manifest
         ? "--emit-capability-manifest-verified" : "--emit-dir-verified";
 }

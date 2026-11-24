@@ -1,0 +1,91 @@
+// Report of the copies the compiler inserted into an admitted program (its
+// Clone landings), for `pgy --report-copies`. The landings are the ownership
+// verdict's `compiler_clone_expression_node_ids`; this owner only reads them,
+// the expression surfaces that hold each node, and the source location facts.
+// One line per copy, in source order:
+//   <file>:<line>:<column>: copy of `<expression>` (<place>)
+// The position is the statement's; the place is the call argument, the
+// initializer or the assigned value that receives the copy. A program with
+// no inserted copy reports nothing.
+
+import "driver_rung2_owner.pgy";
+import "driver_pipeline_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_call_argument_edge_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_graph_consumer_owner.pgy";
+import "../../semantic/ast_expression/ast_expression_call_target_fact_owner.pgy";
+
+// The node that consumes `node`, or -1.
+func DriverRung2CopyReportConsumer(ref graph: SemanticExpressionGraphFacts, node: Int) -> Int {
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if graph.arena.shape_ready && ArrayLength(graph.arena.consumer_rows) == count {
+        return graph.arena.consumer_rows[node];
+    }
+    var row: Int = node + 1;
+    while row < count {
+        if SemanticExpressionGraphRowConsumes(graph.arena.topology, row, node) { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+// The place a copied node goes to, read from the graph around it.
+func DriverRung2CopyReportPlace(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, node: Int
+) -> String {
+    let consumer: Int = DriverRung2CopyReportConsumer(surfaces.expression_graph, node);
+    let consumer_kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, consumer);
+    if consumer >= 0 && IsSome(consumer_kind) && UnwrapOption(consumer_kind) == AstExpressionNodeCallArgument() {
+        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+        if edge.ok {
+            let target: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, edge.call_node);
+            var callee: String = "a call";
+            if IsSome(target) { callee = Concat("`", Concat(UnwrapOption(target), "`")); }
+            return Concat("argument ", Concat(ToString(edge.ordinal + 1), Concat(" of ", callee)));
+        }
+    }
+    if slot % 3 == AstExpressionLaneValue() && surfaces.expression_graph.roots[slot] == node {
+        let atom: String = surfaces.atoms[slot / 3];
+        if atom != "" { return Concat("value of `", Concat(atom, "`")); }
+        return "statement value";
+    }
+    return "operand";
+}
+
+func DriverRung2CopyReportText(
+    ref artifact: AstTreeArtifact, ref surfaces: SemanticAstExpressionSurfaceFacts, ref nodes: Array<Int>
+) -> String {
+    var lines: Array<String> = [];
+    var slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+            var index: Int = 0;
+            while IsSome(start) && index < ArrayLength(nodes) {
+                let node: Int = nodes[index];
+                if node >= UnwrapOption(start) && node <= root {
+                    let span: AstSourceSpan = AstSourceSpanForNode(
+                        artifact.source_modules.locations, artifact.arena, surfaces.node_ids[slot / 3]);
+                    var text: String = "expression";
+                    let found: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, node);
+                    if IsSome(found) && UnwrapOption(found) != "" { text = UnwrapOption(found); }
+                    ArrayPush(lines, Concat(AstSourceSpanText(span), Concat(": copy of `", Concat(text,
+                        Concat("` (", Concat(DriverRung2CopyReportPlace(surfaces, slot, node), ")"))))));
+                }
+                index = index + 1;
+            }
+        }
+        slot = slot + 1;
+    }
+    return StringJoin(lines, "\n");
+}
+
+// `--report-copies-verified SOURCE`: the source is analysed as for MIR
+// production; a refused program prints its diagnostic and exits 1 there.
+func DriverRung2CopyReportForSource(source_path: String) -> Void with caps io_read {
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifactForPublicDiagnosticRequest(source_path, false);
+    let verified: DriverRung2VerifiedFacts = VerifyArtifactForMirProduction(artifact);
+    let report: String = DriverRung2CopyReportText(artifact, verified.analysis.expression_surfaces,
+        verified.body_types.collection_ownership.compiler_clone_expression_node_ids);
+    if report != "" { Log(report); }
+}

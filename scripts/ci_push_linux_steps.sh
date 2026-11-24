@@ -67,6 +67,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_runtime_helper_materialization_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_general_route_collection_iteration_owner.sh'
     run 'bash tests/self_hosted/parity/ownership/element_release_loan_refusal_owner.sh'
+    run 'bash tests/self_hosted/parity/ownership/copy_report_owner.sh'
     run 'bash tests/self_hosted/parity/ownership/selfhost_region_allocation_owner.sh'
     run 'bash tests/self_hosted/parity/ownership/selfhost_compiler_clone_carriage_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_general_route_collection_programs_owner.sh'
@@ -77,7 +78,6 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/mir/json_projection_output_lifetime.sh'
     run 'bash tests/self_hosted/parity/mir/json_projection_join_contract.sh'
     run 'bash tests/self_hosted/parity/codegen/array_growth_allocation_failure.sh'
-    run 'bash tests/self_hosted/parity/driver/selfhost_compile_memory_owner.sh'
     run 'bash tests/self_hosted/parity/one_mir/one_mir_string_case_math_projection.sh'
     run 'bash tests/self_hosted/parity/semantic/default_route_method_receiver_order_owner.sh'
     run 'bash tests/self_hosted/parity/driver/parent_relative_output_path_owner.sh'
@@ -143,4 +143,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
     run 'make effect-admission-test-smoke'
     run 'make self-host-preparation-contract-test-smoke'
     run 'make self-host-mir-function-param-flow-summary-test-smoke'
+    # Installed-driver memory bound; it builds nothing, so it runs in the
+    # self-host shard, which has more headroom under its limit than the core one.
+    run 'bash tests/self_hosted/parity/driver/selfhost_compile_memory_owner.sh'
 fi

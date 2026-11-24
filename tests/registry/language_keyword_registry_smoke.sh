@@ -76,6 +76,12 @@ PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -B \
     --textmate-grammar "$GRAMMAR" \
     --implementation-inventory "$INVENTORY"
 
+# The 1st/2nd tier documentation page lists every registry word once.
+PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -B \
+    "$ROOT_DIR/scripts/render_language_word_tiers.py" \
+    "$REGISTRY" "$ROOT_DIR/docs/language/language_word_tiers.tsv" \
+    "$ROOT_DIR/docs/language/language_word_tiers.generated.md" --check
+
 PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -B - \
     "$ROOT_DIR" "$FIXTURE_SOURCE" "$FIXTURE_EXPECTED" <<'PY'
 from pathlib import Path

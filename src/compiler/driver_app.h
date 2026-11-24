@@ -61,6 +61,7 @@ typedef struct
     bool        dump_tokens;
     bool        dump_ast;
     bool        dump_capability_manifest;  /* --capability-manifest */
+    bool        report_copies;             /* --report-copies */
     bool        dump_dir;
     bool        dump_rir;
     bool        dump_rir_json;

@@ -328,7 +328,15 @@ while i < 10
 
 ## Declaration Keywords
 
-Pergyra uses 6 keywords to declare types. Each keyword carries **intended** distinct semantics.
+No language word is mandatory. Start with the core (1st-tier) words: `struct`
+and `enum` for data, `func` for behavior. The other declaration keywords are
+2nd-tier words for when the domain grows, and a program that never needs them
+never uses them. The tier of every language word is in
+[language word tiers](docs/language/language_word_tiers.generated.md),
+rendered from the registry.
+
+Pergyra has 6 keywords that declare types: `struct` (1st tier) and five 2nd-tier
+ones. Each keyword carries **intended** distinct semantics.
 
 | Keyword | Role | Memory | Behavior | Implementation |
 |---------|------|--------|----------|----------------|
