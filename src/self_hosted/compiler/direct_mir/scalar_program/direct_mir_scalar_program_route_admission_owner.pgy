@@ -34,7 +34,13 @@ func DirectMirScalarProgramRouteAdmissionOwnerStageReady(
             stage == "payload-free-enum" ||
             stage == "entrypoint" ||
             stage == "array-int-value-result-abi" || stage == "array-bool-abi" ||
-            stage == "array-string-abi" || stage == "seal";
+            stage == "array-string-abi" || stage == "seal-claim" ||
+            stage == "seal-routine-rows" || stage == "seal-routine-instance" ||
+            stage == "seal-logical-record" || stage == "seal-identity-cell" ||
+            stage == "seal-referenced-enum" || stage == "seal-payload-free-enum" ||
+            stage == "seal-array-int-value-result" || stage == "seal-array-bool-abi" ||
+            stage == "seal-opaque-readonly-zone" || stage == "seal-array-string-abi" ||
+            stage == "seal-record-collection-abi";
     }
     if owner == "identity-cell" {
         return stage == "declaration-inventory" || stage == "field-type-join";
@@ -241,9 +247,10 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
                 payload_free_enum,
                 array_int_value_result, array_bool_abi, array_string_abi,
                 opaque_readonly_zones, routine_instances);
-        if !DirectMirScalarProgramRouteFactReady(sealed) {
+        let seal_failure: String = DirectMirScalarProgramRouteFactSealFailure(sealed);
+        if seal_failure != "" {
             return DirectMirScalarProgramRouteAdmissionRejected(
-                "scalar-program-route", "seal", -1, "", -1, "", "");
+                "scalar-program-route", seal_failure, -1, "", -1, "", "");
         }
         return DirectMirScalarProgramRouteAdmissionAccepted(sealed);
     }
@@ -344,9 +351,10 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             array_int_value_result,
             array_bool_abi, array_string_abi, opaque_readonly_zones,
             routine_instances);
-    if !DirectMirScalarProgramRouteFactReady(sealed) {
+    let seal_failure: String = DirectMirScalarProgramRouteFactSealFailure(sealed);
+    if seal_failure != "" {
         return DirectMirScalarProgramRouteAdmissionRejected(
-            "scalar-program-route", "seal", -1, "", -1, "", "");
+            "scalar-program-route", seal_failure, -1, "", -1, "", "");
     }
     return DirectMirScalarProgramRouteAdmissionAccepted(sealed);
 }

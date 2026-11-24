@@ -633,11 +633,12 @@ for backend in c llvm; do
                 # these with that copy; the self-host lands the same copy (the
                 # shared storage copy landing gate runs that shape on both legs).
                 printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
-            exclusive_inout_exit_before_writeback_negative.pgy|exclusive_map_loop_missing_restore_negative.pgy|exclusive_map_loop_break_restore_negative.pgy|exclusive_map_loop_continue_restore_negative.pgy|field_ctor_local_set_negative.pgy)
+            exclusive_inout_exit_before_writeback_negative.pgy|exclusive_map_loop_missing_restore_negative.pgy|exclusive_map_loop_break_restore_negative.pgy|exclusive_map_loop_continue_restore_negative.pgy|field_ctor_local_set_negative.pgy|field_ctor_local_index_negative.pgy)
                 # A field copy an exit leaves unassigned, and a local handed to
-                # a constructor and changed after, are copies: both front ends
-                # take them with a Clone (decisions 2026-11-12 and 2026-10-22)
-                # and print the same output. collection_focus_recovery_owner.sh
+                # a constructor and set after (ArraySet or an indexed
+                # assignment), are copies: both front ends take them with a
+                # Clone (decisions 2026-11-12 and 2026-10-22) and print the
+                # same output. collection_focus_recovery_owner.sh
                 # owns the focus fact refusals.
                 printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             owned_string_result_synthetic_binding_rebinding_negative.pgy)
@@ -824,7 +825,6 @@ field_ctor_owned_push_negative.pgy|ArrayPushOwnedString|ArrayPushOwnedString(val
 field_ctor_own_formal_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, "next")|Store
 field_ctor_local_push_negative.pgy|unproved_exclusive_member_mutation|values|Main|"next"
 field_ctor_local_pop_negative.pgy|unproved_exclusive_member_mutation|values|Main
-field_ctor_local_index_negative.pgy|ArraySet|values[0]|Main|"next"
 field_ctor_own_formal_push_negative.pgy|owned_argument_storage_unproved|values|Store|"next"
 field_ctor_own_formal_pop_negative.pgy|owned_argument_storage_unproved|values|Store
 field_ctor_own_formal_set_negative.pgy|owned_argument_storage_unproved|values|Store|0

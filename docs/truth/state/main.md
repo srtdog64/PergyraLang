@@ -2,11 +2,11 @@
 
 Owner: Claude lane, holding the GPT root lane's work since 2026-11-19
 ([decision](../decisions/2026-11-19_claude_takes_over_gpt_root_lane.md)).
-Checked 2026-11-23.
+Checked 2026-11-24.
 
 | Item | Observed value |
 |---|---|
-| Last fully green published main | `f027156e6`: [CI 45006796598](https://github.com/srtdog64/PergyraLang/actions/runs/45006796598), all 33 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
+| Last fully green published main | `db571be36`: [CI 45107146975](https://github.com/srtdog64/PergyraLang/actions/runs/45107146975), all 33 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
 | Route deletion on main | `34ae17546` deleted the per-program-shape collection program route and its registry row ([evidence](../evidence/2026-11-19_collection_program_route_deleted.md)); green in [CI 44358794007](https://github.com/srtdog64/PergyraLang/actions/runs/44358794007) at `2c199fb28` |
 | `var` declarations in scalar CFG | `9a5d7362e`: scalar CFG reads them through the binding vocabulary owner ([evidence](../evidence/2026-11-19_scalar_cfg_mutable_declaration.md)); green in [CI 44463438926](https://github.com/srtdog64/PergyraLang/actions/runs/44463438926) |
 | Runtime helpers | `f0d16adaf`: String concat, record push and `Array<Bool>` type declared with the facts that emit them ([evidence](../evidence/2026-11-19_runtime_helper_materialization.md)); green in [CI 44488492111](https://github.com/srtdog64/PergyraLang/actions/runs/44488492111) |
@@ -29,7 +29,8 @@ Checked 2026-11-23.
 | Self-host direct-MIR regions (`c6c7ff395`; CI green) | the self-host MIR carries the region sites and direct C and LLVM allocate them from the routine region, freed on every exit including `?` ([evidence](../evidence/2026-11-22_selfhost_direct_mir_region_allocation.md)) |
 | `resource.region_allocation_plan` CLOSED (`cc27d42c6`; CI green) | the unreached model `region_plan_owner.pgy`, its manifest gate and artifact kind deleted ([evidence](../evidence/2026-11-22_region_allocation_plan_closed.md)) |
 | Self-host compiler Clone carriage (S5c slice 1, `f027156e6`; CI green) | the self-host MIR lists the compiler Clone landings; direct C and LLVM copy String and Array ones and refuse the rest; the driver's landing count refusal deleted ([evidence](../evidence/2026-11-22_selfhost_compiler_clone_carriage.md)) |
-| Self-host record copies (S5c slice 2; CI result goes in [gates](gates.md)) | direct C and LLVM copy a record landing and an explicit record Clone field by field; a field with no copy, or a source that is not a place, is refused ([evidence](../evidence/2026-11-23_selfhost_record_clone.md)) |
+| Self-host record copies (S5c slice 2, `db571be36`; CI green) | direct C and LLVM copy a record landing and an explicit record Clone field by field; a field with no copy, or a source that is not a place, is refused ([evidence](../evidence/2026-11-23_selfhost_record_clone.md)) |
+| Self-host element writes (CI result goes in [gates](gates.md)) | an indexed assignment, an `ArraySet` through a copy's path and a store through a formal's member path land the copies native lands, or are refused; default C ran four programs unlike native before ([evidence](../evidence/2026-11-24_selfhost_element_write_copies.md)) |
 | Work tree | `D:\PergyraLang` on `main`; unrelated untracked folder preserved |
 | Linux validation | WSL `Ubuntu-C-WSL` `/root/ts2` builds the candidate; `/root/mg-main` is the GPT lane's copy (base `5b0d354fb` plus a source mirror) |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |

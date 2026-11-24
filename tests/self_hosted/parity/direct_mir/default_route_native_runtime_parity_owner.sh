@@ -17,6 +17,15 @@
 #   programs, reverse_after_copy and inout_set_after_copy);
 # - a borrowed String element pushed without a copy outlived the deep drop of
 #   its Array (named_string_identity_loop_reassignment, pushed_element_dropped).
+# On 2026-11-24 default C ran four more programs with other output, and LLVM
+# refused them only at an unrelated route check: an indexed assignment was no
+# write to the storage a copy shared, an ArraySet through a copy's path left
+# the copy unfollowed, and a write through a by-value formal's member path
+# did not move the formal (local_copy_source_element_set,
+# by_value_lend_result_written_argument_copied and the two
+# default_aggregate_move_field_* programs). The inline programs below the
+# 2026-11-24 line hold the same writes on smaller values; a write through a
+# copy handed to a call (copy_passed_then_index_set) may be refused.
 # MUST_EQUAL programs must compile and print native's output on both default
 # routes. For the others a leg may refuse (no artifact) but never run with
 # other output; on the drivers before this gate each ran with other output.
@@ -126,8 +135,100 @@ func Main() -> Int {
 }
 PGY
 
+# 2026-11-24: element writes through copies, paths and formals.
+cat >"$WORK_DIR/copy_then_index_set.pgy" <<'PGY'
+func Main() -> Int {
+    var items: Array<Int> = [1, 2];
+    let before: Array<Int> = items;
+    items[0] = 5;
+    Print(ToString(before[0] * 10 + items[0]));
+    return 0;
+}
+PGY
+
+cat >"$WORK_DIR/loop_copy_then_index_set.pgy" <<'PGY'
+func Main() -> Int {
+    var items: Array<Int> = [1, 2];
+    var i: Int = 0;
+    var total: Int = 0;
+    while i < 2 {
+        let snap: Array<Int> = items;
+        items[0] = items[0] + 10;
+        total = total + snap[0];
+        i = i + 1;
+    }
+    Print(ToString(total * 100 + items[0]));
+    return 0;
+}
+PGY
+
+cat >"$WORK_DIR/inout_index_set_after_copy.pgy" <<'PGY'
+func Mark(inout rows: Array<Int>) -> Int {
+    rows[0] = 9;
+    return 0;
+}
+
+func Main() -> Int {
+    var rows: Array<Int> = [1];
+    let snap: Array<Int> = rows;
+    let n: Int = Mark(rows);
+    Print(ToString(snap[0] * 10 + rows[0]));
+    return n;
+}
+PGY
+
+cat >"$WORK_DIR/record_copy_side_set.pgy" <<'PGY'
+struct Box {
+    items: Array<Int>;
+}
+
+func Main() -> Int {
+    let box: Box = Box([1, 2]);
+    var held: Box = box;
+    ArraySet(held.items, 0, 9);
+    Print(ToString(box.items[0] * 10 + held.items[0]));
+    return 0;
+}
+PGY
+
+cat >"$WORK_DIR/formal_field_index_set.pgy" <<'PGY'
+struct Arena {
+    atoms: Array<Int>;
+}
+
+func Rename(arena: Arena) -> Int {
+    arena.atoms[0] = 9;
+    return ArrayLength(arena.atoms);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([1]);
+    let count: Int = Rename(arena);
+    Print(ToString(arena.atoms[0]));
+    return count;
+}
+PGY
+
+cat >"$WORK_DIR/copy_passed_then_index_set.pgy" <<'PGY'
+func Sum(items: Array<Int>) -> Int {
+    return items[0] + items[1];
+}
+
+func Main() -> Int {
+    let items: Array<Int> = [1, 2];
+    var held: Array<Int> = items;
+    Print(ToString(Sum(held)));
+    held[0] = 9;
+    Print(ToString(items[0] * 10 + held[0]));
+    return 0;
+}
+PGY
+
 MUST_EQUAL=(
     "src/self_hosted/codegen/fixture/log_trailing_newline.pgy"
+    "$WORK_REL/copy_then_index_set.pgy"
+    "$WORK_REL/loop_copy_then_index_set.pgy"
+    "$WORK_REL/inout_index_set_after_copy.pgy"
     "$CASES/array_result_owned_named_inout_shallow_set_landed_valid.pgy"
     "$CASES/by_value_array_grown_by_inout_callee_last_use_valid.pgy"
     "$CASES/by_value_cursor_set_through_recursive_parser_valid.pgy"
@@ -143,6 +244,13 @@ EQUAL_OR_REFUSED=(
     "$WORK_REL/reverse_after_copy.pgy"
     "$WORK_REL/pushed_element_dropped.pgy"
     "$WORK_REL/inout_set_after_copy.pgy"
+    "$CASES/local_copy_source_element_set_landed_valid.pgy"
+    "$CASES/by_value_lend_result_written_argument_copied_landed_valid.pgy"
+    "$CASES/default_aggregate_move_field_element_write_landed_valid.pgy"
+    "$CASES/default_aggregate_move_field_set_landed_valid.pgy"
+    "$WORK_REL/record_copy_side_set.pgy"
+    "$WORK_REL/formal_field_index_set.pgy"
+    "$WORK_REL/copy_passed_then_index_set.pgy"
 )
 
 # run_leg SOURCE LEG FLAGS...: compiles SOURCE and runs it. Prints "refused"

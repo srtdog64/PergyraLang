@@ -229,8 +229,12 @@ func SemanticAstCollectionExclusiveHolderContained(
                         var written: Bool = scalar_elements && consumer >= 0 && set_edge.ok && set_edge.ordinal == 0 &&
                             set_edge.argument_node == node &&
                             SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, set_edge.call_node, "ArraySet");
-                        // An ArraySet statement names its target as the atom lane root.
-                        if scalar_elements && consumer < 0 && lane == AstExpressionLaneAtom() && node == root &&
+                        // An ArraySet statement names its target as the atom
+                        // lane root. Through the holder or a path of it, it
+                        // writes in place, as an indexed assignment (a defining
+                        // statement) does: the statement mutation owner selects
+                        // the copies that write would change.
+                        if lane == AstExpressionLaneAtom() &&
                             TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindArraySetStmtTag()) {
                             written = true;
                         }

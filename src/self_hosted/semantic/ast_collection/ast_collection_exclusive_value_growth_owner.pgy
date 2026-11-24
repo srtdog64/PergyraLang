@@ -99,46 +99,20 @@ func SemanticAstCollectionMutatingFormals(
                             }
                             let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
                                 signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
-                            // A write through an alias, a member path or a local holding a
-                            // formal's storage moves the formal (write-through owner).
-                            let writes: Bool = (edge.ordinal == 0 &&
-                                SemanticAstCollectionStorageInPlaceWrite(surfaces.expression_graph, edge.call_node)) ||
+                            // ArraySet, ArraySort and ArrayReverse write their receiver in
+                            // place; a hand-off to a formal written so writes the argument.
+                            let in_place: Bool = edge.ordinal == 0 &&
+                                SemanticAstCollectionStorageInPlaceWrite(surfaces.expression_graph, edge.call_node);
+                            let writes: Bool = in_place ||
                                 (formal.ok && MapHas(mutating, Concat("w:", ToString(formal.syntax_id))));
-                            if writes && root_id == 0 && place.ok && !place.temporary &&
-                                (place.key >= 0 || ArrayLength(place.chain) > 0) {
-                                let alias: Bool = place.key >= 0 && ArrayLength(place.chain) == 0 &&
-                                    origins[place.key] == SemanticAstCollectionOriginMemberMove();
-                                var through: Int = SemanticAstCollectionExclusivePlaceRoot(locals, place);
-                                if alias { through = source_binding_syntax_ids[place.key]; }
-                                if SemanticAstCollectionExclusiveWriteThroughMovesRoot(signatures, constructors, locals,
-                                        surfaces, origins, dep_locals, dep_formals, function_id, syntax_id, through) {
-                                    root_id = through;
-                                    if alias {
-                                        field = SemanticAstCollectionExclusiveAliasField(surfaces, locals, mutating, place.key);
-                                    } else if ArrayLength(place.chain) > 0 {
-                                        let written: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
-                                        if !IsSome(written) { MapSet(mutating, "unconverged", 1); return mutating; }
-                                        field = UnwrapOption(written);
-                                    }
-                                }
-                            }
-                            // ArraySet, ArraySort and ArrayReverse write a whole formal
-                            // in place; an inout formal handed whole to a formal written
-                            // so keeps the callee's verdict. Such a formal is recorded as
-                            // written ("w:<formal>"), not grown: a by-value Array handed
-                            // whole to it keeps sharing the caller's elements, as native
-                            // does (OPEN 2026-10-23_open_by_value_array_element_write_through_inout).
-                            if place.ok && !place.temporary && place.key < 0 && ArrayLength(place.chain) == 0 {
-                                let whole: Int = SemanticAstCollectionExclusivePlaceRoot(locals, place);
-                                let in_place: Bool = edge.ordinal == 0 &&
-                                    SemanticAstCollectionStorageInPlaceWrite(surfaces.expression_graph, edge.call_node);
-                                let handed: Bool = formal.ok &&
-                                    MapHas(mutating, Concat("w:", ToString(formal.syntax_id))) &&
-                                    SemanticAstCollectionExclusiveRootMode(signatures, function_id, whole) == 1;
-                                if (in_place || handed) && !MapHas(mutating, Concat("w:", ToString(whole))) {
-                                    MapSet(mutating, Concat("w:", ToString(whole)), 1);
-                                    changed = true;
-                                }
+                            if writes && root_id == 0 {
+                                let write: SemanticAstCollectionExclusiveInPlaceWrite =
+                                    SemanticAstCollectionExclusiveInPlaceWriteAt(signatures, constructors, locals,
+                                        surfaces, origins, source_binding_syntax_ids, dep_locals, dep_formals,
+                                        function_id, syntax_id, place, in_place, mutating);
+                                if !write.ok { MapSet(mutating, "unconverged", 1); return mutating; }
+                                if write.written { changed = true; }
+                                if write.root > 0 { root_id = write.root; field = write.field; }
                             }
                             if root_id == 0 && formal.ok && MapHas(mutating, ToString(formal.syntax_id)) &&
                                 place.ok && !place.temporary {
@@ -176,19 +150,49 @@ func SemanticAstCollectionMutatingFormals(
         }
         // ArrayPush/ArrayPop statements carry their receiver in the Atom lane,
         // not as a call argument. ArraySet statements and indexed assignments
-        // write in place.
+        // (which the statement facts do not track) write in place, as the
+        // call-form writes above do.
+        var assignment: Int = 0;
+        while assignment < ArrayLength(assignments.node_ids) {
+            if assignments.target_is_indexed[assignment] != 0 {
+                let assigned_function: Int = assignments.function_node_ids[assignment];
+                let assigned_syntax: Int = assignments.node_ids[assignment];
+                let assigned: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionExclusiveStatementTargetPlace(
+                    artifact, signatures, locals, inferred_types, surfaces, assigned_function, assigned_syntax);
+                let write: SemanticAstCollectionExclusiveInPlaceWrite = SemanticAstCollectionExclusiveInPlaceWriteAt(
+                    signatures, constructors, locals, surfaces, origins, source_binding_syntax_ids, dep_locals,
+                    dep_formals, assigned_function, assigned_syntax, assigned, true, mutating);
+                if !write.ok { MapSet(mutating, "unconverged", 1); return mutating; }
+                if write.written { changed = true; }
+                if write.root > 0 {
+                    SemanticAstCollectionExclusiveRecordGrowthSite(growth_sites, write.root, assigned_syntax);
+                    if SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals, dep_formals,
+                            dep_paths, paths, assigned_function, write.root, write.field, mutating) {
+                        changed = true;
+                    }
+                }
+            }
+            assignment = assignment + 1;
+        }
         var statement: Int = 0;
         while statement < ArrayLength(statements.node_ids) {
             let kind: Int = statements.kind_tags[statement];
             if kind == TypedAstKindArraySetStmtTag() {
-                // A set of a whole formal writes it in place: recorded as
-                // written (see the call arguments above), not grown.
+                let set_function: Int = statements.function_node_ids[statement];
+                let set_syntax: Int = statements.node_ids[statement];
                 let written: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionExclusiveStatementTargetPlace(
-                    artifact, signatures, locals, inferred_types, surfaces, statements.function_node_ids[statement],
-                    statements.node_ids[statement]);
-                if written.ok && !written.temporary && written.key < 0 && ArrayLength(written.chain) == 0 {
-                    let written_key: String = Concat("w:", ToString(SemanticAstCollectionExclusivePlaceRoot(locals, written)));
-                    if !MapHas(mutating, written_key) { MapSet(mutating, written_key, 1); changed = true; }
+                    artifact, signatures, locals, inferred_types, surfaces, set_function, set_syntax);
+                let write: SemanticAstCollectionExclusiveInPlaceWrite = SemanticAstCollectionExclusiveInPlaceWriteAt(
+                    signatures, constructors, locals, surfaces, origins, source_binding_syntax_ids, dep_locals,
+                    dep_formals, set_function, set_syntax, written, true, mutating);
+                if !write.ok { MapSet(mutating, "unconverged", 1); return mutating; }
+                if write.written { changed = true; }
+                if write.root > 0 {
+                    SemanticAstCollectionExclusiveRecordGrowthSite(growth_sites, write.root, set_syntax);
+                    if SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals, dep_formals,
+                            dep_paths, paths, set_function, write.root, write.field, mutating) {
+                        changed = true;
+                    }
                 }
             }
             if kind == TypedAstKindArrayPushStmtTag() || kind == TypedAstKindArrayPopStmtTag() {
@@ -243,24 +247,4 @@ func SemanticAstCollectionMutatingFormals(
     }
     if changed { MapSet(mutating, "unconverged", 1); }
     return mutating;
-}
-
-// The first field a member alias names, or "*" when its value is not a plain
-// member read or a whole assignment rebinds it. A nested alias such as
-// `root.arena.node_texts` grows `root.arena`; `node_texts` is only the last
-// field inside that first-field value.
-func SemanticAstCollectionExclusiveAliasField(
-    ref surfaces: SemanticAstExpressionSurfaceFacts, ref locals: SemanticAstLocalBindingFacts, mutating: HashMap<String, Int>, row: Int
-) -> String {
-    if row < 0 || row >= ArrayLength(locals.node_ids) || MapHas(mutating, Concat("rebound:", ToString(row))) { return "*"; }
-    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, locals.node_ids[row], AstExpressionLaneValue()); if !IsSome(value) { return "*"; }
-    var current: Int = UnwrapOption(value); var member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, current);
-    var root_field: String = ""; var depth: Int = 0;
-    while member.ok && depth < 64 {
-        let text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
-        if !IsSome(text) || UnwrapOption(text) == "" { return "*"; }
-        root_field = UnwrapOption(text); current = member.receiver_node;
-        member = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, current); depth = depth + 1;
-    }
-    if member.ok || root_field == "" { return "*"; } return root_field;
 }

@@ -9,7 +9,10 @@
 // second case: the formal is by-value, Clone copies it whole, and no
 // statement of the routine other than the write and the aliases' own
 // definitions names it. Every other write keeps the sharing the analysis
-// admitted before.
+// admitted before. The rule below for every in-place write (what it records
+// and which binding it moves) is read by the mutating-formal summary
+// (ast_collection_exclusive_value_growth_owner.pgy) for call-form writes,
+// ArraySet statements and indexed assignments alike.
 import "ast_collection_exclusive_value_field_read_owner.pgy";
 import "ast_collection_exclusive_compiler_clone_owner.pgy";
 
@@ -85,4 +88,93 @@ func SemanticAstCollectionExclusiveWriteThroughMovesRoot(
         row = row + 1;
     }
     return held;
+}
+
+// What one in-place write records in the summary: `written` when it newly
+// recorded its whole formal as written ("w:<formal>"), and the binding it
+// moves (`root`, 0 for none) with the first field it reaches (`field`, "*"
+// for any). Not ok when a member name of the place cannot be read.
+struct SemanticAstCollectionExclusiveInPlaceWrite {
+    ok: Bool;
+    written: Bool;
+    root: Int;
+    field: String;
+}
+
+// An in-place write at `syntax_id` through `place`: ArraySet, ArraySort,
+// ArrayReverse or an indexed assignment (`in_place`), or a hand-off to a
+// formal written so.
+// - A whole formal written in place, or an inout one handed to such a formal,
+//   is recorded as written, not grown: a by-value Array handed whole to it
+//   keeps sharing the caller's elements, as native does
+//   (OPEN 2026-10-23_open_by_value_array_element_write_through_inout).
+// - A member path of a by-value formal moves the formal, whatever else the
+//   routine reads: native counts a store through a formal's access paths in
+//   the formal's class, so a caller that uses its argument again copies it
+//   or is refused (2026-10-22_moved_argument_used_again_is_copied). A member
+//   path of an inout formal writes the caller's place: recorded as written.
+// - A member alias of a formal, or a local holding a formal's storage, moves
+//   what the write-through owner says it moves.
+func SemanticAstCollectionExclusiveInPlaceWriteAt(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
+    ref dep_locals: Array<Int>, ref dep_formals: Array<Int>, function_id: Int, syntax_id: Int,
+    place: SemanticAstCollectionAggregateSinkPlace, in_place: Bool, inout mutating: HashMap<String, Int>
+) -> SemanticAstCollectionExclusiveInPlaceWrite {
+    let none: SemanticAstCollectionExclusiveInPlaceWrite = SemanticAstCollectionExclusiveInPlaceWrite(true, false, 0, "*");
+    if !place.ok || place.temporary { return none; }
+    let root: Int = SemanticAstCollectionExclusivePlaceRoot(locals, place);
+    var field: String = "*";
+    if ArrayLength(place.chain) > 0 {
+        let first: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+        if !IsSome(first) { return SemanticAstCollectionExclusiveInPlaceWrite(false, false, 0, "*"); }
+        field = UnwrapOption(first);
+    }
+    if place.key < 0 {
+        let mode: Int = SemanticAstCollectionExclusiveRootMode(signatures, function_id, root);
+        if ArrayLength(place.chain) > 0 && mode == 0 {
+            return SemanticAstCollectionExclusiveInPlaceWrite(true, false, root, field);
+        }
+        let whole_written: Bool = ArrayLength(place.chain) == 0 && (in_place || mode == 1);
+        let path_written: Bool = ArrayLength(place.chain) > 0 && mode == 1;
+        let key: String = Concat("w:", ToString(root));
+        if (whole_written || path_written) && !MapHas(mutating, key) {
+            MapSet(mutating, key, 1);
+            return SemanticAstCollectionExclusiveInPlaceWrite(true, true, 0, "*");
+        }
+        return none;
+    }
+    let alias: Bool = ArrayLength(place.chain) == 0 && place.key < ArrayLength(origins) &&
+        origins[place.key] == SemanticAstCollectionOriginMemberMove();
+    var through: Int = root;
+    if alias {
+        through = source_binding_syntax_ids[place.key];
+        field = SemanticAstCollectionExclusiveAliasField(surfaces, locals, mutating, place.key);
+    }
+    if !SemanticAstCollectionExclusiveWriteThroughMovesRoot(signatures, constructors, locals, surfaces, origins,
+            dep_locals, dep_formals, function_id, syntax_id, through) {
+        return none;
+    }
+    return SemanticAstCollectionExclusiveInPlaceWrite(true, false, through, field);
+}
+
+// The first field a member alias names, or "*" when its value is not a plain
+// member read or a whole assignment rebinds it. A nested alias such as
+// `root.arena.node_texts` grows `root.arena`; `node_texts` is only the last
+// field inside that first-field value.
+func SemanticAstCollectionExclusiveAliasField(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref locals: SemanticAstLocalBindingFacts, mutating: HashMap<String, Int>, row: Int
+) -> String {
+    if row < 0 || row >= ArrayLength(locals.node_ids) || MapHas(mutating, Concat("rebound:", ToString(row))) { return "*"; }
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, locals.node_ids[row], AstExpressionLaneValue()); if !IsSome(value) { return "*"; }
+    var current: Int = UnwrapOption(value); var member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, current);
+    var root_field: String = ""; var depth: Int = 0;
+    while member.ok && depth < 64 {
+        let text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
+        if !IsSome(text) || UnwrapOption(text) == "" { return "*"; }
+        root_field = UnwrapOption(text); current = member.receiver_node;
+        member = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, current); depth = depth + 1;
+    }
+    if member.ok || root_field == "" { return "*"; } return root_field;
 }

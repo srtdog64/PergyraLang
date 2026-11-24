@@ -13,9 +13,10 @@ forgeable input. The reached owner/consumer map and falsifiers are in the
 The general emitter leaks the deleted collection route's `ToString` results and returned `Array<Int>` ([run record](../evidence/2026-11-19_collection_program_route_deleted.md));
 nonempty record-field retirement leaks 32 bytes per backend (S2). The
 one-process full DRV-2 source-to-C now ends within its 14 GiB bound at
-12.1 GiB ([measurements](measurements.md)). On a 2,693-program sweep no program runs
-unlike native on default LLVM; default C still differs on 12 that predate
-the [fix](../evidence/2026-11-19_default_route_native_runtime_parity.md).
+12.1 GiB ([measurements](measurements.md)). Of 2,746 corpus programs default LLVM
+runs one unlike native (a foreach String pushed, then read after the walked Array's
+set: freed memory) and default C nine: that one, five `Float` prints, a zone
+refresh, a party role call, a skipped `defer` ([record](../evidence/2026-11-24_selfhost_element_write_copies.md)).
 Default C, through the MIR-to-AST round trip, also prints garbage for a
 foreach whose body pushes to the walked local ([record](../evidence/2026-11-19_general_route_collection_iteration.md)). Generality: the one-routine dispatch is the general route alone; the intent and three-routine routes remain ([intent plan](../../agent_work_directives/general_route_intent_execution_2026-11-21.md), first slice: receiver field binding identity in MIR).
 Native refuses a String foreach or index loan read after a set, pop or drop
@@ -52,7 +53,7 @@ Native refuses a String foreach or index loan read after a set, pop or drop
    zone slot and subject path; `x = values` from a ref formal; generic
    `ref value: T`; reserved zone/role/effect names. F2 branch, unlanded.
    A `List` passed to a `ref` formal is refused even for `ListSize`. Native
-   admits a `ref` formal stored in a local constructor; self-host refuses. A `ref` formal moved into a growing callee: native refuses, self-host copies it ([record](../evidence/2026-11-23_selfhost_record_clone.md)).
+   admits a `ref` formal stored in a local constructor; self-host refuses. A `ref` formal moved into a growing callee: native refuses, self-host copies it ([record](../evidence/2026-11-23_selfhost_record_clone.md)). An element write through a copy it cannot follow (one handed to a call inside a `Print`): native copies, self-host refuses ([record](../evidence/2026-11-24_selfhost_element_write_copies.md)).
 
 ## Falsifiers kept
 

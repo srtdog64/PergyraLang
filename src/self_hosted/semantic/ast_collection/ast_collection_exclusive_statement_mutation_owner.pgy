@@ -301,10 +301,15 @@ func SemanticAstCollectionExclusivePlaceStatementRootReady(
             compiler_clone_expression_node_ids, function_id, syntax_id, root, false) {
         return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
     }
+    let key: String = ToString(function_id);
     if kind != TypedAstKindArrayPushStmtTag() && kind != TypedAstKindArrayPopStmtTag() {
+        if place.key >= 0 && SemanticAstCollectionExclusiveInPlaceWriteUnfollowed(artifact, signatures, locals,
+                inferred_types, surfaces, assignments, copies, surface_starts, surface_ends, function_id,
+                syntax_id, root) {
+            return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
+        }
         return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
     }
-    let key: String = ToString(function_id);
     let root_key: String = ToString(root);
     // A field whose defining constructor argument is a landed Clone owns a
     // copy no other value names, whatever its sibling fields share.
@@ -335,6 +340,74 @@ func SemanticAstCollectionExclusivePlaceStatementRootReady(
         copies, place, MapGet(surface_starts, key), MapGet(surface_ends, key), function_id, syntax_id,
         false, 0, no_uses, false, no_grown, no_sources);
     return SemanticAstCollectionExclusiveStatementMutationProof(ready, false);
+}
+
+// The binding a copy statement gives the copy to: a local's declaration, or
+// the whole local or formal an assignment rebinds; 0 for any other statement.
+func SemanticAstCollectionExclusiveCopyStatementHolder(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, statement: Int
+) -> Int {
+    if IsSome(SemanticAstLocalBindingIndexForNode(locals, statement)) { return statement; }
+    let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, statement);
+    if !IsSome(assigned) || assignments.target_is_indexed[UnwrapOption(assigned)] != 0 { return 0; }
+    let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, statement, AstExpressionLaneAtom());
+    if !IsSome(target) { return 0; }
+    let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, statement, UnwrapOption(target));
+    if !place.ok || place.temporary || ArrayLength(place.chain) > 0 { return 0; }
+    return SemanticAstCollectionExclusivePlaceRoot(locals, place);
+}
+
+// An in-place write at `syntax_id` through the local `root` changes storage a
+// name the analysis does not follow reads later: a copy of the root made
+// before the write (or carried round a loop to it) went to an unfollowed
+// holder that is read from here on, or to no binding; or the root's own
+// definition copied another local's storage without following it, and that
+// local is read from here on. Native lands a copy at that copy; this front end
+// has no followed site there, so the write is refused. A root whose
+// definition is a call or constructor result (a Slice view among them) keeps
+// its earlier admission, as does a copy of a formal's storage.
+func SemanticAstCollectionExclusiveInPlaceWriteUnfollowed(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref copies: HashMap<String, Int>, surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
+    function_id: Int, syntax_id: Int, root: Int
+) -> Bool {
+    let key: String = ToString(function_id);
+    let root_key: String = ToString(root);
+    let ordered: Bool = MapHas(surface_starts, key) && MapHas(surface_ends, key) &&
+        MapGet(surface_starts, key) >= 0;
+    let no_uses: Array<Int> = [];
+    var copy_index: Int = 0;
+    while copy_index < SemanticAstCollectionExclusiveCopyCount(copies, Concat("s_n:", root_key)) {
+        let copied_at: Int = MapGet(copies, Concat("s_i:", Concat(root_key, Concat(":", ToString(copy_index)))));
+        if copied_at <= syntax_id || SemanticAstCollectionExclusiveLoopCarries(artifact, root, syntax_id, copied_at) {
+            let holder: Int = SemanticAstCollectionExclusiveCopyStatementHolder(artifact, signatures, locals,
+                inferred_types, surfaces, assignments, function_id, copied_at);
+            if holder != root && (holder <= 0 || !ordered ||
+                    !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals, inferred_types,
+                        surfaces, MapGet(surface_starts, key), MapGet(surface_ends, key), function_id, syntax_id,
+                        false, 0, no_uses, false, holder)) {
+                return true;
+            }
+        }
+        copy_index = copy_index + 1;
+    }
+    if !MapHas(copies, Concat("d:", root_key)) { return false; }
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, root, AstExpressionLaneValue());
+    if !IsSome(value) { return false; }
+    let source: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, root, UnwrapOption(value));
+    if !source.ok || source.temporary || source.key < 0 { return false; }
+    let from: Int = SemanticAstCollectionExclusivePlaceRoot(locals, source);
+    return from != root && (!ordered ||
+        !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals, inferred_types, surfaces,
+            MapGet(surface_starts, key), MapGet(surface_ends, key), function_id, syntax_id, false, 0, no_uses,
+            false, from));
 }
 
 // The local `root` is defined by a nominal constructor whose argument for
@@ -385,16 +458,19 @@ func SemanticAstCollectionExclusiveStatementRootReady(
         return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
     }
     // Only a reallocating mutation retires the buffer other copies name;
-    // ArraySet and an indexed assignment write in place.
+    // ArraySet and an indexed assignment write in place. The statement facts
+    // track no assignment, so an indexed assignment is found in the
+    // assignment facts and keeps its own statement kind.
     let indexed: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
-    if !IsSome(indexed) {
-        return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
-    }
-    let kind: Int = statements.kind_tags[UnwrapOption(indexed)];
     let assignment: Option<Int> = SemanticAstAssignmentIndexForNode(
         assignments, syntax_id);
     let indexed_assignment: Bool = IsSome(assignment) &&
         assignments.target_is_indexed[UnwrapOption(assignment)] != 0;
+    if !IsSome(indexed) && !indexed_assignment {
+        return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
+    }
+    var kind: Int = TypedAstKindAssignStmtTag();
+    if IsSome(indexed) { kind = statements.kind_tags[UnwrapOption(indexed)]; }
     let mutates_storage: Bool = kind == TypedAstKindArrayPushStmtTag() ||
         kind == TypedAstKindArrayPopStmtTag() ||
         kind == TypedAstKindArraySetStmtTag() || indexed_assignment;
@@ -427,10 +503,19 @@ func SemanticAstCollectionExclusiveStatementRootReady(
         return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
     }
     // In-place element writes need independent value semantics but do not
-    // retire the shared descriptor.  Growth keeps the existing exclusivity
-    // admission below.
+    // retire the shared descriptor: no name the copies above do not follow
+    // may read the write. A focus part writes the field copy its admitted
+    // recovery group lands. Growth keeps the existing exclusivity admission
+    // below.
     if kind != TypedAstKindArrayPushStmtTag() &&
         kind != TypedAstKindArrayPopStmtTag() {
+        if !SemanticAstCollectionFocusRecoveryLocalActive(artifact, focus, function_id, syntax_id,
+                locals.node_ids[target.row]) &&
+            SemanticAstCollectionExclusiveInPlaceWriteUnfollowed(artifact, signatures, locals, inferred_types,
+                surfaces, assignments, copies, surface_starts, surface_ends, function_id, syntax_id,
+                locals.node_ids[target.row]) {
+            return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
+        }
         var detached: Bool = false;
         if target.row < ArrayLength(current_definitions) {
             detached = SemanticAstCollectionExclusiveCompilerClonesDetachStorageAt(

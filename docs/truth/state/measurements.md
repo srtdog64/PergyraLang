@@ -1,7 +1,7 @@
 # Measurements
 
 Owner: Claude lane (GPT root lane's work since 2026-11-19). Checked
-2026-11-23. Heavy measurements ran serially in WSL; the tree and driver
+2026-11-24. Heavy measurements ran serially in WSL; the tree and driver
 hashes are in each linked record.
 
 ## Self-host generality (V1 goal 2)
@@ -15,6 +15,15 @@ Remeasure at each landing that touches the default route.
 | `cc27d42c6` | 529 | 295 | 574 (0 wrong output) | 118 (11 = 50%, 32 = 80%) | 817, 74,935 |
 | S5c slice 1 ([record](../evidence/2026-11-22_selfhost_compiler_clone_carriage.md)) | 535 | 295 | 568 (0 wrong output) | 119 (11 = 50%, 34 = 80%) | 818, 75,096 |
 | S5c slice 2 ([record](../evidence/2026-11-23_selfhost_record_clone.md)) | 542 | 295 | 561 (0 wrong output) | 119 (11 = 50%, 33 = 80%) | 819, 75,426 |
+
+Every corpus program (2,746; native refuses 718), default C and LLVM against
+native LLVM; the table above saw neither the C route nor programs without a
+`var` ([record](../evidence/2026-11-24_selfhost_element_write_copies.md)).
+
+| Revision | C equal / self refuses / other output | LLVM equal / self refuses / other output |
+|---|---|---|
+| `db571be36` | 1,417 / 598 / 13 | 831 / 1,196 / 1 |
+| element writes (this record) | 1,421 / 598 / 9 | 831 / 1,196 / 1 |
 
 Full DRV-2 MIR: first refusal at transition ordinal 1438 (last measured on
 v11, [blocker](blocker.md)).
@@ -33,9 +42,8 @@ Run record: [one-process within the bound](../evidence/2026-11-20_drv2_one_proce
 On the `6ea9e53a8` driver the producer peaked at 8,352,036 KiB and the
 consumer at 10,561,500 KiB. The last one-process run before it exited 134
 with an OOM at 14,077,584 KiB ([v5 record](../evidence/2026-11-18_selfhost_array_transform_lifetime.md)).
-The margin to the bound is about 1.9 GiB. It came from removing string
-waste, not from releasing compiler temporaries, which stays open
-([blocker](blocker.md)). No wall-time claim is made.
+The 1.9 GiB margin came from removing string waste, not from releasing
+compiler temporaries ([blocker](blocker.md)). No wall-time claim is made.
 
 ## Semantic MIR consumers
 
