@@ -1,0 +1,13 @@
+subject Counter {
+    var value: Int;
+}
+
+zone CounterZone {
+    subject slot counter: Counter
+}
+
+func Main() -> Void {
+    let zone = CounterZone(Counter(3));
+    let other = Clone(zone);
+    Log(ToString(other.counter.value));
+}

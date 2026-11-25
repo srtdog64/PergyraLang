@@ -3753,7 +3753,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   storage. Fresh contained Subject cells have unique backing, including equal
   constructor values. Slot reads borrow that storage; copying, returning,
   opaque capture and slot mutation without the reached resource/sync plan
-  refuse. Callable parameter policy consumes the exact MIR carriage rather
+  refuse. An explicit `Clone` of a subject or vessel cell is no copied
+  binding: `direct_mir_scalar_program_logical_record_clone_owner.pgy` lowers
+  it to a fresh cell constructor over copies of the source's fields; a zone
+  or world cell has no Clone there. Callable parameter policy consumes the exact MIR carriage rather
   than deriving it again from the nominal kind: default Zone/World parameters
   use mutable-identity/indirect carriage, while explicit `ref` Zone parameters
   use readonly-ref/indirect carriage. World cells may contain only Zone cells,
@@ -3765,6 +3768,17 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Nonempty Zone method/authority/topology obligations
   are not erased into this storage-only representation. C forward declarations
   and LLVM named types preserve declaration order and the same field ordinals.
+- `src/self_hosted/compiler/direct_mir/direct_mir_receiver_field_binding_owner.pgy`
+  -- bare receiver-field names inside a method of a mutable-identity receiver
+  (`value = value + 1` without `self.`). MIR carries them as owner-field SSA
+  variables; the general route keeps no local for them. An unbound leaf naming
+  a receiver field is admitted as the receiver parameter and its
+  identity-cell member, exactly as `self.value` is, and an `owner_field`
+  definition becomes the identity-cell store, so every read sees the cell's
+  current value. Phis of such a variable join nothing. A name the routine
+  binds as a local or parameter resolves to that binding; a local sharing a
+  name with an owner-field variable, a field the receiver cell lacks, or a
+  routine without a mutable-identity receiver is refused.
 - `src/self_hosted/compiler/direct_mir/direct_mir_intent_cell_placement_owner.pgy` and
   `direct_mir_intent_cell_transfer_projection_owner.pgy` join the admitted
   Intent slot/declaration identities to private-cell layout and materialize

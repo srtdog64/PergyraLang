@@ -26,6 +26,7 @@ import "direct_mir_scalar_cfg_loop_flow_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_range_projection_owner.pgy";
 import "direct_mir_scalar_cfg_program_range_condition_owner.pgy";
 import "direct_mir_scalar_cfg_program_phi_storage_owner.pgy";
+import "../direct_mir_receiver_field_binding_owner.pgy";
 struct DirectMirScalarCfgProgramRoutineAdmission {
     let valid: Bool;
     let storage: DirectMirScalarCfgProgramGraphStorage;
@@ -297,6 +298,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 expressions = statement.expressions;
                 if refusal != "" { break; }
             } else if kind == "phi" {
+                if DirectMirReceiverFieldPhiReady(signature, logical_record.identity_cells, input.index,
+                        input.use_facts, global_row, local_instruction, locals.value_names) { instruction_row = instruction_row + 1; continue; }
                 operations = DirectMirScalarCfgProgramOperationsAppendPhi(
                     operations, input.index, admitted, input.use_facts, routine_row,
                     block, instruction_row, locals, types, logical_record,

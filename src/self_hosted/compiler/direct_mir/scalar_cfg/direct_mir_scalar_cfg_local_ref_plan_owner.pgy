@@ -11,6 +11,7 @@ import "../scalar_program/direct_mir_scalar_program_referenced_enum_fact_owner.p
 import "../scalar_program/direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
 import "direct_mir_scalar_cfg_match_binding_local_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "../direct_mir_receiver_field_binding_owner.pgy";
 
 struct DirectMirScalarCfgLocalRefPlan {
     let valid: Bool;
@@ -62,6 +63,8 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
     var value_names: Array<String> = [];
     var value_local_rows: Array<Int> = [];
     var value_definition_blocks: Array<Int> = [];
+    // A receiver field has no local (direct_mir_receiver_field_binding_owner.pgy).
+    let receiver_fields: Array<String> = DirectMirReceiverFieldVariableNames(index);
     var instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let result: String = index.instruction_facts.results[instruction];
@@ -80,6 +83,11 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
               kind != "loop-init" && kind != "branch" &&
               !collection_mutation_receiver)) {
             Die("direct MIR scalar CFG instruction LocalRef coverage is invalid");
+        }
+        if DirectMirReceiverFieldVariableInstruction(index, receiver_fields, instruction, kind) {
+            // A local of the same name would make the field's versions ambiguous.
+            if kind == "def" && index.instruction_facts.arg1s[instruction] != "owner_field" { return empty; }
+            instruction = instruction + 1; continue;
         }
         if result != "" {
             if kind != "def" && kind != "phi" { return empty; }

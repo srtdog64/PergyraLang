@@ -16,14 +16,14 @@ Remeasure at each landing that touches the default route.
 | S5c slice 1 ([record](../evidence/2026-11-22_selfhost_compiler_clone_carriage.md)) | 535 | 295 | 568 (0 wrong output) | 119 (11 = 50%, 34 = 80%) | 818, 75,096 |
 | S5c slice 2 ([record](../evidence/2026-11-23_selfhost_record_clone.md)) | 542 | 295 | 561 (0 wrong output) | 119 (11 = 50%, 33 = 80%) | 819, 75,426 |
 
-Every corpus program (2,746; native refuses 718), default C and LLVM against
-native LLVM; the table above saw neither the C route nor programs without a
-`var` ([record](../evidence/2026-11-24_selfhost_element_write_copies.md); `db571be36`: C 1,417 / 598 / 13; `72c2d2747`: C 1,421 / 598 / 9 / 92).
+Every corpus program (2,746; native refuses 718), default C and LLVM against native LLVM; the table above saw
+neither the C route nor programs without a `var` ([record](../evidence/2026-11-24_selfhost_element_write_copies.md); `db571be36`: C 1,417 / 598 / 13; `72c2d2747`: C 1,421 / 598 / 9 / 92).
 
 | Revision | C equal / self refuses / other output / runs a native refusal | LLVM, same columns |
 |---|---|---|
-| foreach loans `0a9053745` ([record](../evidence/2026-11-24_selfhost_foreach_string_loans.md)) | 1,421 / 599 / 8 / 91 | 831 / 1,197 / 0 / 24 |
 | inout set releases ([record](../evidence/2026-11-24_review_batch_inout_set_copy_report_word_tiers.md)) | 1,418 / 602 / 8 / 85 | 828 / 1,200 / 0 / 18 |
+| three-routine route deleted `d2df5562a` ([record](../evidence/2026-11-25_three_routine_route_deleted.md)) | 1,418 / 602 / 8 / 85 | 887 / 1,141 / 0 / 25 |
+| receiver fields without `self.`, subject `Clone` ([1](../evidence/2026-11-25_receiver_field_binding.md), [2](../evidence/2026-11-25_subject_clone.md)) | 1,418 / 602 / 8 / 85 | 891 / 1,137 / 0 / 25 |
 
 Full DRV-2 MIR: first refusal at transition ordinal 1438 (last measured on
 v11, [blocker](blocker.md)).

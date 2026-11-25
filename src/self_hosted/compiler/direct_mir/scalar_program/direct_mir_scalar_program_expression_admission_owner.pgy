@@ -23,6 +23,7 @@ import "direct_mir_scalar_program_call_ordinal_binding_owner.pgy";
 import "direct_mir_scalar_program_expression_source_range_owner.pgy";
 import "direct_mir_scalar_program_compiler_clone_site_owner.pgy";
 import "direct_mir_scalar_program_logical_record_clone_owner.pgy";
+import "../direct_mir_receiver_field_binding_owner.pgy";
 func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpressionSet,
     ref instruction: JsonObjectFactTable, ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
     global_row: Int, local_instruction: Int, ref locals: DirectMirScalarCfgLocalRefPlan,
@@ -361,14 +362,10 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                 type_name = tagged_leaf.type_name;
                 member_ordinal = tagged_leaf.variant_ordinal;
             } else if enum_leaf.valid {
-                kind = enum_leaf.kind;
-                type_name = enum_leaf.type_name;
-                member_ordinal = enum_leaf.variant_ordinal;
+                kind = enum_leaf.kind; type_name = enum_leaf.type_name; member_ordinal = enum_leaf.variant_ordinal;
             } else if absence.valid && sequence.arena.identities.binding_kinds[node] ==
                     SemanticExpressionBindingNone() {
-                kind = absence.kind;
-                type_name = absence.type_name;
-                literal = absence.literal;
+                kind = absence.kind; type_name = absence.type_name; literal = absence.literal;
             } else if !absence.valid {
                 let identity: DirectMirScalarProgramLeafIdentityFact = DirectMirScalarProgramLeafIdentityFactFromOwners(
                         bound_leaf_texts, bound_leaf_locals, sequence.arena.node_texts[node],
@@ -437,7 +434,16 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                     ArrayPush(bound_leaf_texts, sequence.arena.node_texts[node]);
                     ArrayPush(bound_leaf_locals, operand_local); selects_local = true;
                 } else {
-                    failed_stage = "leaf-operand"; failed_node = node; break;
+                    let field: DirectMirReceiverFieldLeaf = DirectMirReceiverFieldLeafFromOwners(signature,
+                        logical_record.identity_cells, parameter_types, sequence, node, uses, global_row,
+                        expected_uses, locals.value_names, graph_field == "expr0_graph");
+                    if !field.valid { failed_stage = "leaf-operand"; failed_node = node; break; }
+                    // The receiver cell, then its member: as `self.name` admits.
+                    DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows, params,
+                        member_ordinals, literals, callable_rows, runtime_call_abi_ids, DirectMirScalarProgramExprParameter(),
+                        Concat("", parameter_types[0]), -1, -1, -1, 0, -1, "", -1, -1);
+                    kind = DirectMirScalarProgramExprIdentityCellMember(); type_name = field.type_name;
+                    left = ArrayLength(kinds) - 1; member_ordinal = field.member; expected_uses = expected_uses + field.use_count;
                 }
                 if selects_local {
                     if operand_local >= ArrayLength(value_types.local_types) {

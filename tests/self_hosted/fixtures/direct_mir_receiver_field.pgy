@@ -1,0 +1,42 @@
+subject Counter {
+    var value: Int;
+    var steps: Int;
+    var label: String;
+
+    action Increment(self) -> Void {
+        value = value + 1;
+    }
+
+    action Bump(self, by: Int) -> Void {
+        value = value + by;
+        steps = steps + 1;
+        if value > 10 {
+            value = value - 10;
+        }
+        Log(ToString(value));
+    }
+
+    action Rename(self, prefix: String) -> Void {
+        label = Concat(prefix, label);
+    }
+
+    func Total(self) -> Int {
+        return value + steps * 100;
+    }
+
+    func Mixed(self) -> Int {
+        self.steps = steps + 1;
+        return self.value + steps;
+    }
+}
+
+func Main() -> Void {
+    let counter = Counter(4, 0, "c");
+    counter.Increment();
+    counter.Bump(5);
+    counter.Bump(7);
+    counter.Rename("x");
+    Log(ToString(counter.Total()));
+    Log(ToString(counter.Mixed()));
+    Log(counter.label);
+}

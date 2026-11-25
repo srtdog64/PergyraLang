@@ -85,11 +85,25 @@ and executable gates stay authoritative.
    storage for it, read it as the receiver cell's member and write each
    definition through to that member, so a call that changes the field
    between two reads is seen. An `assign`/`def` on `self` keeps its
-   existing store path. (This replaces the "leaf that is neither a local
-   nor a parameter" reading above: the reads arrive as uses of `value.N`.)
+   existing store path.
+   Landed design (2026-11-25): not a local kind. A read of the field before
+   any definition in the routine carries no use at all (`return value + 1`
+   in a getter has `uses: []`), so the reads cannot all arrive as uses of
+   `value.N`. The local ref plan keeps no local for an owner-field variable
+   (its definitions and phis); an `owner_field` definition is the
+   identity-cell store the `assign` form gets; an unbound leaf that is no
+   local or parameter and names a receiver field is admitted as the
+   receiver parameter and its identity-cell member, the nodes `self.value`
+   gets, consuming its `value.N` uses in the value lane; its phis join
+   nothing. Reads hit the cell, so a call that changes the field between
+   two reads is seen. Owner: `direct_mir_receiver_field_binding_owner.pgy`.
 2. `Clone` of a subject: a fresh identity cell copying the source cell's
    fields, admitted wherever an inline constructor is (a zone's subject
    slot included), on C and LLVM.
+   Landed (2026-11-25): the record Clone lowering copies a subject or vessel
+   cell into a fresh cell constructor; a zone or world Clone stays refused.
+   With slices 1 and 2 the three intent programs first stop at their intent
+   routine (`instruction_kind`, source `AST_INTENT_DECL`).
 3. Intent routine body: one owner per intent instruction family in the
    general emitter, C and LLVM, reusing the shared intent owners where they
    already own a fact (completion, parameter binding).

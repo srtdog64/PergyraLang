@@ -1,0 +1,28 @@
+subject Counter {
+    var value: Int;
+    var name: String;
+    var on: Bool;
+
+    action Increment(self) -> Void {
+        value = value + 1;
+    }
+}
+
+zone CounterZone {
+    subject slot counter: Counter
+}
+
+func Main() -> Void {
+    let counter = Counter(3, "a", true);
+    let copy = Clone(counter);
+    counter.Increment();
+    copy.Increment();
+    copy.Increment();
+    let zone = CounterZone(Clone(copy));
+    copy.Increment();
+    Log(ToString(counter.value));
+    Log(ToString(copy.value));
+    Log(ToString(zone.counter.value));
+    Log(zone.counter.name);
+    Log(ToString(zone.counter.on));
+}

@@ -1,6 +1,7 @@
 // A subject method updates its admitted receiver cell, never a copied record.
 // This receipt closes the exact formal binding / field / SSA definition edge.
 import "scalar_program/direct_mir_scalar_program_logical_record_member_rebind_owner.pgy";
+import "direct_mir_receiver_field_binding_owner.pgy";
 
 struct DirectMirIdentityCellStoreFact {
     let valid: Bool;
@@ -17,6 +18,9 @@ func DirectMirIdentityCellStoreFromOwners(
     global_row: Int, result: Int, wire_kind: String
 ) -> DirectMirIdentityCellStoreFact {
     let invalid: DirectMirIdentityCellStoreFact = DirectMirIdentityCellStoreFact(false, -1, "", 0);
+    if capture.arg1 == "owner_field" {
+        return DirectMirIdentityCellReceiverFieldStore(instruction, capture, signature, cells, result, wire_kind);
+    }
     if !DirectMirRoutineSignatureFactReady(signature) || signature.kind != "method" ||
         signature.receiver_carriage != "mutable-identity" || capture.arg1 != "default_param" { return invalid; }
     let cell: Int = DirectMirIdentityCellRow(cells, signature.receiver_type);
@@ -57,6 +61,28 @@ func DirectMirIdentityCellStoreFromOwners(
     let field_type: String = DirectMirIdentityCellFieldType(cells, signature.receiver_type, member);
     if field_type == "" || prefix < 0 { return invalid; }
     return DirectMirIdentityCellStoreFact(true, member, field_type, prefix);
+}
+
+// `value = ...` in a receiver method: an owner-field definition of one
+// receiver field, its target the bare field name. The local plan kept no
+// value row for it, so the store publishes no SSA result.
+func DirectMirIdentityCellReceiverFieldStore(
+    ref instruction: JsonObjectFactTable, ref capture: MirRoutineInstructionScalarCapture,
+    ref signature: DirectMirRoutineSignatureFact, ref cells: DirectMirIdentityCellFacts,
+    result: Int, wire_kind: String
+) -> DirectMirIdentityCellStoreFact {
+    let invalid: DirectMirIdentityCellStoreFact = DirectMirIdentityCellStoreFact(false, -1, "", 0);
+    let member: Int = DirectMirReceiverFieldOrdinal(signature, cells, capture.arg0);
+    let field_type: String = DirectMirIdentityCellFieldType(cells, signature.receiver_type, member);
+    if member < 0 || field_type == "" || wire_kind != "def" || result != -1 ||
+        capture.name != "ssa-def" || capture.abi_type_name != field_type ||
+        !MirSsaNameMatches(capture.result, capture.arg0, false) { return invalid; }
+    let target: MirExpressionGraphSequence = DirectMirScalarCfgInstructionGraphAt(instruction, "expr1_graph");
+    if !target.ok || target.ready_node_count != 1 || ArrayLength(target.roots) != 1 || target.roots[0] != 0 ||
+        target.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        target.arena.node_texts[0] != capture.arg0 ||
+        target.arena.identities.binding_kinds[0] != SemanticExpressionBindingNone() { return invalid; }
+    return DirectMirIdentityCellStoreFact(true, member, field_type, 0);
 }
 
 func DirectMirIdentityCellStoreAppendOperation(

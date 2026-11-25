@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy";
 import "../../../mir_lower/routine_fact_index_schema_owner.pgy";
+import "../direct_mir_receiver_field_binding_owner.pgy";
 
 struct DirectMirCollectionOwnershipInstructionReceipt {
     let valid: Bool;
@@ -77,6 +78,7 @@ func DirectMirCollectionOwnershipRoutineReceiptPlanFromJson(
     var effects: Array<Int> = [];
     var receivers: Array<Int> = [];
     var sources: Array<Int> = [];
+    let receiver_fields: Array<String> = DirectMirReceiverFieldVariableNames(index);
     var block: Int = 0;
     while block < ArrayLength(index.block_starts) {
         var element: Int = 0;
@@ -102,7 +104,10 @@ func DirectMirCollectionOwnershipRoutineReceiptPlanFromJson(
                 return DirectMirCollectionOwnershipRoutineReceiptPlan(
                     false, effects, receivers, sources);
             }
-            if DirectMirCollectionOwnershipOperationKindProducesRow(UnwrapOption(kind)) {
+            // A receiver-field phi has no operation row.
+            if DirectMirCollectionOwnershipOperationKindProducesRow(UnwrapOption(kind)) &&
+                !(UnwrapOption(kind) == "phi" && DirectMirReceiverFieldVariableInstruction(
+                    index, receiver_fields, instruction, "phi")) {
                 if ArrayLength(effects) >= expected_operation_count {
                     return DirectMirCollectionOwnershipRoutineReceiptPlan(
                         false, effects, receivers, sources);
