@@ -1,0 +1,22 @@
+/*
+ * Canonical target-profile rows (registry row `target.capability_profile`).
+ *
+ * PGY_TARGET_PROFILE(
+ *     name, LLVM triple, C driver target, object format,
+ *     pointer bits, pointer alignment, little endian)
+ *
+ * A row is one compilation target the compiler can emit for. The native
+ * compiler selects the row of the host it was built for
+ * (src/compiler/target_capability_contract.c) and checks that host's pointer
+ * width, pointer alignment and byte order against the row before any backend
+ * reads it. The LLVM backend takes the triple, and the C toolchain the
+ * `--target` spelling, from that row; neither reads a host default. The
+ * self-host compiler reads the generated projection of these rows
+ * (scripts/render_target_profile_rows.py), whose layout values every row
+ * shares.
+ */
+PGY_TARGET_PROFILE(X86_64_LINUX, "x86_64-pc-linux-gnu", "x86_64-linux-gnu", "elf", 64, 8, 1)
+PGY_TARGET_PROFILE(AARCH64_LINUX, "aarch64-unknown-linux-gnu", "aarch64-linux-gnu", "elf", 64, 8, 1)
+PGY_TARGET_PROFILE(X86_64_WINDOWS_GNU, "x86_64-w64-windows-gnu", "x86_64-w64-mingw32", "coff", 64, 8, 1)
+PGY_TARGET_PROFILE(X86_64_MACOS, "x86_64-apple-macosx", "x86_64-apple-darwin", "macho", 64, 8, 1)
+PGY_TARGET_PROFILE(AARCH64_MACOS, "arm64-apple-macosx", "arm64-apple-darwin", "macho", 64, 8, 1)

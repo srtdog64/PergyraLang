@@ -45,6 +45,79 @@ target_capability_hash_list(uint64_t hash,
     return hash;
 }
 
+static const PgyTargetProfile k_target_profiles[] = {
+#define PGY_TARGET_PROFILE(name, triple, c_target, object_format, bits, align, little)     { #name, triple, c_target, object_format, bits, align, (little) != 0 },
+#include "../common/target_profile.def"
+#undef PGY_TARGET_PROFILE
+};
+
+#if defined(__x86_64__) && defined(__linux__)
+#define PGY_HOST_TARGET_PROFILE "X86_64_LINUX"
+#elif defined(__aarch64__) && defined(__linux__)
+#define PGY_HOST_TARGET_PROFILE "AARCH64_LINUX"
+#elif defined(__x86_64__) && defined(_WIN32)
+#define PGY_HOST_TARGET_PROFILE "X86_64_WINDOWS_GNU"
+#elif defined(__x86_64__) && defined(__APPLE__)
+#define PGY_HOST_TARGET_PROFILE "X86_64_MACOS"
+#elif defined(__aarch64__) && defined(__APPLE__)
+#define PGY_HOST_TARGET_PROFILE "AARCH64_MACOS"
+#else
+#define PGY_HOST_TARGET_PROFILE NULL
+#endif
+
+const PgyTargetProfile *
+pgy_target_profile_named(const char *name)
+{
+    if (name == NULL)
+        return NULL;
+    for (size_t i = 0; i < sizeof(k_target_profiles) / sizeof(k_target_profiles[0]); i++) {
+        if (strcmp(k_target_profiles[i].name, name) == 0)
+            return &k_target_profiles[i];
+    }
+    return NULL;
+}
+
+const PgyTargetProfile *
+pgy_target_profile_active(void)
+{
+    return pgy_target_profile_named(PGY_HOST_TARGET_PROFILE);
+}
+
+static bool
+target_profile_fail(const char **error_out, const char *message)
+{
+    if (error_out != NULL)
+        *error_out = message;
+    return false;
+}
+
+bool
+pgy_target_profile_matches_host(const PgyTargetProfile *profile,
+                                const char **error_out)
+{
+    const union { uint16_t value; unsigned char bytes[2]; } probe = { 1 };
+
+    if (error_out != NULL)
+        *error_out = NULL;
+    if (profile == NULL)
+        return target_profile_fail(error_out, "target profile: this host has no profile row");
+    if (profile->llvm_triple == NULL || profile->llvm_triple[0] == '\0'
+        || profile->c_target == NULL || profile->c_target[0] == '\0')
+        return target_profile_fail(error_out, "target profile: the row names no target");
+    if (profile->object_format == NULL
+        || (strcmp(profile->object_format, "elf") != 0
+            && strcmp(profile->object_format, "coff") != 0
+            && strcmp(profile->object_format, "macho") != 0))
+        return target_profile_fail(error_out, "target profile: unknown object format");
+    if (profile->pointer_bits != sizeof(void *) * 8)
+        return target_profile_fail(error_out, "target profile: pointer width differs from the host");
+    if (profile->pointer_align != _Alignof(void *))
+        return target_profile_fail(error_out, "target profile: pointer alignment differs from the host");
+    if (profile->little_endian != (probe.bytes[0] == 1))
+        return target_profile_fail(error_out, "target profile: byte order differs from the host");
+    return true;
+}
+
 static const char *const k_target_projections[] = {
     "cpu-c", "cpu-llvm", "self-hosted",
 };

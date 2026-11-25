@@ -3295,8 +3295,8 @@ $(TARGET_CAPABILITY_TEST): $(BUILD_DIR)/test_target_capability_contract.o \
 		$(BUILD_DIR)/compiler/target_capability_contract.o | $(BIN_DIR)
 	$(call pgy_link,)
 
-target-capability-test-smoke: $(TARGET_CAPABILITY_TEST)
-	PGY_TARGET_CAPABILITY_PROBE="$(abspath $(TARGET_CAPABILITY_TEST))" \
+target-capability-test-smoke: $(TARGET_CAPABILITY_TEST) $(PGY)
+	PGY_TARGET_CAPABILITY_PROBE="$(abspath $(TARGET_CAPABILITY_TEST))" PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/ir/target_capability_projection_smoke.sh
 
 $(MACHINE_LAYER_MANIFEST_TEST): $(BUILD_DIR)/test_machine_layer_manifest.o \

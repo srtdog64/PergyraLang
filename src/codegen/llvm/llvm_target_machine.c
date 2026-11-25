@@ -6,7 +6,9 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_target_machine_internal.h"
+#include "../../compiler/target_capability_contract.h"
 
+#include <stdio.h>
 #include <string.h>
 
 static void
@@ -39,11 +41,15 @@ llvm_create_host_machine(bool release_opt, char **triple_out,
 
     llvm_init_all_targets();
 
-    triple = LLVMGetDefaultTargetTriple();
-#ifdef __MINGW32__
-    LLVMDisposeMessage(triple);
-    triple = LLVMCreateMessage("x86_64-w64-windows-gnu");
-#endif
+    /* The target is the active target profile's (target.capability_profile),
+     * checked against the host; LLVM's default triple is never the source. */
+    const PgyTargetProfile *profile = pgy_target_profile_active();
+    const char *profile_error = NULL;
+    if (!pgy_target_profile_matches_host(profile, &profile_error)) {
+        fprintf(stderr, "pgy: %s\n", profile_error);
+        return NULL;
+    }
+    triple = LLVMCreateMessage(profile->llvm_triple);
     cpu = LLVMGetHostCPUName();
     features = LLVMGetHostCPUFeatures();
 

@@ -17,6 +17,26 @@ typedef struct PgyTargetCapabilityEnvelope
     size_t fallback_reason_count;
 } PgyTargetCapabilityEnvelope;
 
+/* One compilation target (src/common/target_profile.def). */
+typedef struct PgyTargetProfile
+{
+    const char *name;
+    const char *llvm_triple;
+    const char *c_target;
+    const char *object_format;
+    unsigned pointer_bits;
+    unsigned pointer_align;
+    bool little_endian;
+} PgyTargetProfile;
+
+/* The row of the host this compiler was built for, or NULL when the host has
+ * none; pgy_target_profile_matches_host() refuses NULL and any row whose
+ * pointer width, pointer alignment or byte order differs from the host's. */
+const PgyTargetProfile *pgy_target_profile_active(void);
+const PgyTargetProfile *pgy_target_profile_named(const char *name);
+bool pgy_target_profile_matches_host(const PgyTargetProfile *profile,
+                                     const char **error_out);
+
 const PgyTargetCapabilityEnvelope *pgy_target_capability_envelope(void);
 uint64_t pgy_target_capability_fingerprint(
     const PgyTargetCapabilityEnvelope *envelope);

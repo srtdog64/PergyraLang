@@ -6,6 +6,7 @@
 #include "compiler_toolchain.h"
 #include "compiler_process.h"
 #include "path_utils.h"
+#include "target_capability_contract.h"
 #include "../common/env_flags.h"
 
 #include <ctype.h>
@@ -136,6 +137,30 @@ pgy_parse_compiler_command(PgyCCompilerSelection *selection,
     return true;
 }
 
+/* A C command may name its target only as the active target profile's
+ * (target.capability_profile); another target is refused, never adopted. */
+static bool
+pgy_c_compiler_target_admitted(const PgyCCompilerSelection *selection,
+                               const char *source)
+{
+    const PgyTargetProfile *profile = pgy_target_profile_active();
+    const char *error = NULL;
+    const char *value;
+
+    if (!pgy_target_profile_matches_host(profile, &error)) {
+        fprintf(stderr, "pgy: %s\n", error);
+        return false;
+    }
+    if (selection->target_flag == NULL)
+        return true;
+    value = selection->target_flag + strlen("--target=");
+    if (strcmp(value, profile->c_target) == 0 || strcmp(value, profile->llvm_triple) == 0)
+        return true;
+    fprintf(stderr, "pgy: %s names --target=%s; this compiler emits for %s (%s)\n",
+            source, value, profile->llvm_triple, profile->c_target);
+    return false;
+}
+
 bool
 pgy_select_c_compiler(PgyCCompilerSelection *selection)
 {
@@ -148,12 +173,12 @@ pgy_select_c_compiler(PgyCCompilerSelection *selection)
     env_cc = getenv("PGY_CC");
     if (env_cc != NULL && env_cc[0] != '\0') {
         if (pgy_parse_compiler_command(selection, env_cc))
-            return true;
+            return pgy_c_compiler_target_admitted(selection, "PGY_CC");
     }
     make_cc = getenv("CC");
     if (make_cc != NULL && make_cc[0] != '\0') {
         if (pgy_parse_compiler_command(selection, make_cc))
-            return true;
+            return pgy_c_compiler_target_admitted(selection, "CC");
     }
 #ifdef _WIN32
     /* Prefer an actual MinGW GCC driver on Windows.
@@ -181,13 +206,20 @@ pgy_select_c_compiler(PgyCCompilerSelection *selection)
             return true;
         }
     }
-    /* Fallback: clang with explicit MinGW target. */
+    /* Fallback: clang with the active target profile's C target. */
     {
-        const char *clang_mingw[] = { "clang", "--target=x86_64-w64-mingw32", "--version", NULL };
-        if (pgy_exec_probe_argv_silent(clang_mingw) == 0) {
-            selection->cc = "clang";
-            selection->target_flag = "--target=x86_64-w64-mingw32";
-            return true;
+        const PgyTargetProfile *profile = pgy_target_profile_active();
+        int written = profile != NULL
+            ? snprintf(selection->target_storage, sizeof(selection->target_storage),
+                       "--target=%s", profile->c_target)
+            : -1;
+        if (written > 0 && (size_t)written < sizeof(selection->target_storage)) {
+            const char *clang_target[] = { "clang", selection->target_storage, "--version", NULL };
+            if (pgy_exec_probe_argv_silent(clang_target) == 0) {
+                selection->cc = "clang";
+                selection->target_flag = selection->target_storage;
+                return true;
+            }
         }
     }
     /* Last fallback: plain clang. */
@@ -213,6 +245,27 @@ pgy_select_c_compiler(PgyCCompilerSelection *selection)
     return false;
 }
 
+/* clang compiles LLVM IR for the active target profile's triple: a command
+ * that names none gets it, one that names another target is refused. */
+static bool
+pgy_llvm_ir_compiler_target_bound(PgyLlvmIrCompilerSelection *selection,
+                                  const char *source)
+{
+    const PgyTargetProfile *profile = pgy_target_profile_active();
+    int written;
+
+    if (!pgy_c_compiler_target_admitted(selection, source))
+        return false;
+    if (selection->target_flag != NULL)
+        return true;
+    written = snprintf(selection->target_storage, sizeof(selection->target_storage),
+                       "--target=%s", profile->llvm_triple);
+    if (written <= 0 || (size_t)written >= sizeof(selection->target_storage))
+        return false;
+    selection->target_flag = selection->target_storage;
+    return true;
+}
+
 bool
 pgy_select_llvm_ir_compiler(PgyLlvmIrCompilerSelection *selection)
 {
@@ -226,14 +279,17 @@ pgy_select_llvm_ir_compiler(PgyLlvmIrCompilerSelection *selection)
         return false;
     memset(selection, 0, sizeof(*selection));
     configured = getenv("PGY_LLVM_CLANG");
-    if (configured != NULL && configured[0] != '\0')
-        return pgy_parse_compiler_command(selection, configured);
+    if (configured != NULL && configured[0] != '\0') {
+        if (!pgy_parse_compiler_command(selection, configured))
+            return false;
+        return pgy_llvm_ir_compiler_target_bound(selection, "PGY_LLVM_CLANG");
+    }
 
     for (int i = 0; candidates[i] != NULL; i++) {
         const char *probe_argv[] = { candidates[i], "--version", NULL };
         if (pgy_exec_probe_argv_silent(probe_argv) == 0) {
             selection->cc = candidates[i];
-            return true;
+            return pgy_llvm_ir_compiler_target_bound(selection, candidates[i]);
         }
     }
     return false;

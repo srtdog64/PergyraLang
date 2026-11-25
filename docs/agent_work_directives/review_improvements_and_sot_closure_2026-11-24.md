@@ -24,7 +24,7 @@ tier (for when the domain grows).
 
 | # | Review point | Checked fact | Step |
 |---|---|---|---|
-| 1 | CI near its limits | `build-linux` cancelled twice at 30 min on a 1.3x slower runner; contracts 17-26 of 30 min | Done: `0a9053745` (release debug step reuses the `test-all` build; green at 29.5 of 30 min) and the review batch (installed-driver memory step moved to the self-host shard). |
+| 1 | CI near its limits | `build-linux` cancelled twice at 30 min on a 1.3x slower runner; contracts 17-26 of 30 min | `0a9053745` (release debug step reuses the `test-all` build) and a third Linux shard `build-linux-self-host-gates` (the contracts job reached 30.3 min on a 1.8x slower runner in `6a6f612b5`'s run). |
 | 2 | Memory safety (found while measuring) | Default C ran 6 `inout_call_string_loan` programs native refuses, reading freed memory | Done in the review batch; three branch-separated `_valid` programs are refused too (loan analysis follows syntax order). |
 | 3 | Too many words up front | 6 type-declaration words, 145 registry words | Done in the review batch: `language_word_tiers.tsv` + rendered page, checked by the registry gate; README declaration section. |
 | 4 | Ownership inference is hard to predict | Compiler Clones are visible only in MIR JSON | Done in the review batch: `pgy --report-copies` (position, expression, place). The reason is not reported yet. |
@@ -33,7 +33,7 @@ tier (for when the domain grows).
 | 7 | 12.1 GiB DRV-2 peak | Margin came from removing waste; the driver still releases almost nothing | Measure the CI runner's peak first; then the 2026-11-16 last-use release decision. |
 | 8 | Two front ends drift | True | Recorded: [decision](../truth/decisions/2026-11-24_native_pipeline_becomes_frozen_oracle_after_v1.md). |
 | 9 | `intent/zone/world` barely dogfooded | `PgyCompilerWorld` is route-level `REACHABLE` | After V1: one real application; record as a plan, not now. |
-| 10 | SoT rows | 19 open; none closes in one short step | Start with `target.capability_profile` (smallest); its AIR-reference and plan-digest items have no consumer and need a recorded decision. |
+| 10 | SoT rows | 19 open; none closes in one short step | `target.capability_profile` closed ([evidence](../truth/evidence/2026-11-24_target_capability_profile_closed.md), [scope decision](../truth/decisions/2026-11-24_target_capability_profile_closure_scope.md)); next row by the same survey. |
 
 ## Gates
 

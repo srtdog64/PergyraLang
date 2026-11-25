@@ -1,6 +1,8 @@
 // Public language Array storage layout consumed by direct-MIR projections.
 // Call classification is deliberately owned by a separate call-ABI fact.
 
+import "../target_capability_owner.pgy";
+
 struct DirectMirArrayStorageLayoutContract {
     let valid: Bool;
     let size: Int;
@@ -19,29 +21,49 @@ struct DirectMirArrayStorageLayoutContract {
     let allocator_offset: Int;
 }
 
+// The four fields are a pointer, two size_t words and a pointer, one word
+// each, laid out from the target profile's pointer width and alignment
+// (target.capability_profile). The runtime is built for 64-bit
+// little-endian targets only; a profile whose rows share another layout
+// yields an invalid contract, which every consumer refuses.
+func DirectMirArrayStorageLayoutWordBytes() -> Int {
+    let bits: Int = CompilerTargetProfileSharedPointerBits();
+    if bits != 64 || CompilerTargetProfileSharedPointerAlign() != bits / 8 ||
+        !CompilerTargetProfileSharedLittleEndian() {
+        return 0;
+    }
+    return bits / 8;
+}
+
 func DirectMirArrayStorageLayoutContractFact(
 ) -> DirectMirArrayStorageLayoutContract {
+    let word: Int = DirectMirArrayStorageLayoutWordBytes();
+    let bits: String = ToString(word * 8);
     return DirectMirArrayStorageLayoutContract(
-        true, 32, 8, "pgy.runtime.pointer64-size_t64.v1",
+        word > 0, 4 * word, word,
+        Concat("pgy.runtime.pointer", Concat(bits, Concat("-size_t", Concat(bits, ".v1")))),
         "data,length,capacity,allocator", "data", "length", "capacity",
         "allocator", "size_t",
-        "{ ptr, i64, i64, ptr }", 0, 8, 16, 24
+        Concat("{ ptr, i", Concat(bits, Concat(", i", Concat(bits, ", ptr }")))),
+        0, word, 2 * word, 3 * word
     );
 }
 
 func DirectMirArrayStorageLayoutContractReady(
     ref contract: DirectMirArrayStorageLayoutContract
 ) -> Bool {
-    return contract.valid && contract.size == 32 && contract.align == 8 &&
-        contract.data_layout_id == "pgy.runtime.pointer64-size_t64.v1" &&
+    let word: Int = DirectMirArrayStorageLayoutWordBytes();
+    let bits: String = ToString(word * 8);
+    return word > 0 && contract.valid && contract.size == 4 * word && contract.align == word &&
+        contract.data_layout_id == Concat("pgy.runtime.pointer", Concat(bits, Concat("-size_t", Concat(bits, ".v1")))) &&
         contract.field_order == "data,length,capacity,allocator" &&
         contract.data_field == "data" && contract.length_field == "length" &&
         contract.capacity_field == "capacity" &&
         contract.allocator_field == "allocator" &&
         contract.c_length_type == "size_t" &&
-        contract.llvm_aggregate_type == "{ ptr, i64, i64, ptr }" &&
-        contract.data_offset == 0 && contract.length_offset == 8 &&
-        contract.capacity_offset == 16 && contract.allocator_offset == 24;
+        contract.llvm_aggregate_type == Concat("{ ptr, i", Concat(bits, Concat(", i", Concat(bits, ", ptr }")))) &&
+        contract.data_offset == 0 && contract.length_offset == word &&
+        contract.capacity_offset == 2 * word && contract.allocator_offset == 3 * word;
 }
 
 func DirectMirArrayStorageLayoutIndex(

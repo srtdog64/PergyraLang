@@ -3,6 +3,8 @@
 // Owns the target acceptance/fallback envelope that backend projections must
 // consume before emission. This is a fact owner, not an accelerator backend.
 
+import "target_profile_row_projection_owner.pgy";
+
 func CompilerTargetCapabilitySchema() -> String {
     return "pgy.selfhost.target-capability-envelope.v1";
 }
@@ -254,4 +256,38 @@ func CompilerTargetCapabilityEnvelopeReady() -> Bool {
         CompilerTargetFallbackReasonKnown(CompilerTargetRetainedEffectFallbackReason()) &&
         CompilerTargetFallbackReasonKnown(CompilerTargetMissingAuthorityEvidenceFallbackReason()) &&
         CompilerTargetFallbackReasonKnown(CompilerTargetHostOnlySlotBoundaryFallbackReason());
+}
+
+// Target profile (src/common/target_profile.def, projected into
+// target_profile_row_projection_owner.pgy). The self-host emitters lay out
+// runtime storage once for every target, so they read the layout values all
+// rows share; a value the rows disagree on reads as 0 (or false), and a
+// consumer that needs it refuses.
+func CompilerTargetProfileSharedPointerBits() -> Int {
+    let first: Int = CompilerTargetProfilePointerBitsAt(0);
+    var row: Int = 1;
+    while row < CompilerTargetProfileRowCount() {
+        if CompilerTargetProfilePointerBitsAt(row) != first { return 0; }
+        row = row + 1;
+    }
+    return first;
+}
+
+func CompilerTargetProfileSharedPointerAlign() -> Int {
+    let first: Int = CompilerTargetProfilePointerAlignAt(0);
+    var row: Int = 1;
+    while row < CompilerTargetProfileRowCount() {
+        if CompilerTargetProfilePointerAlignAt(row) != first { return 0; }
+        row = row + 1;
+    }
+    return first;
+}
+
+func CompilerTargetProfileSharedLittleEndian() -> Bool {
+    var row: Int = 0;
+    while row < CompilerTargetProfileRowCount() {
+        if !CompilerTargetProfileLittleEndianAt(row) { return false; }
+        row = row + 1;
+    }
+    return CompilerTargetProfileRowCount() > 0;
 }
