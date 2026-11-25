@@ -3,6 +3,7 @@ import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
 import "direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
 import "direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy";
 import "direct_mir_scalar_program_slice_builtin_owner.pgy";
+import "direct_mir_scalar_program_option_absence_type_owner.pgy";
 struct DirectMirScalarProgramBuiltinCallFact {
     let recognized: Bool;
     let valid: Bool;
@@ -88,16 +89,20 @@ func DirectMirScalarProgramZeroArgumentBuiltinCallFactFromGraph(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramBuiltinCallFact {
-    let missing: DirectMirScalarProgramBuiltinCallFact =
-        DirectMirScalarProgramBuiltinCallFactInvalid(false);
-    if !DirectMirScalarProgramBuiltinCallMarkerReady(sequence, node) {
-        return missing;
+    let missing: DirectMirScalarProgramBuiltinCallFact = DirectMirScalarProgramBuiltinCallFactInvalid(false);
+    if !DirectMirScalarProgramBuiltinCallMarkerReady(sequence, node) { return missing; }
+    // `None()` is the absence `None` spelled as a call: no declared callable
+    // (call target syntax 0) and no argument; the expected Option type owns it.
+    if sequence.arena.call_target_names[node] == "None" {
+        let absence: DirectMirScalarProgramExpressionKindFact = DirectMirScalarProgramOptionAbsenceExpressionKind("None", expected_type, logical_record, referenced_enum);
+        if !absence.valid { return DirectMirScalarProgramBuiltinCallFactInvalid(true); }
+        let none_arguments: Array<Int> = [];
+        return DirectMirScalarProgramBuiltinCallFact(true, true, true, absence.kind,
+            absence.type_name, none_arguments, node, -1);
     }
     let actual_types: Array<String> = [];
-    let signature: DirectMirScalarProgramBuiltinSignatureFact =
-        DirectMirScalarProgramBuiltinSignatureFactForCall(
-            sequence.arena.call_target_names[node], actual_types,
-            expected_type, logical_record, referenced_enum);
+    let signature: DirectMirScalarProgramBuiltinSignatureFact = DirectMirScalarProgramBuiltinSignatureFactForCall(
+        sequence.arena.call_target_names[node], actual_types, expected_type, logical_record, referenced_enum);
     if !signature.valid { return missing; }
     if ArrayLength(signature.parameter_types) != 0 {
         // A non-empty signature is incomplete until CallArgument admission.
@@ -105,14 +110,8 @@ func DirectMirScalarProgramZeroArgumentBuiltinCallFactFromGraph(
         return missing;
     }
     let argument_rows: Array<Int> = [];
-    let carried_runtime_call_abi_id: Int =
-        sequence.arena.identities.runtime_call_abi_ids[node];
-    if !DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
-            signature, carried_runtime_call_abi_id) {
-        return DirectMirScalarProgramBuiltinCallFactInvalid(true);
-    }
-    return DirectMirScalarProgramBuiltinCallFact(
-        true, true, true, signature.expression_kind,
-        signature.return_type, argument_rows, node,
-        signature.runtime_call_abi_id);
+    if !DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(signature,
+            sequence.arena.identities.runtime_call_abi_ids[node]) { return DirectMirScalarProgramBuiltinCallFactInvalid(true); }
+    return DirectMirScalarProgramBuiltinCallFact(true, true, true, signature.expression_kind,
+        signature.return_type, argument_rows, node, signature.runtime_call_abi_id);
 }

@@ -8,7 +8,7 @@ import "direct_mir_scalar_program_string_index_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_string_core_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprTaskIsCancelled() -> Int { return 143; }
-// The highest stable identity: OptionLogicalRecordMatch (161) follows
-// LogicalRecordArrayPopulatedLiteral (160), RegionConcatString (159),
-// SetStringSize (158), SeedRandom (157) and RandomInt (156).
-func DirectMirScalarProgramExpressionKindLast() -> Int { return 161; }
+// The highest stable identity: CoalesceOptionBool (163) follows
+// CoalesceOptionInt (162), OptionLogicalRecordMatch (161),
+// LogicalRecordArrayPopulatedLiteral (160) and RegionConcatString (159).
+func DirectMirScalarProgramExpressionKindLast() -> Int { return 163; }

@@ -76,3 +76,27 @@ Slices, in order; each lands with its gate and CI green:
    gates; the program runs on the general route (falsifier: the dispatch is
    gone and the program still runs equal to native on C and LLVM). Done
    ([record](../truth/evidence/2026-11-25_three_routine_route_deleted.md)).
+
+## Point 6 follow-up: the largest default LLVM refusal clusters (2026-11-26)
+
+Measured on `driver_om2` (`bffa6821d`), default LLVM, programs native
+admits, by first refusal: `definition-projection` 114 (`Slot<Int>` locals
+38, `Future` 26, `List` 13, `Set`/`Queue` 6 each), `parameter-type-or-carriage`
+99 (`ref String` with a String or record result 38, `ref Slot<Int>` 15,
+`Array<Array<String>>` value-result 6, zone receivers), readiness 32,
+`return-type` 30, `return_abi` 29, `defer` 19, intent routines 14.
+
+Landed on the way: intent slices 1-2, bare field reads in class methods
+(+46), `match` over `Option<record>` (+15).
+
+Next, in order:
+
+1. `Slot<Int>` locals: `ClaimSlot`, `Write`, `Read`, `Release` on a local of
+   type `Slot<Int>` (all 38 programs use slots as locals only; no slot
+   parameter or result). One value-type family (C struct and LLVM
+   `{ i64, i1 }`), the claim as a constructor, `Read` checking occupancy,
+   `Write`/`Release` through the local's address; a released-slot use panics
+   as native does. Then `ref Slot<Int>` parameters.
+2. Intent slice 3 (the intent plan).
+3. `ref String` parameters whose result may borrow them: copy at the return
+   where native lands its Clone.

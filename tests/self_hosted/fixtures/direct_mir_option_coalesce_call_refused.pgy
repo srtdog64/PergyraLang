@@ -1,0 +1,9 @@
+func Fallback() -> Int {
+    Log("fallback ran");
+    return 9;
+}
+
+func Main() -> Void {
+    let none: Option<Int> = None();
+    Log(none ?? Fallback());
+}

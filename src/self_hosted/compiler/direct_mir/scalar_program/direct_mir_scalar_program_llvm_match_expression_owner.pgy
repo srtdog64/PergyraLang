@@ -4,6 +4,7 @@ import "direct_mir_scalar_program_option_int_match_target_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_target_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_result_match_target_owner.pgy";
 import "direct_mir_scalar_program_option_logical_record_match_owner.pgy";
+import "direct_mir_scalar_program_coalesce_expression_owner.pgy";
 
 struct DirectMirScalarProgramLlvmMatchExpression {
     let matched: Bool;
@@ -14,7 +15,7 @@ struct DirectMirScalarProgramLlvmMatchExpression {
 
 func DirectMirScalarProgramLlvmMatchExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
-    node: Int, result: String, left: String,
+    node: Int, result: String, left: String, right: String,
     ref arguments: Array<String>, ref argument_types: Array<String>,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
@@ -29,9 +30,7 @@ func DirectMirScalarProgramLlvmMatchExpressionAt(
             true, result_match.valid, result_match.instructions,
             result_match.value);
     }
-    let option_match: DirectMirScalarProgramLlvmStringExpression =
-        DirectMirScalarProgramLlvmOptionIntMatchExpressionAt(
-            expressions, node, result, left);
+    let option_match: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmOptionIntMatchExpressionAt(expressions, node, result, left);
     if option_match.matched {
         return DirectMirScalarProgramLlvmMatchExpression(
             true, option_match.valid, option_match.instructions,
@@ -39,6 +38,8 @@ func DirectMirScalarProgramLlvmMatchExpressionAt(
     }
     let record_match: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmOptionLogicalRecordMatchAt(expressions, logical_record, node, result, left);
     if record_match.matched { return DirectMirScalarProgramLlvmMatchExpression(true, record_match.valid, record_match.instructions, record_match.value); }
+    let coalesce: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmCoalesceAt(expressions, node, result, left, right);
+    if coalesce.matched { return DirectMirScalarProgramLlvmMatchExpression(true, coalesce.valid, coalesce.instructions, coalesce.value); }
     let payload_match: DirectMirScalarProgramLlvmPayloadEnumExpression =
         DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
             expressions, node, result, left, arguments, argument_types,

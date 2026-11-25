@@ -28,5 +28,8 @@ func DirectMirScalarProgramCOptionIntAccessorPreamble(
     output = Concat(output, Concat(fact.tag_name, Concat(" != ",
         Concat(fact.some_tag, Concat(") { abort(); }\n    return (",
         Concat(abi.c_print_type, ")value."))))));
-    return Concat(output, Concat(fact.value_name, ";\n}\n"));
+    output = Concat(output, Concat(fact.value_name, ";\n}\n"));
+    // `??`: the option is evaluated once, as an argument; the fallback is pure.
+    return output + "static inline " + abi.c_print_type + " pgy_scalar_option_int_coalesce(" + type_name + " value, " +
+        abi.c_print_type + " fallback) { return pgy_scalar_option_int_is_some(value) ? pgy_scalar_option_int_payload(value) : fallback; }\n";
 }

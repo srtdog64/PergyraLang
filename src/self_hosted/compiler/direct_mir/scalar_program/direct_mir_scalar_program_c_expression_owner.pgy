@@ -134,7 +134,7 @@ func DirectMirScalarProgramCExpressionValues(
         } else {
             let match_value: Option<String> =
                 DirectMirScalarProgramCMatchExpressionAt(
-                    expressions, node, left, arguments, logical_record,
+                    expressions, node, left, right, arguments, logical_record,
                     referenced_enum);
             if IsSome(match_value) {
                 value = UnwrapOption(match_value);

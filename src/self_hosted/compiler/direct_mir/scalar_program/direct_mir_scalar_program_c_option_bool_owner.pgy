@@ -94,5 +94,6 @@ func DirectMirScalarProgramCOptionBoolPreamble(
         ") { abort(); }\n    return value.");
     output = Concat(output, fact.value_name);
     output = Concat(output, ";\n}\n");
-    return output;
+    return output + "static inline bool pgy_scalar_option_bool_coalesce(" + t + " value, bool fallback) { return value." +
+        fact.tag_name + " == " + fact.some_tag + " ? value." + fact.value_name + " : fallback; }\n";
 }

@@ -3768,6 +3768,16 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Nonempty Zone method/authority/topology obligations
   are not erased into this storage-only representation. C forward declarations
   and LLVM named types preserve declaration order and the same field ordinals.
+- `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_coalesce_expression_kind_owner.pgy`
+  (kinds, classification, node readiness) and `direct_mir_scalar_program_coalesce_expression_owner.pgy`
+  (C and LLVM) -- `option ?? fallback` over an `Option<Int>` or `Option<Bool>`
+  with a pure fallback (literals, locals, parameters, negation, `+`, `-`,
+  `*`): both backends evaluate the option once (a C helper's argument, an
+  LLVM value) and the fallback eagerly, which a pure fallback makes
+  unobservable; native evaluates it only when the option is absent. Any
+  other fallback is refused. `None()`, a zero-argument call
+  to `None`, is admitted as the absence of the expected Option by
+  `direct_mir_scalar_program_builtin_call_owner.pgy`.
 - `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_option_logical_record_match_owner.pgy`
   and its kind/readiness part `direct_mir_scalar_program_option_logical_record_match_kind_owner.pgy`
   -- `match` over an `Option` of a storage-free logical record: `case Some(p)`

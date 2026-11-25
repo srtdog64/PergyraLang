@@ -1,0 +1,38 @@
+func MaybeIncr(n: Int, cap: Int) -> Option<Int> {
+    if n >= cap { return None(); }
+    return Some(n + 1);
+}
+
+func MaybeFlag(n: Int) -> Option<Bool> {
+    if n < 0 { return None(); }
+    return Some(n > 2);
+}
+
+func Steps(start: Int, cap: Int, fallback: Int) -> Int {
+    var cur: Int = start;
+    var steps: Int = 0;
+    while steps < 100 {
+        let next: Option<Int> = MaybeIncr(cur, cap);
+        let unwrapped: Int = next ?? -1;
+        if unwrapped < 0 { return steps * 10 + (next ?? fallback); }
+        cur = unwrapped;
+        steps = steps + 1;
+    }
+    return 0;
+}
+
+func Main() -> Void {
+    Log(Steps(0, 5, 7));
+    Log(Steps(5, 5, -2));
+    let none: Option<Int> = None();
+    let base: Int = 4;
+    Log(none ?? base * 2 + 1);
+    Log(MaybeIncr(9, 3) ?? 11);
+    Log(MaybeIncr(1, 3) ?? 11);
+    let flag: Option<Bool> = MaybeFlag(3);
+    let missing: Option<Bool> = MaybeFlag(-1);
+    let shown: Bool = flag ?? false;
+    let defaulted: Bool = missing ?? true;
+    Log(shown);
+    Log(defaulted);
+}

@@ -282,7 +282,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
         } else {
             let match_value: DirectMirScalarProgramLlvmMatchExpression =
                 DirectMirScalarProgramLlvmMatchExpressionAt(
-                    expressions, node, result, left, arguments, argument_types, logical_record,
+                    expressions, node, result, left, right, arguments, argument_types, logical_record,
                     payload_free_enum, referenced_enum);
             if match_value.matched {
                 if !match_value.valid {

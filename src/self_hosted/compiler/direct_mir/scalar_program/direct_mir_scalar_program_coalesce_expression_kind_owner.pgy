@@ -1,0 +1,79 @@
+// `option ?? fallback` over an Option<Int> or Option<Bool>: the payload when
+// present, else the fallback. Native evaluates the option once and the
+// fallback only when the option is absent. Both backends evaluate the option
+// once (a C helper's argument, an LLVM value) and the fallback eagerly, so
+// the fallback must be pure (literals, locals, parameters, negation, `+`,
+// `-`, `*`): then its eager evaluation is not observable.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_fact_owner.pgy";
+import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
+import "../../../hir/ast_expression_graph_owner.pgy";
+import "../../abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramExprCoalesceOptionInt() -> Int { return 162; }
+func DirectMirScalarProgramExprCoalesceOptionBool() -> Int { return 163; }
+
+func DirectMirScalarProgramCoalesceExpressionKindFact(
+    source_kind: Int, left_type: String, right_type: String, arity: Int
+) -> DirectMirScalarProgramExpressionKindFact {
+    if source_kind != AstExpressionNodeCoalesce() || arity != 2 {
+        return DirectMirScalarProgramExpressionKindFactInvalid();
+    }
+    if left_type == CompilerAbiLayoutOptionIntTypeName() && right_type == CompilerAbiLayoutIntTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(true, DirectMirScalarProgramExprCoalesceOptionInt(),
+            CompilerAbiLayoutIntTypeName(), "");
+    }
+    if left_type == CompilerAbiLayoutOptionBoolTypeName() && right_type == CompilerAbiLayoutBoolTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(true, DirectMirScalarProgramExprCoalesceOptionBool(),
+            CompilerAbiLayoutBoolTypeName(), "");
+    }
+    return DirectMirScalarProgramExpressionKindFactInvalid();
+}
+
+// True when the subtree at `node` has no effect and cannot fail.
+func DirectMirScalarProgramCoalesceFallbackPure(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int, depth: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) || depth > 32 { return false; }
+    let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprIntLiteral() || kind == DirectMirScalarProgramExprBoolLiteral() ||
+        kind == DirectMirScalarProgramExprLocal() || kind == DirectMirScalarProgramExprParameter() {
+        return true;
+    }
+    if kind == DirectMirScalarProgramExprNegateInt() {
+        return DirectMirScalarProgramCoalesceFallbackPure(facts, facts.node_lefts[node], depth + 1);
+    }
+    if kind == DirectMirScalarProgramExprAddInt() || kind == DirectMirScalarProgramExprSubtractInt() ||
+        kind == DirectMirScalarProgramExprMultiplyInt() {
+        return DirectMirScalarProgramCoalesceFallbackPure(facts, facts.node_lefts[node], depth + 1) &&
+            DirectMirScalarProgramCoalesceFallbackPure(facts, facts.node_rights[node], depth + 1);
+    }
+    return false;
+}
+
+func DirectMirScalarProgramCoalesceNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind != DirectMirScalarProgramExprCoalesceOptionInt() &&
+        kind != DirectMirScalarProgramExprCoalesceOptionBool() {
+        return None;
+    }
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    if left < 0 || left >= node || right < 0 || right >= node ||
+        facts.node_parameter_ordinals[node] != -1 || facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 {
+        return Some(false);
+    }
+    if kind == DirectMirScalarProgramExprCoalesceOptionInt() {
+        return Some(facts.node_types[node] == CompilerAbiLayoutIntTypeName() &&
+            facts.node_types[left] == CompilerAbiLayoutOptionIntTypeName() &&
+            facts.node_types[right] == CompilerAbiLayoutIntTypeName() &&
+            DirectMirScalarProgramCoalesceFallbackPure(facts, right, 0));
+    }
+    return Some(facts.node_types[node] == CompilerAbiLayoutBoolTypeName() &&
+        facts.node_types[left] == CompilerAbiLayoutOptionBoolTypeName() &&
+        facts.node_types[right] == CompilerAbiLayoutBoolTypeName() &&
+        DirectMirScalarProgramCoalesceFallbackPure(facts, right, 0));
+}

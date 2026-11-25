@@ -4,23 +4,22 @@ import "direct_mir_scalar_program_option_int_match_target_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_target_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_result_match_target_owner.pgy";
 import "direct_mir_scalar_program_option_logical_record_match_owner.pgy";
+import "direct_mir_scalar_program_coalesce_expression_owner.pgy";
 
 func DirectMirScalarProgramCMatchExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
-    node: Int, left: String, arguments: Array<String>,
+    node: Int, left: String, right: String, arguments: Array<String>,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> Option<String> {
-    let result_match: Option<String> =
-        DirectMirScalarProgramCPayloadFreeEnumResultMatchAt(
-            expressions, node, left, logical_record, referenced_enum);
+    let result_match: Option<String> = DirectMirScalarProgramCPayloadFreeEnumResultMatchAt(expressions, node, left, logical_record, referenced_enum);
     if IsSome(result_match) { return result_match; }
     let option_match: Option<String> =
         DirectMirScalarProgramCOptionIntMatchExpressionAt(
             expressions, node, left);
     if IsSome(option_match) { return option_match; }
-    let record_match: Option<String> = DirectMirScalarProgramCOptionLogicalRecordMatchAt(expressions, node, left);
-    if IsSome(record_match) { return record_match; }
+    let record_match: Option<String> = DirectMirScalarProgramCOptionLogicalRecordMatchAt(expressions, node, left); if IsSome(record_match) { return record_match; }
+    let coalesce: Option<String> = DirectMirScalarProgramCCoalesceAt(expressions, node, left, right); if IsSome(coalesce) { return coalesce; }
     return DirectMirScalarProgramCPayloadEnumExpressionAt(
         expressions, node, left, arguments, referenced_enum);
 }

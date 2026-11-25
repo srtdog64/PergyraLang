@@ -8,8 +8,11 @@ func DirectMirScalarProgramOptionAbsenceReturnAbiReady(
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> Bool {
     if persisted_type == expected_type { return true; }
+    // `None()` is the same absence as `None`.
+    var absence: String = text;
+    if text == "None()" { absence = "None"; }
     let fact: DirectMirScalarProgramExpressionKindFact =
         DirectMirScalarProgramOptionAbsenceExpressionKind(
-            text, expected_type, logical_record, referenced_enum);
+            absence, expected_type, logical_record, referenced_enum);
     return fact.valid && persisted_type == "Option<Unknown>";
 }
