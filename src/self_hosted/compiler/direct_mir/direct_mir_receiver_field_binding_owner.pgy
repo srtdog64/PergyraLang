@@ -6,7 +6,12 @@
 // and a definition stores into that member (the identity-cell store), so
 // every read sees the cell's current value, as native code does. A name the
 // routine binds as a local or parameter resolves to that binding first.
+// A method of a value receiver (a class or struct method) gets its own copy
+// of the receiver record: a bare field read is that record's member, as
+// `self.field` is; its bare field writes are refused (no store owns them).
 import "direct_mir_identity_cell_fact_owner.pgy";
+import "scalar_program/direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "scalar_program/direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_routine_signature_schema_owner.pgy";
 import "scalar_cfg/direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "../../mir_lower/routine_fact_index_schema_owner.pgy";
@@ -61,31 +66,41 @@ func DirectMirReceiverFieldOrdinal(
 
 struct DirectMirReceiverFieldLeaf {
     let valid: Bool;
+    let kind: Int;
     let member: Int;
     let type_name: String;
     let use_count: Int;
 }
 
-// An unbound leaf naming a receiver field. Its owner-field uses (`name.N`
+// An unbound leaf naming a receiver field: the cell member of a
+// mutable-identity receiver or the record member of a value receiver, of
+// the given kind. Its owner-field uses (`name.N`
 // with no value row) are consumed in the lane that carries them: the value
 // lane of an instruction. The target lane of an owner-field definition
 // carries none, so it consumes none.
 func DirectMirReceiverFieldLeafFromOwners(
     ref signature: DirectMirRoutineSignatureFact,
-    ref cells: DirectMirIdentityCellFacts, parameter_types: Array<String>,
+    ref record: DirectMirScalarProgramLogicalRecordFact, parameter_types: Array<String>,
     ref sequence: MirExpressionGraphSequence, node: Int,
     ref uses: MirRoutineInstructionUseFacts, global_row: Int, use_row: Int,
     ref value_names: Array<String>, consume_uses: Bool
 ) -> DirectMirReceiverFieldLeaf {
-    let invalid: DirectMirReceiverFieldLeaf = DirectMirReceiverFieldLeaf(false, -1, "", 0);
+    let invalid: DirectMirReceiverFieldLeaf = DirectMirReceiverFieldLeaf(false, 0, -1, "", 0);
     if node < 0 || node >= ArrayLength(sequence.arena.node_texts) ||
         sequence.arena.identities.binding_kinds[node] != SemanticExpressionBindingNone() ||
         ArrayLength(parameter_types) == 0 || parameter_types[0] != signature.receiver_type {
         return invalid;
     }
     let name: String = sequence.arena.node_texts[node];
-    let member: Int = DirectMirReceiverFieldOrdinal(signature, cells, name);
-    let field_type: String = DirectMirIdentityCellFieldType(cells, signature.receiver_type, member);
+    var kind: Int = DirectMirScalarProgramExprIdentityCellMember();
+    var member: Int = DirectMirReceiverFieldOrdinal(signature, record.identity_cells, name);
+    var field_type: String = DirectMirIdentityCellFieldType(record.identity_cells, signature.receiver_type, member);
+    if signature.valid && signature.kind == "method" && signature.receiver_carriage == "value" &&
+        DirectMirScalarProgramLogicalRecordRow(record, signature.receiver_type) >= 0 {
+        kind = DirectMirScalarProgramExprLogicalRecordMember();
+        member = DirectMirScalarProgramLogicalRecordFieldOrdinal(record, signature.receiver_type, name);
+        field_type = DirectMirScalarProgramLogicalRecordFieldType(record, signature.receiver_type, member);
+    }
     if member < 0 || field_type == "" { return invalid; }
     var count: Int = 0;
     let total: Int = MirRoutineInstructionUseCountAtGlobal(uses, global_row);
@@ -97,7 +112,7 @@ func DirectMirReceiverFieldLeafFromOwners(
         }
         count = count + 1;
     }
-    return DirectMirReceiverFieldLeaf(true, member, field_type, count);
+    return DirectMirReceiverFieldLeaf(true, kind, member, field_type, count);
 }
 
 // A phi joining an owner-field variable joins nothing: every definition

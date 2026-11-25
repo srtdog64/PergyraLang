@@ -21,9 +21,9 @@ neither the C route nor programs without a `var` ([record](../evidence/2026-11-2
 
 | Revision | C equal / self refuses / other output / runs a native refusal | LLVM, same columns |
 |---|---|---|
-| inout set releases ([record](../evidence/2026-11-24_review_batch_inout_set_copy_report_word_tiers.md)) | 1,418 / 602 / 8 / 85 | 828 / 1,200 / 0 / 18 |
 | three-routine route deleted `d2df5562a` ([record](../evidence/2026-11-25_three_routine_route_deleted.md)) | 1,418 / 602 / 8 / 85 | 887 / 1,141 / 0 / 25 |
 | receiver fields without `self.`, subject `Clone` ([1](../evidence/2026-11-25_receiver_field_binding.md), [2](../evidence/2026-11-25_subject_clone.md)) | 1,418 / 602 / 8 / 85 | 891 / 1,137 / 0 / 25 |
+| bare field reads in class methods ([record](../evidence/2026-11-26_value_receiver_field_reads.md)) | 1,418 / 602 / 8 / 85 | 937 / 1,091 / 0 / 25 |
 
 Full DRV-2 MIR: first refusal at transition ordinal 1438 (last measured on
 v11, [blocker](blocker.md)).

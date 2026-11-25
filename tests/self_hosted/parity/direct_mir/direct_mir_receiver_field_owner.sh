@@ -2,7 +2,8 @@
 # Methods of a mutable-identity receiver that name its fields without
 # `self.` run on the general direct-MIR route: an owner-field definition is
 # the identity-cell store, a bare field read is the receiver's member, and
-# phis of the field join nothing. Direct C (ASan) and LLVM print native's
+# phis of the field join nothing. In a class method (a value receiver) a
+# bare field read is the receiver record's member. Direct C (ASan) and LLVM print native's
 # output. Forged MIR that names a missing field, breaks the target, or gives
 # a local a field variable's name is refused.
 set -euo pipefail
@@ -45,7 +46,8 @@ project() {
         >"$WORK_DIR/$name.$backend.out" 2>"$WORK_DIR/$name.$backend.err"
 }
 
-for source in tests/self_hosted/fixtures/direct_mir_receiver_field.pgy; do
+for source in tests/self_hosted/fixtures/direct_mir_receiver_field.pgy \
+        tests/self_hosted/fixtures/direct_mir_value_receiver_field.pgy; do
     name="$(basename "$source" .pgy)"
     (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$source" -o "$WORK_REL/$name.mir.json") \
         >"$WORK_DIR/$name.producer.out" 2>"$WORK_DIR/$name.producer.err" || {
@@ -174,4 +176,4 @@ for mutation in missing-field crossed-target field-named-local missing-read; do
     done
 done
 
-echo "[$LABEL] PASS: receiver-field program equal to native on C (ASan) and LLVM; 4 forged MIR shapes refused"
+echo "[$LABEL] PASS: 2 receiver-field programs equal to native on C (ASan) and LLVM; 4 forged MIR shapes refused"

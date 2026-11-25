@@ -435,14 +435,14 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                     ArrayPush(bound_leaf_locals, operand_local); selects_local = true;
                 } else {
                     let field: DirectMirReceiverFieldLeaf = DirectMirReceiverFieldLeafFromOwners(signature,
-                        logical_record.identity_cells, parameter_types, sequence, node, uses, global_row,
+                        logical_record, parameter_types, sequence, node, uses, global_row,
                         expected_uses, locals.value_names, graph_field == "expr0_graph");
                     if !field.valid { failed_stage = "leaf-operand"; failed_node = node; break; }
-                    // The receiver cell, then its member: as `self.name` admits.
+                    // The receiver, then its member: as `self.name` admits.
                     DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows, params,
                         member_ordinals, literals, callable_rows, runtime_call_abi_ids, DirectMirScalarProgramExprParameter(),
                         Concat("", parameter_types[0]), -1, -1, -1, 0, -1, "", -1, -1);
-                    kind = DirectMirScalarProgramExprIdentityCellMember(); type_name = field.type_name;
+                    kind = field.kind; type_name = field.type_name;
                     left = ArrayLength(kinds) - 1; member_ordinal = field.member; expected_uses = expected_uses + field.use_count;
                 }
                 if selects_local {

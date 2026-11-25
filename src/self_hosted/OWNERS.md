@@ -3778,7 +3778,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   current value. Phis of such a variable join nothing. A name the routine
   binds as a local or parameter resolves to that binding; a local sharing a
   name with an owner-field variable, a field the receiver cell lacks, or a
-  routine without a mutable-identity receiver is refused.
+  routine without a mutable-identity receiver is refused. In a method of a
+  value receiver (a class or struct method, which gets its own copy of the
+  receiver record) a bare field read is the record member `self.field`
+  gets; a bare field write there has no store and is refused.
 - `src/self_hosted/compiler/direct_mir/direct_mir_intent_cell_placement_owner.pgy` and
   `direct_mir_intent_cell_transfer_projection_owner.pgy` join the admitted
   Intent slot/declaration identities to private-cell layout and materialize
