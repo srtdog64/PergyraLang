@@ -36,6 +36,15 @@ func DirectMirScalarProgramArrayStringAbiFactEmpty(
         false, 0, false, false, 0, 0, 0, 0, 0, 0, 0, rows, rows, rows);
 }
 
+// A refused capture: unlike the canonical empty fact (no Array<String> row),
+// its digest is -1, so admission refuses it instead of reading "absent".
+func DirectMirScalarProgramArrayStringAbiFactRefused(
+) -> DirectMirScalarProgramArrayStringAbiFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramArrayStringAbiFact(
+        false, 0 - 1, false, false, 0, 0, 0, 0, 0, 0, 0, rows, rows, rows);
+}
+
 func DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
     ref fact: DirectMirScalarProgramArrayStringAbiFact
 ) -> Bool {
@@ -129,10 +138,10 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> DirectMirScalarProgramArrayStringAbiFact {
-    let empty: DirectMirScalarProgramArrayStringAbiFact =
-        DirectMirScalarProgramArrayStringAbiFactEmpty();
-    if ArrayLength(routine_rows) < 1 { return empty; }
-    var source: DirectMirScalarProgramArrayStringAbiFact = empty;
+    let refused: DirectMirScalarProgramArrayStringAbiFact =
+        DirectMirScalarProgramArrayStringAbiFactRefused();
+    if ArrayLength(routine_rows) < 1 { return refused; }
+    var source: DirectMirScalarProgramArrayStringAbiFact = refused;
     var value_result_routines: Array<Int> = [];
     var value_result_parameters: Array<Int> = [];
     var value_result_digests: Array<Int> = [];
@@ -150,7 +159,7 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
             (signature.return_type == CompilerAbiLayoutArrayStringTypeName() &&
              DirectMirScalarProgramComposableCallableSignatureReady(signature, logical_record, payload_free_enum));
         if !index.valid || !DirectMirRoutineSignatureFactReady(signature) {
-            return empty;
+            return refused;
         }
         var parameter: Int = 0;
         while parameter < signature.param_count {
@@ -169,7 +178,7 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
                     param.digest != signature.parameters.param_digests[parameter] ||
                     !param.abi_required ||
                     !DirectMirArrayStringCapturedAbiReady(param.abi) {
-                    return empty;
+                    return refused;
                 }
                 // A candidate carries only its layout; the value-result rows grow
                 // below and go into the fact once they are complete.
@@ -184,7 +193,7 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
                         [], [], []);
                 if found > 0 &&
                     !DirectMirScalarProgramArrayStringAbiCaptureMatches(
-                        source, param.abi) { return empty; }
+                        source, param.abi) { return refused; }
                 if found == 0 { source = candidate; }
                 found = found + 1;
                 if carriage == "value-result" {
@@ -202,15 +211,15 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
             let capture: MirRoutineInstructionScalarCapture =
                 MirRoutineInstructionFactBundleAtGlobal(
                     index.instruction_facts, global);
-            if !capture.valid { return empty; }
+            if !capture.valid { return refused; }
             if capture.abi_type_name == CompilerAbiLayoutArrayStringTypeName() {
                 let instruction_kind: String =
                     admitted.routines.instruction_kinds[global];
                 if instruction_kind != "def" && instruction_kind != "return" {
-                    return empty;
+                    return refused;
                 }
                 if instruction_kind == "return" {
-                    if !owned_return_signature { return empty; }
+                    if !owned_return_signature { return refused; }
                     owned_return_count = owned_return_count + 1;
                 }
                 let abi_opt: Option<MirAbiLayoutRowCapture> =
@@ -222,9 +231,9 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
                         capture.abi_layout_required_start,
                         capture.abi_layout_required_end,
                         capture.abi_layout_start, capture.abi_layout_end);
-                if !IsSome(abi_opt) { return empty; }
+                if !IsSome(abi_opt) { return refused; }
                 let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
-                if !DirectMirArrayStringCapturedAbiReady(abi) { return empty; }
+                if !DirectMirArrayStringCapturedAbiReady(abi) { return refused; }
                 // A candidate carries only its layout; the value-result rows grow
                 // below and go into the fact once they are complete.
                 let candidate: DirectMirScalarProgramArrayStringAbiFact =
@@ -236,19 +245,19 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
                         [], [], []);
                 if found > 0 &&
                     !DirectMirScalarProgramArrayStringAbiCaptureMatches(
-                        source, abi) { return empty; }
+                        source, abi) { return refused; }
                 if found == 0 { source = candidate; }
                 found = found + 1;
             }
             instruction = instruction + 1;
         }
         if owned_return_signature {
-            if owned_return_count < 1 { return empty; }
+            if owned_return_count < 1 { return refused; }
             owned_return_present = true;
-        } else if owned_return_count != 0 { return empty; }
+        } else if owned_return_count != 0 { return refused; }
         routine = routine + 1;
     }
-    if found == 0 { return empty; }
+    if found == 0 { return DirectMirScalarProgramArrayStringAbiFactEmpty(); }
     let present: Bool = ArrayLength(value_result_routines) > 0;
     let unsealed: DirectMirScalarProgramArrayStringAbiFact =
         DirectMirScalarProgramArrayStringAbiFact(
@@ -263,7 +272,7 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
             source.data_offset, source.length_offset, source.capacity_offset,
             source.allocator_offset, value_result_routines,
             value_result_parameters, value_result_digests);
-    if !DirectMirScalarProgramArrayStringAbiFactReady(fact) { return empty; }
+    if !DirectMirScalarProgramArrayStringAbiFactReady(fact) { return refused; }
     return fact;
 }
 

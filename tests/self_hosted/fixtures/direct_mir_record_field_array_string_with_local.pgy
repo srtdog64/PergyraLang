@@ -1,0 +1,14 @@
+// A record's Array<String> field next to an Array<String> local: the program
+// fact is captured from the local definition's MIR row, and a refused row is
+// not replaced by the canonical one.
+
+struct Roster {
+    names: Array<String>;
+}
+
+func Main() -> Void {
+    let roster: Roster = Roster(["ada", "grace"]);
+    let others: Array<String> = ["edsger", "barbara"];
+    Log(roster.names[1]);
+    Log(others[0]);
+}

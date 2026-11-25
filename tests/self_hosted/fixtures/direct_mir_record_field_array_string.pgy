@@ -1,0 +1,18 @@
+// A record's Array<String> field is the program's only Array<String>; a
+// getter lends one element to its caller.
+
+struct Roster {
+    names: Array<String>;
+    size: Int;
+}
+
+func NameAt(roster: Roster, position: Int) -> String {
+    return roster.names[position];
+}
+
+func Main() -> Void {
+    let roster: Roster = Roster(["ada", "grace", "edsger"], 3);
+    Log(roster.names[0]);
+    Log(NameAt(roster, 2));
+    Log(ToString(roster.size));
+}

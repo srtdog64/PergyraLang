@@ -11,7 +11,7 @@ retired before MIR publication; changing its `retired` class alone would trust
 forgeable input. The reached owner/consumer map and falsifiers are in the
 [active plan](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md).
 The general emitter leaks the deleted collection route's `ToString` results and returned `Array<Int>` ([run record](../evidence/2026-11-19_collection_program_route_deleted.md));
-nonempty record-field retirement leaks 32 bytes per backend (S2). The
+nonempty record-field retirement leaks 32 bytes per backend (S2); a record handed to a by-value parameter is released by neither side ([record](../evidence/2026-11-25_record_field_array_string_abi.md)). The
 one-process full DRV-2 source-to-C now ends within its 14 GiB bound at
 12.1 GiB ([measurements](measurements.md)). Of 2,746 corpus programs default LLVM
 runs none unlike native and default C eight: five `Float` prints, a zone refresh,

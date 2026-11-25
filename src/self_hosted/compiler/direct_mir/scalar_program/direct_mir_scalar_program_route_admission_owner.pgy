@@ -269,8 +269,9 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             -1, "", -1, "", "");
     }
     let array_string_abi: DirectMirScalarProgramArrayStringAbiFact =
-        DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
-            admitted, routine_instances, routine_rows, logical_record, payload_free_enum);
+        DirectMirScalarProgramArrayStringAbiForRecordFields(
+            DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
+                admitted, routine_instances, routine_rows, logical_record, payload_free_enum), logical_record);
     if !DirectMirScalarProgramArrayStringAbiFactReady(array_string_abi) &&
         !DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
             array_string_abi) {

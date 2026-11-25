@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# A record's Array<Int> or Array<Bool> field gets its Array ABI from the
-# canonical Array row when no routine parameter or result carries one; the
-# direct C and LLVM projections then run the program as native does. A
-# malformed captured Array<Int> row stays refused next to such a field.
+# A record's Array<Int>, Array<Bool> or Array<String> field gets its Array
+# ABI from the canonical Array row when no routine parameter or result
+# carries one; the direct C and LLVM projections then run the program as
+# native does. A malformed captured Array<Int> or Array<String> row stays
+# refused next to such a field.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -77,10 +78,11 @@ project_and_run() {
             -o "$bin" 2>"$WORK_DIR/$name.llvm.compile.err" ||
             { cat "$WORK_DIR/$name.llvm.compile.err" >&2; fail "$name: LLVM artifact did not compile"; }
     fi
-    # The C leg runs under AddressSanitizer. Leak detection is off: the
-    # general route does not release a record local's Array fields (MIR has
-    # no drop row for the record), the open S2 obligation in
-    # docs/truth/state/blocker.md, also for records it admitted before.
+    # The C leg runs under AddressSanitizer. Leak detection is off: a record
+    # local handed to a by-value parameter has its Array fields released by
+    # neither the caller nor the callee (a record kept in its routine is
+    # released), as for the records the route admitted before; recorded in
+    # docs/truth/evidence/2026-11-25_record_field_array_string_abi.md.
     ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 "$bin" 2>"$WORK_DIR/$name.$backend.run.err" |
         tr -d '\r' >"$WORK_DIR/$name.$backend.run" ||
         { cat "$WORK_DIR/$name.$backend.run.err" >&2; fail "$name: $backend run failed"; }
@@ -90,25 +92,30 @@ project_and_run() {
 }
 
 for name in direct_mir_record_field_array_int direct_mir_record_field_array_bool \
-        direct_mir_record_field_array_int_with_parameter; do
+        direct_mir_record_field_array_string direct_mir_record_field_array_int_with_parameter \
+        direct_mir_record_field_array_string_with_local; do
     produce_mir "$name"
     native_run "$name"
     for backend in c llvm; do project_and_run "$name" "$backend"; done
 done
 
-# A malformed Array<Int> parameter row is refused although a record field
-# demands Array<Int> too: the canonical row never replaces a refused one.
-name=direct_mir_record_field_array_int_with_parameter
-"$PYTHON_BIN" "$MUTATIONS" "$WORK_DIR/$name.mir.json" array-int-value-abi-layout \
-    "$WORK_DIR/$name.forged.mir.json"
-for backend in c llvm; do
-    output_rel="$WORK_REL/$name.forged.$backend"
-    if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
-        "$WORK_REL/$name.forged.mir.json" -o "$output_rel") \
-        >"$WORK_DIR/$name.forged.$backend.out" 2>"$WORK_DIR/$name.forged.$backend.err"; then
-        fail "$backend accepted a malformed Array<Int> parameter row"
-    fi
-    [[ ! -e "$ROOT_DIR/$output_rel" ]] || fail "$backend published the forged program"
+# A malformed Array row (an Int parameter, a String local) is refused although
+# a record field demands that Array too: the canonical row never replaces a
+# refused capture.
+for forged in direct_mir_record_field_array_int_with_parameter:array-int-value-abi-layout \
+        direct_mir_record_field_array_string_with_local:logical-record-array-string-abi-layout; do
+    name="${forged%%:*}"; mutation="${forged#*:}"
+    "$PYTHON_BIN" "$MUTATIONS" "$WORK_DIR/$name.mir.json" "$mutation" \
+        "$WORK_DIR/$name.forged.mir.json"
+    for backend in c llvm; do
+        output_rel="$WORK_REL/$name.forged.$backend"
+        if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+            "$WORK_REL/$name.forged.mir.json" -o "$output_rel") \
+            >"$WORK_DIR/$name.forged.$backend.out" 2>"$WORK_DIR/$name.forged.$backend.err"; then
+            fail "$backend accepted $name with $mutation"
+        fi
+        [[ ! -e "$ROOT_DIR/$output_rel" ]] || fail "$backend published $name with $mutation"
+    done
 done
 
-echo "[$LABEL] PASS: 3 record-field Array programs equal to native on C (ASan) and LLVM; forged Array<Int> row refused on both"
+echo "[$LABEL] PASS: 5 record-field Array programs equal to native on C (ASan) and LLVM; forged Array<Int> and Array<String> rows refused on both"
