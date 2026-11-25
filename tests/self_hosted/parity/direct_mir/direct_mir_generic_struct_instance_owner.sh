@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Generic routine instances whose actual is a struct, an Array of a struct,
+# a scalar (a template with a concrete result),
 # an Array<Int> or an Option<Int> run on the general direct-MIR route: direct
 # C (ASan) and LLVM print native's output. A struct actual takes the struct
 # declaration's MIR ABI row; a malformed row is refused.
@@ -44,6 +45,7 @@ project() {
 }
 
 for source in tests/self_hosted/fixtures/direct_mir_generic_struct_instance.pgy \
+        tests/self_hosted/parity/fixture/generic_template_concrete_return.pgy \
         src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy \
         src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy \
         src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy; do
@@ -101,4 +103,4 @@ for backend in c llvm; do
     [[ ! -e "$ROOT_DIR/$WORK_REL/forged.$backend" ]] || fail "$backend published the forged program"
 done
 
-echo "[$LABEL] PASS: 4 generic instance programs equal to native on C (ASan) and LLVM; malformed struct ABI row refused"
+echo "[$LABEL] PASS: 5 generic instance programs equal to native on C (ASan) and LLVM; malformed struct ABI row refused"

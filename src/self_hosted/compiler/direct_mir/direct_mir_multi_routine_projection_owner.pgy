@@ -2,7 +2,6 @@
 import "direct_mir_legacy_intent_program_projection_owner.pgy";
 import "direct_mir_composite_intent_program_projection_owner.pgy";
 import "direct_mir_nested_intent_program_projection_owner.pgy";
-import "direct_mir_multi_routine_terminal_projection_owner.pgy";
 import "scalar_program/direct_mir_scalar_program_projection_owner.pgy";
 import "scalar_program/direct_mir_scalar_program_route_admission_owner.pgy";
 import "direct_mir_pressure_observation_owner.pgy";
@@ -23,11 +22,6 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
     let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuLlvmProjection());
     if !is_c && !is_llvm { Die("direct MIR multi-routine projection rejected the program graph"); }
-    let formatted_print: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFormattedPrintFact();
-    if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-        Die("direct MIR multi-routine runtime ABI owner is incomplete");
-    }
-    let line_format: String = StringRuntimeCIntLineFormat();
     let intent_payload: Option<String> = CompileAdmittedDirectMirLegacyIntentProgramLlvmIfClaimed(admitted, is_llvm);
     if IsSome(intent_payload) { return CodegenRoutePayloadEmitted(UnwrapOption(intent_payload)); }
     let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);
@@ -50,5 +44,7 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
             observe_pressure
         );
     }
-    return CompileAdmittedDirectMirTerminalMultiRoutine(admitted, target_projection, is_llvm, formatted_print, line_format, scalar_program_admission);
+    // The general route declined the program: it is refused with the
+    // general route's receipt. No per-program-shape route follows it.
+    return CodegenRoutePayloadRefused(DirectMirScalarProgramRouteAdmissionRefusal(scalar_program_admission));
 }

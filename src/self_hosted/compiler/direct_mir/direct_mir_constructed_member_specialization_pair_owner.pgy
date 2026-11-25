@@ -1,4 +1,2 @@
 // One exact row-order-independent pair before Option/Array family projection.
 
-import "direct_mir_constructed_member_specialization_pair_fact_owner.pgy";
-import "direct_mir_constructed_member_specialization_occurrence_owner.pgy";

@@ -22,17 +22,3 @@ func DirectMirArrayIntGraphFromExpressionFact(
     );
 }
 
-func DirectMirArrayIntAssignmentTargetReady(
-    ref sequence: MirExpressionGraphSequence, local_name: String
-) -> Bool {
-    return sequence.ok && sequence.ready_node_count == 1 &&
-        ArrayLength(sequence.roots) == 1 && sequence.roots[0] == 0 &&
-        ArrayLength(sequence.arena.topology.node_kinds) == 1 &&
-        sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
-        ArrayLength(sequence.arena.node_texts) == 1 &&
-        sequence.arena.node_texts[0] == local_name &&
-        ArrayLength(sequence.arena.call_target_kinds) == 1 &&
-        sequence.arena.call_target_kinds[0] == SemanticCallTargetNone() &&
-        ArrayLength(sequence.arena.call_target_names) == 1 &&
-        sequence.arena.call_target_names[0] == "";
-}

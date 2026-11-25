@@ -1041,8 +1041,6 @@ Inductive SpineFact : Type :=
   | SFMirGenericSpecialization
   | SFAirEvidenceGraph
   | SFDirectMirScalarCfgGraphPlan
-  | SFDirectMirCallParameterGraph
-  | SFDirectMirArrayArgumentProgramIdentity
   | SFDirectMirScalarCfgProgramExtension
   | SFAbiLayoutRows
   | SFAbiOptionMatchLayoutAdmission
@@ -1196,8 +1194,6 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFMirGenericSpecialization => SOMir
   | SFAirEvidenceGraph => SOAir
   | SFDirectMirScalarCfgGraphPlan => SOProjectionPlanner
-  | SFDirectMirCallParameterGraph => SOProjectionPlanner
-  | SFDirectMirArrayArgumentProgramIdentity => SOProjectionPlanner
   | SFDirectMirScalarCfgProgramExtension => SOProjectionPlanner
   | SFAbiLayoutRows => SOMirAbi
   | SFAbiOptionMatchLayoutAdmission => SOMirAbi

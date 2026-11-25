@@ -228,20 +228,14 @@ SELFHOST_DRIVER_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 SELFHOST_ONE_MIR_DUAL_BACKEND_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-dual-backend-projection-test-smoke)
 SELFHOST_SCALAR_GRAPH_PLAN_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-direct-mir-scalar-graph-plan-test-smoke)
 SELFHOST_ONE_MIR_ARRAY_RETURN_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-array-return-projection-test-smoke)
-SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-array-argument-projection-test-smoke)
 SELFHOST_ONE_MIR_ARRAY_PARAM_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-array-param-projection-test-smoke)
 SELFHOST_ONE_MIR_BOOL_LOGIC_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-bool-logic-projection-test-smoke)
 SELFHOST_ONE_MIR_STRING_EQUALITY_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-string-equality-projection-test-smoke)
 SELFHOST_ONE_MIR_STRING_EQUALITY_CONCAT_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-string-equality-concat-projection-test-smoke)
 SELFHOST_ONE_MIR_STRING_BUILTIN_PROGRAM_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-string-builtin-program-projection-test-smoke)
 SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-struct-argument-projection-test-smoke)
-SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-generic-struct-value-flow-projection-test-smoke)
-SELFHOST_ONE_MIR_INFERRED_GENERIC_SCALAR_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-inferred-generic-scalar-projection-test-smoke)
 SELFHOST_ONE_MIR_TAGGED_ENUM_PAYLOAD_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-tagged-enum-payload-projection-test-smoke)
 SELFHOST_ROLE_OVERRIDE_REPLACEMENT_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-role-override-replacement-test-smoke)
-SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-constructed-generic-member-projection-test-smoke)
-SELFHOST_ONE_MIR_CONSTRUCTED_ARRAY_MEMBER_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-constructed-array-member-projection-test-smoke)
-SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-constructed-record-array-member-projection-test-smoke)
 SELFHOST_HARD_DRIVER_FRONTIER ?= class_compare_return,class_as_strategy,class_compose_factory,device_slot_routine,defer_scope,class_node_field_access,function_clause_order_minimal
 RUNTIME_PANIC_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 SLOT_CONTRACT_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
@@ -3377,7 +3371,7 @@ self-host-preparation-platform-parity-test-smoke: \
 	self-host-preparation-platform-codegen-parity-test-smoke \
 	self-host-preparation-platform-driver-parity-test-smoke
 
-self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE) $(SELFHOST_SCALAR_GRAPH_PLAN_GATE) $(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE) $(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE) $(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_CONCAT_GATE) $(SELFHOST_ONE_MIR_STRING_BUILTIN_PROGRAM_GATE) $(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_SCALAR_GATE) $(SELFHOST_ONE_MIR_TAGGED_ENUM_PAYLOAD_GATE) $(SELFHOST_ROLE_OVERRIDE_REPLACEMENT_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_ARRAY_MEMBER_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE)
+self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE) $(SELFHOST_SCALAR_GRAPH_PLAN_GATE) $(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE) $(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE) $(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_CONCAT_GATE) $(SELFHOST_ONE_MIR_STRING_BUILTIN_PROGRAM_GATE) $(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_TAGGED_ENUM_PAYLOAD_GATE) $(SELFHOST_ROLE_OVERRIDE_REPLACEMENT_GATE)
 
 self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-lsp self-host-driver-execution-action-optional-within-parity-test-smoke language-keyword-registry-test-smoke
 	# Run the reached compiler-scale falsifier first so a projection regression
@@ -4188,10 +4182,6 @@ self-host-one-mir-option-match-projection-test-smoke: self-host-driver-bootstrap
 self-host-one-mir-array-return-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_array_return_projection.sh
 
-self-host-one-mir-array-argument-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/direct_mir/direct_mir_mutation_ownership_contract.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_array_argument_projection.sh
-
 self-host-one-mir-array-param-projection-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/one_mir/one_mir_array_param_projection.sh
@@ -4225,12 +4215,6 @@ self-host-expression-graph-identity-carriage-test-smoke:
 self-host-one-mir-struct-argument-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_struct_argument_projection.sh
 
-self-host-one-mir-generic-struct-value-flow-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_generic_struct_value_flow_projection.sh
-
-self-host-one-mir-inferred-generic-scalar-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_inferred_generic_scalar_projection.sh
-
 self-host-one-mir-tagged-enum-payload-projection-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/one_mir/one_mir_tagged_enum_payload_projection.sh
@@ -4239,19 +4223,10 @@ self-host-role-override-replacement-test-smoke: self-host-one-mir-struct-argumen
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/domain/role_override_mir_replacement.sh
 
-self-host-one-mir-constructed-generic-member-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_constructed_generic_member_projection.sh
-
-self-host-one-mir-constructed-array-member-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_constructed_array_member_projection.sh
-
-self-host-one-mir-constructed-record-array-member-projection-test-smoke: self-host-compiler
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir/one_mir_constructed_record_array_member_projection.sh
-
 self-host-default-llvm-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic/default_llvm_installed_self_host_owner.sh
 
-.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-direct-mir-scalar-multi-routine-test-smoke self-host-direct-mir-scalar-option-int-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-one-mir-array-return-projection-test-smoke self-host-one-mir-array-argument-projection-test-smoke self-host-one-mir-array-param-projection-test-smoke self-host-one-mir-bool-logic-projection-test-smoke self-host-one-mir-string-equality-projection-test-smoke self-host-one-mir-string-equality-concat-projection-test-smoke self-host-one-mir-string-builtin-program-projection-test-smoke self-host-scalar-cfg-routine-partition-test-smoke self-host-expression-graph-identity-carriage-test-smoke self-host-one-mir-struct-argument-projection-test-smoke self-host-one-mir-generic-struct-value-flow-projection-test-smoke self-host-one-mir-inferred-generic-scalar-projection-test-smoke self-host-one-mir-tagged-enum-payload-projection-test-smoke self-host-role-override-replacement-test-smoke self-host-one-mir-constructed-generic-member-projection-test-smoke self-host-one-mir-constructed-array-member-projection-test-smoke self-host-one-mir-constructed-record-array-member-projection-test-smoke self-host-default-llvm-replacement-test-smoke
+.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-direct-mir-scalar-multi-routine-test-smoke self-host-direct-mir-scalar-option-int-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-one-mir-array-return-projection-test-smoke self-host-one-mir-array-param-projection-test-smoke self-host-one-mir-bool-logic-projection-test-smoke self-host-one-mir-string-equality-projection-test-smoke self-host-one-mir-string-equality-concat-projection-test-smoke self-host-one-mir-string-builtin-program-projection-test-smoke self-host-scalar-cfg-routine-partition-test-smoke self-host-expression-graph-identity-carriage-test-smoke self-host-one-mir-struct-argument-projection-test-smoke self-host-one-mir-tagged-enum-payload-projection-test-smoke self-host-role-override-replacement-test-smoke self-host-default-llvm-replacement-test-smoke
 
 self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke
 	@if command -v powershell >/dev/null 2>&1; then \

@@ -1129,36 +1129,11 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_routine_signature_fact_owner.pgy" 200
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_array_argument_graph_fact_owner.pgy" 225
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_array_argument_program_identity_owner.pgy" 245
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_array_argument_plan_owner.pgy" 310
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_array_argument_emission_owner.pgy" 265
-require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy" 110
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_array_argument_projection.sh" 220
-require_max_lines \
-    "tests/self_hosted/parity/direct_mir/direct_mir_mutation_ownership_contract.sh" 75
-require_max_lines \
-    "tests/self_hosted/fixtures/direct_mir_array_argument_mutation_ownership.pgy" 15
 require_max_lines \
     "tests/self_hosted/fixtures/borrowed_ref_constructor_store_reject.pgy" 25
 require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_array_argument_mutations.py" 130
-require_max_lines \
     "src/self_hosted/mir/routine_param_json_projection_owner.pgy" 65
-for collection_program_owner_cap in \
-    direct_mir/direct_mir_multi_routine_terminal_projection_owner.pgy:35 \
-    direct_mir/direct_mir_array_argument_legacy_route_owner.pgy:25; do
-    collection_program_owner="${collection_program_owner_cap%%:*}"
-    collection_program_cap="${collection_program_owner_cap##*:}"
-    require_max_lines \
-        "src/self_hosted/compiler/$collection_program_owner" \
-        "$collection_program_cap"
-done
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_array_param_projection.sh" 190
 require_max_lines \
@@ -1782,163 +1757,34 @@ require_max_lines "src/self_hosted/mir/canonical_instruction_id_owner.pgy" 90
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_nominal_declaration_abi_fact_owner.pgy" 220
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_graph_fact_owner.pgy" 260
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_program_admission_owner.pgy" 95
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_program_identity_owner.pgy" 230
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_plan_owner.pgy" 215
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_c_emission_owner.pgy" 165
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/direct_mir_struct_argument_llvm_emission_owner.pgy" 110
-require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_struct_argument_projection.sh" 150
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_struct_argument_mutations.py" 190
-for value_flow_owner_cap in \
-    direct_mir/direct_mir_nominal_abi_row_equality_owner.pgy:40; do
-    value_flow_owner="${value_flow_owner_cap%%:*}"
-    value_flow_cap="${value_flow_owner_cap##*:}"
-    require_max_lines "src/self_hosted/compiler/$value_flow_owner" "$value_flow_cap"
-done
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy" 110
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_generic_struct_value_flow_projection.sh" 190
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_generic_struct_value_flow_mutations.py" 270
-for inferred_scalar_owner_cap in \
-    direct_mir/direct_mir_three_routine_shape_owner.pgy:40 \
-    direct_mir/direct_mir_three_routine_classification_owner.pgy:110 \
-    direct_mir/direct_mir_three_routine_projection_owner.pgy:80 \
-    direct_mir/direct_mir_mixed_lane_generic_specialization_fact_owner.pgy:180 \
-    direct_mir/direct_mir_inferred_generic_scalar_program_admission_owner.pgy:80 \
-    direct_mir/direct_mir_inferred_generic_scalar_graph_fact_owner.pgy:170 \
-    direct_mir/direct_mir_inferred_generic_scalar_program_identity_owner.pgy:220 \
-    direct_mir/direct_mir_inferred_generic_scalar_instruction_admission_owner.pgy:230 \
-    direct_mir/direct_mir_inferred_generic_scalar_abi_fact_owner.pgy:80 \
-    direct_mir/direct_mir_inferred_generic_scalar_plan_owner.pgy:140 \
-    direct_mir/direct_mir_inferred_generic_scalar_c_emission_owner.pgy:100 \
-    direct_mir/direct_mir_inferred_generic_scalar_llvm_emission_owner.pgy:90 \
-    direct_mir/direct_mir_inferred_generic_scalar_projection_owner.pgy:40; do
-    inferred_scalar_owner="${inferred_scalar_owner_cap%%:*}"
-    inferred_scalar_cap="${inferred_scalar_owner_cap##*:}"
-    require_max_lines \
-        "src/self_hosted/compiler/$inferred_scalar_owner" "$inferred_scalar_cap"
-done
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_inferred_generic_scalar_projection.sh" 180
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_inferred_generic_scalar_mutations.py" 280
-for inferred_member_owner_cap in \
-    direct_mir/direct_mir_inferred_generic_member_routine_array_shape_owner.pgy:50 \
-    direct_mir/direct_mir_generic_member_signature_fact_owner.pgy:190 \
-    direct_mir/direct_mir_inferred_generic_member_graph_fact_owner.pgy:180 \
-    direct_mir/direct_mir_inferred_generic_member_program_identity_owner.pgy:190 \
-    direct_mir/direct_mir_inferred_generic_member_instruction_admission_owner.pgy:220 \
-    direct_mir/direct_mir_inferred_generic_member_representation_fact_owner.pgy:100; do
-    inferred_member_owner="${inferred_member_owner_cap%%:*}"
-    inferred_member_cap="${inferred_member_owner_cap##*:}"
-    require_max_lines \
-        "src/self_hosted/compiler/$inferred_member_owner" "$inferred_member_cap"
-done
 require_max_lines "tests/self_hosted/parity/semantic/generic_member_parameter_identity_cases.py" 80
 require_max_lines \
     "tests/self_hosted/parity/one_mir/one_mir_nominal_literal_mutations.py" 260
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_exact_json_array_cardinality_owner.pgy" 90
-for constructed_member_owner in \
-    direct_mir/direct_mir_three_routine_classification_owner.pgy \
-    direct_mir/direct_mir_three_routine_classification_fact_owner.pgy \
-    direct_mir/direct_mir_three_routine_constructed_member_shape_owner.pgy \
-    direct_mir/direct_mir_three_routine_projection_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_program_admission_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_declaration_fact_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_signature_fact_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_specialization_fact_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_substitution_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_method_graph_fact_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_main_graph_fact_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_program_identity_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_method_instruction_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_main_instruction_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_option_abi_admission_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_representation_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_plan_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_c_emission_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_llvm_emission_owner.pgy \
-    direct_mir/direct_mir_constructed_generic_member_projection_owner.pgy; do
-    require_max_lines \
-        "src/self_hosted/compiler/$constructed_member_owner" 220
-done
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_constructed_generic_member_projection.sh" 170
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_constructed_generic_member_mutations.py" 350
 for constructed_array_member_owner in \
     direct_mir/direct_mir_constructed_member_specialization_pair_owner.pgy \
-    direct_mir/direct_mir_constructed_member_variant_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_specialization_fact_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_substitution_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_signature_fact_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_method_graph_fact_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_main_graph_fact_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_program_identity_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_method_instruction_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_main_instruction_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_abi_admission_owner.pgy \
     direct_mir/direct_mir_array_storage_layout_contract_owner.pgy \
     direct_mir/direct_mir_array_storage_abi_projection_owner.pgy \
-    direct_mir/direct_mir_array_storage_symbol_owner.pgy \
-    direct_mir/direct_mir_array_storage_c_assertion_owner.pgy \
-    direct_mir/direct_mir_aggregate_value_flow_fact_owner.pgy \
-    direct_mir/direct_mir_aggregate_value_flow_target_projection_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_representation_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_plan_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_c_emission_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_llvm_emission_owner.pgy \
-    direct_mir/direct_mir_constructed_array_member_projection_owner.pgy; do
+    direct_mir/direct_mir_array_storage_c_assertion_owner.pgy; do
     require_max_lines \
         "src/self_hosted/compiler/$constructed_array_member_owner" 220
 done
 require_max_lines \
     "src/self_hosted/mir/routine_tracked_statement_owner.pgy" 220
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_constructed_array_member_projection.sh" 180
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_constructed_array_member_mutations.py" 300
 for constructed_record_array_member_owner in \
-    direct_mir/direct_mir_three_routine_mixed_constructed_member_shape_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_program_admission_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_specialization_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_main_graph_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_source_identity_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_identity_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_instruction_envelope_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_main_admission_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_array_abi_absence_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_point_abi_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_representation_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_plan_join_owner.pgy \
     direct_mir/direct_mir_closed_module_call_abi_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_plan_owner.pgy \
     direct_mir/direct_mir_array_storage_layout_contract_owner.pgy \
     direct_mir/direct_mir_array_storage_abi_projection_owner.pgy \
-    direct_mir/direct_mir_array_storage_symbol_owner.pgy \
-    direct_mir/direct_mir_array_storage_c_assertion_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_abi_projection_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_c_emission_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_llvm_emission_owner.pgy \
-    direct_mir/direct_mir_constructed_record_array_member_projection_owner.pgy; do
+    direct_mir/direct_mir_array_storage_c_assertion_owner.pgy; do
     require_max_lines \
         "src/self_hosted/compiler/$constructed_record_array_member_owner" 220
 done
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_constructed_record_array_member_projection.sh" 181
-require_max_lines \
-    "tests/self_hosted/parity/one_mir/one_mir_constructed_record_array_member_mutations.py" 360
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/direct_mir_cfg_shape_fact_owner.pgy" 580
 require_max_lines \
@@ -2325,8 +2171,6 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection/ast_collection_formal_statement_effect_build_owner.pgy:200 \
     src/self_hosted/semantic/ast_collection/ast_collection_exclusive_copy_landing_fact_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection/ast_collection_exclusive_copy_landing_field_owner.pgy:140 \
-    src/self_hosted/compiler/direct_mir/direct_mir_constructed_member_specialization_pair_fact_owner.pgy:100 \
-    src/self_hosted/compiler/direct_mir/direct_mir_constructed_member_specialization_occurrence_owner.pgy:200 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_value_result_schema_owner.pgy:120 \
     src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_int_value_result_projection_owner.pgy:220 \
     src/self_hosted/compiler/driver/driver_mir_c_request_identity_owner.pgy:140 \

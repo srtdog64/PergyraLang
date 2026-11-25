@@ -330,7 +330,9 @@ The ownership rules at this boundary are:
 - a whole graph storage value is consumed once at its last split; blanket
   cloning is not an ownership repair.
 
-`tests/self_hosted/parity/direct_mir/direct_mir_mutation_ownership_contract.sh` is the
-focused positive/negative falsifier for these rules. The integrated bootstrap
-remains the acceptance gate because it proves the production import-composed
-driver, not only the small ownership fixture.
+The focused falsifier for these rules,
+`direct_mir_mutation_ownership_contract.sh`, was deleted on 2026-11-25 with
+the three-routine route its positive probe imported; its negative fixture
+`tests/self_hosted/fixtures/borrowed_ref_constructor_store_reject.pgy` is
+kept, and native currently accepts it. The integrated bootstrap remains the
+acceptance gate because it proves the production import-composed driver.

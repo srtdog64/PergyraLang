@@ -3336,21 +3336,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/direct_mir/direct_mir_member_receiver_target_projection_owner.pgy`
   -- selected C/LLVM formal, local-storage, and call pass shape derived from
   the sealed host/carriage pair; emitters may render but not reclassify it.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_argument_graph_fact_owner.pgy` --
-  exact typed nested-call and Array-literal argument graph; direct call targets
-  come from expression facts rather than routine row order or source text.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_argument_program_identity_owner.pgy`
-  -- exact three-routine envelope joining `Main`, the scalar callee, and the
-  Array consumer to their strict signatures independent of row order.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_argument_plan_owner.pgy` -- one
-  target-neutral call/parameter/use/ABI/lifetime plan. Main owns fixed storage
-  and passes the admitted Array aggregate by value.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_argument_emission_owner.pgy` --
-  final C/LLVM consumers of that plan; both preserve the two real calls and
-  reopen neither MIR nor a Pergyra runtime path.
-- `src/self_hosted/compiler/direct_mir/direct_mir_array_argument_legacy_route_owner.pgy`
-  -- shrink-only one-block claim for the older Array-argument envelope; looped
-  collection programs cannot be classified through this route.
 - `src/self_hosted/compiler/direct_mir/direct_mir_composite_intent_program_route_fact_owner.pgy`
   -- exclusive structural claim for the canonical twelve-routine composite
   intent family; a claimed malformed family cannot fall through to the scalar
@@ -3391,7 +3376,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/direct_mir/direct_mir_legacy_intent_program_route_fact_owner.pgy`
   -- exclusive structural claim for the first executable one-function,
   one-subject-action, one-intent, one-subject/zone program family; a claimed
-  malformed family cannot fall through to generic three-routine inference.
+  malformed family cannot fall through to the general route.
 - `src/self_hosted/compiler/direct_mir/direct_mir_legacy_intent_program_graph_fact_owner.pgy`
   -- admitted Main construction/call and action-assignment graph receipt for
   that family, joining ordered Intent bindings to typed caller operands by
@@ -3413,21 +3398,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   runtime admission mode/priority, expectation, cleanup, and Bool observation.
 - `src/self_hosted/compiler/direct_mir/direct_mir_legacy_intent_program_projection_owner.pgy`
   -- LLVM-only composition boundary issuing and consuming the sealed legacy
-  intent receipt before scalar and generic three-routine routes.
-- `src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_terminal_projection_owner.pgy`
-  -- late multi-routine decision that gives a claimed collection program one
-  fail-closed path before the legacy three-routine classifier.
-- `src/self_hosted/compiler/direct_mir/direct_mir_aggregate_value_flow_fact_owner.pgy` --
-  target-neutral aggregate value-flow authority shared after family admission.
-  It seals wrapper representation, element/Array identity, actual ABI evidence
-  provenance, caller-owned single storage, index, construction/identity,
-  allocator/lifetime/carriage, and the closed-module call receipt. It reads no
-  MIR/JSON/classification or target spelling.
-- `src/self_hosted/compiler/direct_mir/direct_mir_aggregate_value_flow_target_projection_owner.pgy`
-  -- selected C/LLVM emission view joining the sealed flow with the public
-  four-field Array storage projection. It owns internal linkage and allocator
-  spelling for the selected target; family emitters retain element-specific
-  input/output and nominal ABI projection but may not re-own flow constants.
+  intent receipt before the general route.
 - `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_role_declaration_owner.pgy`
   -- represented role/ability methods and impl ranges joined to the admitted
   routine signature and concrete identity cell. The general routine partition
@@ -3452,10 +3423,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   the fixed role-call plan, selects one ABI view, and then gives only those
   facts to the chosen emitter. The LLVM method is internal; neither emitter
   reads MIR, expression text, or role vocabulary.
-- `src/self_hosted/compiler/direct_mir/direct_mir_constructed_record_array_member_array_abi_absence_owner.pgy`
-  -- sealed `Array<Point>` result evidence derived from the admitted MIR ABI
-  receipt. It binds the typed result capture to physical-layout absence and
-  supplies that exact digest to the shared aggregate value-flow fact.
 - `src/self_hosted/compiler/direct_mir/direct_mir_multi_routine_projection_owner.pgy` --
   exclusive multi-routine direct-MIR projection boundary; rejection cannot
   retry hello, scalar, single-routine Array, Option, or CFG dispatch. Its

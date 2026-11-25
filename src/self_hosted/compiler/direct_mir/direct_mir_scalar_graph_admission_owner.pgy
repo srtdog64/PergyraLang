@@ -66,36 +66,3 @@ func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
     return Some(Substring(literal, 1, length - 2));
 }
 
-func DirectMirLogInstructionEnvelopeReady(
-    ref instruction: JsonObjectFactTable, expected_id: String) -> Bool {
-    return JsonObjectFactTableReady(instruction) &&
-        DirectMirObjectNumberEquals(instruction, "id", expected_id) &&
-        JsonObjectFactStringFieldEquals(instruction, "kind", "stmt") &&
-        JsonObjectFactStringFieldEquals(instruction, "name", "stmt") &&
-        JsonObjectFactStringFieldEquals(instruction, "arg0", "Log") &&
-        JsonObjectFactStringFieldEquals(instruction, "source_type", "AST_CALL") &&
-        DirectMirObjectFieldKindEquals(instruction, "result", "null") &&
-        DirectMirObjectFieldKindEquals(instruction, "arg1", "null") &&
-        DirectMirObjectFieldKindEquals(instruction, "slot_anchor", "null") &&
-        DirectMirObjectFieldKindEquals(instruction, "abi_type_name", "null") &&
-        DirectMirObjectNumberEquals(instruction, "abi_layout_id", "0") &&
-        JsonObjectBoolFieldEqualsWithin(
-            instruction.json, instruction.json_extent, instruction.start, instruction.end,
-            "abi_layout_required", false
-        ) &&
-        DirectMirObjectFieldKindEquals(instruction, "abi_layout", "null") &&
-        DirectMirObjectFieldKindEquals(instruction, "expr0", "string") &&
-        DirectMirObjectFieldKindEquals(instruction, "expr1", "null") &&
-        DirectMirObjectFieldKindEquals(instruction, "expr1_graph", "null") &&
-        DirectMirObjectFieldKindEquals(
-            instruction, "collection_ownership_receipt", "null"
-        ) &&
-        DirectMirObjectFieldKindEquals(instruction, "machine_layer", "null") &&
-        JsonObjectFactStringFieldEquals(instruction, "machine_contact_kind", "") &&
-        DirectMirObjectArrayEmpty(instruction, "match_patterns") &&
-        DirectMirObjectFieldKindEquals(instruction, "match_variant", "null") &&
-        DirectMirObjectArrayEmpty(instruction, "match_bindings") &&
-        DirectMirObjectArrayEmpty(instruction, "match_binding_types") &&
-        DirectMirObjectFieldKindEquals(instruction, "destructure_element_type", "null") &&
-        DirectMirObjectArrayEmpty(instruction, "destructure_bindings");
-}
