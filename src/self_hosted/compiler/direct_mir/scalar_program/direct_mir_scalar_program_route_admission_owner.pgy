@@ -12,6 +12,7 @@ import "direct_mir_scalar_program_role_declaration_owner.pgy";
 import "../../codegen_route_refusal_owner.pgy";
 import "../direct_mir_identity_cell_type_join_owner.pgy";
 import "direct_mir_scalar_program_logical_record_validation_receipt_owner.pgy";
+import "direct_mir_scalar_program_record_field_array_abi_owner.pgy";
 struct DirectMirScalarProgramRouteAdmission {
     let valid: Bool;
     let route: DirectMirScalarProgramRouteFact;
@@ -204,76 +205,22 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             "scalar-program-route", "opaque-readonly-zone",
             -1, "", -1, "", "");
     }
-    if routine_count == 1 {
-        let rows: Array<Int> = [routine_instances.source_rows[0]];
-        let array_int_value_result:
-            DirectMirScalarProgramArrayIntValueResultFact =
-                DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
-                    admitted, routine_instances, rows);
-        if !DirectMirScalarProgramArrayIntValueResultFactReady(
-                array_int_value_result) {
-            return DirectMirScalarProgramRouteAdmissionRejected(
-                "scalar-program-route", "array-int-value-result-abi",
-                -1, "", -1, "", "");
-        }
-        let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact =
-            DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
-                admitted, routine_instances, rows, logical_record);
-        if !DirectMirScalarProgramArrayBoolAbiFactReady(array_bool_abi) {
-            return DirectMirScalarProgramRouteAdmissionRejected(
-                "scalar-program-route", "array-bool-abi",
-                -1, "", -1, "", "");
-        }
-        let array_string_abi: DirectMirScalarProgramArrayStringAbiFact =
-            DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
-                admitted, routine_instances, rows, logical_record, payload_free_enum);
-        if !DirectMirScalarProgramArrayStringAbiFactReady(array_string_abi) &&
-            !DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
-                array_string_abi) {
-            return DirectMirScalarProgramRouteAdmissionRejected(
-                "scalar-program-route", "array-string-abi",
-                -1, "", -1, "", "");
-        }
-        let source: DirectMirScalarProgramRouteFact =
-            DirectMirScalarProgramRouteFact(
-                true, 0, rows[0], -1, rows, logical_record,
-                referenced_enum, payload_free_enum,
-                array_int_value_result, array_bool_abi, array_string_abi,
-                opaque_readonly_zones, routine_instances);
-        let sealed: DirectMirScalarProgramRouteFact =
-            DirectMirScalarProgramRouteFact(
-                true, DirectMirScalarProgramRouteFactDigest(source),
-                rows[0], -1, rows, logical_record, referenced_enum,
-                payload_free_enum,
-                array_int_value_result, array_bool_abi, array_string_abi,
-                opaque_readonly_zones, routine_instances);
-        let seal_failure: String = DirectMirScalarProgramRouteFactSealFailure(sealed);
-        if seal_failure != "" {
-            return DirectMirScalarProgramRouteAdmissionRejected(
-                "scalar-program-route", seal_failure, -1, "", -1, "", "");
-        }
-        return DirectMirScalarProgramRouteAdmissionAccepted(sealed);
-    }
-    var entrypoint_row: Int = -1;
+    // A one-routine program is its entrypoint; a longer one is checked
+    // routine by routine. The inventory seals the selected entrypoint (Main,
+    // or a unique lowercase main) at row 0.
     var routine_rows: Array<Int> = [];
     var row: Int = 0;
     while row < routine_count {
         let signature: DirectMirRoutineSignatureFact =
             DirectMirRoutineInstanceSignatureAt(routine_instances, row);
-        // The inventory seals the selected entrypoint (Main, or a unique
-        // lowercase main) at row 0.
-        if row == 0 {
-            if !DirectMirRoutineSignatureFactReady(signature) ||
-                entrypoint_row >= 0 ||
-                !DirectMirScalarCfgEntrypointReturnTypeSupported(
-                    signature.return_type) ||
-                signature.param_count != 0 {
-                return DirectMirScalarProgramRouteAdmissionRejected(
-                    "scalar-program-route", "entrypoint", row,
-                    signature.name, -1, signature.return_type, "");
-            }
-            entrypoint_row = routine_instances.source_rows[row];
-        } else {
+        if routine_count > 1 && row == 0 && (!DirectMirRoutineSignatureFactReady(signature) ||
+                !DirectMirScalarCfgEntrypointReturnTypeSupported(signature.return_type) ||
+                signature.param_count != 0) {
+            return DirectMirScalarProgramRouteAdmissionRejected(
+                "scalar-program-route", "entrypoint", row,
+                signature.name, -1, signature.return_type, "");
+        }
+        if row > 0 {
             let assessment:
                 DirectMirScalarProgramCallableRouteEnvelopeAssessment =
                     DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
@@ -295,23 +242,17 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
                     signature.name, -1, signature.return_type, "");
             }
         }
-        row = row + 1;
-    }
-    if entrypoint_row < 0 {
-        return DirectMirScalarProgramRouteAdmissionRejected(
-            "scalar-program-route", "entrypoint", -1, "", -1, "", "");
-    }
-    row = 0;
-    while row < routine_count {
         ArrayPush(routine_rows, routine_instances.source_rows[row]);
         row = row + 1;
     }
+    let entrypoint_row: Int = routine_rows[0];
     var callable_row: Int = -1;
     if routine_count == 2 { callable_row = routine_rows[1]; }
     let array_int_value_result:
         DirectMirScalarProgramArrayIntValueResultFact =
-            DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
-                admitted, routine_instances, routine_rows);
+            DirectMirScalarProgramArrayIntAbiForRecordFields(
+                DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
+                    admitted, routine_instances, routine_rows), logical_record);
     if !DirectMirScalarProgramArrayIntValueResultFactReady(
             array_int_value_result) {
         return DirectMirScalarProgramRouteAdmissionRejected(
@@ -319,8 +260,9 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
             -1, "", -1, "", "");
     }
     let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact =
-        DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
-            admitted, routine_instances, routine_rows, logical_record);
+        DirectMirScalarProgramArrayBoolAbiForRecordFields(
+            DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
+                admitted, routine_instances, routine_rows, logical_record), logical_record);
     if !DirectMirScalarProgramArrayBoolAbiFactReady(array_bool_abi) {
         return DirectMirScalarProgramRouteAdmissionRejected(
             "scalar-program-route", "array-bool-abi",

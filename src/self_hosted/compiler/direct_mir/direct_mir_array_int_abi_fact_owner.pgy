@@ -5,11 +5,15 @@
 import "../abi_layout_row_owner.pgy";
 import "direct_mir_array_captured_abi_fact_owner.pgy";
 
+func DirectMirArrayIntCanonicalAbi() -> MirAbiLayoutRowCapture {
+    return DirectMirArrayCanonicalAbiRow(
+        CompilerAbiLayoutArrayIntTypeName(), "pgy_array_new_Int", "int32_t"
+    );
+}
+
 func DirectMirArrayIntCapturedAbiReady(
     ref abi: MirAbiLayoutRowCapture
 ) -> Bool {
-    return DirectMirArrayCapturedAbiReady(
-        abi, CompilerAbiLayoutArrayIntTypeName(),
-        "pgy_array_new_Int", "int32_t"
-    );
+    let canonical: MirAbiLayoutRowCapture = DirectMirArrayIntCanonicalAbi();
+    return DirectMirArrayCapturedAbiMatches(abi, canonical);
 }

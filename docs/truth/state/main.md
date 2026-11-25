@@ -2,11 +2,11 @@
 
 Owner: Claude lane, holding the GPT root lane's work since 2026-11-19
 ([decision](../decisions/2026-11-19_claude_takes_over_gpt_root_lane.md)).
-Checked 2026-11-24.
+Checked 2026-11-25.
 
 | Item | Observed value |
 |---|---|
-| Last fully green published main | `0a9053745`: [CI 45396651059](https://github.com/srtdog64/PergyraLang/actions/runs/45396651059), all 33 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
+| Last fully green published main | `58220e986`: [CI 45516659398](https://github.com/srtdog64/PergyraLang/actions/runs/45516659398), all 34 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
 | Route deletion on main | `34ae17546` deleted the per-program-shape collection program route and its registry row ([evidence](../evidence/2026-11-19_collection_program_route_deleted.md)); green in [CI 44358794007](https://github.com/srtdog64/PergyraLang/actions/runs/44358794007) at `2c199fb28` |
 | `var` declarations in scalar CFG | `9a5d7362e`: scalar CFG reads them through the binding vocabulary owner ([evidence](../evidence/2026-11-19_scalar_cfg_mutable_declaration.md)); green in [CI 44463438926](https://github.com/srtdog64/PergyraLang/actions/runs/44463438926) |
 | Runtime helpers | `f0d16adaf`: String concat, record push and `Array<Bool>` type declared with the facts that emit them ([evidence](../evidence/2026-11-19_runtime_helper_materialization.md)); green in [CI 44488492111](https://github.com/srtdog64/PergyraLang/actions/runs/44488492111) |
@@ -32,8 +32,9 @@ Checked 2026-11-24.
 | Self-host record copies (S5c slice 2, `db571be36`; CI green) | direct C and LLVM copy a record landing and an explicit record Clone field by field; a field with no copy, or a source that is not a place, is refused ([evidence](../evidence/2026-11-23_selfhost_record_clone.md)) |
 | Self-host element writes (`72c2d2747`; CI in [gates](gates.md)) | an indexed assignment, an `ArraySet` through a copy's path and a store through a formal's member path land the copies native lands, or are refused; default C ran four programs unlike native before ([evidence](../evidence/2026-11-24_selfhost_element_write_copies.md)) |
 | Self-host foreach String loans (`0a9053745`; CI green, 33 jobs) | a `for` binding over an `Array<String>` local lends its element, and a whole reassignment of proved storage ends its loans; four freed-memory reads refused ([evidence](../evidence/2026-11-24_selfhost_foreach_string_loans.md)) |
-| Review batch (`6a6f612b5`; CI in [gates](gates.md)) | an `inout` callee's set releases an element (six freed-memory reads refused), `pgy --report-copies`, language word tiers (docs), one CI step moved to the self-host shard ([evidence](../evidence/2026-11-24_review_batch_inout_set_copy_report_word_tiers.md)) |
-| `target.capability_profile` CLOSED (CI result goes in [gates](gates.md)) | one target table owns triple, object format, pointer width/alignment and byte order; LLVM, C and LLVM IR toolchains and the self-host Array layout read it; foreign targets refused; a third Linux CI shard ([evidence](../evidence/2026-11-24_target_capability_profile_closed.md)) |
+| Review batch (`6a6f612b5`; CI green under `58220e986`) | an `inout` callee's set releases an element (six freed-memory reads refused), `pgy --report-copies`, language word tiers (docs), one CI step moved to the self-host shard ([evidence](../evidence/2026-11-24_review_batch_inout_set_copy_report_word_tiers.md)) |
+| `target.capability_profile` CLOSED (`58220e986`; CI green, 34 jobs) | one target table owns triple, object format, pointer width/alignment and byte order; LLVM, C and LLVM IR toolchains and the self-host Array layout read it; foreign targets refused; a third Linux CI shard ([evidence](../evidence/2026-11-24_target_capability_profile_closed.md)) |
+| Record Array fields (CI result goes in [gates](gates.md)) | an `Array<Int>` or `Array<Bool>` record field gets the canonical Array ABI row when no routine row carries it; the record field leak (S2) stays ([evidence](../evidence/2026-11-25_record_field_array_abi.md)) |
 | Work tree | `D:\PergyraLang` on `main`; unrelated untracked folder preserved |
 | Linux validation | WSL `Ubuntu-C-WSL` `/root/ts2` builds the candidate; `/root/mg-main` is the GPT lane's copy (base `5b0d354fb` plus a source mirror) |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |

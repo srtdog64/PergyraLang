@@ -1,0 +1,23 @@
+// A record's Array<Bool> field is the program's only Array<Bool>.
+
+struct Flags {
+    marks: Array<Bool>;
+    count: Int;
+}
+
+func Marked(flags: Flags, position: Int) -> Bool {
+    return flags.marks[position];
+}
+
+func Main() -> Void {
+    let flags: Flags = Flags([true, false, true], 3);
+    if Marked(flags, 1) {
+        Log("second marked");
+    } else {
+        Log("second clear");
+    }
+    if Marked(flags, 2) {
+        Log("third marked");
+    }
+    Log(ToString(flags.count));
+}

@@ -1,0 +1,17 @@
+// A record's Array<Int> field next to an Array<Int> parameter: the program
+// fact is captured from the parameter's MIR row, and a malformed row is not
+// replaced by the canonical one.
+
+struct Holder {
+    values: Array<Int>;
+}
+
+func First(values: Array<Int>) -> Int {
+    return values[0];
+}
+
+func Main() -> Void {
+    let holder: Holder = Holder([7, 9]);
+    Log(ToString(holder.values[1]));
+    Log(ToString(First([3, 4])));
+}

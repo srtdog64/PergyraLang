@@ -1,6 +1,7 @@
 # Scalar-program owner path|hard line cap. This file is the sole shared cap SoT.
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_fact_owner.pgy|117
-src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_admission_owner.pgy|355
+src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_route_admission_owner.pgy|300
+src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_record_field_array_abi_owner.pgy|70
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_callable_route_envelope_owner.pgy|140
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_control_flow_route_owner.pgy|60
 src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_two_routine_route_owner.pgy|65

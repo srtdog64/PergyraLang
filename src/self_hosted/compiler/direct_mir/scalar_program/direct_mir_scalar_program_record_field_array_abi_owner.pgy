@@ -1,0 +1,71 @@
+// Array ABI facts demanded by the Array fields of the program's records.
+//
+// A record field of type Array<Int> or Array<Bool> needs that Array's ABI to
+// lay the record out. The program-wide facts are captured from
+// the MIR rows of routine parameters, results and definitions, and a program
+// whose only Array of that element type is a record field carries no such
+// row. Its fact is then built from the element's canonical row (the storage
+// layout contract and the element's runtime vocabulary), the row every
+// captured MIR row must equal. A fact captured from rows, and a program
+// whose records have no such field, keep the producer's fact. Array<String>
+// is not filled here: its producer returns the same empty fact for "no row"
+// and for a refused row, and filling a refused one would hide it.
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_schema_owner.pgy";
+import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
+import "../direct_mir_array_int_abi_fact_owner.pgy";
+import "../direct_mir_array_bool_abi_fact_owner.pgy";
+import "../../../mir_lower/abi_layout_fact_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordHasFieldType(
+    ref record: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> Bool {
+    var field: Int = 0;
+    while field < ArrayLength(record.field_types) {
+        if record.field_types[field] == type_name { return true; }
+        field = field + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramArrayIntAbiForRecordFields(
+    fact: DirectMirScalarProgramArrayIntValueResultFact,
+    ref record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramArrayIntValueResultFact {
+    let row: MirAbiLayoutRowCapture = DirectMirArrayIntCanonicalAbi();
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact) || fact.present || !row.valid ||
+        !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        !DirectMirScalarProgramLogicalRecordHasFieldType(record, CompilerAbiLayoutArrayIntTypeName()) {
+        return fact;
+    }
+    let rows: Array<Int> = [];
+    let source: DirectMirScalarProgramArrayIntValueResultFact = DirectMirScalarProgramArrayIntValueResultFact(
+        true, 0, true, MirAbiLayoutIdFromCapture(row), ToInt(row.size_text), ToInt(row.align_text),
+        ToInt(row.field_offsets[0]), ToInt(row.field_offsets[1]), ToInt(row.field_offsets[2]),
+        ToInt(row.field_offsets[3]), rows, rows, rows);
+    return DirectMirScalarProgramArrayIntValueResultFact(
+        true, DirectMirScalarProgramArrayIntValueResultFactDigest(source), true, source.layout_id,
+        source.size, source.align, source.data_offset, source.length_offset,
+        source.capacity_offset, source.allocator_offset, rows, rows, rows);
+}
+
+func DirectMirScalarProgramArrayBoolAbiForRecordFields(
+    fact: DirectMirScalarProgramArrayBoolAbiFact,
+    ref record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramArrayBoolAbiFact {
+    let row: MirAbiLayoutRowCapture = DirectMirArrayBoolCanonicalAbi();
+    if !DirectMirScalarProgramArrayBoolAbiFactReady(fact) || fact.present || !row.valid ||
+        !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        !DirectMirScalarProgramLogicalRecordHasFieldType(record, CompilerAbiLayoutArrayBoolTypeName()) {
+        return fact;
+    }
+    let rows: Array<Int> = [];
+    let source: DirectMirScalarProgramArrayBoolAbiFact = DirectMirScalarProgramArrayBoolAbiFact(
+        true, 0, true, false, false, MirAbiLayoutIdFromCapture(row), ToInt(row.size_text),
+        ToInt(row.align_text), ToInt(row.field_offsets[0]), ToInt(row.field_offsets[1]),
+        ToInt(row.field_offsets[2]), ToInt(row.field_offsets[3]), rows, rows, rows);
+    return DirectMirScalarProgramArrayBoolAbiFact(
+        true, DirectMirScalarProgramArrayBoolAbiFactDigest(source), true, false, false,
+        source.layout_id, source.size, source.align, source.data_offset, source.length_offset,
+        source.capacity_offset, source.allocator_offset, rows, rows, rows);
+}

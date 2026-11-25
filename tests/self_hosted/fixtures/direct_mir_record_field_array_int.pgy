@@ -1,0 +1,17 @@
+// A record's Array<Int> field is the program's only Array<Int>: no routine
+// passes or returns one, so its ABI comes from the canonical Array row.
+
+struct Holder {
+    values: Array<Int>;
+    scale: Int;
+}
+
+func Weighted(holder: Holder, position: Int) -> Int {
+    return holder.values[position] * holder.scale;
+}
+
+func Main() -> Void {
+    let holder: Holder = Holder([7, 9, 11], 3);
+    Log(ToString(holder.values[1]));
+    Log(ToString(Weighted(holder, 2)));
+}
