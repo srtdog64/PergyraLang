@@ -20,7 +20,7 @@ import "direct_mir_scalar_program_expression_mutation_owner.pgy";
 // Admission-only marker for a record Clone signature. The admission replaces
 // it with the lowered nodes; it is past DirectMirScalarProgramExpressionKindLast,
 // so an expression set holding it is invalid.
-func DirectMirScalarProgramExprLogicalRecordCloneLowering() -> Int { return 161; }
+func DirectMirScalarProgramExprLogicalRecordCloneLowering() -> Int { return 162; }
 
 // No program record nests deeper; a deeper chain is refused, not cut.
 func DirectMirScalarProgramLogicalRecordCloneMaxDepth() -> Int { return 16; }
@@ -142,15 +142,18 @@ func DirectMirScalarProgramLogicalRecordClonePlace(
 }
 
 // The nodes of one record or cell copy, in append order. An operand is a
-// step index, -1 for none or -2 for the copied source. The last step is the
-// copy's constructor; it takes the copied type.
+// step index, -1 for none or -2 for the copied source. A step's type is the
+// record fact's field type at `type_fields`, or the cell fact's at
+// `cell_fields`; the copied type when both are -1 (the last step, the copy's
+// constructor).
 struct DirectMirScalarProgramLogicalRecordClonePlan {
     let valid: Bool;
     let kinds: Array<Int>;
     let lefts: Array<Int>;
     let rights: Array<Int>;
     let member_ordinals: Array<Int>;
-    let type_names: Array<String>;
+    let type_fields: Array<Int>;
+    let cell_fields: Array<Int>;
     let runtime_call_abi_ids: Array<Int>;
     let operand_starts: Array<Int>;
     let operand_counts: Array<Int>;
@@ -159,58 +162,87 @@ struct DirectMirScalarProgramLogicalRecordClonePlan {
 
 func DirectMirScalarProgramLogicalRecordClonePlanStep(
     inout kinds: Array<Int>, inout lefts: Array<Int>, inout rights: Array<Int>,
-    inout member_ordinals: Array<Int>, inout type_names: Array<String>,
+    inout member_ordinals: Array<Int>, inout type_fields: Array<Int>,
+    inout cell_fields: Array<Int>,
     inout runtime_call_abi_ids: Array<Int>, inout operand_starts: Array<Int>,
     inout operand_counts: Array<Int>, kind: Int, left: Int, right: Int,
-    member_ordinal: Int, type_name: String, runtime_call_abi_id: Int
+    member_ordinal: Int, type_field: Int, cell_field: Int, runtime_call_abi_id: Int
 ) -> Int {
     ArrayPush(kinds, kind); ArrayPush(lefts, left); ArrayPush(rights, right);
-    ArrayPush(member_ordinals, member_ordinal); ArrayPushOwnedString(type_names, Concat("", type_name));
+    ArrayPush(member_ordinals, member_ordinal); ArrayPush(type_fields, type_field);
+    ArrayPush(cell_fields, cell_field);
     ArrayPush(runtime_call_abi_ids, runtime_call_abi_id);
     ArrayPush(operand_starts, -1); ArrayPush(operand_counts, 0);
     return ArrayLength(kinds) - 1;
 }
 
-// Plans the copy of a `copied_type` value read from `source` (a step or -2)
-// and returns the step of its constructor; -1 when a field has no copy. A
-// cell's fields are read as cell members and a fresh cell takes the copies.
+// The type of field `ordinal` of the copied record row or cell row.
+func DirectMirScalarProgramCloneFieldTypeAt(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    record_row: Int, cell_row: Int, ordinal: Int
+) -> String {
+    if cell_row >= 0 {
+        return fact.identity_cells.field_types[fact.identity_cells.field_starts[cell_row] + ordinal];
+    }
+    return fact.field_types[fact.field_starts[record_row] + ordinal];
+}
+
+// Plans the copy of the record at `record_row`, or of the cell at
+// `cell_row`, read from `source` (a step or -2), and returns the step of its
+// constructor, typed by `record_field` or `cell_field`; -1 when a field has
+// no copy. A cell's fields are read as cell members and a fresh cell takes
+// the copies.
 func DirectMirScalarProgramLogicalRecordClonePlanAppend(
     inout kinds: Array<Int>, inout lefts: Array<Int>, inout rights: Array<Int>,
-    inout member_ordinals: Array<Int>, inout type_names: Array<String>,
+    inout member_ordinals: Array<Int>, inout type_fields: Array<Int>,
+    inout cell_fields: Array<Int>,
     inout runtime_call_abi_ids: Array<Int>, inout operand_starts: Array<Int>,
     inout operand_counts: Array<Int>, inout operands: Array<Int>,
     ref named: DirectMirScalarProgramBuiltinSignatureFact,
     ref fact: DirectMirScalarProgramLogicalRecordFact,
-    source: Int, copied_type: String, depth: Int
+    source: Int, record_row: Int, cell_row: Int, record_field: Int, cell_field: Int, depth: Int
 ) -> Int {
-    let count: Int = DirectMirScalarProgramCloneFieldCount(fact, copied_type);
-    if count <= 0 || depth > DirectMirScalarProgramLogicalRecordCloneMaxDepth() {
+    if (record_row < 0) == (cell_row < 0) ||
+        depth > DirectMirScalarProgramLogicalRecordCloneMaxDepth() {
         return -1;
     }
+    var count: Int = 0;
+    var field_start: Int = 0;
     var member_kind: Int = DirectMirScalarProgramExprLogicalRecordMember();
     var constructor_kind: Int = DirectMirScalarProgramExprLogicalRecordConstructor();
-    if DirectMirScalarProgramCloneCell(fact, copied_type) {
+    if cell_row >= 0 {
+        count = fact.identity_cells.field_counts[cell_row];
+        field_start = fact.identity_cells.field_starts[cell_row];
         member_kind = DirectMirScalarProgramExprIdentityCellMember();
         constructor_kind = DirectMirScalarProgramExprIdentityCellConstructor();
+    } else {
+        count = fact.field_counts[record_row];
+        field_start = fact.field_starts[record_row];
     }
+    if count <= 0 { return -1; }
     var fields: Array<Int> = [];
     var ordinal: Int = 0;
     while ordinal < count {
-        let field_type: String = DirectMirScalarProgramCloneFieldType(fact, copied_type, ordinal);
+        let field_type: String = DirectMirScalarProgramCloneFieldTypeAt(fact, record_row, cell_row, ordinal);
+        var record_index: Int = field_start + ordinal;
+        var cell_index: Int = -1;
+        if cell_row >= 0 { record_index = -1; cell_index = field_start + ordinal; }
         var value: Int = DirectMirScalarProgramLogicalRecordClonePlanStep(kinds, lefts,
-            rights, member_ordinals, type_names, runtime_call_abi_ids, operand_starts,
-            operand_counts, member_kind, source, -1, ordinal, field_type, -1);
+            rights, member_ordinals, type_fields, cell_fields, runtime_call_abi_ids, operand_starts,
+            operand_counts, member_kind, source, -1, ordinal, record_index, cell_index, -1);
         let copy: DirectMirScalarProgramBuiltinSignatureFact =
             DirectMirScalarProgramLogicalRecordCloneFieldCopy(named, field_type);
         if copy.valid {
             value = DirectMirScalarProgramLogicalRecordClonePlanStep(kinds, lefts, rights,
-                member_ordinals, type_names, runtime_call_abi_ids, operand_starts,
-                operand_counts, copy.expression_kind, value, -1, -1, field_type,
+                member_ordinals, type_fields, cell_fields, runtime_call_abi_ids, operand_starts,
+                operand_counts, copy.expression_kind, value, -1, -1, record_index, cell_index,
                 copy.runtime_call_abi_id);
         } else if DirectMirScalarProgramLogicalRecordRow(fact, field_type) >= 0 {
             value = DirectMirScalarProgramLogicalRecordClonePlanAppend(kinds, lefts, rights,
-                member_ordinals, type_names, runtime_call_abi_ids, operand_starts,
-                operand_counts, operands, named, fact, value, field_type, depth + 1);
+                member_ordinals, type_fields, cell_fields, runtime_call_abi_ids, operand_starts,
+                operand_counts, operands, named, fact, value,
+                DirectMirScalarProgramLogicalRecordRow(fact, field_type), -1, record_index,
+                cell_index, depth + 1);
             if value < 0 { return -1; }
         } else if !DirectMirScalarProgramLogicalRecordCloneByValue(fact, field_type) {
             return -1;
@@ -223,8 +255,8 @@ func DirectMirScalarProgramLogicalRecordClonePlanAppend(
     if ArrayLength(fields) == 2 { right = fields[1]; }
     if ArrayLength(fields) > 2 { left = -1; }
     let constructor: Int = DirectMirScalarProgramLogicalRecordClonePlanStep(kinds, lefts,
-        rights, member_ordinals, type_names, runtime_call_abi_ids, operand_starts,
-        operand_counts, constructor_kind, left, right, -1, copied_type, -1);
+        rights, member_ordinals, type_fields, cell_fields, runtime_call_abi_ids, operand_starts,
+        operand_counts, constructor_kind, left, right, -1, record_field, cell_field, -1);
     if ArrayLength(fields) > 2 {
         operand_starts[constructor] = ArrayLength(operands);
         operand_counts[constructor] = ArrayLength(fields);
@@ -234,22 +266,28 @@ func DirectMirScalarProgramLogicalRecordClonePlanAppend(
     return constructor;
 }
 
-// The plan of `Clone(value)` for a value of `record_type`; invalid when a field
-// has no copy.
+// The plan of `Clone(value)` for a value of `record_type` (a record or a
+// subject or vessel cell); invalid when a field has no copy.
 func DirectMirScalarProgramLogicalRecordClonePlanFor(
     ref named: DirectMirScalarProgramBuiltinSignatureFact,
     ref fact: DirectMirScalarProgramLogicalRecordFact, record_type: String
 ) -> DirectMirScalarProgramLogicalRecordClonePlan {
     var kinds: Array<Int> = []; var lefts: Array<Int> = []; var rights: Array<Int> = [];
-    var member_ordinals: Array<Int> = []; var type_names: Array<String> = [];
+    var member_ordinals: Array<Int> = []; var type_fields: Array<Int> = [];
+    var cell_fields: Array<Int> = [];
     var runtime_call_abi_ids: Array<Int> = []; var operand_starts: Array<Int> = [];
     var operand_counts: Array<Int> = []; var operands: Array<Int> = [];
+    var cell_row: Int = -1;
+    if DirectMirScalarProgramCloneCell(fact, record_type) {
+        cell_row = DirectMirIdentityCellRow(fact.identity_cells, record_type);
+    }
     let root: Int = DirectMirScalarProgramLogicalRecordClonePlanAppend(kinds, lefts, rights,
-        member_ordinals, type_names, runtime_call_abi_ids, operand_starts, operand_counts,
-        operands, named, fact, -2, record_type, 0);
+        member_ordinals, type_fields, cell_fields, runtime_call_abi_ids, operand_starts,
+        operand_counts, operands, named, fact, -2,
+        DirectMirScalarProgramLogicalRecordRow(fact, record_type), cell_row, -1, -1, 0);
     return DirectMirScalarProgramLogicalRecordClonePlan(
         root >= 0 && root == ArrayLength(kinds) - 1, kinds, lefts, rights,
-        member_ordinals, type_names, runtime_call_abi_ids, operand_starts,
+        member_ordinals, type_fields, cell_fields, runtime_call_abi_ids, operand_starts,
         operand_counts, operands);
 }
 
@@ -277,7 +315,7 @@ func DirectMirScalarProgramLogicalRecordClonePlanOperandRows(
 
 // Appends the copy of the `record_type` place at `source_row` to an expression
 // set; its constructor carries `literal`. False, with nothing appended, when a
-// field has no copy. Each type name appended is a fresh copy of the plan's.
+// field has no copy. Each type name appended is the caller's or a fact's own.
 func DirectMirScalarProgramLogicalRecordCloneAppendTo(
     inout kinds: Array<Int>, inout types: Array<String>,
     inout lefts: Array<Int>, inout rights: Array<Int>,
@@ -298,13 +336,22 @@ func DirectMirScalarProgramLogicalRecordCloneAppendTo(
     while step <= last {
         let left: Int = DirectMirScalarProgramLogicalRecordClonePlanRow(plan.lefts[step], base, source_row);
         let right: Int = DirectMirScalarProgramLogicalRecordClonePlanRow(plan.rights[step], base, source_row);
-        // The last step is the copy's constructor: it carries `literal`.
-        var step_literal: String = "";
-        if step == last { step_literal = Concat("", literal); }
-        DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows,
-            params, member_ordinals, literals, callable_rows, runtime_call_abi_ids,
-            plan.kinds[step], Concat("", plan.type_names[step]), left, right, -1, -1,
-            plan.member_ordinals[step], step_literal, -1, plan.runtime_call_abi_ids[step]);
+        if plan.type_fields[step] < 0 && plan.cell_fields[step] < 0 {
+            DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows,
+                params, member_ordinals, literals, callable_rows, runtime_call_abi_ids,
+                plan.kinds[step], record_type, left, right, -1, -1, plan.member_ordinals[step],
+                literal, -1, plan.runtime_call_abi_ids[step]);
+        } else if plan.type_fields[step] >= 0 {
+            DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows,
+                params, member_ordinals, literals, callable_rows, runtime_call_abi_ids,
+                plan.kinds[step], fact.field_types[plan.type_fields[step]], left, right, -1, -1,
+                plan.member_ordinals[step], "", -1, plan.runtime_call_abi_ids[step]);
+        } else {
+            DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights, local_rows,
+                params, member_ordinals, literals, callable_rows, runtime_call_abi_ids,
+                plan.kinds[step], fact.identity_cells.field_types[plan.cell_fields[step]], left,
+                right, -1, -1, plan.member_ordinals[step], "", -1, plan.runtime_call_abi_ids[step]);
+        }
         if plan.operand_counts[step] > 2 {
             nary_operands = DirectMirScalarProgramNaryOperandsAppend(nary_operands,
                 ArrayLength(kinds) - 1,
