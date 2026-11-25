@@ -2,11 +2,11 @@
 
 Owner: Claude lane, holding the GPT root lane's work since 2026-11-19
 ([decision](../decisions/2026-11-19_claude_takes_over_gpt_root_lane.md)).
-Checked 2026-11-25.
+Checked 2026-11-26.
 
 | Item | Observed value |
 |---|---|
-| Last fully green published main | `58220e986`: [CI 45516659398](https://github.com/srtdog64/PergyraLang/actions/runs/45516659398), all 34 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
+| Last fully green published main | `d2df5562a`: [CI 45618143876](https://github.com/srtdog64/PergyraLang/actions/runs/45618143876), all 34 jobs passed, including bootstrap, installed-driver contracts, formal proofs and the fixed-point join |
 | Route deletion on main | `34ae17546` deleted the per-program-shape collection program route and its registry row ([evidence](../evidence/2026-11-19_collection_program_route_deleted.md)); green in [CI 44358794007](https://github.com/srtdog64/PergyraLang/actions/runs/44358794007) at `2c199fb28` |
 | `var` declarations in scalar CFG | `9a5d7362e`: scalar CFG reads them through the binding vocabulary owner ([evidence](../evidence/2026-11-19_scalar_cfg_mutable_declaration.md)); green in [CI 44463438926](https://github.com/srtdog64/PergyraLang/actions/runs/44463438926) |
 | Runtime helpers | `f0d16adaf`: String concat, record push and `Array<Bool>` type declared with the facts that emit them ([evidence](../evidence/2026-11-19_runtime_helper_materialization.md)); green in [CI 44488492111](https://github.com/srtdog64/PergyraLang/actions/runs/44488492111) |
@@ -34,10 +34,10 @@ Checked 2026-11-25.
 | Self-host foreach String loans (`0a9053745`; CI green, 33 jobs) | a `for` binding over an `Array<String>` local lends its element, and a whole reassignment of proved storage ends its loans; four freed-memory reads refused ([evidence](../evidence/2026-11-24_selfhost_foreach_string_loans.md)) |
 | Review batch (`6a6f612b5`; CI green under `58220e986`) | an `inout` callee's set releases an element (six freed-memory reads refused), `pgy --report-copies`, language word tiers (docs), one CI step moved to the self-host shard ([evidence](../evidence/2026-11-24_review_batch_inout_set_copy_report_word_tiers.md)) |
 | `target.capability_profile` CLOSED (`58220e986`; CI green, 34 jobs) | one target table owns triple, object format, pointer width/alignment and byte order; LLVM, C and LLVM IR toolchains and the self-host Array layout read it; foreign targets refused; a third Linux CI shard ([evidence](../evidence/2026-11-24_target_capability_profile_closed.md)) |
-| Record Array fields (`0a0b43d7e`, `821aee530`; CI in [gates](gates.md)) | an `Array<Int>`, `Array<Bool>` or `Array<String>` record field gets the canonical Array ABI row when no routine row carries it; a refused `Array<String>` capture is refused, not read as absent; a record handed to a by-value parameter still leaks its fields ([evidence](../evidence/2026-11-25_record_field_array_string_abi.md)) |
-| Populated `Array<struct>` literals (CI result goes in [gates](gates.md)) | the general route builds `[Point { x: 1 }, ...]` on C and LLVM; a storage-free record array kept in its routine is released ([evidence](../evidence/2026-11-25_record_array_literal.md)) |
-| Generic struct instances (CI result goes in [gates](gates.md)) | a generic instance with a struct or `Array<struct>` actual, and a generic method call, run on the general route; the three-routine route runs no corpus program ([evidence](../evidence/2026-11-25_generic_struct_instances.md)) |
-| Three-routine route deleted (CI result goes in [gates](gates.md)) | a program the general route declines is refused with its receipt; 101 files (11,484 lines) and two CLOSED projection rows leave ([evidence](../evidence/2026-11-25_three_routine_route_deleted.md)) |
+| Record Array fields (`0a0b43d7e`, `821aee530`; CI green) | an `Array<Int>`, `Array<Bool>` or `Array<String>` record field gets the canonical Array ABI row when no routine row carries it; a refused `Array<String>` capture is refused, not read as absent; a record handed to a by-value parameter still leaks its fields ([evidence](../evidence/2026-11-25_record_field_array_string_abi.md)) |
+| Populated `Array<struct>` literals (`2a5aeec99`; CI green) | the general route builds `[Point { x: 1 }, ...]` on C and LLVM; a storage-free record array kept in its routine is released ([evidence](../evidence/2026-11-25_record_array_literal.md)) |
+| Generic struct instances (`0f97b334d`; CI green) | a generic instance with a struct or `Array<struct>` actual, and a generic method call, run on the general route; the three-routine route runs no corpus program ([evidence](../evidence/2026-11-25_generic_struct_instances.md)) |
+| Three-routine route deleted (`d2df5562a`; CI green) | a program the general route declines is refused with its receipt; 101 files (11,484 lines) and two CLOSED projection rows leave ([evidence](../evidence/2026-11-25_three_routine_route_deleted.md)) |
 | Receiver fields and subject `Clone` (CI result goes in [gates](gates.md)) | a method reads and writes its receiver's fields without `self.` and `Clone` of a subject builds a fresh cell, on the general route; the three intent programs now stop at their intent routine ([1](../evidence/2026-11-25_receiver_field_binding.md), [2](../evidence/2026-11-25_subject_clone.md)) |
 | Work tree | `D:\PergyraLang` on `main`; unrelated untracked folder preserved |
 | Linux validation | WSL `Ubuntu-C-WSL` `/root/ts2` builds the candidate; `/root/mg-main` is the GPT lane's copy (base `5b0d354fb` plus a source mirror) |

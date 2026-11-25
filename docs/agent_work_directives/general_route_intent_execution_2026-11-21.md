@@ -116,6 +116,45 @@ slice that needs an unplanned owner revisits this map first.
 
 ## Unknowns to resolve before slice 3
 
+Observed 2026-11-25 on the legacy program (native `--emit-c`):
+
+- The intent routine's MIR is declarative (`CommitIntent`, `IntentMode`,
+  `IntentEval priority`/`on`, `IntentCheck expect`/`success`,
+  `IntentBinding`/`IntentParticipant`, `IntentStep`, `IntentZoneWhere`,
+  `IntentZoneAlias`, `IntentInvalidationTarget`, `IntentWho`, then cleanup
+  blocks). The self-host MIR document has no separate execution section.
+- Native executes it as: `pgy_intent_enter_export(name, subjects, count,
+  concurrent, priority)` over the `who` participants, failing to the
+  cleanup block on a zero handle; per step, copy the participant into the
+  zone slot (`zone->counter = *counter`), sync the zone, rebind the
+  participant to the slot, run `on:`, sync, copy the slot back, restore the
+  binding, then check `expect`; then `success`. The cleanup blocks call
+  `pgy_mir_cleanup_op_export(handle, kind, arg0, arg1)` for each cleanup
+  instruction (the rollback block only on failure) and
+  `pgy_intent_exit_export(handle)`. The symbols already have self-host
+  owners (`codegen/runtime_abi/intent_runtime_symbol_owner.pgy`).
+
+Slice 3 design sketch (to confirm against the composite and nested
+programs before editing):
+
+- One intent routine owner reads an `intent` routine's declarative rows
+  into one fact: name, mode, priority, the `who` participants (parameter
+  ordinals), each step (zone parameter and slot ordinal from
+  `IntentZoneWhere`/`IntentZoneAlias` and the zone cell's slot fields, the
+  participant, the `on`, `expect`, `compensate` and `post` expression rows),
+  `success` and `failure`, and the cleanup rows in block order. A row it
+  does not know refuses the routine.
+- Expressions go through the general expression admission. Inside a
+  step's `on:` the participant's leaf is admitted as the zone slot member
+  (as native rebinds the participant to the slot); everywhere else it is
+  the parameter.
+- C and LLVM emit enter, per-step copy-in / sync / `on` / sync / copy-out /
+  `expect`, `success`, the cleanup calls and exit from that fact, with the
+  existing zone sync and cell-copy code where it exists.
+- Falsifiers: the three gate programs equal to native with the routes
+  deleted; a forged row (an unknown intent stmt, a participant that is no
+  parameter, a step zone that is not a zone parameter) refused.
+
 - Whether intent `exclusive`/`priority` scheduling and compensation need a
   runtime ABI beyond what the routes emit today, and where that ABI's rows
   live (protocol/ABI registry).
