@@ -43,9 +43,19 @@ func DirectMirRoutineInstanceInstructionCapture(
     let array_int_projection: Bool = type_name ==
             CompilerAbiLayoutArrayIntTypeName() &&
         DirectMirArrayIntCapturedAbiReady(inventory.array_int_abi);
+    // A struct or Array<struct> instruction carries its type and no physical
+    // ABI row, as the same instruction of a non-generic routine does.
+    let element: Option<String> = SemanticArrayElementType(type_name);
+    var struct_projection: Bool = false;
+    var name: Int = 0;
+    while name < ArrayLength(inventory.struct_names) {
+        if inventory.struct_names[name] == type_name ||
+            (IsSome(element) && inventory.struct_names[name] == UnwrapOption(element)) { struct_projection = true; }
+        name = name + 1;
+    }
     if (!DirectMirScalarCfgScalarTypeSupported(type_name) &&
             DirectMirIdentityCellRow(inventory.identity_cells, type_name) < 0 &&
-            !option_int_projection && !array_int_projection) ||
+            !option_int_projection && !array_int_projection && !struct_projection) ||
         !DirectMirInstructionHasNoPhysicalAbi(json, json_extent, source, source.abi_type_name) {
         return InvalidMirRoutineInstructionScalarCapture();
     }

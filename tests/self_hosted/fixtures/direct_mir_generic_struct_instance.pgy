@@ -1,0 +1,18 @@
+// A generic free function instantiated with a struct and with an Array of
+// it: the struct actual carries the declaration's MIR ABI row.
+
+struct Point {
+    x: Int;
+}
+func Wrap<T>(value: T) -> Array<T> {
+    return [value];
+}
+func Echo<T>(value: T) -> T {
+    return value;
+}
+func Main() -> Void {
+    let point: Point = Point { x: 45 };
+    let result: Array<Point> = Echo(Wrap(point));
+    let first: Point = result[0];
+    Log(ToString(first.x));
+}

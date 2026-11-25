@@ -155,6 +155,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST_GATES" == "1" ]]; then
     run 'bash tests/self_hosted/parity/semantic/default_route_diagnostic_position_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_record_field_array_abi_owner.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_record_array_literal_owner.sh'
+    run 'bash tests/self_hosted/parity/direct_mir/direct_mir_generic_struct_instance_owner.sh'
     run 'make self-host-domain-runtime-zone-sync-test-smoke'
     run 'make self-host-zone-spawn-transport-admission-test-smoke'
     run 'bash tests/self_hosted/parity/driver/selfhost_compile_memory_owner.sh'

@@ -70,7 +70,8 @@ Slices, in order; each lands with its gate and CI green:
    a record array handed to a call, built by push or returned is not
    released yet.
 2. Generic routine instances whose substituted parameter or result is a
-   struct or an `Array<T>` of an admitted element.
+   struct or an `Array<T>` of an admitted element. Done
+   ([record](../truth/evidence/2026-11-25_generic_struct_instances.md)).
 3. Delete the three-routine route, its families and its seven `one_mir_*`
    gates; the program runs on the general route (falsifier: the dispatch is
    gone and the program still runs equal to native on C and LLVM).

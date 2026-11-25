@@ -8,6 +8,7 @@ import "../symbol_table_owner.pgy";
 import "direct_mir_identity_cell_fact_owner.pgy";
 import "scalar_program/direct_mir_scalar_program_option_int_abi_owner.pgy";
 import "direct_mir_array_int_abi_fact_owner.pgy";
+import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
 
 struct DirectMirRoutineInstanceSignatureFact {
     valid: Bool;
@@ -23,7 +24,27 @@ func DirectMirRoutineInstanceSignatureError(message: String) -> DirectMirRoutine
         InvalidDirectMirRoutineSignatureFact());
 }
 
+// A declared value struct by name, or -1. A generic actual that names one is
+// carried with the declaration's own MIR ABI row, as a non-generic parameter
+// of that struct is; an Array of one carries no ABI row, as a non-generic
+// Array<struct> parameter does.
+func DirectMirRoutineInstanceStructRow(ref routines: MirProgramRoutineIndex, type_name: String) -> Int {
+    var row: Int = 0;
+    while row < ArrayLength(routines.declarations.names) {
+        if routines.declarations.names[row] == type_name && routines.declarations.kinds[row] == "struct" &&
+            routines.declarations.nominal_kinds[row] == "struct" { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirRoutineInstanceStructArrayType(ref routines: MirProgramRoutineIndex, type_name: String) -> Bool {
+    let element: Option<String> = SemanticArrayElementType(type_name);
+    return IsSome(element) && DirectMirRoutineInstanceStructRow(routines, UnwrapOption(element)) >= 0;
+}
+
 func DirectMirRoutineInstanceParameters(
+    ref routines: MirProgramRoutineIndex,
     ref source: DirectMirRoutineParameterSetFact,
     types: SemanticAstSignatureTypeExpressionFacts,
     formals: Array<String>, actuals: Array<String>,
@@ -70,13 +91,23 @@ func DirectMirRoutineInstanceParameters(
             DirectMirArrayIntCapturedAbiReady(array_int_abi);
         let identity_projection: Bool = type_name != source.type_names[row] &&
             DirectMirIdentityCellRow(identity_cells, type_name) >= 0;
+        let struct_row: Int = DirectMirRoutineInstanceStructRow(routines, type_name);
+        var struct_abi: DirectMirNominalDeclarationAbiFact = InvalidDirectMirNominalDeclarationAbiFact();
+        if type_name != source.type_names[row] && struct_row >= 0 {
+            struct_abi = DirectMirNominalDeclarationAbiFactFromDocument(
+                routines.source_json, routines.source_json_extent, routines.declarations, struct_row);
+        }
+        let struct_projection: Bool = DirectMirNominalDeclarationAbiFactReady(struct_abi);
+        let struct_array_projection: Bool = type_name != source.type_names[row] &&
+            DirectMirRoutineInstanceStructArrayType(routines, type_name);
         if type_name != source.type_names[row] {
             // Scalar and captured aggregate ABIs retain their source transport.
             // A generic value resolved to an identity cell instead adopts the
             // same canonical indirect carriage as a non-generic cell parameter.
             if (!DirectMirScalarCfgScalarTypeSupported(type_name) &&
                     DirectMirIdentityCellRow(identity_cells, type_name) < 0 &&
-                    !option_int_projection && !array_int_projection) ||
+                    !option_int_projection && !array_int_projection && !struct_projection &&
+                    !struct_array_projection) ||
                 source.abi_required[row] ||
                 source.abi_layout_ids[row] != 0 || source.abi_row_keys[row] != "" ||
                 source.resources[row] != "none" || source.pass_shapes[row] != "direct" ||
@@ -96,6 +127,13 @@ func DirectMirRoutineInstanceParameters(
                 if !projected_abi.valid || abi_row_key == "" {
                     return DirectMirRoutineParameterSetFactInvalid();
                 }
+            }
+            if struct_projection {
+                projected_abi = struct_abi.abi;
+                abi_layout_id = struct_abi.abi_layout_id;
+                abi_required = true;
+                abi_row_key = DirectMirAbiRowIdentityText(projected_abi);
+                if abi_row_key == "" { return DirectMirRoutineParameterSetFactInvalid(); }
             }
             if array_int_projection {
                 abi_layout_id = MirAbiLayoutIdFromCapture(array_int_abi);
@@ -128,7 +166,7 @@ func DirectMirRoutineInstanceParameters(
             // is unchanged; a scalar substitution has canonical empty layout.
             let original: DirectMirRoutineParamFact = DirectMirRoutineParamFactWithDigest(source.first, source.first.digest);
             var first_abi: MirAbiLayoutRowCapture = original.abi;
-            if option_int_projection { first_abi = projected_abi; }
+            if option_int_projection || struct_projection { first_abi = projected_abi; }
             first = DirectMirRoutineParamFact(true, digest, original.name, original.source_syntax_id,
                 type_name, carriage, original.resource, pass_shape,
                 type_name, abi_layout_id, abi_required, first_abi);
@@ -220,12 +258,14 @@ func DirectMirRoutineInstanceSignatureFromClosure(
          (UnwrapOption(return_type) == CompilerAbiLayoutOptionIntTypeName() &&
           DirectMirOptionMatchAbiFactReady(option_int_abi)) ||
          (UnwrapOption(return_type) == CompilerAbiLayoutArrayIntTypeName() &&
-          DirectMirArrayIntCapturedAbiReady(array_int_abi)));
+          DirectMirArrayIntCapturedAbiReady(array_int_abi)) ||
+         DirectMirRoutineInstanceStructRow(routines, UnwrapOption(return_type)) >= 0 ||
+         DirectMirRoutineInstanceStructArrayType(routines, UnwrapOption(return_type)));
     if !concrete_return {
         return DirectMirRoutineInstanceSignatureError("generic routine instance return ABI requires a concrete non-scalar receipt");
     }
     let parameters: DirectMirRoutineParameterSetFact = DirectMirRoutineInstanceParameters(
-        source.parameters, types, formals, actuals, identity_cells,
+        routines, source.parameters, types, formals, actuals, identity_cells,
         option_int_abi, array_int_abi);
     if !DirectMirRoutineParameterSetFactReady(parameters) {
         return DirectMirRoutineInstanceSignatureError("generic routine instance parameter ABI requires a concrete non-scalar receipt");

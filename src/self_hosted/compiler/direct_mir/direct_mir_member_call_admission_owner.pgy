@@ -35,6 +35,12 @@ func DirectMirMemberCallFromGraph(
     let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, call);
     let receiver: Int = sequence.arena.topology.left_children[callee];
     let member: Int = sequence.arena.topology.right_children[callee];
+    // A generic method's call names its template; the instance's symbol is
+    // that name specialized by the instance's actual tuple.
+    let instance: Int = routine_instances.instance_rows[ordinal];
+    let actuals: Array<String> = GenericInstanceActuals(routine_instances.generic_instances, instance);
+    var spelled: String = Concat("", sequence.arena.call_target_names[call]);
+    if instance >= 0 { spelled = CompilerSymbolCGenericSpecializationName(spelled, actuals); }
     // MIR producers retain either the local display name or its qualified
     // projection. Neither can override the already-joined source identity.
     if receiver >= ArrayLength(source_rows) || source_rows[receiver] < 0 ||
@@ -42,7 +48,7 @@ func DirectMirMemberCallFromGraph(
         types[source_rows[receiver]] != signature.receiver_type ||
         sequence.arena.node_texts[member] !=
             callables.source_names[ordinal - 1] ||
-        (sequence.arena.call_target_names[call] != signature.name &&
+        (spelled != signature.name &&
          sequence.arena.call_target_names[call] !=
             callables.source_names[ordinal - 1]) {
         return invalid;
