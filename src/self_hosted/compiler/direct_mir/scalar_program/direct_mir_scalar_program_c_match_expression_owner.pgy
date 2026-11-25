@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_option_int_match_target_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_target_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_result_match_target_owner.pgy";
+import "direct_mir_scalar_program_option_logical_record_match_owner.pgy";
 
 func DirectMirScalarProgramCMatchExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
@@ -18,6 +19,8 @@ func DirectMirScalarProgramCMatchExpressionAt(
         DirectMirScalarProgramCOptionIntMatchExpressionAt(
             expressions, node, left);
     if IsSome(option_match) { return option_match; }
+    let record_match: Option<String> = DirectMirScalarProgramCOptionLogicalRecordMatchAt(expressions, node, left);
+    if IsSome(record_match) { return record_match; }
     return DirectMirScalarProgramCPayloadEnumExpressionAt(
         expressions, node, left, arguments, referenced_enum);
 }

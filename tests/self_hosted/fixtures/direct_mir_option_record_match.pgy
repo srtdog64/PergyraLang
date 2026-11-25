@@ -1,0 +1,37 @@
+class Pair {
+    let a: Int;
+    let b: Int;
+
+    func Sum(self) -> Int {
+        return a + b;
+    }
+}
+
+func MakePair(x: Int, y: Int) -> Option<Pair> {
+    if x < 0 { return None; }
+    if y < 0 { return None; }
+    return Some(Pair(x, y));
+}
+
+func SumOrZero(o: Option<Pair>) -> Int {
+    match o {
+        case Some(p): return p.Sum();
+        case None: return 0;
+    }
+}
+
+func FirstOrMinus(x: Int) -> Int {
+    let found: Option<Pair> = MakePair(x, x * 2);
+    match found {
+        case None: return -1;
+        case Some(q): return q.a * 10 + q.b;
+    }
+}
+
+func Main() -> Void {
+    Log(SumOrZero(MakePair(5, 7)));
+    Log(SumOrZero(MakePair(-1, 7)));
+    Log(SumOrZero(MakePair(100, 200)));
+    Log(FirstOrMinus(3));
+    Log(FirstOrMinus(-3));
+}

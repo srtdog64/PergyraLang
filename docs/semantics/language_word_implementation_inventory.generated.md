@@ -62,9 +62,9 @@ evidence.
 | `by` | contextual | native+self_host | 3 | 5 | 0 | 35 | hover, TextMate:keyword.other.domain.pergyra | native+selfhost-typed |
 | `capacity` | contextual | native | 1 | 1 | 0 | 4 | none | native+selfhost-typed |
 | `caps` | contextual | native+self_host | 2 | 0 | 0 | 65 | none | native-only |
-| `case` | reserved | native+self_host | 4 | 3 | 0 | 57 | TextMate:keyword.control.pergyra | native+selfhost-typed |
+| `case` | reserved | native+self_host | 4 | 3 | 0 | 59 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `causes` | contextual | native+self_host | 3 | 1 | 0 | 6 | completion, hover, TextMate:keyword.other.domain.pergyra | native+selfhost-typed |
-| `class` | reserved | native+self_host | 7 | 2 | 0 | 37 | hover, TextMate:storage.type.pergyra | native+selfhost-typed |
+| `class` | reserved | native+self_host | 7 | 2 | 0 | 39 | hover, TextMate:storage.type.pergyra | native+selfhost-typed |
 | `collapse` | reserved | native+self_host | 1 | 1 | 0 | 3 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `compensate` | reserved | native+self_host | 3 | 2 | 0 | 5 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `concurrent` | contextual | native+self_host | 1 | 0 | 0 | 1 | TextMate:keyword.other.intent.pergyra | native-only |
@@ -95,10 +95,10 @@ evidence.
 | `forbids` | contextual | native | 1 | 1 | 0 | 1 | none | native+selfhost-typed |
 | `from` | contextual | native+self_host | 2 | 3 | 0 | 22 | none | native+selfhost-typed |
 | `full` | soft | native | 1 | 0 | 0 | 4 | none | native-only |
-| `func` | reserved | native+self_host | 21 | 12 | 0 | 2131 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
+| `func` | reserved | native+self_host | 21 | 12 | 0 | 2133 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `give` | contextual | native | 1 | 1 | 0 | 3 | none | native+selfhost-typed |
 | `guard` | contextual | native+self_host | 1 | 3 | 0 | 7 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
-| `if` | reserved | native+self_host | 4 | 1 | 0 | 594 | TextMate:keyword.control.pergyra | native+selfhost-typed |
+| `if` | reserved | native+self_host | 4 | 1 | 0 | 596 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `impl` | reserved | native+self_host | 3 | 2 | 0 | 33 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `import` | reserved | native+self_host | 2 | 1 | 0 | 223 | hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `in` | reserved | native+self_host | 3 | 0 | 0 | 49 | TextMate:keyword.control.pergyra | native-only |
@@ -112,14 +112,14 @@ evidence.
 | `is` | contextual | native | 1 | 0 | 0 | 14 | none | native-only |
 | `join` | contextual | native+self_host | 2 | 0 | 0 | 5 | none | native-only |
 | `layer` | contextual | native | 1 | 1 | 0 | 1 | none | native+selfhost-typed |
-| `let` | reserved | native+self_host | 7 | 1 | 0 | 1584 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
+| `let` | reserved | native+self_host | 7 | 1 | 0 | 1586 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `lifecycle` | contextual | native | 1 | 1 | 0 | 3 | none | native+selfhost-typed |
 | `link` | contextual | native+self_host | 1 | 1 | 0 | 4 | none | native+selfhost-typed |
 | `local` | reserved | native+self_host | 1 | 1 | 0 | 17 | TextMate:storage.modifier.pergyra | native+selfhost-typed |
 | `loop` | contextual | native+self_host | 1 | 0 | 0 | 7 | none | native-only |
 | `maintain` | contextual | native | 2 | 2 | 0 | 1 | none | native+selfhost-typed |
 | `map` | contextual | native+self_host | 1 | 2 | 0 | 28 | none | native+selfhost-typed |
-| `match` | reserved | native+self_host | 1 | 0 | 0 | 61 | hover, TextMate:keyword.control.pergyra | native-only |
+| `match` | reserved | native+self_host | 1 | 0 | 0 | 63 | hover, TextMate:keyword.control.pergyra | native-only |
 | `max` | contextual | native | 1 | 0 | 0 | 7 | none | native-only |
 | `min` | contextual | native | 1 | 1 | 0 | 1 | none | native+selfhost-typed |
 | `move` | contextual | native+self_host | 1 | 1 | 0 | 5 | none | native+selfhost-typed |
@@ -152,7 +152,7 @@ evidence.
 | `remote` | reserved | native+self_host | 1 | 1 | 0 | 4 | TextMate:storage.modifier.pergyra | native+selfhost-typed |
 | `requires` | contextual | native+self_host | 4 | 2 | 0 | 32 | completion, hover, TextMate:keyword.other.domain.pergyra | native+selfhost-typed |
 | `retry` | contextual | 0 | 1 | 1 | 0 | 3 | none | native+selfhost-typed |
-| `return` | reserved | native+self_host | 2 | 0 | 0 | 1314 | TextMate:keyword.control.pergyra | native-only |
+| `return` | reserved | native+self_host | 2 | 0 | 0 | 1316 | TextMate:keyword.control.pergyra | native-only |
 | `role` | reserved | native+self_host | 6 | 3 | 0 | 39 | completion, TextMate:storage.type.pergyra | native+selfhost-typed |
 | `rollback` | contextual | native | 1 | 0 | 0 | 2 | none | native-only |
 | `roster` | reserved | native+self_host | 7 | 4 | 0 | 3 | completion, hover, TextMate:storage.type.pergyra | native+selfhost-typed |

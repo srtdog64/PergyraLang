@@ -31,6 +31,7 @@ import "direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.p
 import "direct_mir_scalar_program_slice_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_float_literal_readiness_owner.pgy";
 import "direct_mir_scalar_program_lane_site_owner.pgy";
+import "direct_mir_scalar_program_option_logical_record_match_kind_owner.pgy";
 func DirectMirScalarProgramExpressionNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Bool {
     if node < 0 || node >= ArrayLength(facts.node_kinds) { return false; }
@@ -73,17 +74,15 @@ func DirectMirScalarProgramExpressionNodeReady(
     if kind == DirectMirScalarProgramExprLogicalRecordArrayIndex() {
         return DirectMirScalarProgramLogicalRecordArrayIndexNodeShapeReady(facts, node);
     }
-    let enum_ready: Option<Bool> =
-        DirectMirScalarProgramPayloadFreeEnumExpressionNodeReady(facts, node);
+    let enum_ready: Option<Bool> = DirectMirScalarProgramPayloadFreeEnumExpressionNodeReady(facts, node);
     if IsSome(enum_ready) { return UnwrapOption(enum_ready); }
-    let payload_enum_ready: Option<Bool> =
-        DirectMirScalarProgramPayloadEnumExpressionNodeReady(facts, node);
-    if IsSome(payload_enum_ready) {
-        return UnwrapOption(payload_enum_ready);
-    }
+    let payload_enum_ready: Option<Bool> = DirectMirScalarProgramPayloadEnumExpressionNodeReady(facts, node);
+    if IsSome(payload_enum_ready) { return UnwrapOption(payload_enum_ready); }
     let option_ready: Option<Bool> =
         DirectMirScalarProgramOptionIntExpressionFamilyNodeReady(facts, node);
     if IsSome(option_ready) { return UnwrapOption(option_ready); }
+    let record_match_ready: Option<Bool> = DirectMirScalarProgramOptionLogicalRecordMatchNodeReady(facts, node);
+    if IsSome(record_match_ready) { return UnwrapOption(record_match_ready); }
     let result_ready: Option<Bool> =
         DirectMirScalarProgramResultIntExpressionNodeReady(facts, node);
     if IsSome(result_ready) { return UnwrapOption(result_ready); }

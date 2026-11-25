@@ -1,0 +1,27 @@
+// Identity and node shape of an Option<record> match condition, kept apart
+// from its admission so the expression readiness owner can read it.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_option_int_match_expression_kind_owner.pgy";
+import "../../abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramExprOptionLogicalRecordMatch() -> Int { return 161; }
+
+func DirectMirScalarProgramOptionLogicalRecordMatchNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    if facts.node_kinds[node] != DirectMirScalarProgramExprOptionLogicalRecordMatch() {
+        return None;
+    }
+    let left: Int = facts.node_lefts[node];
+    let variant: Int = facts.node_member_ordinals[node];
+    let binding: Int = facts.node_local_rows[node];
+    if left < 0 || left >= node || facts.node_rights[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 || facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 ||
+        facts.node_types[node] != CompilerAbiLayoutBoolTypeName() ||
+        !StartsWith(facts.node_types[left], "Option<") {
+        return Some(false);
+    }
+    return Some((variant == DirectMirScalarProgramOptionIntMatchSomeVariant() && binding >= 0) ||
+        (variant == DirectMirScalarProgramOptionIntMatchNoneVariant() && binding == -1));
+}

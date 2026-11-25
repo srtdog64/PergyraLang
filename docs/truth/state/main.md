@@ -40,6 +40,7 @@ Checked 2026-11-26.
 | Three-routine route deleted (`d2df5562a`; CI green) | a program the general route declines is refused with its receipt; 101 files (11,484 lines) and two CLOSED projection rows leave ([evidence](../evidence/2026-11-25_three_routine_route_deleted.md)) |
 | Receiver fields and subject `Clone` (CI result goes in [gates](gates.md)) | a method reads and writes its receiver's fields without `self.` and `Clone` of a subject builds a fresh cell, on the general route; the three intent programs now stop at their intent routine ([1](../evidence/2026-11-25_receiver_field_binding.md), [2](../evidence/2026-11-25_subject_clone.md)) |
 | Bare field reads in class methods (CI result goes in [gates](gates.md)) | a class or struct method reads its value receiver's fields without `self.` on the general route; 46 more corpus programs equal on default LLVM ([evidence](../evidence/2026-11-26_value_receiver_field_reads.md)) |
+| `match` over `Option<record>` (CI result goes in [gates](gates.md)) | `case Some(p)` / `case None` over an Option of a storage-free record on the general route; 15 more corpus programs equal on default LLVM ([evidence](../evidence/2026-11-26_option_record_match.md)) |
 | Work tree | `D:\PergyraLang` on `main`; unrelated untracked folder preserved |
 | Linux validation | WSL `Ubuntu-C-WSL` `/root/ts2` builds the candidate; `/root/mg-main` is the GPT lane's copy (base `5b0d354fb` plus a source mirror) |
 | Pre-takeover snapshots | branches `snapshot/all-20261110` (whole tree) and `snapshot/v001-index-20261110` (staged index only) |

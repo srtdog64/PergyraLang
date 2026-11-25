@@ -5,6 +5,7 @@ import "../scalar_program/direct_mir_scalar_program_payload_enum_match_condition
 import "../scalar_program/direct_mir_scalar_program_option_int_match_condition_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_int_match_condition_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_payload_free_enum_result_match_condition_owner.pgy";
+import "../scalar_program/direct_mir_scalar_program_option_logical_record_match_owner.pgy";
 
 func DirectMirScalarCfgProgramMatchExpressionFromInstruction(
     facts: DirectMirScalarProgramExpressionSet,
@@ -44,6 +45,12 @@ func DirectMirScalarCfgProgramMatchExpressionFromInstruction(
         return DirectMirScalarProgramOptionIntMatchConditionFromInstruction(
             facts, instruction, expression_row, global_row, local_offset,
             signature, index, locals, option_int_abi);
+    }
+    if value_type != "" &&
+        DirectMirScalarProgramLogicalRecordOptionPayloadType(logical_record, value_type) != "" {
+        return DirectMirScalarProgramOptionLogicalRecordMatchConditionFromInstruction(
+            facts, instruction, expression_row, global_row, local_offset,
+            signature, index, locals, logical_record);
     }
     if value_type == CompilerAbiLayoutIntTypeName() {
         return DirectMirScalarProgramIntMatchConditionFromInstruction(

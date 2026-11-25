@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_option_int_match_target_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_target_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_result_match_target_owner.pgy";
+import "direct_mir_scalar_program_option_logical_record_match_owner.pgy";
 
 struct DirectMirScalarProgramLlvmMatchExpression {
     let matched: Bool;
@@ -36,6 +37,8 @@ func DirectMirScalarProgramLlvmMatchExpressionAt(
             true, option_match.valid, option_match.instructions,
             option_match.value);
     }
+    let record_match: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmOptionLogicalRecordMatchAt(expressions, logical_record, node, result, left);
+    if record_match.matched { return DirectMirScalarProgramLlvmMatchExpression(true, record_match.valid, record_match.instructions, record_match.value); }
     let payload_match: DirectMirScalarProgramLlvmPayloadEnumExpression =
         DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
             expressions, node, result, left, arguments, argument_types,

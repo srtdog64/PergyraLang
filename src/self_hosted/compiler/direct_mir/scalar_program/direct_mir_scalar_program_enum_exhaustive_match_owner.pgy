@@ -2,15 +2,35 @@
 
 import "direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy";
+import "direct_mir_scalar_program_option_logical_record_match_kind_owner.pgy";
 
 // Project each typed condition once. The shape tag separates the two enum
-// inventories; equal row numbers across them are not equal type identities.
+// inventories and the Option<record> match (shape 3: Some 0, None 1, its
+// condition node in `option_root`); equal row numbers across them are not
+// equal type identities.
 struct DirectMirScalarProgramEnumGuardFact {
     let shape: Int;
     let variant: Int;
     let count: Int;
     let plain: DirectMirScalarProgramPayloadFreeEnumMatchConditionFact;
     let payload: DirectMirScalarProgramPayloadEnumMatchConditionFact;
+    let option_root: Int;
+}
+
+// The Option<record> match node a block's condition is, or -1.
+func DirectMirScalarProgramOptionRecordMatchRootAt(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> Int {
+    if block < 0 || block >= ArrayLength(plan.block_condition_kinds) ||
+        plan.block_condition_kinds[block] != DirectMirScalarCfgConditionExpression() { return -1; }
+    let row: Int = plan.program.block_condition_expression_rows[block];
+    if row < 0 || row >= ArrayLength(plan.program.expressions.graph_starts) { return -1; }
+    let root: Int = plan.program.expressions.graph_roots[row];
+    if root < 0 || root >= ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_kinds[root] != DirectMirScalarProgramExprOptionLogicalRecordMatch() {
+        return -1;
+    }
+    return root;
 }
 
 func DirectMirScalarProgramEnumGuardAt(
@@ -22,13 +42,18 @@ func DirectMirScalarProgramEnumGuardAt(
         DirectMirScalarProgramPayloadEnumMatchConditionAt(plan, block);
     if plain.valid {
         return DirectMirScalarProgramEnumGuardFact(1, plain.variant_ordinal,
-            plan.program.payload_free_enum.variant_counts[plain.enum_row], plain, payload);
+            plan.program.payload_free_enum.variant_counts[plain.enum_row], plain, payload, -1);
     }
     if payload.valid {
         return DirectMirScalarProgramEnumGuardFact(2, payload.variant_ordinal,
-            plan.program.referenced_enum.variant_counts[payload.enum_row], plain, payload);
+            plan.program.referenced_enum.variant_counts[payload.enum_row], plain, payload, -1);
     }
-    return DirectMirScalarProgramEnumGuardFact(0, -1, 0, plain, payload);
+    let option_root: Int = DirectMirScalarProgramOptionRecordMatchRootAt(plan, block);
+    if option_root >= 0 {
+        return DirectMirScalarProgramEnumGuardFact(3,
+            plan.program.expressions.node_member_ordinals[option_root], 2, plain, payload, option_root);
+    }
+    return DirectMirScalarProgramEnumGuardFact(0, -1, 0, plain, payload, -1);
 }
 
 func DirectMirScalarProgramEnumGuardSame(
@@ -43,6 +68,17 @@ func DirectMirScalarProgramEnumGuardSame(
     if left.shape == 2 {
         return DirectMirScalarProgramPayloadEnumMatchScrutineeSame(
             expressions, left.payload, right.payload);
+    }
+    if left.shape == 3 {
+        // The same local or parameter, of the same Option type.
+        let a: Int = expressions.node_lefts[left.option_root];
+        let b: Int = expressions.node_lefts[right.option_root];
+        return expressions.node_kinds[a] == expressions.node_kinds[b] &&
+            expressions.node_types[a] == expressions.node_types[b] &&
+            expressions.node_local_rows[a] == expressions.node_local_rows[b] &&
+            expressions.node_parameter_ordinals[a] == expressions.node_parameter_ordinals[b] &&
+            (expressions.node_kinds[a] == DirectMirScalarProgramExprLocal() ||
+             expressions.node_kinds[a] == DirectMirScalarProgramExprParameter());
     }
     return false;
 }

@@ -1,0 +1,21 @@
+class Tag {
+    let name: String;
+    let rank: Int;
+}
+
+func Find(rank: Int) -> Option<Tag> {
+    if rank < 0 { return None; }
+    return Some(Tag("t", rank));
+}
+
+func Describe(found: Option<Tag>) -> Int {
+    match found {
+        case Some(tag): return tag.rank;
+        case None: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Describe(Find(4)));
+    Log(Describe(Find(-1)));
+}

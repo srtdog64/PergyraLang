@@ -3768,6 +3768,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Nonempty Zone method/authority/topology obligations
   are not erased into this storage-only representation. C forward declarations
   and LLVM named types preserve declaration order and the same field ordinals.
+- `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_option_logical_record_match_owner.pgy`
+  and its kind/readiness part `direct_mir_scalar_program_option_logical_record_match_kind_owner.pgy`
+  -- `match` over an `Option` of a storage-free logical record: `case Some(p)`
+  stores the payload record in the match-binding local and tests presence,
+  `case None` tests absence; one condition node projected to C and LLVM.
+  The enum exhaustive-match owner counts its Some/None guards over one local
+  or parameter, so a match with both arms ends the routine. A payload record
+  holding storage, or a binding typed otherwise, is refused.
 - `src/self_hosted/compiler/direct_mir/direct_mir_receiver_field_binding_owner.pgy`
   -- bare receiver-field names inside a method of a mutable-identity receiver
   (`value = value + 1` without `self.`). MIR carries them as owner-field SSA
