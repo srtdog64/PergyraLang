@@ -42,36 +42,32 @@ runs the canonical DRV-2 producer, the 38 tool verdicts, the full-corpus sweep
 (default C and LLVM against native) and the ownership gates the Makefile or
 push steps reach, against the previous driver, before it is pushed.
 
-## Point 6 plan: `Array<struct>` on the general route, then the three-routine route
+## Point 6 plan: the three-routine route's program on the general route
 
-Observed at `0a0b43d7e` plus the `Array<String>` field slice:
+Observed at `821aee530`:
 
-- The three-routine route runs one corpus program, a generic method
-  returning `Array<Point>` (`Point` a struct). The general route refuses it
-  at `routine-instance` (a generic instance's return ABI must be scalar,
-  `Option<Int>` or `Array<Int>`), and refuses the non-generic form too: it
-  has no `Array<struct>` value at all (`left-edge` on the literal).
-- 45 programs native admits mention `Array<S>` for a struct `S` and are
-  refused on default LLVM; 4 more for a class.
-- The general route implements Arrays once per element type: `array_int`
-  28 files, `array_bool` 18, `array_string` 51. A fourth copy for structs
-  would be the per-shape duplication V1 goal 2 removes.
+- The three-routine route runs one corpus program,
+  `generic_member_record_array_return_flow.pgy`: a generic class method
+  `Wrap<T>(self, value: T) -> Array<T> { return [value]; }` with `T` a
+  struct, then `Echo<T>` of that `Array<T>`.
+- The general route already handles `Array<struct>` locals built from `[]`
+  and `ArrayPush`, index reads, indexed assignment, and `Array<struct>`
+  value parameters and results (a non-generic `Wrap` returning
+  `Array<Point>` runs equal to native).
+- It refuses a populated `Array<struct>` literal (`[Point { x: 1 }]`, stage
+  `left-edge`; 22 programs native admits are refused there on default LLVM),
+  and a generic routine instance whose substituted result or parameter is
+  not scalar, `Option<Int>` or `Array<Int>` (`routine-instance`, 16).
+- The self-host front end refuses a free generic function called with a
+  struct literal argument (`call_arg_type_mismatch`, actual `Unknown`); the
+  route's program passes a typed local, which the front end admits.
 
 Slices, in order; each lands with its gate and CI green:
 
-1. Element ABI owner: one fact per Array element type (scalar, `String`,
-   struct) giving the element's C and LLVM types, size, alignment and
-   release recipe, read from the existing Int/Bool/String ABI and the
-   logical record layout. No behaviour change; the existing families read
-   it where they spell an element type today.
-2. `Array<struct>` locals in one routine through that owner: literal,
-   index read (an element copy), member read of the element, `ArrayLength`,
-   release at exit (the record's own release recipe per element). C and
-   LLVM, runtime-equal to native, ASan clean.
-3. `Array<struct>` parameters and results, with the hand-off rule's
-   borrow/move fact for the caller's release.
-4. Generic routine instances whose substituted parameter or result is an
-   `Array<T>` or a struct, from the same element ABI owner.
-5. Delete the three-routine route, its families and its seven `one_mir_*`
-   gates; its program runs on the general route (falsifier: the route's
-   dispatch is gone and the program still runs equal on C and LLVM).
+1. Populated `Array<struct>` literals on the general route, C and LLVM,
+   through the logical record's existing element layout and release recipe.
+2. Generic routine instances whose substituted parameter or result is a
+   struct or an `Array<T>` of an admitted element.
+3. Delete the three-routine route, its families and its seven `one_mir_*`
+   gates; the program runs on the general route (falsifier: the dispatch is
+   gone and the program still runs equal to native on C and LLVM).
