@@ -1440,9 +1440,9 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_logical_record_array_empty_literal_admission_owner.pgy" 80
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy" 30
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_logical_record_array_literal_expression_owner.pgy" 30
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_array_literal_expression_owner.pgy" 40
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_logical_record_array_value_result_owner.sh" 190
 require_max_lines \
@@ -1750,8 +1750,6 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_c_array_int_populated_literal_materialization_owner.pgy" 85
 require_max_lines \
     "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_array_int_populated_literal_expression_owner.pgy" 70
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_bool_nested_literal_owner.pgy" 50
 require_max_lines \
     "tests/self_hosted/parity/direct_mir/direct_mir_scalar_owned_array_string_return_owner.sh" 140
 require_max_lines \
@@ -2338,7 +2336,7 @@ for collection_owner_cap in \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_routine_emission_owner.pgy:200 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_block_exit_emission_owner.pgy:165 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_c_artifact_emission_owner.pgy:187 \
-    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_nested_array_int_literal_operand_owner.pgy:60 \
+    src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_nested_array_literal_operand_owner.pgy:110 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_extension_graph_owner.pgy:80 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_extension_admission_owner.pgy:223 \
     src/self_hosted/compiler/direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_routine_identity_schema_owner.pgy:40 \

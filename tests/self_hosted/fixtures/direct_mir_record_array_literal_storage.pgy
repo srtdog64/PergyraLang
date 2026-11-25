@@ -1,0 +1,15 @@
+// A populated Array<struct> literal whose element record owns an Array<Int>:
+// the literal runs on the general route; the array is not released, because
+// no release recipe covers an element that owns storage.
+
+struct Holder {
+    items: Array<Int>;
+    tag: Int;
+}
+
+func Main() -> Void {
+    let holders: Array<Holder> = [Holder([1, 2], 5), Holder([3], 6)];
+    let second: Holder = holders[1];
+    Log(ToString(ArrayLength(holders)));
+    Log(ToString(second.tag + second.items[0]));
+}

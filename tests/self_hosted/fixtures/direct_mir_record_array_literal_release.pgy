@@ -1,0 +1,20 @@
+// Storage-free Array<struct> literals read in place, one redefined on every
+// loop round: the previous buffer is released at each redefinition and the
+// last one at routine exit.
+
+struct Point {
+    x: Int;
+    y: Int;
+}
+
+func Main() -> Void {
+    var round: Int = 0;
+    var total: Int = 0;
+    while round < 5 {
+        let points: Array<Point> = [Point { x: round, y: 3 }, Point { x: 2, y: round }];
+        let first: Point = points[0];
+        total = total + first.x * first.y + points[1].x + ArrayLength(points);
+        round = round + 1;
+    }
+    Log(ToString(total));
+}

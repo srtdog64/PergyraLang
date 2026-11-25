@@ -66,6 +66,9 @@ Slices, in order; each lands with its gate and CI green:
 
 1. Populated `Array<struct>` literals on the general route, C and LLVM,
    through the logical record's existing element layout and release recipe.
+   Done ([record](../truth/evidence/2026-11-25_record_array_literal.md));
+   a record array handed to a call, built by push or returned is not
+   released yet.
 2. Generic routine instances whose substituted parameter or result is a
    struct or an `Array<T>` of an admitted element.
 3. Delete the three-routine route, its families and its seven `one_mir_*`

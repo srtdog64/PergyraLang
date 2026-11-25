@@ -20,8 +20,8 @@ func DirectMirScalarProgramLogicalRecordExpressionNodeReady(
             facts.node_parameter_ordinals[node] == -1 && facts.node_member_ordinals[node] == -1 &&
             facts.node_literals[node] == "" && facts.node_callable_rows[node] == -1;
     }
-    if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
-        kind == DirectMirScalarProgramExprIdentityCellConstructor() {
+    if kind == DirectMirScalarProgramExprLogicalRecordConstructor() || kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
+        kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral() {
         let arguments: Array<Int> = DirectMirScalarProgramLogicalRecordArgumentRows(facts, node);
         let nary: Bool = DirectMirScalarProgramNaryOperandEntry(facts.nary_operands, node) >= 0;
         if ArrayLength(arguments) == 0 { return false; }
@@ -105,9 +105,8 @@ func DirectMirScalarProgramLogicalRecordReadyForExpressions(
                         fact, expressions.node_types[left], ordinal) {
                 return false;
             }
-        } else if kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() &&
-                !DirectMirScalarProgramLogicalRecordArrayTypeReady(
-                    fact, expressions.node_types[node]) { return false;
+        } else if (kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() && !DirectMirScalarProgramLogicalRecordArrayTypeReady(fact, expressions.node_types[node])) ||
+            (kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral() && !DirectMirScalarProgramLogicalRecordArrayPopulatedLiteralReady(fact, expressions, node)) { return false;
         } else if kind == DirectMirScalarProgramExprLogicalRecordArrayIndex() && !DirectMirScalarProgramLogicalRecordArrayIndexIdentityReady(fact, expressions, node) {
             return false;
         } else if kind == DirectMirScalarProgramExprArrayStringLength() {

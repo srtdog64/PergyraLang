@@ -51,6 +51,13 @@ func DirectMirOwnedLocalStorageMode(ref plan: DirectMirScalarCfgGraphPlan,
     if type_name == CompilerAbiLayoutArrayBoolTypeName() { return 3; }
     if type_name == CompilerAbiLayoutArrayStringTypeName() { return 5; }
     if DirectMirScalarProgramHashMapTypeReady(type_name) { return 7; }
+    // An Array<Record> owns its element buffer; it is released (mode 9) only
+    // when the element record holds no storage.
+    let element: Option<String> = DirectMirScalarProgramLogicalRecordArrayElementType(plan.program.logical_record, type_name);
+    if IsSome(element) {
+        if DirectMirScalarProgramLogicalRecordStorageFree(plan.program.logical_record, UnwrapOption(element)) { return 9; }
+        return 0;
+    }
     if depth > ArrayLength(plan.program.logical_record.names) { return 0; }
     let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
     if record < 0 { return 0; }

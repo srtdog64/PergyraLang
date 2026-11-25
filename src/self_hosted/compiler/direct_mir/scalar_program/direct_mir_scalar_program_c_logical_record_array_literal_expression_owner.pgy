@@ -1,0 +1,32 @@
+// C materialization of one declaration-owned Array<Record> literal: empty,
+// or populated with its element records in source order through the array's
+// push helper (which aborts when the allocation fails).
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_nested_array_literal_operand_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordArrayLiteralExpression(
+    kind: Int, node: Int, array_type: String, ref elements: Array<String>,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact
+) -> Option<String> {
+    let populated: Bool = kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral();
+    if kind != DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() && !populated { return None; }
+    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTargetFromType(logical_record, array_type, target);
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(projected, CompilerTargetCpuCProjection()) ||
+        populated == (ArrayLength(elements) == 0) {
+        return None;
+    }
+    if !populated { return Some("((" + projected.c_array_type + "){0})"); }
+    let name: String = "pgy_record_array_" + ToString(node);
+    var output: String = "({ " + projected.c_array_type + " " + name + " = {0}; ";
+    var element: Int = 0;
+    while element < ArrayLength(elements) {
+        output = output + "pgy_scalar_logical_record_array_push_" + ToString(projected.record_row) +
+            "(&" + name + ", " + elements[element] + "); ";
+        element = element + 1;
+    }
+    return Some(output + name + "; })");
+}

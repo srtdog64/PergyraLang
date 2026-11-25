@@ -41,7 +41,8 @@ func DirectMirOwnedLocalCRelease(ref plan: DirectMirScalarCfgGraphPlan,
         return "    free(" + value + "." + layout.data_field + ");\n";
     }
     if mode == 5 { return "    " + CollectionRuntimeCDropStorageFn(2) + "(&" + value + ");\n"; }
-    if mode == 6 { return "    " + CollectionRuntimeCOwnedStringDropFn() + "(&" + value + ");\n"; }
+    // Mode 9: a three-field Array<Record> (data,len,cap) of storage-free records.
+    if mode == 6 { return "    " + CollectionRuntimeCOwnedStringDropFn() + "(&" + value + ");\n"; } if mode == 9 { return "    free(" + value + ".data);\n"; }
     if mode == 7 {
         let map: CollectionHashMapRuntimeFact =
             CollectionHashMapRuntimeFactFromTypeName(type_name);
@@ -121,7 +122,8 @@ func DirectMirOwnedLocalLlvmRelease(ref plan: DirectMirScalarCfgGraphPlan,
             ".descriptor, " + ToString(data_index) + "\n  call void @free(ptr " + prefix + ".data)\n";
     }
     if mode == 5 { return "  call void @" + CollectionRuntimeCDropStorageFn(2) + "(ptr " + address + ")\n"; }
-    if mode == 6 { return "  call void @" + CollectionRuntimeCOwnedStringDropFn() + "(ptr " + address + ")\n"; }
+    // Mode 9: the data pointer is field 0 of the three-field Array<Record>.
+    if mode == 6 { return "  call void @" + CollectionRuntimeCOwnedStringDropFn() + "(ptr " + address + ")\n"; } if mode == 9 { return "  " + prefix + ".data = load ptr, ptr " + address + "\n  call void @free(ptr " + prefix + ".data)\n"; }
     if mode == 7 {
         let map: CollectionHashMapLlvmFact =
             CollectionHashMapLlvmFactFromTypeName(type_name);

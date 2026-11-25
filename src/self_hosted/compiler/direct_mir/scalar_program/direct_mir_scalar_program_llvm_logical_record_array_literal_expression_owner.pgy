@@ -1,0 +1,41 @@
+// LLVM materialization of one declaration-owned Array<Record> literal: empty,
+// or populated with its element records in source order through the array's
+// push helper. The stack slot is fixed-size, so the entry-block owner hoists
+// its alloca out of any loop.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_nested_array_literal_operand_owner.pgy";
+
+func DirectMirScalarProgramLlvmLogicalRecordArrayLiteralExpressionAt(
+    kind: Int, result: String, array_type: String, ref elements: Array<String>,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let populated: Bool = kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral();
+    if kind != DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() && !populated {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTargetFromType(logical_record, array_type, target);
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(projected, CompilerTargetCpuLlvmProjection()) ||
+        populated == (ArrayLength(elements) == 0) {
+        return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
+    }
+    if !populated { return DirectMirScalarProgramLlvmStringExpression(true, true, "", "zeroinitializer"); }
+    let element_type: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
+        logical_record, projected.element_type);
+    let slot: String = result + ".slot";
+    var output: String = "  " + slot + " = alloca " + projected.llvm_type_name + ", align 8\n  store " +
+        projected.llvm_type_name + " zeroinitializer, ptr " + slot + ", align 8\n";
+    var element: Int = 0;
+    while element < ArrayLength(elements) {
+        output = output + "  call void @pgy.scalar.logical.record.array.push." + ToString(projected.record_row) +
+            "(ptr " + slot + ", " + element_type + " " + elements[element] + ")\n";
+        element = element + 1;
+    }
+    output = output + "  " + result + " = load " + projected.llvm_type_name + ", ptr " + slot + ", align 8\n";
+    return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+}

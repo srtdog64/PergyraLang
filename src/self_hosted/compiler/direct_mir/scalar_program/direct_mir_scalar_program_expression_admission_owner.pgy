@@ -9,9 +9,7 @@ import "../scalar_cfg/direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "../scalar_cfg/direct_mir_scalar_cfg_value_type_owner.pgy";
 import "../scalar_cfg/direct_mir_scalar_cfg_scoped_match_binding_operand_owner.pgy";
 import "direct_mir_scalar_program_literal_expression_admission_owner.pgy";
-import "direct_mir_scalar_program_nested_array_int_literal_operand_owner.pgy";
-import "direct_mir_scalar_program_array_string_nested_literal_owner.pgy";
-import "direct_mir_scalar_program_array_bool_nested_literal_owner.pgy";
+import "direct_mir_scalar_program_nested_array_literal_operand_owner.pgy";
 import "direct_mir_scalar_program_option_absence_type_owner.pgy";
 import "direct_mir_scalar_program_logical_record_expression_owner.pgy";
 import "direct_mir_scalar_program_named_record_literal_owner.pgy";
@@ -489,19 +487,11 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
             }
             }
         } else {
-            var nested_operands: Array<Int> = DirectMirScalarProgramNestedArrayStringLiteralOperandRows(sequence, node, source_rows, types);
-            var nested_kind: Int = DirectMirScalarProgramExprArrayStringLiteral();
-            var nested_type: String = CompilerAbiLayoutArrayStringTypeName();
-            if ArrayLength(nested_operands) == 0 {
-                nested_operands = DirectMirScalarProgramNestedArrayIntLiteralOperandRows(sequence, node, source_rows, types);
-                nested_kind = DirectMirScalarProgramExprArrayIntPopulatedLiteral(); nested_type = CompilerAbiLayoutArrayIntTypeName();
-            }
-            if ArrayLength(nested_operands) == 0 {
-                nested_operands = DirectMirScalarProgramNestedArrayBoolLiteralOperandRows(sequence, node, source_rows, types);
-                nested_kind = DirectMirScalarProgramExprArrayBoolPopulatedLiteral(); nested_type = CompilerAbiLayoutArrayBoolTypeName();
-            }
+            let nested: DirectMirScalarProgramNestedArrayLiteral = DirectMirScalarProgramNestedArrayLiteralFromGraph(
+                sequence, node, source_rows, types, logical_record);
+            let nested_operands: Array<Int> = nested.operands;
             if ArrayLength(nested_operands) >= 1 {
-                kind = nested_kind; type_name = nested_type;
+                kind = nested.kind; type_name = nested.type_name;
                 if ArrayLength(nested_operands) == 1 { left = nested_operands[0]; }
                 else if ArrayLength(nested_operands) == 2 {
                     left = nested_operands[0]; right = nested_operands[1];

@@ -99,7 +99,8 @@ func DirectMirScalarCfgProgramCOperation(ref plan: DirectMirScalarCfgGraphPlan, 
         let owned_local: Int = plan.value_local_rows[owned_value];
         if owned_local >= 0 && lifetime.local_modes[owned_local] > 0 {
             let value_type: String = plan.local_types[owned_local];
-            let c_type: String = DirectMirScalarProgramCLogicalRecordFieldType(plan.program.logical_record, value_type);
+            var c_type: String = DirectMirScalarProgramCLogicalRecordFieldType(plan.program.logical_record, value_type);
+            if lifetime.local_modes[owned_local] == 9 { c_type = DirectMirScalarProgramCLogicalRecordArrayTypeName(plan.program.logical_record, value_type); }
             if c_type == "" { Die("owned local C storage type is missing"); }
             let next: String = "pgy_owned_next_${operation}";
             let expression: String = DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions,

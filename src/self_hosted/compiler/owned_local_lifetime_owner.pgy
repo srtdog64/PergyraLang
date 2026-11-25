@@ -47,7 +47,7 @@ func DirectMirOwnedLocalBorrowingNode(kind: Int) -> Bool {
         kind == DirectMirScalarProgramExprStringIndexOf() ||
         kind == DirectMirScalarProgramExprArrayStringLength() ||
         kind == DirectMirScalarProgramExprArrayIntIndex() ||
-        kind == DirectMirScalarProgramExprArrayBoolIndex() ||
+        kind == DirectMirScalarProgramExprArrayBoolIndex() || kind == DirectMirScalarProgramExprLogicalRecordArrayIndex() ||
         DirectMirScalarProgramHashMapOperation(kind) != "";
 }
 

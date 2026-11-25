@@ -11,7 +11,7 @@ import "direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy";
 import "direct_mir_scalar_program_c_numeric_cast_expression_owner.pgy";
 import "direct_mir_scalar_program_c_slice_expression_owner.pgy";
 import "direct_mir_scalar_program_c_hashmap_owner.pgy";
-import "direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_array_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_c_external_runtime_expression_owner.pgy";
 import "direct_mir_scalar_program_c_match_expression_owner.pgy";
 import "direct_mir_scalar_program_backend_value_result_storage_owner.pgy";
@@ -41,7 +41,7 @@ func DirectMirScalarProgramCExpressionValues(
             argument_rows = DirectMirScalarProgramDirectCallArgumentRows(expressions, node);
         } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
                 kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
-                kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
+                kind == DirectMirScalarProgramExprPayloadEnumConstructor() || kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral() {
             argument_rows = DirectMirScalarProgramLogicalRecordArgumentRows(
                 expressions, node); } else if kind ==
                 DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
@@ -119,11 +119,9 @@ func DirectMirScalarProgramCExpressionValues(
                 Die("direct MIR scalar C populated Array<Bool> literal is invalid");
             }
             value = UnwrapOption(populated_bool);
-        } else if kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
-            let empty_record_array: Option<String> =
-                DirectMirScalarProgramCLogicalRecordArrayEmptyLiteralExpression(
-                    kind, expressions.node_types[node], logical_record,
-                    target);
+        } else if kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() || kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral() {
+            let empty_record_array: Option<String> = DirectMirScalarProgramCLogicalRecordArrayLiteralExpression(
+                kind, node, expressions.node_types[node], arguments, logical_record, target);
             if !IsSome(empty_record_array) {
                 Die("direct MIR scalar C Array<Record> literal is invalid");
             }

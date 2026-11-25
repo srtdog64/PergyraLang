@@ -1,0 +1,113 @@
+// The ordered admitted element expressions of a nested array literal spine
+// (`[] -> [a] -> [a, b]`), and the populated literal kind the spine
+// normalizes to: Array<String>, Array<Int>, Array<Bool>, or an Array of an
+// admitted logical record.
+
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+import "direct_mir_scalar_program_nested_array_literal_seed_owner.pgy";
+import "direct_mir_scalar_program_array_string_nested_literal_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_nary_operand_owner.pgy";
+
+// A populated Array<Record> literal; its operands are the element records in
+// source order.
+func DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral() -> Int { return 160; }
+
+func DirectMirScalarProgramNestedArrayLiteralOperandRows(
+    ref sequence: MirExpressionGraphSequence, node: Int, ref source_rows: Array<Int>,
+    ref normalized_types: Array<String>, element_type: String) -> Array<Int> {
+    var reverse_rows: Array<Int> = [];
+    if element_type == "" || node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeArrayElement() { return reverse_rows; }
+    var cursor: Int = node;
+    while sequence.arena.topology.node_kinds[cursor] ==
+            AstExpressionNodeArrayElement() {
+        let source_left: Int = sequence.arena.topology.left_children[cursor];
+        let source_right: Int = sequence.arena.topology.right_children[cursor];
+        if source_left < 0 || source_left >= cursor || source_right < 0 ||
+            source_right >= cursor || source_right >= ArrayLength(source_rows) ||
+            sequence.arena.call_target_kinds[cursor] != SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[cursor] != "" ||
+            sequence.arena.identities.binding_kinds[cursor] !=
+                SemanticExpressionBindingNone() { return []; }
+        let operand: Int = source_rows[source_right];
+        if operand < 0 || operand >= ArrayLength(normalized_types) ||
+            normalized_types[operand] != element_type {
+            return [];
+        }
+        ArrayPush(reverse_rows, operand);
+        cursor = source_left;
+    }
+    if !DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(
+            sequence, cursor) { return []; }
+    var rows: Array<Int> = [];
+    var row: Int = ArrayLength(reverse_rows);
+    while row > 0 { row = row - 1; ArrayPush(rows, reverse_rows[row]); }
+    return rows;
+}
+
+struct DirectMirScalarProgramNestedArrayLiteral {
+    let operands: Array<Int>;
+    let kind: Int;
+    let type_name: String;
+}
+
+func DirectMirScalarProgramNestedArrayLiteralFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int, ref source_rows: Array<Int>,
+    ref types: Array<String>, ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramNestedArrayLiteral {
+    let strings: Array<Int> = DirectMirScalarProgramNestedArrayStringLiteralOperandRows(
+        sequence, node, source_rows, types);
+    if ArrayLength(strings) > 0 { return DirectMirScalarProgramNestedArrayLiteral(
+        strings, DirectMirScalarProgramExprArrayStringLiteral(), CompilerAbiLayoutArrayStringTypeName()); }
+    let ints: Array<Int> = DirectMirScalarProgramNestedArrayLiteralOperandRows(
+        sequence, node, source_rows, types, CompilerAbiLayoutIntTypeName());
+    if ArrayLength(ints) > 0 { return DirectMirScalarProgramNestedArrayLiteral(
+        ints, DirectMirScalarProgramExprArrayIntPopulatedLiteral(), CompilerAbiLayoutArrayIntTypeName()); }
+    let bools: Array<Int> = DirectMirScalarProgramNestedArrayLiteralOperandRows(
+        sequence, node, source_rows, types, CompilerAbiLayoutBoolTypeName());
+    if ArrayLength(bools) > 0 { return DirectMirScalarProgramNestedArrayLiteral(
+        bools, DirectMirScalarProgramExprArrayBoolPopulatedLiteral(), CompilerAbiLayoutArrayBoolTypeName()); }
+    // A record element: the spine's last element names the element type,
+    // and every element must be that record.
+    let none: Array<Int> = [];
+    if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeArrayElement() {
+        return DirectMirScalarProgramNestedArrayLiteral(none, -1, ""); }
+    let last: Int = sequence.arena.topology.right_children[node];
+    if last < 0 || last >= node || last >= ArrayLength(source_rows) ||
+        source_rows[last] < 0 || source_rows[last] >= ArrayLength(types) {
+        return DirectMirScalarProgramNestedArrayLiteral(none, -1, ""); }
+    let element: String = types[source_rows[last]];
+    let array_type: String = Concat("Array<", Concat(element, ">"));
+    if !DirectMirScalarProgramLogicalRecordTypeReady(logical_record, element) ||
+        !DirectMirScalarProgramLogicalRecordArrayTypeReady(logical_record, array_type) {
+        return DirectMirScalarProgramNestedArrayLiteral(none, -1, ""); }
+    let records: Array<Int> = DirectMirScalarProgramNestedArrayLiteralOperandRows(
+        sequence, node, source_rows, types, element);
+    if ArrayLength(records) == 0 { return DirectMirScalarProgramNestedArrayLiteral(none, -1, ""); }
+    return DirectMirScalarProgramNestedArrayLiteral(
+        records, DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral(), array_type);
+}
+
+// Every operand of a populated Array<Record> literal is the array's element
+// record, in source order.
+func DirectMirScalarProgramLogicalRecordArrayPopulatedLiteralReady(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    let element: Option<String> = DirectMirScalarProgramLogicalRecordArrayElementType(
+        fact, expressions.node_types[node]);
+    var rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(expressions.nary_operands, node);
+    if ArrayLength(rows) == 0 && expressions.node_lefts[node] >= 0 { ArrayPush(rows, expressions.node_lefts[node]); }
+    if ArrayLength(rows) == 1 && expressions.node_rights[node] >= 0 { ArrayPush(rows, expressions.node_rights[node]); }
+    if !IsSome(element) || ArrayLength(rows) == 0 { return false; }
+    var row: Int = 0;
+    while row < ArrayLength(rows) {
+        if rows[row] < 0 || rows[row] >= node ||
+            expressions.node_types[rows[row]] != UnwrapOption(element) { return false; }
+        row = row + 1;
+    }
+    return true;
+}

@@ -30,6 +30,12 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(
             if plan.local_types[local_row] == array_type { referenced = true; }
             local_row = local_row + 1;
         }
+        // A literal returned or passed without a named local is still emitted.
+        var node_row: Int = 0;
+        while node_row < ArrayLength(plan.program.expressions.node_types) {
+            if plan.program.expressions.node_types[node_row] == array_type { referenced = true; }
+            node_row = node_row + 1;
+        }
         if referenced {
             let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
                 DirectMirScalarProgramLogicalRecordArrayTargetFromType(
@@ -39,8 +45,8 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(
                     projected.llvm_aggregate_type, "\n"))));
             // The push grow path calls realloc and abort; the foreign
             // declaration owner declares them under this same predicate.
-            if DirectMirScalarProgramLogicalRecordArrayMutationRequired(
-                    plan.operation_kinds) {
+            if DirectMirScalarProgramLogicalRecordArrayMutationRequired(plan.operation_kinds) ||
+                DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral()) {
                 let element_type: String =
                     DirectMirScalarProgramLlvmLogicalRecordTypeName(
                         plan.program.logical_record, projected.element_type);

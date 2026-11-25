@@ -10,7 +10,7 @@ import "direct_mir_scalar_program_llvm_array_bool_empty_literal_expression_owner
 import "direct_mir_scalar_program_llvm_short_circuit_owner.pgy";
 import "direct_mir_scalar_program_llvm_numeric_cast_expression_owner.pgy";
 import "../direct_mir_identity_cell_projection_owner.pgy";
-import "direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_array_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy";
@@ -117,7 +117,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             argument_rows = DirectMirScalarProgramDirectCallArgumentRows(expressions, node);
         } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
                 kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
-                kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
+                kind == DirectMirScalarProgramExprPayloadEnumConstructor() || kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral() {
             argument_rows = DirectMirScalarProgramLogicalRecordArgumentRows(expressions, node);
         }
         var argument: Int = 0;
@@ -271,10 +271,9 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
                 return DirectMirScalarProgramLlvmExpression(false, "", "", "");
             }
             value = empty_bool.value;
-        } else if kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
-            let empty_record_array: DirectMirScalarProgramLlvmStringExpression =
-                DirectMirScalarProgramLlvmLogicalRecordArrayEmptyLiteralExpressionAt(
-                    kind, expressions.node_types[node], logical_record, target);
+        } else if kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() || kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral() {
+            let empty_record_array: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalRecordArrayLiteralExpressionAt(
+                kind, result, expressions.node_types[node], arguments, logical_record, target);
             if !empty_record_array.matched || !empty_record_array.valid {
                 return DirectMirScalarProgramLlvmExpression(false, "", "", "");
             }

@@ -3858,7 +3858,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   ArrayBool return emitter consume the same receipt. Neither declaration
   spelling, ArrayInt identity, nor another Array layout may substitute.
 - `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_array_bool_populated_literal_admission_owner.pgy`,
-  `direct_mir_scalar_program_array_bool_nested_literal_owner.pgy`,
+  `direct_mir_scalar_program_nested_array_literal_operand_owner.pgy` (shared with
+  the Array<Int>, Array<String> and Array<Record> spines),
   `direct_mir_scalar_program_array_bool_populated_literal_readiness_owner.pgy`,
   `direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy`, and
   `direct_mir_scalar_program_llvm_array_bool_populated_literal_owner.pgy` --
@@ -4016,8 +4017,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy`,
   `direct_mir_scalar_program_logical_record_array_target_owner.pgy`,
   `direct_mir_scalar_program_logical_record_array_empty_literal_admission_owner.pgy`,
-  `direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy`,
-  `direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy`,
+  `direct_mir_scalar_program_c_logical_record_array_literal_expression_owner.pgy`,
+  `direct_mir_scalar_program_llvm_logical_record_array_literal_expression_owner.pgy`,
   `direct_mir_scalar_program_c_logical_record_array_value_result_owner.pgy`,
   and
   `direct_mir_scalar_program_llvm_logical_record_array_value_result_owner.pgy`

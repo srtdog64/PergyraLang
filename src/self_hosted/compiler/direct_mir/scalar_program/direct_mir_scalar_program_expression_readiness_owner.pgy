@@ -61,7 +61,7 @@ func DirectMirScalarProgramExpressionNodeReady(
         kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
         kind == DirectMirScalarProgramExprIdentityCellMember() ||
         kind == DirectMirScalarProgramExprLogicalRecordMember() ||
-        kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
+        kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() || kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral() {
         return DirectMirScalarProgramLogicalRecordExpressionNodeReady(facts, node);
     }
     if kind == DirectMirScalarProgramExprArrayBoolEmptyLiteral() {

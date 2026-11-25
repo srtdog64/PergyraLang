@@ -1,0 +1,27 @@
+// Populated Array<struct> literals on the general direct-MIR route: built in
+// a loop (the LLVM stack slot is hoisted), indexed, measured and passed to a
+// by-value parameter. Point holds no storage, so each literal's buffer is
+// released when its local's lifetime ends.
+
+struct Point {
+    x: Int;
+    y: Int;
+}
+
+func Weight(points: Array<Point>, position: Int) -> Int {
+    let point: Point = points[position];
+    return point.x * point.y;
+}
+
+func Main() -> Void {
+    var round: Int = 0;
+    var total: Int = 0;
+    while round < 4 {
+        let points: Array<Point> = [Point { x: round, y: 2 }, Point { x: 3, y: round }, Point { x: 1, y: 1 }];
+        total = total + Weight(points, 0) + Weight(points, 1) + ArrayLength(points);
+        round = round + 1;
+    }
+    let last: Array<Point> = [Point { x: 7, y: 6 }];
+    Log(ToString(total));
+    Log(ToString(last[0].x + last[0].y));
+}

@@ -34,7 +34,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         string_array_storage || array_int_runtime.push ||
         DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) ||
         DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprArrayDropStorage()) ||
-        DirectMirScalarProgramLogicalRecordArrayMutationRequired(plan.operation_kinds) || slice_any;
+        DirectMirScalarProgramLogicalRecordArrayMutationRequired(plan.operation_kinds) || slice_any || DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral());
     let replace: Bool = plan.program.runtime_abi.case_math.replace_id != 0;
     let set_new: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprSetStringNew());
     let set_add: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprSetStringAdd());

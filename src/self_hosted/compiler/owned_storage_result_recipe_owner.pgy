@@ -251,7 +251,7 @@ func DirectMirOwnedStorageRecipe(ref plan: DirectMirScalarCfgGraphPlan,
     var fresh: Bool = DirectMirScalarProgramFreshStringExpressionKind(kind) &&
         mode == 1;
     if mode == 2 { fresh = kind == DirectMirScalarProgramExprArrayIntPopulatedLiteral() || kind == DirectMirScalarProgramExprArrayIntEmptyLiteral(); }
-    if mode == 3 { fresh = kind == DirectMirScalarProgramExprArrayBoolPopulatedLiteral() || kind == DirectMirScalarProgramExprArrayBoolEmptyLiteral(); }
+    if mode == 3 { fresh = kind == DirectMirScalarProgramExprArrayBoolPopulatedLiteral() || kind == DirectMirScalarProgramExprArrayBoolEmptyLiteral(); } if mode == 9 { fresh = kind == DirectMirScalarProgramExprLogicalRecordArrayPopulatedLiteral() || kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral(); }
     if mode == 5 && kind == DirectMirScalarProgramExprArrayStringLiteral() {
         fresh = true;
         let owns_elements: Bool =

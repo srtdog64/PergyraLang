@@ -1,7 +1,7 @@
 // Ordered admission for literal families and their exact owned use prefix.
 import "direct_mir_scalar_program_array_string_literal_admission_owner.pgy";
 import "direct_mir_scalar_program_array_int_empty_literal_admission_owner.pgy";
-import "direct_mir_scalar_program_nested_array_int_literal_operand_owner.pgy";
+import "direct_mir_scalar_program_nested_array_literal_operand_owner.pgy";
 import "direct_mir_scalar_program_array_bool_empty_literal_admission_owner.pgy";
 import "direct_mir_scalar_program_array_bool_populated_literal_admission_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_empty_literal_admission_owner.pgy";

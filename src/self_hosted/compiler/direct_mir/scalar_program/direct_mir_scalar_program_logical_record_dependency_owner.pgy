@@ -26,6 +26,21 @@ func DirectMirScalarProgramLogicalRecordScalarFieldTypeReady(
         type_name == CompilerAbiLayoutStringTypeName();
 }
 
+// A record whose fields are all Int, Bool, Long or Float holds no storage.
+func DirectMirScalarProgramLogicalRecordStorageFree(
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> Bool {
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, type_name);
+    if row < 0 { return false; }
+    var field: Int = fact.field_starts[row];
+    while field < fact.field_starts[row] + fact.field_counts[row] {
+        let field_type: String = fact.field_types[field];
+        if field_type != "Int" && field_type != "Bool" && field_type != "Long" && field_type != "Float" { return false; }
+        field = field + 1;
+    }
+    return true;
+}
+
 func DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(
     type_name: String
 ) -> Bool {

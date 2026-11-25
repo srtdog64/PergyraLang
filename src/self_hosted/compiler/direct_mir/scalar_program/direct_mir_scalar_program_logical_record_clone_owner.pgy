@@ -17,7 +17,7 @@ import "direct_mir_scalar_program_expression_mutation_owner.pgy";
 // Admission-only marker for a record Clone signature. The admission replaces
 // it with the lowered nodes; it is past DirectMirScalarProgramExpressionKindLast,
 // so an expression set holding it is invalid.
-func DirectMirScalarProgramExprLogicalRecordCloneLowering() -> Int { return 160; }
+func DirectMirScalarProgramExprLogicalRecordCloneLowering() -> Int { return 161; }
 
 // No program record nests deeper; a deeper chain is refused, not cut.
 func DirectMirScalarProgramLogicalRecordCloneMaxDepth() -> Int { return 16; }
