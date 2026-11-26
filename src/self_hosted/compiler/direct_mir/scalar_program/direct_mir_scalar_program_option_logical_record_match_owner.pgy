@@ -115,6 +115,10 @@ func DirectMirScalarProgramCOptionLogicalRecordMatchAt(
     let binding: Int = expressions.node_local_rows[node];
     if expressions.node_member_ordinals[node] == DirectMirScalarProgramOptionIntMatchSomeVariant() &&
         binding >= 0 {
+        // The binding is stored before the test, also when absent (a zeroed
+        // payload). That is unobservable only because the payload holds no
+        // storage; admitting a storage record must replace this store with
+        // the binding's ownership decision (borrow, move or copy).
         return Some("(pgy_local_" + ToString(binding) + " = (" + left + ").value, (" + left + ").is_some)");
     }
     if expressions.node_member_ordinals[node] == DirectMirScalarProgramOptionIntMatchNoneVariant() &&
@@ -144,6 +148,8 @@ func DirectMirScalarProgramLlvmOptionLogicalRecordMatchAt(
         let payload_type: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
             logical_record, DirectMirScalarProgramLogicalRecordOptionPayloadType(
                 logical_record, expressions.node_types[expressions.node_lefts[node]]));
+        if payload_type == "" { return DirectMirScalarProgramLlvmStringExpression(true, false, "", ""); }
+        // Stored also when absent; see the C projection's note.
         output = output + "  " + result + ".payload = extractvalue " + option_type + " " + left + ", 1\n";
         output = output + "  store " + payload_type + " " + result + ".payload, ptr %pgy.local." +
             ToString(binding) + "\n";

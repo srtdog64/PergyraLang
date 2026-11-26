@@ -8,13 +8,16 @@ func DirectMirScalarProgramCCoalesceAt(
     ref expressions: DirectMirScalarProgramExpressionSet, node: Int, left: String, right: String
 ) -> Option<String> {
     let kind: Int = expressions.node_kinds[node];
+    if kind != DirectMirScalarProgramExprCoalesceOptionInt() &&
+        kind != DirectMirScalarProgramExprCoalesceOptionBool() {
+        return None;
+    }
+    // A missing operand is claimed and empty: the caller refuses it.
+    if left == "" || right == "" { return Some(""); }
     if kind == DirectMirScalarProgramExprCoalesceOptionInt() {
         return Some("pgy_scalar_option_int_coalesce(" + left + ", " + right + ")");
     }
-    if kind == DirectMirScalarProgramExprCoalesceOptionBool() {
-        return Some("pgy_scalar_option_bool_coalesce(" + left + ", " + right + ")");
-    }
-    return None;
+    return Some("pgy_scalar_option_bool_coalesce(" + left + ", " + right + ")");
 }
 
 func DirectMirScalarProgramLlvmCoalesceAt(
@@ -22,6 +25,13 @@ func DirectMirScalarProgramLlvmCoalesceAt(
     left: String, right: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
     let kind: Int = expressions.node_kinds[node];
+    if kind != DirectMirScalarProgramExprCoalesceOptionInt() &&
+        kind != DirectMirScalarProgramExprCoalesceOptionBool() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    if left == "" || right == "" {
+        return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
+    }
     var output: String = "";
     if kind == DirectMirScalarProgramExprCoalesceOptionInt() {
         let option_type: String = DirectMirScalarProgramLlvmOptionIntTypeName();
@@ -32,13 +42,10 @@ func DirectMirScalarProgramLlvmCoalesceAt(
             right + "\n";
         return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
     }
-    if kind == DirectMirScalarProgramExprCoalesceOptionBool() {
-        output = "  " + result + ".some = call i1 @pgy.scalar.option.bool.is_some(%pgy.scalar.option.bool " +
-            left + ")\n";
-        output = output + "  " + result + ".payload = extractvalue %pgy.scalar.option.bool " + left + ", 1\n";
-        output = output + "  " + result + " = select i1 " + result + ".some, i1 " + result + ".payload, i1 " +
-            right + "\n";
-        return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
-    }
-    return DirectMirScalarProgramLlvmStringExpressionMissing();
+    output = "  " + result + ".some = call i1 @pgy.scalar.option.bool.is_some(%pgy.scalar.option.bool " +
+        left + ")\n";
+    output = output + "  " + result + ".payload = extractvalue %pgy.scalar.option.bool " + left + ", 1\n";
+    output = output + "  " + result + " = select i1 " + result + ".some, i1 " + result + ".payload, i1 " +
+        right + "\n";
+    return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
 }

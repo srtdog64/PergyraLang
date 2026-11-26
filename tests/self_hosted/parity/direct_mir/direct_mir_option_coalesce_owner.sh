@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # `None()` and `option ?? fallback` on the general direct-MIR route: a
 # zero-argument call to None is the absence of the expected Option, and
-# `??` over an Option<Int> or Option<Bool> local or parameter takes a pure
-# fallback. Direct C (ASan) and LLVM print native's output. A fallback that
-# calls a routine (native runs it only when the option is absent) is refused.
+# `??` over an Option<Int> or Option<Bool> takes a pure fallback. Direct C
+# (ASan) and LLVM print native's output. A fallback that calls a routine
+# (native runs it only when the option is absent) and a forged Bool
+# fallback of an Option<Int> are refused.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -18,6 +19,7 @@ DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/p
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 CC="${PGY_SELFHOST_CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
+PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
 WORK_REL=".tmp/self_hosted/direct_mir_option_coalesce"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 
@@ -26,6 +28,7 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
+[[ -n "$PYTHON_BIN" ]] || fail "python is required"
 
 mkdir -p "$WORK_DIR"
 rm -rf "${WORK_DIR:?}"/*
@@ -94,4 +97,62 @@ for backend in c llvm; do
         fail "$backend refused the calling fallback before the general route"; }
 done
 
-echo "[$LABEL] PASS: None() and ?? program equal to native on C (ASan) and LLVM; calling fallback refused"
+# Forged MIR: the Int fallback of `MaybeIncr(9, 3) ?? 11` becomes a Bool
+# literal (digest resealed), so `Option<Int> ?? Bool` reaches the general
+# route, which has no such coalesce and refuses it.
+"$PYTHON_BIN" - "$WORK_DIR/direct_mir_option_coalesce.mir.json" "$WORK_DIR/bool-fallback.mir.json" <<'PY'
+import json, sys
+document = json.load(open(sys.argv[1], encoding="utf-8"))
+MODULUS = 268435456
+
+def hash_int(value, number):
+    return (value * 131 + number + 2) % MODULUS
+
+def hash_text(value, text):
+    data = text.encode("utf-8")
+    out = (value * 131 + len(data)) % MODULUS
+    for byte in data:
+        out = (out * 131 + byte) % MODULUS
+    return out
+
+def graph_digest(graph):
+    value = hash_int(hash_int(71, graph["root"]), len(graph["nodes"]))
+    for node in graph["nodes"]:
+        for key in ("kind", "text", "call_target_kind", "call_target_name"):
+            value = hash_text(value, node[key])
+        value = hash_int(value, node["runtime_call_abi_id"])
+        value = hash_int(value, -1 if node["left"] is None else node["left"])
+        value = hash_int(value, -1 if node["right"] is None else node["right"])
+    return 1073741824 + value
+
+found = []
+for routine in document["routines"]:
+    for block in routine["blocks"]:
+        for instruction in block["instructions"]:
+            graph = instruction.get("expr0_graph")
+            if not graph:
+                continue
+            for node in graph["nodes"]:
+                if node["kind"] == "coalesce" and node["right"] is not None:
+                    fallback = graph["nodes"][node["right"]]
+                    if fallback["kind"] == "integer_literal" and fallback["text"] == "11":
+                        found.append((graph, fallback))
+if len(found) != 2 or any(graph_digest(g) != g["digest"] for g, _ in found):
+    raise SystemExit("fixture has no two resealable `?? 11` fallbacks")
+graph, fallback = found[0]
+fallback["kind"] = "bool_literal"
+fallback["text"] = "true"
+graph["digest"] = graph_digest(graph)
+json.dump(document, open(sys.argv[2], "w", encoding="utf-8"), separators=(",", ":"))
+PY
+for backend in c llvm; do
+    if project bool-fallback "$backend" "$WORK_REL/bool-fallback.mir.json" "$WORK_REL/bool-fallback.$backend"; then
+        fail "$backend admitted Option<Int> ?? Bool"
+    fi
+    [[ ! -e "$ROOT_DIR/$WORK_REL/bool-fallback.$backend" ]] || fail "$backend published Option<Int> ?? Bool"
+    grep -aq 'direct MIR scalar' "$WORK_DIR/bool-fallback.$backend.out" "$WORK_DIR/bool-fallback.$backend.err" || {
+        cat "$WORK_DIR/bool-fallback.$backend.out" "$WORK_DIR/bool-fallback.$backend.err" >&2
+        fail "$backend refused Option<Int> ?? Bool before the general route"; }
+done
+
+echo "[$LABEL] PASS: None() and ?? program equal to native on C (ASan) and LLVM; calling fallback and forged Bool fallback refused"
