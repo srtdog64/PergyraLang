@@ -26,7 +26,7 @@ func SemanticAstCollectionLocalStatementTransition(
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
-    ref compiler_clone_expression_node_ids: Array<Int>,
+    inout compiler_clone_expression_node_ids: Array<Int>,
     compiler_clone_storage_detached: Bool,
     inout receipts: SemanticAstCollectionOwnershipReceiptRows
 ) -> SemanticAstCollectionStatementTransitionResult {
@@ -82,14 +82,39 @@ func SemanticAstCollectionLocalStatementTransition(
                 UnwrapOption(value_root), 0);
         }
     }
-    let owned_store: Bool = source_domain.kind == 1 ||
+    var owned_store: Bool = source_domain.kind == 1 ||
         SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
             compiler_clone_expression_node_ids, source_root);
     let state: Int = ownership[binding.row];
-    if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
+    if !owned_store && source_root >= 0 && definition >= 0 &&
+        definition < definitions.local_count &&
+        definitions.origins[definition] == SemanticAstCollectionOriginClone() &&
+        state == SemanticAstCollectionOwnershipOwnedElements() &&
+        dispositions[binding.row] == SemanticAstCollectionDispositionLive() {
+        // This initializer allocated every element independently. Preserve
+        // that class when the replacement expression only lends a String.
+        if !SemanticAstCollectionExclusiveSelectCompilerCloneNode(
+                compiler_clone_expression_node_ids, source_root) {
+            return SemanticAstCollectionStatementTransitionArtifactError("owned_string_store_landing", syntax_id);
+        }
+        owned_store = true;
+    }
+    let empty_literal: Bool = origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral();
+    let owns_elements: Bool = state == SemanticAstCollectionOwnershipOwnedElements() ||
+        state == SemanticAstCollectionOwnershipMapKeysSnapshot();
+    if empty_literal || owns_elements {
         let transition: Int = transition_states[binding.row];
         let owned_pop: Bool = array_pop &&
-            transition == SemanticAstCollectionTransitionOwned();
+            (!empty_literal || transition == SemanticAstCollectionTransitionOwned());
+        if empty_literal && ((owned_store && !SemanticAstCollectionTransitionAllowsOwned(transition)) ||
+            (!owned_store && !owned_pop && transition != SemanticAstCollectionTransitionEmpty() &&
+             transition != SemanticAstCollectionTransitionBorrowed())) {
+            return SemanticAstCollectionStatementTransitionBoundaryError(operation, syntax_id);
+        }
+        if !empty_literal && ((!array_pop && !owned_store) ||
+            dispositions[binding.row] == SemanticAstCollectionDispositionRetired()) {
+            return SemanticAstCollectionStatementTransitionBoundaryError(operation, syntax_id);
+        }
         var expected: Int = SemanticAstCollectionTransitionBorrowed();
         var effect: Int = SemanticAstCollectionOwnershipEffectShallowMutation();
         if owned_store {
@@ -103,37 +128,9 @@ func SemanticAstCollectionLocalStatementTransition(
             expected = SemanticAstCollectionTransitionOwned();
             effect = SemanticAstCollectionOwnershipEffectOwnedStringPop();
         }
-        if (owned_store && !SemanticAstCollectionTransitionAllowsOwned(transition)) ||
-            (!owned_store && !owned_pop &&
-             transition != SemanticAstCollectionTransitionEmpty() &&
-             transition != SemanticAstCollectionTransitionBorrowed()) {
-            return SemanticAstCollectionStatementTransitionBoundaryError(
-                operation, syntax_id);
-        }
-        transition_states[binding.row] = expected;
+        if empty_literal || owned_store { transition_states[binding.row] = expected; }
         var receipt_source: Int = 0;
         if owned_store && array_push { receipt_source = source_syntax_id; }
-        receipts = SemanticAstCollectionOwnershipReceiptRowsAppend(
-            receipts, function_id, syntax_id, AstExpressionLaneAtom(), -1,
-            effect, locals.node_ids[binding.row], receipt_source);
-    } else if state == SemanticAstCollectionOwnershipOwnedElements() ||
-        state == SemanticAstCollectionOwnershipMapKeysSnapshot() {
-        if ((!array_pop && !owned_store) ||
-            dispositions[binding.row] == SemanticAstCollectionDispositionRetired()) {
-            return SemanticAstCollectionStatementTransitionBoundaryError(
-                operation, syntax_id);
-        }
-        var effect: Int = SemanticAstCollectionOwnershipEffectOwnedStringPop();
-        var receipt_source: Int = 0;
-        if owned_store {
-            transition_states[binding.row] = SemanticAstCollectionTransitionOwned();
-            if array_push {
-                effect = SemanticAstCollectionOwnershipEffectOwnedStringPush();
-                receipt_source = source_syntax_id;
-            } else {
-                effect = SemanticAstCollectionOwnershipEffectOwnedStringSet();
-            }
-        }
         receipts = SemanticAstCollectionOwnershipReceiptRowsAppend(
             receipts, function_id, syntax_id, AstExpressionLaneAtom(), -1,
             effect, locals.node_ids[binding.row], receipt_source);

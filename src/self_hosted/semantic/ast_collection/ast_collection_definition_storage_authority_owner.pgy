@@ -31,7 +31,7 @@ func SemanticAstCollectionStorageAuthorityFromDefinitions(
         var seed_source: Int = -1;
         var source_id: Int = 0;
         let value: Int = definitions.value_nodes[row];
-        if value >= 0 {
+        if value >= 0 && definitions.origins[row] != SemanticAstCollectionOriginClone() {
             let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, value);
             let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, value);
             if !identity.ok || !IsSome(kind) { return facts; }

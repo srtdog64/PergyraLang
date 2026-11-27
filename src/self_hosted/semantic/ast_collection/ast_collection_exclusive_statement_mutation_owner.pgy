@@ -256,6 +256,72 @@ func SemanticAstCollectionExclusiveSelectCopiesBeforeInPlaceCalls(
     return true;
 }
 
+func SemanticAstCollectionExclusiveStatementMutationKind(
+    ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts, syntax_id: Int
+) -> Int {
+    let indexed: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
+    if IsSome(indexed) {
+        let kind: Int = statements.kind_tags[UnwrapOption(indexed)];
+        if kind == TypedAstKindArrayPushStmtTag() || kind == TypedAstKindArrayPopStmtTag() ||
+            kind == TypedAstKindArraySetStmtTag() { return kind; }
+    }
+    let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
+    if IsSome(assigned) && assignments.target_is_indexed[UnwrapOption(assigned)] != 0 {
+        return TypedAstKindAssignStmtTag();
+    }
+    return -1;
+}
+
+// A copy selected by a later write must be known when its definition is
+// evaluated. This pass only selects landings. The ordered scan still checks
+// each mutation against the current storage definition and effect facts.
+func SemanticAstCollectionExclusivePlanMutationCopies(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts, mutating: HashMap<String, Int>,
+    ref focus: SemanticAstCollectionFocusRecoveryFacts,
+    ref values: SemanticAstCollectionExclusiveValueFacts,
+    inout clone_nodes: Array<Int>
+) -> Int {
+    var surface: Int = 0;
+    while surface < ArrayLength(surfaces.node_ids) {
+        let function_id: Int = surfaces.function_node_ids[surface];
+        let syntax_id: Int = surfaces.node_ids[surface];
+        surface = surface + 1;
+        let function_key: String = ToString(function_id);
+        if !MapHas(values.copies, Concat("copy_site_function_count:", function_key)) { continue; }
+        if !SemanticAstCollectionExclusiveSelectCopiesBeforeInPlaceCalls(
+                artifact, signatures, mutating, focus, assignments, locals, inferred_types, surfaces,
+                values.surface_starts, values.surface_ends, values.copies, clone_nodes, function_id, syntax_id) {
+            return syntax_id;
+        }
+        let kind: Int = SemanticAstCollectionExclusiveStatementMutationKind(statements, assignments, syntax_id);
+        if kind < 0 { continue; }
+        let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
+            artifact, locals, inferred_types, surfaces, function_id, syntax_id);
+        var root: Int = 0;
+        if target.ok {
+            root = locals.node_ids[target.row];
+        } else {
+            let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionExclusiveStatementTargetPlace(
+                artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id);
+            if !place.ok || place.temporary || place.key < 0 { continue; }
+            root = SemanticAstCollectionExclusivePlaceRoot(locals, place);
+            if SemanticAstCollectionExclusiveWriteBackCopy(artifact, signatures, locals, inferred_types,
+                    surfaces, assignments, function_id, root) ||
+                SemanticAstCollectionFocusRecoveryLocalActive(artifact, focus, function_id, syntax_id, root) { continue; }
+        }
+        // The ordered mutation check owns refusal for a missing surface range.
+        if MapHas(values.surface_starts, function_key) && MapGet(values.surface_starts, function_key) >= 0 &&
+            !SemanticAstCollectionExclusiveSelectCopiesBeforeMutation(
+                artifact, signatures, locals, inferred_types, surfaces, values.surface_starts, values.surface_ends,
+                values.copies, clone_nodes, function_id, syntax_id, root, false) { return syntax_id; }
+    }
+    return 0;
+}
+
 // A statement-form change whose receiver is a member path of a local changes
 // that local's storage at the path's first field. Copies a later reader would
 // see changed are selected as compiler Clones first, as for a local receiver.
@@ -272,7 +338,7 @@ func SemanticAstCollectionExclusivePlaceStatementRootReady(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     shared_locals: HashMap<String, Int>,
     function_id: Int, syntax_id: Int, kind: Int, ref focus: SemanticAstCollectionFocusRecoveryFacts,
-    ref copies: HashMap<String, Int>, inout compiler_clone_expression_node_ids: Array<Int>,
+    ref copies: HashMap<String, Int>, ref compiler_clone_expression_node_ids: Array<Int>,
     surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>
 ) -> SemanticAstCollectionExclusiveStatementMutationProof {
     let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionExclusiveStatementTargetPlace(
@@ -295,13 +361,10 @@ func SemanticAstCollectionExclusivePlaceStatementRootReady(
     if place.key >= 0 && SemanticAstCollectionFocusRecoveryLocalActive(artifact, focus, function_id, syntax_id, root) {
         return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
     }
-    if !SemanticAstCollectionExclusiveSelectCopiesBeforeMutation(
-            artifact, signatures, locals, inferred_types, surfaces,
-            surface_starts, surface_ends, copies,
-            compiler_clone_expression_node_ids, function_id, syntax_id, root, false) {
+    let key: String = ToString(function_id);
+    if !MapHas(surface_starts, key) || !MapHas(surface_ends, key) || MapGet(surface_starts, key) < 0 {
         return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
     }
-    let key: String = ToString(function_id);
     if kind != TypedAstKindArrayPushStmtTag() && kind != TypedAstKindArrayPopStmtTag() {
         if place.key >= 0 && SemanticAstCollectionExclusiveInPlaceWriteUnfollowed(artifact, signatures, locals,
                 inferred_types, surfaces, assignments, copies, surface_starts, surface_ends, function_id,
@@ -446,35 +509,13 @@ func SemanticAstCollectionExclusiveStatementRootReady(
     mutating: HashMap<String, Int>, ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
     function_id: Int, syntax_id: Int, ref focus: SemanticAstCollectionFocusRecoveryFacts,
     ref copies: HashMap<String, Int>,
-    inout compiler_clone_expression_node_ids: Array<Int>,
+    ref compiler_clone_expression_node_ids: Array<Int>,
     ref call_effects: SemanticAstCollectionCallEffectFacts,
     ref current_definitions: Array<Int>,
     surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>
 ) -> SemanticAstCollectionExclusiveStatementMutationProof {
-    if !SemanticAstCollectionExclusiveSelectCopiesBeforeInPlaceCalls(
-            artifact, signatures, mutating, focus, assignments, locals, inferred_types, surfaces,
-            surface_starts, surface_ends, copies,
-            compiler_clone_expression_node_ids, function_id, syntax_id) {
-        return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
-    }
-    // Only a reallocating mutation retires the buffer other copies name;
-    // ArraySet and an indexed assignment write in place. The statement facts
-    // track no assignment, so an indexed assignment is found in the
-    // assignment facts and keeps its own statement kind.
-    let indexed: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
-    let assignment: Option<Int> = SemanticAstAssignmentIndexForNode(
-        assignments, syntax_id);
-    let indexed_assignment: Bool = IsSome(assignment) &&
-        assignments.target_is_indexed[UnwrapOption(assignment)] != 0;
-    if !IsSome(indexed) && !indexed_assignment {
-        return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
-    }
-    var kind: Int = TypedAstKindAssignStmtTag();
-    if IsSome(indexed) { kind = statements.kind_tags[UnwrapOption(indexed)]; }
-    let mutates_storage: Bool = kind == TypedAstKindArrayPushStmtTag() ||
-        kind == TypedAstKindArrayPopStmtTag() ||
-        kind == TypedAstKindArraySetStmtTag() || indexed_assignment;
-    if !mutates_storage {
+    let kind: Int = SemanticAstCollectionExclusiveStatementMutationKind(statements, assignments, syntax_id);
+    if kind < 0 {
         return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
     }
     let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
@@ -495,11 +536,7 @@ func SemanticAstCollectionExclusiveStatementRootReady(
         SemanticAstCollectionFocusRecoveryLocalActive(artifact, focus, function_id, syntax_id, locals.node_ids[target.row]) {
         return SemanticAstCollectionExclusiveStatementMutationProofReady(false);
     }
-    if !SemanticAstCollectionExclusiveSelectCopiesBeforeMutation(
-            artifact, signatures, locals, inferred_types, surfaces,
-            surface_starts, surface_ends, copies,
-            compiler_clone_expression_node_ids,
-            function_id, syntax_id, locals.node_ids[target.row], false) {
+    if !ordered || !MapHas(surface_ends, function_key) {
         return SemanticAstCollectionExclusiveStatementMutationProofInvalid();
     }
     // In-place element writes need independent value semantics but do not

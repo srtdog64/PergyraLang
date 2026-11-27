@@ -97,6 +97,38 @@ records the focused execution results and the remaining lifetime boundary.
   records the diagnostic candidates and the isolation limit. Verify the
   next reached owner with ordinary admission on the current publication.
 
+## Array field copy selected by a later mutation
+
+See the [installed-driver run](../truth/evidence/2026-11-28_collection_clone_definition_ownership.md).
+
+At the next collection check, the semantic copy selector lands a Clone on
+the initializer of `wrapper_target_names`. The ownership verdict still
+publishes a `member-move` from the old field. The typed definition consumer
+sees an array Clone and refuses the conflicting birth. A nested field copy
+followed by `ArraySet` and a readonly observation of the original record
+reproduces it. The native oracle prints `original` and then `changed`.
+
+- Finish the structural copy selection before the value-definition and
+  element-lifetime scan. Keep the existing copy-site and later-observation
+  checks as the selector. The ordered mutation proof still reads its actual
+  definition and call effects. Do not issue a second copy from the emitter.
+- Activate the selected member initializer as fresh owned storage at its
+  existing definition identity. A Clone reads its source field without
+  retiring it. Its element ownership and source identity travel through the
+  same ownership verdict as explicit Clone. Actual member moves retain their
+  path and retirement checks. An earlier unresolved move still blocks a copy
+  from that same field.
+- Reuse the owned String store receipt on the copied receiver. Select a
+  String copy for a borrowed store value at that exact expression. Read the
+  existing element-loan facts before any replacement may free an old value.
+  C and LLVM must consume the same checked operation and retire the copied
+  storage through their normal cleanup path.
+- The original and copy must diverge after a set on both targets. Remove
+  the initializer Clone, change its receiver identity, or omit the owned-set
+  receipt and require refusal without emission. Keep member restoration and
+  element-loan checks. Re-run source admission, bootstrap, and the unchanged
+  full-input bounds before advancing the rung.
+
 ## Objective card
 
 - Objective: make ownership ends explicit in MIR and consumed by both

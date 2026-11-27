@@ -26,7 +26,7 @@ func SemanticAstCollectionStatementTransitionForSyntax(
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
-    ref compiler_clone_expression_node_ids: Array<Int>,
+    inout compiler_clone_expression_node_ids: Array<Int>,
     ref owned_store_expression_node_ids: Array<Int>,
     ref element_requirements: HashMap<String, Int>,
     compiler_clone_storage_detached: Bool,

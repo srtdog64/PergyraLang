@@ -40,9 +40,6 @@ DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/p
 NO_ROW="direct MIR Array<String> cleanup requires an admitted ownership row"
 SHARED="direct MIR Array<String> cleanup refuses storage another holder still has"
 MEMBER_ALIAS="direct MIR Array<String> alias of a parameter member grows storage the member still names"
-# A compiler Clone landing at a binding whose ownership row still names the
-# member move it copies.
-LANDED_MEMBER_MOVE="stage=collection_ownership_transition"
 NO_HANDOFF="direct MIR Array<String> constructor input has no hand-off fact"
 LENT_INOUT="owned local lent to a ref formal is released while an inout argument of the same call may hold its Strings"
 # The general route refuses the routine whose member move claims a hand-off:
@@ -261,8 +258,8 @@ func Main() -> Int {
     return 0;
 }
 EOF
-# The alias of an inout member grows and is never stored back; the caller's
-# member keeps the storage the growth released.
+# The unassigned inout field copy grows independently. The caller keeps the
+# original member, and the callee retires the copy.
 cat >"$WORK_DIR/member_alias.pgy" <<'EOF'
 struct Rows { types: Array<String>; }
 func Capture(inout rows: Rows) -> Void {
@@ -276,6 +273,7 @@ func Main() -> Void {
     Log(rows.types[0]);
 }
 EOF
+printf 'seed\n' >"$WORK_DIR/member_alias.expected"
 # Neighbours whose ownership is proved still compile and run: a literal of
 # borrowed elements, a local that owns pushed copies, a runtime Split result
 # whose elements the runtime copied, and locals handed only to callees that
@@ -423,11 +421,6 @@ refuse alias_owned_element --emit-llvm ll "$SHARED"
 # only the LLVM leg reaches the direct MIR cleanup.
 refuse constructor_twice --emit-llvm ll "$NO_HANDOFF"
 refuse constructor_loop --emit-llvm ll "$NO_HANDOFF"
-# member_alias's unassigned focus part is a Clone landing at its definition
-# (decision 2026-11-12). The MIR carries it, but the binding's ownership row
-# still names the member move, so the transition admission refuses. The
-# backend's own alias guard is reached from the MIR below without its site.
-refuse member_alias --emit-llvm ll "$LANDED_MEMBER_MOVE"
 refuse lent_beside_inout --emit-llvm ll "$LENT_INOUT"
 refuse record_then_return --emit-llvm ll "$TAKEN"
 refuse record_twice --emit-llvm ll "$TAKEN"
@@ -455,6 +448,7 @@ run_admitted() {
         fail "$name output drifted on $backend"
 }
 for backend in c llvm; do
+    run_admitted member_alias "$backend" 0
     run_admitted rowed "$backend" 0
     run_admitted record_observed "$backend" 0
     run_admitted constructor_handoff "$backend" 0
@@ -541,30 +535,41 @@ done
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/member_alias.pgy" \
     -o "$WORK_REL/member_alias.mir.json") >"$WORK_DIR/member_alias.mir.log" 2>&1 ||
     fail "self-host MIR producer rejected member_alias"
-# The MIR as a producer that did not carry the copy would write it.
+# Keep the earlier alias guard exercised with a coherent member move and
+# shallow pushes. The landed program above owns a different allocation.
 python3 - "$WORK_DIR/member_alias.mir.json" "$WORK_DIR/member_alias.uncopied.mir.json" <<'PY' ||
 import json
 import sys
 
 document = json.load(open(sys.argv[1], encoding="utf-8"))
-removed = 0
-for routine in document["routines"]:
-    for block in routine["blocks"]:
-        for instruction in block["instructions"]:
-            removed += instruction.pop("expr0_clone_sites", None) is not None
-if removed != 1:
-    raise SystemExit(f"member_alias MIR carries {removed} compiler Clone site lists, expected 1")
+capture = next(row for row in document["routines"] if row["name"] == "Capture")
+assert len(capture["collection_ownership_facts"]) == 1
+owned = capture["collection_ownership_facts"][0]
+assert owned["origin"] == "clone" and owned["element_ownership"] == "owned-elements"
+record = next(row for row in document["decls"] if row["name"] == "Rows")
+field = next(row for row in record["fields"] if row["name"] == "types")
+owned.update(origin="member-move", element_ownership="unknown",
+             origin_syntax_id=field["source_syntax_id"],
+             source_binding_syntax_id=capture["params"][0]["source_syntax_id"])
+instructions = [row for block in capture["blocks"] for row in block["instructions"]]
+definition = next(row for row in instructions if row["kind"] == "def" and row["arg0"] == "types")
+del definition["expr0_clone_sites"]
+for row in instructions:
+    receipt = row.get("collection_ownership_receipt")
+    if receipt and receipt["receiver_binding_syntax_id"] == owned["binding_syntax_id"]:
+        assert receipt["kind"] == "owned-string-push"
+        row["collection_ownership_receipt"] = None
 json.dump(document, open(sys.argv[2], "w", encoding="utf-8"))
 PY
     fail "member_alias MIR does not carry its compiler Clone site"
-set +e
-(cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm "$WORK_REL/member_alias.uncopied.mir.json" \
-    -o "$WORK_REL/member_alias.direct.ll") >"$WORK_DIR/member_alias.direct.log" 2>&1
-rc=$?
-set -e
-[[ "$rc" -ne 0 && ! -e "$WORK_DIR/member_alias.direct.ll" ]] || fail "member_alias MIR was admitted by the direct backend"
-grep -Fq "$MEMBER_ALIAS" "$WORK_DIR/member_alias.direct.log" ||
-    fail "member_alias MIR was refused for another reason: $(head -3 "$WORK_DIR/member_alias.direct.log")"
+for backend in c llvm; do
+    rc=0
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" "$WORK_REL/member_alias.uncopied.mir.json" \
+        -o "$WORK_REL/member_alias.uncopied.$backend") >"$WORK_DIR/member_alias.uncopied.$backend.log" 2>&1 || rc=$?
+    [[ "$rc" -ne 0 && ! -e "$WORK_DIR/member_alias.uncopied.$backend" ]] || fail "$backend admitted an uncopied member alias"
+    grep -Fq "$MEMBER_ALIAS" "$WORK_DIR/member_alias.uncopied.$backend.log" ||
+        fail "$backend refused the member alias before the alias guard"
+done
 
 # The source spelling is deliberately reused in disjoint scopes. The wire
 # owns two declaration identities; the transition join must keep them apart.
@@ -695,4 +700,4 @@ for backend in c llvm; do
     grep -Fq 'stage=collection_ownership_transition' "$WORK_DIR/nested_missing_end.$backend.log" ||
         fail "missing nested end was refused before the transition proof on $backend"
 done
-echo "[$LABEL] PASS refused=17+4+6+2 admitted=9x2+native-mir-2x2+binding-6+nested-2 evidence=$WORK_REL"
+echo "[$LABEL] PASS cleanup, hand-off, binding identity, nested return and copied/uncopied member growth evidence=$WORK_REL"

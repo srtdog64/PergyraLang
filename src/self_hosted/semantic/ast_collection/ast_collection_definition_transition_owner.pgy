@@ -59,7 +59,7 @@ func SemanticAstCollectionCompleteDefinition(
         origin_syntax_ids[row] = owned_result_function;
         transitions[row] = SemanticAstCollectionTransitionOwned();
         source_binding_ids[row] = 0;
-    } else if definition >= definitions.local_count {
+    } else if definition >= definitions.local_count || definitions.origins[definition] == SemanticAstCollectionOriginClone() {
         ownership[row] = definitions.ownerships[definition];
         origins[row] = definitions.origins[definition];
         transitions[row] = definitions.transitions[definition];

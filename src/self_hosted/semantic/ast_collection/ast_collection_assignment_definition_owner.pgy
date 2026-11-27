@@ -6,6 +6,7 @@ import "ast_collection_ownership_state_owner.pgy";
 import "../ast_assignment_fact_owner.pgy";
 import "../ast_assignment_type_fact_owner.pgy";
 import "ast_collection_definition_query_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
 
 func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -137,4 +138,25 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
     }
     facts.ok = true;
     return facts;
+}
+
+func SemanticAstCollectionDefinitionApplyInitializerCopies(
+    inout facts: SemanticAstCollectionDefinitionFacts, ref clone_nodes: Array<Int>,
+    inout origin_syntax_ids: Array<Int>
+) -> Void {
+    var row: Int = 0;
+    while row < facts.local_count {
+        if SemanticAstCollectionExclusiveCompilerCloneNodeSelected(clone_nodes, facts.value_nodes[row]) {
+            // The copy owns a new descriptor. Its operand is still read, but
+            // this definition carries no storage or retirement from it.
+            facts.own_sources[row] = 0;
+            facts.local_sources[row] = -1;
+            facts.shallow_alias_admitted[row] = false;
+            facts.origins[row] = SemanticAstCollectionOriginClone();
+            facts.ownerships[row] = SemanticAstCollectionOwnershipOwnedElements();
+            facts.transitions[row] = SemanticAstCollectionTransitionOwned();
+            origin_syntax_ids[row] = facts.syntax_ids[row];
+        }
+        row = row + 1;
+    }
 }

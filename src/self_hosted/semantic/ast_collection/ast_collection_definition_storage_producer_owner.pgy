@@ -17,6 +17,7 @@ func SemanticAstCollectionDefinitionDirectStorageSource(
     let value: Int = definitions.value_nodes[definition];
     if row < 0 || row >= ArrayLength(locals.function_node_ids) || locals.function_node_ids[row] <= 0 ||
         value < 0 || (definition >= definitions.local_count && !definitions.fresh[definition]) { return 0; }
+    if definitions.origins[definition] == SemanticAstCollectionOriginClone() { return definitions.syntax_ids[definition]; }
     let literal: SemanticArrayLiteralView = SemanticArrayLiteralViewFromGraph(surfaces.expression_graph, value);
     if literal.ok { return definitions.syntax_ids[definition]; }
     let owned_result_function: Int =

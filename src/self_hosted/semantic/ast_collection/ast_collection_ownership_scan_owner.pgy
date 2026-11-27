@@ -40,7 +40,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     ref formal_effects: SemanticAstCollectionFormalEffects,
-    ref owned_string_store_clone_nodes: Array<Int>,
+    own compiler_clone_expression_node_ids: Array<Int>,
     ref owned_string_store_nodes: Array<Int>,
     ref body_termination: SemanticAstBodyTerminationFacts,
     ref owned_result_plan: SemanticAstFreshOwnedStringArrayResultPlan,
@@ -75,29 +75,6 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     let released_fields: SemanticAstCollectionReleasedFields =
         SemanticAstCollectionReleasedFieldsFrom(constructors, field_requirements);
     var root_slot: Int = 0;
-    // Constructor selections precede source-ordered mutation selections.
-    // Keep the exact landing projection separate from the structural copy
-    // graph so the scan never copies that graph merely to append a node id.
-    var compiler_clone_expression_node_ids: Array<Int> =
-        SemanticAstCollectionExclusiveCompilerCloneNodes(
-            exclusive_values.copies);
-    var planned_clone: Int = 0;
-    while planned_clone < ArrayLength(owned_string_store_clone_nodes) {
-        let node: Int = owned_string_store_clone_nodes[planned_clone];
-        if !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(
-                compiler_clone_expression_node_ids, node) &&
-            !SemanticAstCollectionExclusiveSelectCompilerCloneNode(
-                compiler_clone_expression_node_ids, node) {
-            verdict = SemanticAstCollectionOwnershipVerdictError(
-                "ast_artifact_invalid",
-                SemanticError1("ast_artifact_invalid", "owner",
-                    "owned_string_store_landing_projection"), -1, -1);
-            return;
-        }
-        planned_clone = planned_clone + 1;
-    }
-    if !SemanticAstCollectionExclusiveSelectFocusPartCopies(focus_recovery, surfaces, compiler_clone_expression_node_ids) {
-        verdict = SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid", SemanticError1("ast_artifact_invalid", "owner", "focus_part_copy_landing"), -1, -1); return; }
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         // Each syntax event precedes its own call lanes, not every call in the
         // program. Keeping statements first also closes same-syntax RHS effects.

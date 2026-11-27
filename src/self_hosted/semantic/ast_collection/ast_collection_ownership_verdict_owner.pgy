@@ -49,6 +49,7 @@ import "../array_type_shape_owner.pgy";
 import "../diagnostic_owner.pgy";
 import "ast_collection_ownership_scan_owner.pgy";
 import "ast_collection_exclusive_value_mutation_owner.pgy";
+import "ast_collection_exclusive_statement_mutation_owner.pgy";
 import "ast_collection_exclusive_value_restoration_owner.pgy";
 import "ast_collection_ownership_member_restoration_owner.pgy";
 import "ast_collection_focus_recovery_admission_owner.pgy";
@@ -118,12 +119,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
             "ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner",
                 "collection_owned_result_definition"), -1, -1);
-    }
-    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
-        signatures, locals, surfaces, definitions);
-    if !storage.ok {
-        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
-            SemanticError1("ast_artifact_invalid", "owner", "collection_storage_authority"), -1, -1);
     }
     var literal_transfers: SemanticAstOwnedStringLiteralTransferFacts =
         SemanticAstOwnedStringLiteralTransferFactsFromDefinitions(
@@ -337,6 +332,32 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         resolved_leaf_types, surfaces, statements, assignments, exclusive_values, mutating_formals, focus_excluded);
     focus.ok = focus.ok && SemanticAstCollectionFocusRecoveryCurrent(artifact, signatures, constructors, locals,
         initializer_types.inferred_type_names, surfaces, statements, assignments, formal_effects, focus);
+    var compiler_clone_nodes: Array<Int> = SemanticAstCollectionExclusiveCompilerCloneNodes(exclusive_values.copies);
+    var planned_clone: Int = 0;
+    while planned_clone < ArrayLength(owned_string_store_clone_nodes) {
+        let node: Int = owned_string_store_clone_nodes[planned_clone];
+        if !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(compiler_clone_nodes, node) &&
+            !SemanticAstCollectionExclusiveSelectCompilerCloneNode(compiler_clone_nodes, node) {
+            return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner", "owned_string_store_landing_projection"), -1, -1);
+        }
+        planned_clone = planned_clone + 1;
+    }
+    if !SemanticAstCollectionExclusiveSelectFocusPartCopies(focus, surfaces, compiler_clone_nodes) {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "focus_part_copy_landing"), -1, -1);
+    }
+    let unproved_copy: Int = SemanticAstCollectionExclusivePlanMutationCopies(
+        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, statements,
+        assignments, mutating_formals, focus, exclusive_values, compiler_clone_nodes);
+    if unproved_copy > 0 { return SemanticAstCollectionExclusiveMemberMutationRefusal(surfaces, unproved_copy); }
+    SemanticAstCollectionDefinitionApplyInitializerCopies(definitions, compiler_clone_nodes, origin_syntax_ids);
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+        signatures, locals, surfaces, definitions);
+    if !storage.ok {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "collection_storage_authority"), -1, -1);
+    }
     let binding_move_use: SemanticAstCollectionBindingMoveUse =
         SemanticAstCollectionFirstInvalidBindingMoveUse(
             artifact, locals, initializer_types.inferred_type_names,
@@ -353,7 +374,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         SemanticAstCollectionFirstInvalidMemberMoveUse(
             artifact, signatures, constructors, locals, initializer_types.inferred_type_names, resolved_leaf_types,
             surfaces, assignments, statements, formal_effects.execution_contexts, formal_effects.borrowed_text_formals,
-            move_destinations, focus);
+            move_destinations, focus, compiler_clone_nodes);
     if !moved_use.read_permission_ready {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_member_read_permission"), -1, -1);
@@ -464,7 +485,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         artifact, signatures, constructors, locals, initializer_types, surfaces,
         resolved_leaf_types, numeric_string_allocations, owned_string_results,
         statements, assignments, formal_effects,
-        owned_string_store_clone_nodes, owned_string_store_nodes,
+        compiler_clone_nodes, owned_string_store_nodes,
         body_termination,
         owned_result_plan, fresh_string_results,
         definitions, storage, moved_use, element_requirements, field_requirements,

@@ -11,6 +11,7 @@ import "ast_collection_ownership_member_result_owner.pgy";
 import "ast_collection_member_read_block_transition_owner.pgy";
 import "ast_collection_focus_recovery_admission_owner.pgy";
 import "ast_collection_member_local_transition_owner.pgy";
+import "ast_collection_exclusive_compiler_clone_owner.pgy";
 func SemanticAstCollectionFirstInvalidMemberMoveUse(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
@@ -18,7 +19,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     ref statements: SemanticAstStatementFacts,
     ref contexts: SemanticAstCollectionFormalExecutionContexts, borrowed_text: HashMap<String, Int>,
-    own move_destinations: HashMap<String, Int>, ref focus: SemanticAstCollectionFocusRecoveryFacts
+    own move_destinations: HashMap<String, Int>, ref focus: SemanticAstCollectionFocusRecoveryFacts,
+    ref clone_nodes: Array<Int>
 ) -> SemanticAstCollectionMemberMoveUse {
     var active_members: HashMap<String, Int> = MapNew(); var retired_locals: HashMap<String, Int> = MapNew();
     var restored: Array<Int> = []; var restoration_sites: Array<Int> = [];
@@ -89,7 +91,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                     if identity.ok {
                         let event_key: String = SemanticAstCollectionMemberMoveEventKey(
                             identity, syntax_id);
-                        if MapHas(move_destinations, event_key) {
+                        if MapHas(move_destinations, event_key) &&
+                            !SemanticAstCollectionExclusiveCompilerCloneNodeSelected(clone_nodes, node) {
                             SemanticAstCollectionMemberReadBlockTransition(
                                 artifact, unproved_read_roots, read_hazards,
                                 identity.source_binding_syntax_id, 0);

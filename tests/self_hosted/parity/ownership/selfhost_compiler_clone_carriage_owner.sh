@@ -94,10 +94,27 @@ func Main() -> Int {
     return 0;
 }
 EOF
+
+cat >"$WORK_DIR/owned_field_copy_set.pgy" <<'EOF'
+struct Calls { target_names: Array<String>; }
+struct Graph { arena: Calls; }
+
+func MakeGraph() -> Graph { return Graph(Calls(["original"])); }
+
+func Observe(ref graph: Graph) -> String { return graph.arena.target_names[0]; }
+
+func Main() -> Void {
+    let graph = MakeGraph();
+    var target_names: Array<String> = graph.arena.target_names;
+    ArraySet(target_names, 0, "changed");
+    Log(Observe(graph));
+    Log(target_names[0]);
+}
+EOF
 "$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
     -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/runtime.o" 2>/dev/null ||
     fail "runtime object did not compile"
-for stem in $STEMS $RECORD_STEMS nested_record_landed explicit_record_clone; do
+for stem in $STEMS $RECORD_STEMS nested_record_landed explicit_record_clone owned_field_copy_set; do
     "$PGY" --native-pipeline --backend=c "$WORK_DIR/$stem.pgy" -o "$WORK_DIR/$stem.native.exe" \
         >/dev/null 2>"$WORK_DIR/$stem.native.err" || fail "$stem native compile failed"
     "$WORK_DIR/$stem.native.exe" | tr -d '\r' >"$WORK_DIR/$stem.native.run"
@@ -129,6 +146,58 @@ for stem in $STEMS $RECORD_STEMS nested_record_landed explicit_record_clone; do
         tr -d '\r' >"$WORK_DIR/$stem.direct-llvm.run" || fail "$stem direct LLVM failed under AddressSanitizer"
     cmp -s "$WORK_DIR/$stem.direct-llvm.run" "$WORK_DIR/$stem.native.run" || fail "$stem direct LLVM runs unlike native"
 done
+
+"$PYTHON_BIN" - "$WORK_DIR/owned_field_copy_set.mir.json" "$WORK_DIR" <<'PY'
+import copy
+import json
+from pathlib import Path
+import sys
+
+source, output = map(Path, sys.argv[1:])
+program = json.loads(source.read_text(encoding="utf-8"))
+fixture = (output / "owned_field_copy_set.pgy").read_text(encoding="utf-8")
+loaned = fixture.replace('    ArraySet(target_names', '    let view = target_names[0];\n    ArraySet(target_names')
+loaned = loaned.replace('    Log(target_names[0]);', '    Log(view);')
+(output / "owned_field_copy_loan.pgy").write_text(loaned, encoding="utf-8")
+for mutation in ("missing_initializer_copy", "missing_owned_set_receipt", "wrong_set_receiver"):
+    broken = copy.deepcopy(program)
+    main = next(routine for routine in broken["routines"] if routine["name"] == "Main")
+    instructions = [row for block in main["blocks"] for row in block["instructions"]]
+    if mutation == "missing_initializer_copy":
+        definition = next(row for row in instructions if row.get("arg0") == "target_names")
+        del definition["expr0_clone_sites"]
+    else:
+        store = next(row for row in instructions if row.get("arg0") == "ArraySet")
+        receipt = store["collection_ownership_receipt"]
+        assert receipt["kind"] == "owned-string-set"
+        if mutation == "missing_owned_set_receipt":
+            store["collection_ownership_receipt"] = None
+        else:
+            graph = next(row for row in main["source_locals"] if row["name"] == "graph")
+            receipt["receiver_binding_syntax_id"] = graph["binding_syntax_id"]
+    (output / f"{mutation}.mir.json").write_text(
+        json.dumps(broken, separators=(",", ":")), encoding="utf-8")
+PY
+
+for mutation in missing_initializer_copy missing_owned_set_receipt wrong_set_receiver; do
+    for backend in c llvm; do
+        output="$WORK_REL/$mutation.$backend.out"
+        if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+                "$WORK_REL/$mutation.mir.json" -o "$output") \
+                >"$WORK_DIR/$mutation.$backend.log" 2>&1; then
+            fail "direct $backend accepted an owned field copy with $mutation"
+        fi
+        [[ ! -e "$ROOT_DIR/$output" ]] || fail "direct $backend emitted an artifact with $mutation"
+    done
+done
+
+if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/owned_field_copy_loan.pgy" \
+        -o "$WORK_REL/owned_field_copy_loan.mir.json") >"$WORK_DIR/owned_field_copy_loan.log" 2>&1; then
+    fail "a loan of the element the owned set releases escaped the source check"
+fi
+[[ ! -e "$WORK_DIR/owned_field_copy_loan.mir.json" ]] || fail "the rejected loan published MIR"
+grep -Fq 'indexed_string_use_after_element_release' "$WORK_DIR/owned_field_copy_loan.log" ||
+    fail "the loan was refused before its element release check"
 
 # The installed default LLVM route copies the Array before it is sorted.
 stem=local_copy_source_sorted_landed_valid
@@ -201,4 +270,4 @@ for how in malformed window int lane; do
             fail "direct $backend refused the forged compiler Clone site ($how) for another reason: $(grep -m1 -o 'CODEGEN ERROR.*' "$WORK_DIR/forged_$how.$backend.log")"
     done
 done
-echo "[$LABEL] 10 programs with compiler Clone landings (Array binding and arguments, String elements, flat and nested record arguments) and an explicit record Clone copied on direct C and LLVM, and a landing on the default LLVM route, run as native with no memory error; a map-field record and a record call result refused; 4 forged sites refused on both backends"
+echo "[$LABEL] compiler and explicit copies run as native on C and LLVM, including the owned field copy and subsequent set. Unsupported copies, four forged sites and missing field copy or owned-set evidence refused on both backends."
