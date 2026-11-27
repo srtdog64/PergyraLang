@@ -117,8 +117,11 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
                         surfaces.node_ids[surface_row], node);
                 }
                 let state: Int = ownership[binding.row];
+                let owned_result_push: Bool = mutation.owned_push &&
+                    origins[binding.row] == SemanticAstCollectionOriginCallResult() &&
+                    state == SemanticAstCollectionOwnershipOwnedElements();
                 if origins[binding.row] ==
-                        SemanticAstCollectionOriginEmptyLiteral() {
+                        SemanticAstCollectionOriginEmptyLiteral() || owned_result_push {
                     let transition: Int =
                         transition_states[binding.row];
                     if mutation.owned_push {
@@ -256,17 +259,6 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
                         SemanticError2("borrow_boundary_escape",
                             "boundary", name,
                             "type", "Array<String>"),
-                        surfaces.node_ids[surface_row], node);
-                }
-                if origins[binding.row] !=
-                        SemanticAstCollectionOriginEmptyLiteral() &&
-                    mutation.deep_drop && state ==
-                        SemanticAstCollectionOwnershipBorrowedElements() {
-                    return SemanticAstCollectionOwnershipVerdictError(
-                        "borrow_boundary_escape",
-                        SemanticError2("borrow_boundary_escape",
-                            "boundary", "owned_string_drop",
-                            "type", "borrowed Array<String>"),
                         surfaces.node_ids[surface_row], node);
                 }
                 if origins[binding.row] !=

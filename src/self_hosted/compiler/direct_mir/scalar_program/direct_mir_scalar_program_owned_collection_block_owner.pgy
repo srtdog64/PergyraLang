@@ -54,6 +54,11 @@ func DirectMirOwnedCollectionRowTracked(ref index: MirRoutineFactIndex, row: Int
          origin == "local-string-transfer" || origin == "binding") &&
         (ownership == "owned-elements" ||
          ownership == "map-keys-snapshot");
+    // The reader has proved the callee for this origin. The retired class
+    // describes the caller's terminal state, not the class at its birth.
+    let returned_result: Bool = origin == "call-result" &&
+        ownership == "retired" &&
+        index.collection_ownership_facts.dispositions[row] == "retired";
     // A member move always needs an exact birth/terminal proof. UNKNOWN owns
     // descriptor/storage only; OWNED-ELEMENTS also carries deep-drop
     // authority; RETIRED records the completed deep release.
@@ -64,7 +69,7 @@ func DirectMirOwnedCollectionRowTracked(ref index: MirRoutineFactIndex, row: Int
         (index.collection_ownership_facts.dispositions[row] == "live" ||
          index.collection_ownership_facts.dispositions[row] == "handed-off" ||
          index.collection_ownership_facts.dispositions[row] == "retired") &&
-        (element_owner || member_owner);
+        (element_owner || member_owner || returned_result);
 }
 
 func DirectMirOwnedCollectionRowForLocal(
@@ -128,8 +133,6 @@ func DirectMirOwnedCollectionDefinitionReady(
                 index.collection_ownership_facts.origin_syntax_ids[row] &&
             callables.return_types[callable - 1] ==
                 CompilerAbiLayoutArrayStringTypeName() &&
-            index.collection_ownership_facts.element_ownerships[row] ==
-                "owned-elements" &&
             index.collection_ownership_facts.source_binding_syntax_ids[row] == 0;
     }
     if origin == "owned-literal" { return definition.producer == 4 &&

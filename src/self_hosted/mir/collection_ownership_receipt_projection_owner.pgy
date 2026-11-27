@@ -42,21 +42,28 @@ func SelfMirCollectionOwnershipReceiptBindingReady(
         if facts.function_syntax_ids[row] == function_syntax_id &&
             facts.binding_syntax_ids[row] == binding_syntax_id {
             matched = matched + 1;
+            let origin: Int = facts.origins[row];
+            let ownership: Int = facts.element_ownerships[row];
+            // The exact push happened before a later return retired the binding.
+            let owned_result_push: Bool =
+                effect == SemanticAstCollectionOwnershipEffectOwnedStringPush() &&
+                origin == SemanticAstCollectionOriginCallResult() &&
+                (ownership == SemanticAstCollectionOwnershipOwnedElements() ||
+                 (ownership == SemanticAstCollectionOwnershipRetired() &&
+                  facts.dispositions[row] == SemanticAstCollectionDispositionRetired()));
             let owned_effect: Bool =
                 (effect == SemanticAstCollectionOwnershipEffectOwnedStringPush() ||
                  effect == SemanticAstCollectionOwnershipEffectDrop() ||
                  effect == SemanticAstCollectionOwnershipEffectOwnedStringSet() ||
                  effect == SemanticAstCollectionOwnershipEffectOwnedStringPop()) &&
-                (facts.element_ownerships[row] == SemanticAstCollectionOwnershipOwnedElements() ||
-                 facts.element_ownerships[row] == SemanticAstCollectionOwnershipMapKeysSnapshot()) &&
-                (facts.origins[row] == SemanticAstCollectionOriginMapKeys() ||
-                 facts.origins[row] == SemanticAstCollectionOriginClone() ||
-                 facts.origins[row] == SemanticAstCollectionOriginOwnedLiteral() ||
-                 facts.origins[row] == SemanticAstCollectionOriginBinding());
-            if facts.origins[row] != SemanticAstCollectionOriginEmptyLiteral() &&
-                !owned_effect {
-                return false;
-            }
+                (ownership == SemanticAstCollectionOwnershipOwnedElements() ||
+                 ownership == SemanticAstCollectionOwnershipMapKeysSnapshot()) &&
+                (origin == SemanticAstCollectionOriginMapKeys() ||
+                 origin == SemanticAstCollectionOriginClone() ||
+                 origin == SemanticAstCollectionOriginOwnedLiteral() ||
+                 origin == SemanticAstCollectionOriginBinding());
+            if origin != SemanticAstCollectionOriginEmptyLiteral() &&
+                !owned_effect && !owned_result_push { return false; }
         }
         row = row + 1;
     }
@@ -136,8 +143,7 @@ func SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
                 signatures, function_syntax_id, receiver_binding);
         if IsSome(formal_ordinal) {
             expected_ref = SelfMirLocalRef(
-                "parameter", function_syntax_id,
-                UnwrapOption(formal_ordinal));
+                "parameter", function_syntax_id, UnwrapOption(formal_ordinal));
         }
         var instruction: Int = 0;
         while instruction < ArrayLength(instructions.ids) {

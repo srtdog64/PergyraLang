@@ -32,7 +32,8 @@ func SelfMirCollectionOwnershipFactRowsEmpty(
 func SelfMirCollectionOwnershipIdentityWireRequired(
     ref origin: String, ref ownership: String
 ) -> Bool {
-    if origin == "empty-literal" { return true; }
+    if origin == "empty-literal" ||
+        (origin == "call-result" && ownership == "retired") { return true; }
     return (ownership == "owned-elements" || ownership == "map-keys-snapshot") &&
         (origin == "map-keys" || origin == "clone" ||
          origin == "owned-literal" || origin == "binding");

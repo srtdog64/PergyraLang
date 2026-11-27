@@ -321,12 +321,12 @@ func DirectMirScalarProgramOwnedArrayStringReturnFieldNode(
     return carriers[root - start];
 }
 
-func DirectMirScalarProgramOwnedArrayStringReturnTransferReady(
+func DirectMirScalarProgramOwnedArrayStringReturnTransferBlock(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     routine: Int, local_row: Int, return_type: String
-) -> Bool {
+) -> Int {
     let block_start: Int = DirectMirScalarProgramRoutinePartitionStart(
         storage.routines.block_counts, routine);
     if !DirectMirScalarProgramLogicalRecordFactReady(logical_record) ||
@@ -338,7 +338,7 @@ func DirectMirScalarProgramOwnedArrayStringReturnTransferReady(
         (return_type != CompilerAbiLayoutArrayStringTypeName() &&
          DirectMirScalarProgramLogicalRecordRow(
              logical_record, return_type) < 0) {
-        return false;
+        return -1;
     }
     var return_graph: Int = -1;
     var return_block: Int = -1;
@@ -352,25 +352,25 @@ func DirectMirScalarProgramOwnedArrayStringReturnTransferReady(
                 expressions, graph, local_row) > 0 {
             if return_graph >= 0 || graph >= ArrayLength(
                     expressions.graph_roots) {
-                return false;
+                return -1;
             }
             let root: Int = expressions.graph_roots[graph];
             if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
                 root >= ArrayLength(expressions.node_types) ||
                 expressions.node_types[root] != return_type {
-                return false;
+                return -1;
             }
             if return_type == CompilerAbiLayoutArrayStringTypeName() {
                 if expressions.node_kinds[root] !=
                         DirectMirScalarProgramExprLocal() ||
                     expressions.node_local_rows[root] != local_row {
-                    return false;
+                    return -1;
                 }
                 returned_local_node = root;
             } else {
                 if expressions.node_kinds[root] !=
                         DirectMirScalarProgramExprLogicalRecordConstructor() {
-                    return false;
+                    return -1;
                 }
                 returned_local_node =
                     DirectMirScalarProgramOwnedArrayStringReturnFieldNode(
@@ -379,7 +379,7 @@ func DirectMirScalarProgramOwnedArrayStringReturnTransferReady(
             if returned_local_node < 0 ||
                 !DirectMirScalarProgramOwnedArrayStringMoveEagerPathReady(
                     expressions, graph, returned_local_node) {
-                return false;
+                return -1;
             }
             return_graph = graph;
             return_block = block;
@@ -397,9 +397,12 @@ func DirectMirScalarProgramOwnedArrayStringReturnTransferReady(
         !DirectMirScalarProgramOwnedArrayStringMoveCallLastUseReady(
             storage, expressions, routine, -1, return_graph, local_row,
             return_block, definition, definition_block) {
-        return false;
+        return -1;
     }
     let consuming_blocks: Array<Int> = [return_block];
-    return DirectMirScalarProgramOwnedArrayStringMoveExitPathsCovered(
-        storage, routine, definition_block, consuming_blocks);
+    if !DirectMirScalarProgramOwnedArrayStringMoveExitPathsCovered(
+            storage, routine, definition_block, consuming_blocks) {
+        return -1;
+    }
+    return return_block;
 }

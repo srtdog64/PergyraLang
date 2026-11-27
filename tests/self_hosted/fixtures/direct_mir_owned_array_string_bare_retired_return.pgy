@@ -5,9 +5,29 @@ func Build() -> Array<String> {
     return values;
 }
 
+func BuildFallback() -> Array<String> {
+    var values: Array<String> = [];
+    ArrayPushOwnedString(values, "fallback");
+    return values;
+}
+
+func Forward(extended: Bool) -> Array<String> {
+    if extended {
+        var more: Array<String> = Build();
+        ArrayPushOwnedString(more, "branch");
+        return more;
+    }
+    let fallback: Array<String> = BuildFallback();
+    return fallback;
+}
+
 func Main() -> Void {
-    let values: Array<String> = Build();
+    let values: Array<String> = Forward(true);
     Log(ArrayLength(values));
     Log(values[0]);
     Log(values[1]);
+    Log(values[2]);
+    let plain: Array<String> = Forward(false);
+    Log(ArrayLength(plain));
+    Log(plain[0]);
 }

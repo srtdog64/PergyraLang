@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The returned Array owns its elements; a fresh copied push operand ends at the call.
+# Branch returns transfer the callee's Array. A copied push operand ends at the call.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -21,7 +21,9 @@ WORK_REL="${WORK_DIR#"$ROOT_DIR"/}"
 cd "$ROOT_DIR"
 "$DRIVER" --emit-mir-json-verified "$SOURCE" -o "$WORK_REL/program.mir.json" \
     >"$WORK_DIR/producer.log" 2>&1 || fail "source-to-MIR refused"
-python3 - "$WORK_DIR/program.mir.json" "$WORK_DIR/forged.mir.json" <<'PY'
+python3 - "$WORK_DIR/program.mir.json" "$WORK_DIR/forged.mir.json" \
+    "$WORK_DIR/missing-result.mir.json" "$WORK_DIR/missing-push.mir.json" \
+    "$WORK_DIR/wrong-callee.mir.json" <<'PY'
 import json
 import sys
 
@@ -32,10 +34,46 @@ if len(facts) != 1 or facts[0]["origin"] != "empty-literal" or \
         facts[0]["disposition"] != "retired" or \
         facts[0]["element_ownership"] != "retired":
     raise SystemExit("source did not produce the retired return-transfer claim")
+forward = next(row for row in document["routines"] if row["name"] == "Forward")
+fallback = next(row for row in document["routines"] if row["name"] == "BuildFallback")
+forwarded = forward["collection_ownership_facts"]
+by_callee = {row["origin_syntax_id"]: row for row in forwarded}
+if len(forwarded) != 2 or set(by_callee) != {
+    build["source_syntax_id"], fallback["source_syntax_id"]
+} or any(
+    row["origin"] != "call-result" or
+    row["element_ownership"] != "retired" or row["disposition"] != "retired"
+    for row in forwarded
+):
+    raise SystemExit("source did not carry exact result ownership on both branches")
 facts[0]["origin"] = "call-result"
 json.dump(document, open(sys.argv[2], "w", encoding="utf-8"))
+facts[0]["origin"] = "empty-literal"
+omitted = forwarded.pop()
+forward["collection_ownership_fact_count"] -= 1
+json.dump(document, open(sys.argv[3], "w", encoding="utf-8"))
+forwarded.append(omitted)
+forward["collection_ownership_fact_count"] += 1
+grown = by_callee[build["source_syntax_id"]]
+grown["origin_syntax_id"] = fallback["source_syntax_id"]
+json.dump(document, open(sys.argv[5], "w", encoding="utf-8"))
+grown["origin_syntax_id"] = build["source_syntax_id"]
+pushes = [
+    instruction
+    for block in forward["blocks"]
+    for instruction in block["instructions"]
+    if instruction.get("collection_ownership_receipt") is not None
+    and instruction["collection_ownership_receipt"]["kind"] == "owned-string-push"
+]
+if len(pushes) != 1 or (
+    pushes[0]["collection_ownership_receipt"]["receiver_binding_syntax_id"]
+    != grown["binding_syntax_id"]
+):
+    raise SystemExit("source did not tie the branch push to the returned binding")
+pushes[0]["collection_ownership_receipt"] = None
+json.dump(document, open(sys.argv[4], "w", encoding="utf-8"))
 PY
-printf '2\nab\nfixed\n' >"$WORK_DIR/expected"
+printf '3\nab\nfixed\nbranch\n1\nfallback\n' >"$WORK_DIR/expected"
 "$CLANG" -DPGY_LLVM_ENABLED -Isrc -Isrc/runtime -O0 -g \
     -fsanitize=address -fno-omit-frame-pointer -c src/runtime/pgy_runtime_lib.c \
     -o "$WORK_DIR/runtime.o" >"$WORK_DIR/runtime.compile.log" 2>&1 ||
@@ -63,14 +101,16 @@ for backend in c llvm; do
         fail "$backend leaked or failed under ASan/LSan"
     cmp -s "$WORK_DIR/expected" "$WORK_DIR/$backend.run" ||
         fail "$backend runtime output drifted"
-    if "$DRIVER" "--mir-json-backend=$backend" "$WORK_REL/forged.mir.json" \
-        -o "$WORK_REL/forged.$extension" >"$WORK_DIR/$backend.forged.log" 2>&1; then
-        fail "$backend accepted a forged retired origin"
-    fi
-    [[ ! -e "$WORK_DIR/forged.$extension" ]] ||
-        fail "$backend published a forged artifact"
-    grep -Fq 'CODEGEN ERROR:' "$WORK_DIR/$backend.forged.log" ||
-        fail "$backend lost the forged-origin refusal diagnostic"
+    for invalid in forged missing-result missing-push wrong-callee; do
+        if "$DRIVER" "--mir-json-backend=$backend" "$WORK_REL/$invalid.mir.json" \
+            -o "$WORK_REL/$invalid.$extension" >"$WORK_DIR/$backend.$invalid.log" 2>&1; then
+            fail "$backend accepted $invalid result ownership evidence"
+        fi
+        [[ ! -e "$WORK_DIR/$invalid.$extension" ]] ||
+            fail "$backend published an artifact for $invalid evidence"
+        grep -Fq 'CODEGEN ERROR:' "$WORK_DIR/$backend.$invalid.log" ||
+            fail "$backend lost the $invalid refusal diagnostic"
+    done
 done
 python3 - "$WORK_DIR/program.c" "$WORK_DIR/omitted-retire.c" <<'PY'
 from pathlib import Path

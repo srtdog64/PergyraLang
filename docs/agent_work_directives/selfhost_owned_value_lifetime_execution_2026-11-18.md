@@ -29,22 +29,50 @@ verified deep drop; any intervening local use or definition blocks this case.
 A generic already-retired exception could restore storage that a callee now
 owns. Rerun both focused paths, the fixed MIR and published CI. This repair
 does not by itself establish all 28 guard-5 cases or S1/S2.
-The v11 focused gates pass and the fixed full MIR again first refuses at
-ordinal 1438. There, `SemanticAstSignatureTypeTextShape` returns an owned
-`Array<String>` call result through branches. Its final semantic row is
-`element_ownership=retired, disposition=retired`, so the earlier owned-element
-class is no longer in the MIR row. The semantic owner has a sealed
-`SemanticAstFreshOwnedStringArrayResultPlan`, but
-`body_type_bundle_storage_lifetime_owner` retires its function IDs and the
-MIR input does not carry a callable result-ownership proof. Do not simply
-rewrite the row as `owned-elements`: the external MIR route could forge the
-same claim for a callee with borrowed results. The next whole-chain map must
-join this existing plan to the published MIR ABI and validate its identity
-and all-exit meaning at the direct consumer; `constructor_handoff` and other
-readers of the terminal ownership class must migrate with it. Falsifiers:
-the returned call result across branches, a forged callee result proof, and
-the existing C/LLVM negative suite. The exact validated publication format
-and reader rule are still unknown, so no guard-4 product edit has begun.
+## Active return and call transfer (2026-11-28)
+
+Base `e6097ba08096d3ab1f38ea499b373c9149b8fde2`. The fixed MIR has 42
+`call-result` rows. The two with `retired` element class each join one call
+definition and one bare `Array<String>` return in
+`SemanticAstSignatureTypeTextShape`. The v11 first refusal was ordinal 1438.
+The small branch return fixture reproduces the transition refusal on the
+later installed driver on C and LLVM. Slot work is deferred by the user.
+See the [return transfer run](../truth/evidence/2026-11-28_direct_mir_owned_result_return.md)
+for installed-driver results and the newly reached callable boundary.
+
+- The semantic result plan already mints a `call-result` origin and callee
+  syntax ID in the collection row. `SelfMirCollectionOwnershipFactRows`
+  publishes it. The common reader validates each claimed callee through
+  `MirCollectionOwnedResultSourceReady`, including its grounded returns.
+  A routine that only forwards call results omitted declaration LocalRefs.
+  The reader cannot join its returned SSA use to the proof row, and the
+  caller's routine index fails. Use the existing shared wire-requirement
+  policy for retired call results so both the writer and reader preserve
+  the identity. The two retired call results in the fixed MIR already
+  have these refs. A class or return type alone grants no ownership.
+- An owned String push into a live call result was missing its receipt.
+  Issue it at the existing semantic call-completion transition and project
+  it onto that instruction even when a later return retires the binding.
+  The transition consumer still requires the receipt on the exact receiver.
+- At the typed definition, `DirectMirOwnedCollectionDefinitionReady` still
+  joins the exact local and direct-call instance to that callee. For a
+  retired call-result claiming a bare return, reuse the existing return
+  transfer proof to recover the exact consuming block. Require the allocation
+  live at that exit and apply the transfer in the CFG flow before checking
+  terminal states. No birth, an earlier move/drop or an uncovered exit fails.
+  The checked transition reaches both Array cleanup emitters. The callee
+  releases nothing at that exit and the caller can retire its own result.
+- Falsifiers: extend the installed-driver bare-return gate to a call result
+  grown and returned from one branch and a separate return from the other.
+  Compare C/LLVM output under ASan/LSan and refuse missing or inconsistent
+  result evidence, a wrong callable identity or a missing push receipt
+  without producing an artifact. Preserve the existing empty-literal, record
+  transfer, hand-off and member cleanup gates. Retry the fixed semantic input
+  and the full bootstrap on the candidate.
+- Enumerate the remaining refusals on the same input in a diagnostic build
+  that visits every routine and stops before seal/emission. Record masked
+  causes as unknown until their earlier checks pass. These diagnostics do not
+  grant any release permission. Keep the 14 GiB / 1,800 s bounds.
 
 ## Objective card
 

@@ -1,5 +1,6 @@
 // CFG fixed point for actual owned-local execution witnesses.
 import "direct_mir_scalar_program_owned_collection_block_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_flow_owner.pgy";
 import "../scalar_cfg/direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
 
 struct DirectMirOwnedCollectionFlow { ok: Bool; terminal: Int; }
@@ -36,6 +37,16 @@ func DirectMirOwnedCollectionFlowFrom(
         operation_offset < 0 || ArrayLength(receipt_effects) !=
             storage.routines.operation_counts[routine] ||
         !index.block_reachable[0] { return invalid; }
+
+    var return_transfer_block: Int = -1;
+    if index.collection_ownership_facts.origins[row] == "call-result" &&
+        index.collection_ownership_facts.element_ownerships[row] == "retired" {
+        if signature.return_type != CompilerAbiLayoutArrayStringTypeName() { return invalid; }
+        return_transfer_block = DirectMirScalarProgramOwnedArrayStringReturnTransferBlock(
+            storage, expressions, logical_record, routine, target, signature.return_type);
+        if return_transfer_block < start || return_transfer_block >= start + count ||
+            !index.block_reachable[return_transfer_block - start] { return invalid; }
+    }
     var inputs: Array<Int> = [];
     var outputs: Array<Int> = [];
     var definitions: Int = 0;
@@ -85,12 +96,17 @@ func DirectMirOwnedCollectionFlowFrom(
                     predecessor = predecessor + 1;
                 }
                 if joined != 0 {
-                    let output: Int = DirectMirOwnedCollectionBlockOutput(
+                    var output: Int = DirectMirOwnedCollectionBlockOutput(
                         index, storage, expressions, callables, signature,
                         logical_record, receipt_effects,
                         operation_offset, start + block, target, row, joined,
                         local_start, local_end);
                     if output == 0 { return invalid; }
+                    if start + block == return_transfer_block {
+                        // Only this typed return edge ends the live generation.
+                        if output != 2 { return invalid; }
+                        output = 4;
+                    }
                     if inputs[block] != joined || outputs[block] != output {
                         ArraySet(inputs, block, joined); ArraySet(outputs, block, output); changed = true;
                     }
