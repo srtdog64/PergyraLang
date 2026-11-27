@@ -93,10 +93,9 @@ records the focused execution results and the remaining lifetime boundary.
   descriptor borrows on C and LLVM. Refuse a bad layout or mutable use with
   no output. Keep existing scalar-array and by-value record-array gates.
   Retry the full input without using the MIR-to-AST route as a fallback.
-- Enumerate the remaining refusals on the same input in a diagnostic build
-  that visits every routine and stops before seal/emission. Record masked
-  causes as unknown until their earlier checks pass. These diagnostics do not
-  grant any release permission. Keep the 14 GiB / 1,800 s bounds.
+- The [fixed-input refusal scan](../truth/evidence/2026-11-28_drv2_fixed_mir_refusal_scan.md)
+  records the diagnostic candidates and the isolation limit. Verify the
+  next reached owner with ordinary admission on the current publication.
 
 ## Objective card
 

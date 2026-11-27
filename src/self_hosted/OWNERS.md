@@ -4444,9 +4444,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `direct_mir_scalar_program_array_readonly_ref_target_owner.pgy`,
   `direct_mir_scalar_program_c_array_readonly_ref_owner.pgy`, and
   `direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy` -- exact
-  `Array<Int>`/`Array<String>` readonly-ref signature identity and indirect target
-  projection. Persisted array ABI facts remain the physical authority;
-  local callers pass an address and forwarding callers preserve the admitted
+  readonly-ref array signature identity and address projection. Scalar array
+  layouts come from the admitted ABI facts. Record arrays use the admitted
+  nominal array layout for their element declaration.
+  Local callers pass an address and forwarding callers preserve the admitted
   pointer. Copy-in/out, by-value coercion, and backend MIR rereads are
   forbidden.
 - `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy`
@@ -4454,6 +4455,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   parameter, consumed by readonly calls. Existing target projections own type
   layout and alignment. No element copy, ownership transfer or copy-out is
   implied; the former Int-only value-parameter storage function is deleted.
+- `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_llvm_logical_record_value_parameter_address_owner.pgy`
+  -- entry-frame storage for a by-value logical record or record-array
+  descriptor. Readonly forwarding borrows that descriptor in the frame.
 - `src/self_hosted/compiler/direct_mir/scalar_program/direct_mir_scalar_program_process_exit_owner.pgy`
   -- the target-neutral process-exit operation inventory consumed by statement
   admission and both block emitters. The canonical symbol and

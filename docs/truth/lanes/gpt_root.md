@@ -4,7 +4,7 @@
 refusal census, return/call ownership evidence and general C/LLVM execution
 before Slot work. The edit checkout is `D:\PergyraLang` on `main`.
 See the [active plan](../../agent_work_directives/selfhost_owned_value_lifetime_execution_2026-11-18.md)
-and the [return transfer run](../evidence/2026-11-28_direct_mir_owned_result_return.md).
+and the [fixed-input scan](../evidence/2026-11-28_drv2_fixed_mir_refusal_scan.md).
 
 From 2026-11-19 until resumption, [Claude](claude.md) carried this work
 under the [handoff decision](../decisions/2026-11-19_claude_takes_over_gpt_root_lane.md).
