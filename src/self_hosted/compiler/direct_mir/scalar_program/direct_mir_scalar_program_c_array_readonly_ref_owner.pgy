@@ -1,14 +1,14 @@
-// C value/address projection for admitted read-only scalar-array parameters.
+// C value/address projection for admitted read-only array parameters.
 
 import "direct_mir_scalar_program_array_readonly_ref_target_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 
 func DirectMirScalarProgramCArrayReadonlyRefParameterValue(
-    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     routine: Int, ordinal: Int, value: String
 ) -> String {
     if !DirectMirScalarProgramArrayReadonlyRefAt(
-            routines, routine, ordinal) {
+            routines, logical_record, routine, ordinal) {
         return value;
     }
     return Concat("(*", Concat(value, ")"));
@@ -16,12 +16,12 @@ func DirectMirScalarProgramCArrayReadonlyRefParameterValue(
 
 func DirectMirScalarProgramCArrayReadonlyRefCallArgument(
     ref expressions: DirectMirScalarProgramExpressionSet,
-    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     routine: Int, target: Int, ordinal: Int,
     argument_node: Int, value: String
 ) -> String {
     if !DirectMirScalarProgramArrayReadonlyRefAt(
-            routines, target, ordinal) {
+            routines, logical_record, target, ordinal) {
         return "";
     }
     if expressions.node_kinds[argument_node] ==
@@ -38,10 +38,10 @@ func DirectMirScalarProgramCArrayReadonlyRefCallArgument(
     }
     let source: Int = expressions.node_parameter_ordinals[argument_node];
     if !DirectMirScalarProgramReadonlyArrayReborrowAt(
-            routines, routine, source) {
+            routines, logical_record, routine, source) {
         return "";
     }
-    if !DirectMirScalarProgramArrayReadonlyRefAt(routines, routine, source) {
+    if !DirectMirScalarProgramArrayReadonlyRefAt(routines, logical_record, routine, source) {
         return Concat("&pgy_param_", ToString(source));
     }
     return Concat("pgy_param_", ToString(source));

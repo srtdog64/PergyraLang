@@ -69,6 +69,30 @@ for installed-driver results and the newly reached callable boundary.
   without producing an artifact. Preserve the existing empty-literal, record
   transfer, hand-off and member cleanup gates. Retry the fixed semantic input
   and the full bootstrap on the candidate.
+
+## Next DRV-2 dependency: borrowed record arrays
+
+The callable-envelope diagnostic visited all 8,528 instances in the freshly
+produced full MIR. Its only refusal is the readonly record-array formal in
+the return transfer run. The diagnostic stops before graph admission.
+The [readonly-carriage run](../truth/evidence/2026-11-28_record_array_readonly_carriage.md)
+records the focused execution results and the remaining lifetime boundary.
+
+- Use the admitted nominal array declaration and signature carriage as the
+  fact owners. The record array has a compiler-owned layout and no public
+  physical layout ID. It satisfies the shared readonly array role beside the
+  existing Int/Bool/String array roles. No role-method name exceptions.
+- Carry the same admitted type through the call-carriage checker and the
+  C and LLVM parameter projections. Borrow an addressable descriptor and
+  read the already projected nominal layout. Reborrowing a readonly formal
+  forwards its pointer. A by-value formal uses an entry-frame descriptor
+  slot when forwarded by address. Writes and copy-out still require the
+  existing mutable carriage. The last consumers are the routine signature,
+  call argument and parameter load on both backends.
+- Extend the record-array gate with executed local, forwarded and by-value
+  descriptor borrows on C and LLVM. Refuse a bad layout or mutable use with
+  no output. Keep existing scalar-array and by-value record-array gates.
+  Retry the full input without using the MIR-to-AST route as a fallback.
 - Enumerate the remaining refusals on the same input in a diagnostic build
   that visits every routine and stops before seal/emission. Record masked
   causes as unknown until their earlier checks pass. These diagnostics do not

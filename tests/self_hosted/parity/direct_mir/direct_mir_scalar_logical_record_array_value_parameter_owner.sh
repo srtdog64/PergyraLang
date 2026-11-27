@@ -47,7 +47,7 @@ need_f '"name":"RecordArrayText"' "$MIR" "producer omitted the scalar-plus-recor
 need_f '"expr0":"Concat(prefix, rows[0].label)"' "$MIR" "producer omitted the String-returning record-Array body"
 need_f '"name":"RecordArrayAndOwnedLabelsReady"' "$MIR" "producer omitted the mixed record-Array/owned-Array callable"
 need_f '"type":"Array<String>","carriage":"owner-handle"' "$MIR" "producer omitted the owned Array parameter carriage"
-printf 'logical-record-array-value-parameter-ready\n' >"$WORK_DIR/expected.run"
+printf 'logical-record-array-value-parameter-ready\n9\n9\n9\n' >"$WORK_DIR/expected.run"
 for backend in c llvm; do
     artifact_rel="$WORK_REL/program.$backend"
     artifact="$ROOT_DIR/$artifact_rel"
@@ -147,7 +147,7 @@ for mutation in record-array-value-carriage record-array-missing-element \
     record-array-missing-return-type single-record-array-value-carriage \
     single-record-array-missing-element \
     single-record-array-missing-return-type \
-    record-array-text-missing-return-type; do
+    record-array-text-missing-return-type readonly-record-array-indirect; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

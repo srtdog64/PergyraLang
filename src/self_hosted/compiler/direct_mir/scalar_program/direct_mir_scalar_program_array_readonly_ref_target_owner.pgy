@@ -1,11 +1,18 @@
-// Routine-partition identity for admitted read-only scalar-array parameters.
+// Routine-partition identity for admitted read-only array parameters.
 
 import "../scalar_cfg/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 
+func DirectMirScalarProgramReadonlyArrayTypeWithLayoutReady(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> Bool {
+    return DirectMirScalarProgramReadonlyArrayTypeSupported(type_name) ||
+        DirectMirScalarProgramLogicalRecordArrayTypeReady(logical_record, type_name);
+}
+
 func DirectMirScalarProgramArrayReadonlyRefAt(
-    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     routine: Int, ordinal: Int
 ) -> Bool {
     if routine < 0 || routine >= ArrayLength(routines.parameter_counts) ||
@@ -13,13 +20,12 @@ func DirectMirScalarProgramArrayReadonlyRefAt(
         return false;
     }
     let row: Int = routines.parameter_starts[routine] + ordinal;
-    return DirectMirScalarProgramReadonlyArrayTypeSupported(
-            routines.parameter_types[row]) &&
-        routines.parameter_carriages[row] == "readonly-ref";
+    return routines.parameter_carriages[row] == "readonly-ref" &&
+        DirectMirScalarProgramReadonlyArrayTypeWithLayoutReady(logical_record, routines.parameter_types[row]);
 }
 
 func DirectMirScalarProgramReadonlyArrayReborrowAt(
-    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     routine: Int, ordinal: Int
 ) -> Bool {
     if routine < 0 || routine >= ArrayLength(routines.parameter_counts) ||
@@ -29,16 +35,16 @@ func DirectMirScalarProgramReadonlyArrayReborrowAt(
     let row: Int = routines.parameter_starts[routine] + ordinal;
     let type_name: String = routines.parameter_types[row];
     let carriage: String = routines.parameter_carriages[row];
-    return DirectMirScalarProgramReadonlyArrayTypeSupported(type_name) &&
-        (carriage == "readonly-ref" || carriage == "value-result" || carriage == "value");
+    return (carriage == "readonly-ref" || carriage == "value-result" || carriage == "value") &&
+        DirectMirScalarProgramReadonlyArrayTypeWithLayoutReady(logical_record, type_name);
 }
 
 func DirectMirScalarProgramReadonlyArrayMemberArgumentReady(
-    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref expressions: DirectMirScalarProgramExpressionSet, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     node: Int, graph_start: Int
 ) -> Bool {
     if node < graph_start || node >= ArrayLength(expressions.node_kinds) ||
-        !DirectMirScalarProgramReadonlyArrayTypeSupported(expressions.node_types[node]) {
+        !DirectMirScalarProgramReadonlyArrayTypeWithLayoutReady(logical_record, expressions.node_types[node]) {
         return false;
     }
     var root: Int = node;

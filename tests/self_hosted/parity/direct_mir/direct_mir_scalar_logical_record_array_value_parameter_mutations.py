@@ -82,6 +82,11 @@ def main():
         single_ready_routine["return"] = "MissingReturn"
     elif kind == "record-array-text-missing-return-type":
         text_routine["return"] = "MissingReturn"
+    elif kind == "readonly-record-array-indirect":
+        formal = routines["ReadRows"]["params"][0]
+        if formal["carriage"] != "readonly-ref" or formal["pass"] != "direct":
+            raise SystemExit("fixture has no direct readonly record array")
+        formal["pass"] = "indirect"
     else:
         raise SystemExit(f"unknown mutation: {kind}")
     with open(output, "w", encoding="utf-8", newline="\n") as stream:

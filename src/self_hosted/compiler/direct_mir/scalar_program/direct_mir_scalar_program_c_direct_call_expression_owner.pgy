@@ -48,10 +48,10 @@ func DirectMirScalarProgramCDirectCallArgumentValue(
         Die("direct MIR scalar C value-result argument is not addressable");
     }
     if DirectMirScalarProgramArrayReadonlyRefAt(
-            routines, callable, argument) {
+            routines, logical_record, callable, argument) {
         let readonly_value: String =
             DirectMirScalarProgramCArrayReadonlyRefCallArgument(
-                expressions, routines, routine, callable, argument,
+                expressions, routines, logical_record, routine, callable, argument,
                 argument_node, value);
         if readonly_value == "" { Die(
             "direct MIR scalar C readonly array argument is invalid"); }

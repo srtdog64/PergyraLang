@@ -52,7 +52,8 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarC
     if carriage == "readonly-ref" {
         let readonly_cell: Bool = DirectMirScalarProgramIdentityCellParameterCarriageReady(
             plan.program.logical_record.identity_cells, plan.routines.parameter_types[parameter_row], carriage);
-        let readonly_array: Bool = DirectMirScalarProgramArrayReadonlyRefAt(plan.routines, target, ordinal);
+        let readonly_array: Bool = DirectMirScalarProgramArrayReadonlyRefAt(
+            plan.routines, plan.program.logical_record, target, ordinal);
         let readonly_hashmap: Bool =
             DirectMirScalarProgramHashMapParameterCarriageReady(
                 plan.routines.parameter_types[parameter_row], carriage);
@@ -75,14 +76,14 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarC
         }
         if readonly_array && facts.node_kinds[argument_node] ==
                 DirectMirScalarProgramExprParameter() &&
-            !DirectMirScalarProgramReadonlyArrayReborrowAt(plan.routines, routine,
+            !DirectMirScalarProgramReadonlyArrayReborrowAt(plan.routines, plan.program.logical_record, routine,
                 facts.node_parameter_ordinals[argument_node]) {
             return false;
         }
         if readonly_array && facts.node_kinds[argument_node] ==
                 DirectMirScalarProgramExprLogicalRecordMember() &&
             !DirectMirScalarProgramReadonlyArrayMemberArgumentReady(
-                facts, argument_node, graph_start) { return false; }
+                facts, plan.program.logical_record, argument_node, graph_start) { return false; }
     }
     if identity_value_result {
         return facts.node_kinds[argument_node] ==

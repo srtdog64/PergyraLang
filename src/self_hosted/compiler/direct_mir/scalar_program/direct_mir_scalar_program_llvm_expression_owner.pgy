@@ -244,7 +244,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             }
             let array_parameter_read: DirectMirScalarProgramLlvmStringExpression =
                     DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(
-                        routines, array_string_abi, array_string_projection,
+                        routines, logical_record, array_string_abi, array_string_projection,
                         array_int_abi, array_int_projection, plan.program.array_bool_abi, routine, ordinal, result);
             if array_parameter_read.matched {
                 if !array_parameter_read.valid {

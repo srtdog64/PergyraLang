@@ -1,4 +1,4 @@
-// LLVM value/address projection for admitted read-only scalar arrays.
+// LLVM value/address projection for admitted read-only arrays.
 import "direct_mir_scalar_program_array_readonly_ref_target_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
@@ -7,7 +7,7 @@ import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argume
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
 
 func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(
-    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref string_abi: DirectMirScalarProgramArrayStringAbiFact,
     string_projection: Option<DirectMirArrayStringAbiProjection>,
     ref int_abi: DirectMirScalarProgramArrayIntValueResultFact,
@@ -15,13 +15,12 @@ func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(
     ref bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
     routine: Int, ordinal: Int, result: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    if !DirectMirScalarProgramArrayReadonlyRefAt(routines, routine, ordinal) {
+    if !DirectMirScalarProgramArrayReadonlyRefAt(routines, logical_record, routine, ordinal) {
         return DirectMirScalarProgramLlvmStringExpression(false, true, "", "");
     }
-    let invalid: DirectMirScalarProgramLlvmStringExpression =
-        DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
-    let row: Int = routines.parameter_starts[routine] + ordinal;
-    let type_name: String = routines.parameter_types[row];
+    let invalid: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
+    let type_name: String = routines.parameter_types[routines.parameter_starts[routine] + ordinal];
+    var llvm_type: String = DirectMirScalarProgramLlvmType(type_name);
     var storage_align: String = "";
     if type_name == CompilerAbiLayoutArrayIntTypeName() {
         if !IsSome(int_projection) { return invalid; }
@@ -33,17 +32,19 @@ func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(
         if !DirectMirScalarProgramArrayBoolAbiFactReady(bool_abi) ||
             !bool_abi.present { return invalid; }
         storage_align = ToString(bool_abi.align);
-    } else {
+    } else if type_name == CompilerAbiLayoutArrayStringTypeName() {
         if !IsSome(string_projection) { return invalid; }
         let projection: DirectMirArrayStringAbiProjection = UnwrapOption(string_projection);
         if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
                 string_abi, projection, CompilerTargetCpuLlvmProjection()) { return invalid; }
         storage_align = ToString(projection.storage.align);
+    } else {
+        llvm_type = DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(logical_record, type_name);
     }
+    if llvm_type == "" { return invalid; }
+    if storage_align != "" { storage_align = ", align " + storage_align; }
     let pointer: String = Concat("%pgy.param.", ToString(ordinal));
-    let instructions: String = Concat("  ", Concat(result, Concat(" = load ",
-        Concat(DirectMirScalarProgramLlvmType(type_name), Concat(", ptr ",
-        Concat(pointer, Concat(", align ", Concat(storage_align, "\n"))))))));
+    let instructions: String = "  ${result} = load ${llvm_type}, ptr ${pointer}${storage_align}\n";
     return DirectMirScalarProgramLlvmStringExpression(true, true, instructions, result);
 }
 
@@ -66,11 +67,11 @@ func DirectMirScalarProgramLlvmArrayReadonlyRefCallArgument(
         return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
     }
     let source: Int = expressions.node_parameter_ordinals[argument_node];
-    if !DirectMirScalarProgramReadonlyArrayReborrowAt(routines, routine, source) {
+    if !DirectMirScalarProgramReadonlyArrayReborrowAt(routines, logical_record, routine, source) {
         return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
     }
     var pointer: String = Concat("%pgy.param.", ToString(source));
-    if !DirectMirScalarProgramArrayReadonlyRefAt(routines, routine, source) {
+    if !DirectMirScalarProgramArrayReadonlyRefAt(routines, logical_record, routine, source) {
         pointer = Concat(pointer, ".local");
     }
     return DirectMirScalarProgramLlvmStringExpression(true, true, "", pointer);

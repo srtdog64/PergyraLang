@@ -108,7 +108,7 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
     var projected: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmStringExpression(false, true, "", value);
     if DirectMirScalarProgramArrayReadonlyRefAt(
-            routines, callable, argument) {
+            routines, logical_record, callable, argument) {
         projected = DirectMirScalarProgramLlvmArrayReadonlyRefCallArgument(
             expressions, routines, logical_record, routine, argument_node, value);
     } else if !DirectMirScalarProgramReadonlyStringTargetAt(routines, callable, argument) &&

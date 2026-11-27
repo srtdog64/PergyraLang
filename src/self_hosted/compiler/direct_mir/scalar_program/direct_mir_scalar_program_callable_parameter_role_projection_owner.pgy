@@ -70,8 +70,8 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedE
             DirectMirScalarProgramSetStringValueResultParameterReady(
                 signature, ordinal);
         let array_readonly_ref: Bool =
-            DirectMirScalarProgramArrayReadonlyRefParameterReady(
-                signature, ordinal);
+            DirectMirScalarProgramArrayReadonlyRefParameterReady(signature, ordinal) ||
+            DirectMirScalarProgramLogicalRecordArrayReadonlyRefParameterReady(signature, ordinal, logical_record);
         var claim_count: Int = 0;
         let identity_cell: Bool = DirectMirScalarProgramIdentityCellParameterRoleReady(
             signature, ordinal, logical_record.identity_cells);

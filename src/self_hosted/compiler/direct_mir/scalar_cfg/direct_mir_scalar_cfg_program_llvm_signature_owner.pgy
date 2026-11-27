@@ -36,7 +36,7 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
                 plan.routines.parameter_types[parameter_row]);
         let readonly_array: Bool =
             DirectMirScalarProgramArrayReadonlyRefAt(
-                plan.routines, routine, ordinal);
+                plan.routines, plan.program.logical_record, routine, ordinal);
         let readonly_payload_enum: Bool = DirectMirScalarProgramPayloadEnumReadonlyRefAt(
             plan.routines, plan.program.referenced_enum, routine, ordinal);
         // Erased role receivers retain this pointer ABI. Their field operations

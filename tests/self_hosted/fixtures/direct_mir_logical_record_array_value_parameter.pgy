@@ -65,6 +65,22 @@ func RecordArrayAndOwnedLabelsReady(
     return ArrayLength(rows) == ArrayLength(labels);
 }
 
+func ReadRows(ref rows: Array<IndexedRow>) -> Int {
+    return rows[0].indent + ArrayLength(rows);
+}
+
+func ForwardReadRows(ref rows: Array<IndexedRow>) -> Int {
+    return ReadRows(rows);
+}
+
+func ReadRowsFromValue(rows: Array<IndexedRow>) -> Int {
+    return ForwardReadRows(rows);
+}
+
 func Main() -> Void {
     Log("logical-record-array-value-parameter-ready");
+    let rows: Array<IndexedRow> = [IndexedRow(7, "first"), IndexedRow(11, "second")];
+    Log(ReadRows(rows));
+    Log(ForwardReadRows(rows));
+    Log(ReadRowsFromValue(rows));
 }

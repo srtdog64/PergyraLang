@@ -1,6 +1,7 @@
-// Addressable LLVM copy of a by-value logical record used as an inout source.
+// Entry-frame storage for by-value records and record-array descriptors.
 import "../scalar_cfg/direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 
 func DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
@@ -10,20 +11,20 @@ func DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(
     while ordinal < plan.routines.parameter_counts[routine] {
         let row: Int = plan.routines.parameter_starts[routine] + ordinal;
         let type_name: String = plan.routines.parameter_types[row];
-        if plan.routines.parameter_carriages[row] == "value" &&
-            DirectMirScalarProgramLogicalRecordTypeReady(
-                plan.program.logical_record, type_name) {
-            let llvm_type: String =
-                DirectMirScalarProgramLlvmLogicalRecordTypeName(
+        if plan.routines.parameter_carriages[row] == "value" {
+            var llvm_type: String = "";
+            if DirectMirScalarProgramLogicalRecordTypeReady(plan.program.logical_record, type_name) {
+                llvm_type = DirectMirScalarProgramLlvmLogicalRecordTypeName(
                     plan.program.logical_record, type_name);
-            let spelling: String = ToString(ordinal);
-            output = Concat(output, Concat("  %pgy.param.", spelling));
-            output = Concat(output, Concat(".local = alloca ", llvm_type));
-            output = Concat(output, ", align 8\n");
-            output = Concat(output, Concat("  store ", llvm_type));
-            output = Concat(output, Concat(" %pgy.param.", spelling));
-            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
-            output = Concat(output, ".local, align 8\n");
+            } else if DirectMirScalarProgramLogicalRecordArrayTypeReady(plan.program.logical_record, type_name) {
+                llvm_type = DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+                    plan.program.logical_record, type_name);
+            }
+            if llvm_type != "" {
+                let value: String = "%pgy.param." + ToString(ordinal);
+                output = output + "  ${value}.local = alloca ${llvm_type}, align 8\n";
+                output = output + "  store ${llvm_type} ${value}, ptr ${value}.local, align 8\n";
+            }
         }
         ordinal = ordinal + 1;
     }
