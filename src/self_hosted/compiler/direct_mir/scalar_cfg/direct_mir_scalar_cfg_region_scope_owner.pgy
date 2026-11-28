@@ -2,13 +2,39 @@
 // expressions hold a region concat (DirectMirScalarProgramExprRegionConcatString,
 // from the self-host region escape owner's MIR sites) creates its region at
 // entry and frees it at every exit, beside the owned-local initialization
-// and exit cleanup. C uses the runtime region (pgy_runtime_region_inline.h);
-// LLVM defines a malloc-backed region in the module, as it defines its
-// String concat, so an artifact links without the runtime library.
+// and exit cleanup. Both backends use the runtime's block region: C calls the
+// header-only body (pgy_runtime_region_inline.h), LLVM its three exported
+// wrappers, as native LLVM does. The head's storage is the `<region>` ABI
+// layout row and the LLVM symbols are the `region` runtime-call rows; a
+// missing row stops emission.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_string_core_expression_kind_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "../../runtime_value_representation_owner.pgy";
+import "../../runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarCfgRegionLayout() -> CompilerRuntimeValueRepresentation {
+    let layout: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(CompilerAbiLayoutRegionTypeName());
+    if !layout.valid || layout.c_type != CompilerAbiLayoutRegionCValueType() {
+        Die("direct MIR region ABI layout row is missing");
+    }
+    return layout;
+}
+
+func DirectMirScalarCfgRegionRuntimeCall(operation: String, call_shape: String) -> String {
+    let fact: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRegionRowInput(operation));
+    if !fact.ok || fact.call_shape != call_shape {
+        Die(Concat("direct MIR region runtime-call row is missing: ", operation));
+    }
+    return fact.symbol;
+}
+
+func DirectMirScalarCfgRegionConcatSymbol() -> String {
+    return DirectMirScalarCfgRegionRuntimeCall("string-concat", "region_ptr_string_string_to_string");
+}
 
 func DirectMirScalarCfgExpressionRowUsesRegion(
     ref plan: DirectMirScalarCfgGraphPlan, row: Int
@@ -58,17 +84,22 @@ func DirectMirScalarCfgRegionInitialization(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, llvm: Bool
 ) -> String {
     if !DirectMirScalarCfgRoutineUsesRegion(plan, routine) { return ""; }
+    let layout: CompilerRuntimeValueRepresentation = DirectMirScalarCfgRegionLayout();
     if llvm {
-        return "  %pgy.region = alloca ptr\n  store ptr null, ptr %pgy.region\n";
+        let create: String = DirectMirScalarCfgRegionRuntimeCall("create", "region_ptr_size_to_void");
+        return "  %pgy.region = alloca ${layout.llvm_type}, align ${layout.align}\n  call void @${create}(ptr %pgy.region, i64 0)\n";
     }
-    return "    PgyRegion __pgy_region = pgy_region_create(0);\n";
+    return "    ${layout.c_type} __pgy_region = pgy_region_create(0);\n";
 }
 
 func DirectMirScalarCfgRegionExitCleanup(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, llvm: Bool
 ) -> String {
     if !DirectMirScalarCfgRoutineUsesRegion(plan, routine) { return ""; }
-    if llvm { return "  call void @pgy.region.free(ptr %pgy.region)\n"; }
+    if llvm {
+        let destroy: String = DirectMirScalarCfgRegionRuntimeCall("destroy", "region_ptr_to_void");
+        return "  call void @${destroy}(ptr %pgy.region)\n";
+    }
     return "    pgy_region_destroy(&__pgy_region);\n";
 }
 
@@ -77,11 +108,13 @@ func DirectMirScalarCfgRegionReached(ref plan: DirectMirScalarCfgGraphPlan) -> B
         plan.program.expressions, DirectMirScalarProgramExprRegionConcatString());
 }
 
-// The module's region: a list of malloc blocks, each a next pointer then the
-// text; free walks the list.
+// The head's LLVM type and the three runtime declarations.
 func DirectMirScalarCfgRegionLlvmDefinitions(ref plan: DirectMirScalarCfgGraphPlan) -> String {
     if !DirectMirScalarCfgRegionReached(plan) { return ""; }
-    return "define internal ptr @pgy.region.concat(ptr %region, ptr %a, ptr %b) {\nentry:\n  %la = call i64 @strlen(ptr %a)\n  %lb = call i64 @strlen(ptr %b)\n  %text_size = add i64 %la, %lb\n  %payload = add i64 %text_size, 1\n  %size = add i64 %payload, 8\n  %block = call ptr @malloc(i64 %size)\n  %failed = icmp eq ptr %block, null\n  br i1 %failed, label %oom, label %ok\noom:\n  call void @abort()\n  unreachable\nok:\n  %head = load ptr, ptr %region\n  store ptr %head, ptr %block\n  store ptr %block, ptr %region\n  %text = getelementptr i8, ptr %block, i64 8\n  %copied_a = call ptr @memcpy(ptr %text, ptr %a, i64 %la)\n  %tail = getelementptr i8, ptr %text, i64 %la\n  %copied_b = call ptr @memcpy(ptr %tail, ptr %b, i64 %lb)\n  %end = getelementptr i8, ptr %tail, i64 %lb\n  store i8 0, ptr %end\n  ret ptr %text\n}\n\ndefine internal void @pgy.region.free(ptr %region) {\nentry:\n  %first = load ptr, ptr %region\n  br label %loop\nloop:\n  %current = phi ptr [ %first, %entry ], [ %next, %body ]\n  %done = icmp eq ptr %current, null\n  br i1 %done, label %exit, label %body\nbody:\n  %next = load ptr, ptr %current\n  call void @free(ptr %current)\n  br label %loop\nexit:\n  store ptr null, ptr %region\n  ret void\n}\n\n";
+    let layout: CompilerRuntimeValueRepresentation = DirectMirScalarCfgRegionLayout();
+    let create: String = DirectMirScalarCfgRegionRuntimeCall("create", "region_ptr_size_to_void");
+    let destroy: String = DirectMirScalarCfgRegionRuntimeCall("destroy", "region_ptr_to_void");
+    return "${layout.llvm_type} = type ${layout.llvm_body}\ndeclare void @${create}(ptr, i64)\ndeclare ptr @${DirectMirScalarCfgRegionConcatSymbol()}(ptr, ptr, ptr)\ndeclare void @${destroy}(ptr)\n\n";
 }
 
 func DirectMirScalarCfgRegionCIncludes(ref plan: DirectMirScalarCfgGraphPlan) -> String {

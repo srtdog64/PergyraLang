@@ -1,5 +1,5 @@
 schema=pgy.selfhost.abi-layout-row.v3
-count=23
+count=24
 0|Int|int32_t|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0
 1|Bool|bool|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0
 2|Float|double|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0.0
@@ -23,5 +23,6 @@ count=23
 20|Set<String>|PgySet_String|keys,occupied,count,capacity|none|none|shared_buffer_value|selfhost-c|target-c-default|runtime_value_only|unsupported
 21|Slice<Int>|PgySlice_Int|data,length|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported
 22|Slice<String>|PgySlice_String|data,length|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported
+23|<region>|PgyRegion|current,block_size,total_allocated|none|none|single_owner_linear|selfhost-c|target-c-default|runtime_value_only|unsupported
 target_policy_count=1
 target_policy|0|selfhost-c|cpu-c,self-hosted|layout_shape,materialization_reason|unsupported_shape,forbidden_loss_budget

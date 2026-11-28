@@ -14,9 +14,9 @@ import "../../mir_compound_assignment_readiness_owner.pgy";
 import "../../mir_compound_arithmetic_projection_owner.pgy";
 import "direct_mir_scalar_cfg_region_scope_owner.pgy";
 func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraphPlan, return_clone_reached: Bool) -> String {
-    // The String concat definition calls strlen, malloc and memcpy.
-    let concat: Bool = DirectMirScalarProgramStringConcatMaterializationReached(plan, return_clone_reached) ||
-        DirectMirScalarCfgRegionReached(plan);
+    // The String concat definition calls strlen, malloc and memcpy; the
+    // region calls the runtime, which declares its own.
+    let concat: Bool = DirectMirScalarProgramStringConcatMaterializationReached(plan, return_clone_reached);
     let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement = DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
     if !array_int_runtime.valid { Die("direct MIR LLVM Array<Int> runtime requirement is invalid"); }
     let slice_any: Bool = DirectMirScalarProgramSliceAnyReached(plan.program.expressions);
@@ -147,8 +147,8 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     // inside an expression all free; an unused declaration costs nothing.
     output = Concat(output, "declare void @free(ptr)
 ");
-    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.logical_record.present || slice_any ||
-        DirectMirScalarCfgRegionReached(plan) { output = Concat(output, "declare void @abort()\n"); }
+    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.logical_record.present ||
+        slice_any { output = Concat(output, "declare void @abort()\n"); }
     output = Concat(output, DirectMirScalarCfgRegionLlvmDefinitions(plan));
     output = Concat(output, DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(plan));
     // Storage materialization includes get even without a source-level read.

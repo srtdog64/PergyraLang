@@ -60,9 +60,9 @@ require_text "$WORK_DIR/direct.c" 'PgyRegion __pgy_region = pgy_region_create(0)
 require_text "$WORK_DIR/direct.c" 'pgy_scalar_routine_1(pgy_region_string_concat(&__pgy_region, "left", "right"))'
 require_text "$WORK_DIR/direct.c" 'pgy_region_destroy(&__pgy_region);'
 reject_text "$WORK_DIR/direct.c" 'pgy_scalar_routine_1(pgy_concat('
-require_text "$WORK_DIR/direct.ll" '%pgy.expr.0.2 = call ptr @pgy.region.concat(ptr %pgy.region, ptr @pgy.scalar.string.0, ptr @pgy.scalar.string.1)'
+require_text "$WORK_DIR/direct.ll" '%pgy.expr.0.2 = call ptr @pgy_region_string_concat_export(ptr %pgy.region, ptr @pgy.scalar.string.0, ptr @pgy.scalar.string.1)'
 require_text "$WORK_DIR/direct.ll" 'call void @pgy.scalar.routine.1(ptr %pgy.expr.0.2)'
-require_text "$WORK_DIR/direct.ll" 'call void @pgy.region.free(ptr %pgy.region)'
+require_text "$WORK_DIR/direct.ll" 'call void @pgy_region_destroy_export(ptr %pgy.region)'
 require_text "$WORK_DIR/direct.ll" 'define internal void @pgy.scalar.routine.1(ptr %pgy.param.0)'
 
 (cd "$ROOT_DIR" && "$DRIVER" "$SOURCE_REL" --emit-c-verified) \
@@ -163,8 +163,12 @@ done
 "$WORK_DIR/addressable.exe" | tr -d '\r' >"$WORK_DIR/addressable.run"
 printf 'addressable\n' >"$WORK_DIR/addressable.expected"
 cmp -s "$WORK_DIR/addressable.expected" "$WORK_DIR/addressable.run" || fail "addressable ref execution drifted"
-"$CLANG" -x ir "$WORK_DIR/public.ll" -o "$WORK_DIR/public-llvm.exe" \
-    >/dev/null 2>"$WORK_DIR/public-llvm.compile.err" || fail "public LLVM did not compile"
+# The region is the runtime's block region, as on native LLVM: link its object.
+"$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+    -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/runtime.o" \
+    >/dev/null 2>"$WORK_DIR/runtime.compile.err" || fail "runtime object did not compile"
+"$CLANG" -x ir "$WORK_DIR/public.ll" -x none "$WORK_DIR/runtime.o" -pthread -lm \
+    -o "$WORK_DIR/public-llvm.exe" >/dev/null 2>"$WORK_DIR/public-llvm.compile.err" || fail "public LLVM did not compile"
 "$WORK_DIR/public-llvm.exe" | tr -d '\r' >"$WORK_DIR/public-llvm.run"
 cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/public-llvm.run" || fail "public LLVM execution drifted"
 

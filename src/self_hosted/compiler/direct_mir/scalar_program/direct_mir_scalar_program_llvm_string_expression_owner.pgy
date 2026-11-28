@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_llvm_string_window_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_special_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_to_string_expression_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_region_scope_owner.pgy";
 func DirectMirScalarProgramLlvmStringExpressionAt(
     kind: Int, result: String, left_type: String, left: String,
     left_address: String, right: String,
@@ -15,8 +16,7 @@ func DirectMirScalarProgramLlvmStringExpressionAt(
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind == DirectMirScalarProgramExprPrintString() {
         if !CompilerRuntimeCallAbiPrintFactReady(runtime.string_print) {
-            return DirectMirScalarProgramLlvmStringExpression(
-                true, false, "", "");
+            return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
         }
         let output: String = Concat("  call void @", Concat(
             runtime.string_print.symbol, Concat("(ptr ", Concat(left, ")\n"))));
@@ -60,8 +60,8 @@ func DirectMirScalarProgramLlvmStringExpressionAt(
             true, true, output, compared);
     }
     if kind == DirectMirScalarProgramExprRegionConcatString() {
-        return DirectMirScalarProgramLlvmStringExpression(true, true, "  " + result +
-            " = call ptr @pgy.region.concat(ptr %pgy.region, ptr " + left + ", ptr " + right + ")\n", result);
+        return DirectMirScalarProgramLlvmStringExpression(true, true, "  " + result + " = call ptr @" +
+            DirectMirScalarCfgRegionConcatSymbol() + "(ptr %pgy.region, ptr " + left + ", ptr " + right + ")\n", result);
     }
     if kind == DirectMirScalarProgramExprConcatString() ||
             kind == DirectMirScalarProgramExprStringClone() {

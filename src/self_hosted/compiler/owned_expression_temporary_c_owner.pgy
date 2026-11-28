@@ -36,7 +36,7 @@ func DirectMirOwnedStringObserverCPrelude(ref expressions: DirectMirScalarProgra
             var region_parameter: String = "";
             if kind == DirectMirScalarProgramExprRegionConcatString() {
                 // The region is the calling routine's; the observer receives it.
-                region_parameter = "PgyRegion *region, ";
+                region_parameter = CompilerAbiLayoutRegionCValueType() + " *region, ";
                 expression = Some("pgy_region_string_concat(region, left, right)");
             }
             if !IsSome(expression) { Die("retiring String observer has no C projection"); }

@@ -1,0 +1,17 @@
+// Names and field order of the routine region head.
+//
+// A call-duration String temporary lives in its routine's PgyRegion
+// (pgy_runtime_region_inline.h): the newest block pointer, the block size and
+// the payload total. The head is compiler storage, never a language value, so
+// its row key is not a spellable type name and no user type reaches the row.
+// The names sit apart from the row table so the table stays inside its cap.
+
+func CompilerAbiLayoutRegionTypeName() -> String {
+    return "<region>";
+}
+func CompilerAbiLayoutRegionCValueType() -> String {
+    return "PgyRegion";
+}
+func CompilerAbiLayoutFieldOrderRegion() -> String {
+    return "current,block_size,total_allocated";
+}

@@ -160,7 +160,8 @@ done
 for stem in region_calls region_try; do
     grep -Fq 'pgy_region_string_concat(' "$WORK_DIR/$stem.direct.c" || fail "$stem direct C allocated no region site"
     grep -Fq 'PgyRegion __pgy_region = pgy_region_create(0);' "$WORK_DIR/$stem.direct.c" || fail "$stem direct C opened no routine region"
-    grep -Fq 'call ptr @pgy.region.concat(ptr %pgy.region' "$WORK_DIR/$stem.direct.ll" || fail "$stem direct LLVM allocated no region site"
+    grep -Fq 'call ptr @pgy_region_string_concat_export(ptr %pgy.region' "$WORK_DIR/$stem.direct.ll" || fail "$stem direct LLVM allocated no region site"
+    grep -Fq 'call void @pgy_region_create_export(ptr %pgy.region, i64 0)' "$WORK_DIR/$stem.direct.ll" || fail "$stem direct LLVM opened no runtime region"
     # Every exit, the `?` early return included, frees the region: no leak.
     "$CC" -x c -std=c11 -g -fsanitize=address -fno-omit-frame-pointer \
         -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread "$WORK_DIR/$stem.direct.c" -lm \
@@ -173,7 +174,57 @@ for stem in region_calls region_try; do
         2>"$WORK_DIR/$stem.direct-llvm.asan.err" || fail "$stem direct LLVM leaked or failed under LeakSanitizer"
 done
 ! grep -Fq 'pgy_region' "$WORK_DIR/heap_escape.direct.c" || fail "direct C put an escaping concatenation in a region"
-! grep -Fq 'pgy.region' "$WORK_DIR/heap_escape.direct.ll" || fail "direct LLVM put an escaping concatenation in a region"
+! grep -Eq 'pgy\.region|pgy_region_' "$WORK_DIR/heap_escape.direct.ll" || fail "direct LLVM put an escaping concatenation in a region"
+
+# region_loop: 512 call-duration concatenations in one routine region come
+# from the runtime's 8 KiB blocks on direct C and LLVM, not one malloc each.
+cat >"$WORK_DIR/region_loop.pgy" <<'PGY'
+func Batch(right: String) -> Int {
+    var i: Int = 0;
+    var total: Int = 0;
+    while i < 512 {
+        let bytes: Int = StringLength("left_left_" + right);
+        total = total + bytes;
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Batch("more"));
+}
+PGY
+cat >"$WORK_DIR/count_malloc.c" <<'C'
+#include <stddef.h>
+#include <stdio.h>
+void *__real_malloc(size_t size);
+static unsigned long pgy_gate_mallocs;
+void *__wrap_malloc(size_t size) { pgy_gate_mallocs++; return __real_malloc(size); }
+__attribute__((destructor)) static void pgy_gate_report(void) { fprintf(stderr, "mallocs=%lu\n", pgy_gate_mallocs); }
+C
+(cd "$ROOT_DIR" && PGY_NATIVE_PIPELINE=1 "$PGY" "$WORK_REL/region_loop.pgy" --backend=c \
+    -o "$WORK_REL/region_loop.native.exe") >/dev/null 2>&1 || fail "region_loop native build failed"
+"$WORK_DIR/region_loop.native.exe" | tr -d '\r' >"$WORK_DIR/region_loop.native.run"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$WORK_REL/region_loop.pgy" \
+    -o "$WORK_REL/region_loop.mir.json") >/dev/null 2>&1 || fail "region_loop MIR production failed"
+for backend in c llvm; do
+    suffix=c; [[ "$backend" == llvm ]] && suffix=ll
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" "$WORK_REL/region_loop.mir.json" \
+        -o "$WORK_REL/region_loop.direct.$suffix") >/dev/null 2>&1 || fail "region_loop direct $backend failed"
+    if [[ "$backend" == c ]]; then
+        "$CC" -x c -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread "$WORK_DIR/region_loop.direct.c" \
+            "$WORK_DIR/count_malloc.c" -Wl,--wrap=malloc -lm -o "$WORK_DIR/region_loop.$backend.exe" >/dev/null 2>&1 ||
+            fail "region_loop direct C did not compile"
+    else
+        "$CLANG" -x ir "$WORK_DIR/region_loop.direct.ll" -x none "$WORK_DIR/runtime.o" "$WORK_DIR/count_malloc.c" \
+            -Wl,--wrap=malloc -pthread -lm -o "$WORK_DIR/region_loop.$backend.exe" >/dev/null 2>&1 ||
+            fail "region_loop direct LLVM did not link"
+    fi
+    "$WORK_DIR/region_loop.$backend.exe" 2>"$WORK_DIR/region_loop.$backend.err" | tr -d '\r' >"$WORK_DIR/region_loop.$backend.run"
+    cmp -s "$WORK_DIR/region_loop.$backend.run" "$WORK_DIR/region_loop.native.run" || fail "region_loop direct $backend runs unlike native"
+    mallocs="$(sed -n 's/^mallocs=//p' "$WORK_DIR/region_loop.$backend.err")"
+    [[ -n "$mallocs" && "$mallocs" -le 8 ]] || fail "region_loop direct $backend made ${mallocs:-no} mallocs for 512 region concatenations"
+done
 
 # Forged sites: a leaf listed as a site, a malformed list, an index past the graph.
 "$PYTHON_BIN" - "$WORK_DIR/region_calls.mir.json" "$WORK_DIR" <<'PY'
@@ -210,4 +261,4 @@ for how in leaf malformed window; do
             fail "direct $backend refused the forged region site ($how) for another reason"
     done
 done
-echo "[$LABEL] 7 call-duration concatenations in 2 function regions on source C, and on direct C and LLVM from the MIR sites, freed on every exit (the \`?\` return too) and leak-free; escaping concatenations stay on the heap; 3 forged sites refused"
+echo "[$LABEL] 7 call-duration concatenations in 2 function regions on source C, and on direct C and LLVM from the MIR sites, freed on every exit (the \`?\` return too) and leak-free; 512 region concatenations take at most 8 mallocs on direct C and LLVM; escaping concatenations stay on the heap; 3 forged sites refused"

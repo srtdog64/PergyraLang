@@ -100,6 +100,21 @@ func CompilerRuntimeValueRepresentationFor(
         ArrayPush(sizes, 1); ArrayPush(aligns, 1);
         runtime_fn = "pgy_text_builder_new_export";
         inner_c_type = "char";
+    } else if field_order == CompilerAbiLayoutFieldOrderRegion() {
+        // PgyRegion: the newest block, the block size and the payload total
+        // (pgy_runtime_region_inline.h; pgy_abi_region in pgy_abi_spec.h).
+        llvm_type = "%pgy.runtime.region";
+        llvm_body = "{ ptr, i64, i64 }";
+        size = 24;
+        align = 8;
+        ArrayPush(names, "current"); ArrayPush(offsets, 0);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        ArrayPush(names, "block_size"); ArrayPush(offsets, 8);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        ArrayPush(names, "total_allocated"); ArrayPush(offsets, 16);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        runtime_fn = "pgy_region_create_export";
+        inner_c_type = "PgyRegionBlock";
     } else {
         return CompilerRuntimeValueRepresentationMissing();
     }

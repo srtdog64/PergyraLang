@@ -245,6 +245,9 @@ func CompilerRuntimeCallAbiCallShape(domain: String, operation: String, material
         return CompilerRuntimeCallAbiTextBuilderCallShape(operation);
     }
     if domain == "task" && operation == TaskRuntimeIsCancelledOperation() { return "returns_bool"; }
+    if domain == "region" && operation == "create" { return "region_ptr_size_to_void"; }
+    if domain == "region" && operation == "string-concat" { return "region_ptr_string_string_to_string"; }
+    if domain == "region" && operation == "destroy" { return "region_ptr_to_void"; }
     if materialization == CompilerRuntimeCallAbiMaterialTargetLibrary() {
         return "target_library_call";
     }
@@ -260,7 +263,7 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
     return Concat(row, CompilerRuntimeCallAbiCallShape(input.domain, input.operation, input.materialization));
 }
 
-func CompilerRuntimeCallAbiConcreteRowCount() -> Int { return 277; }
+func CompilerRuntimeCallAbiConcreteRowCount() -> Int { return 280; }
 func CompilerRuntimeCallAbiNativeScalarTypeAt(index: Int) -> String {
     if index == 0 { return "Int"; }
     if index == 1 { return "Long"; }
@@ -596,7 +599,19 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     }
     if index == 275 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiArrayTransformRowInput("reverse", 2)); }
     if index == 276 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiArrayTransformRowInput("reverse", 4)); }
+    if index == 277 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRegionRowInput("create")); }
+    if index == 278 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRegionRowInput("string-concat")); }
+    if index == 279 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRegionRowInput("destroy")); }
     return "";
+}
+// The routine region's LLVM calls, one row-input issuer for the rows and the
+// consumers: the exported wrappers of the header-only region body
+// (pgy_runtime_lib_authority_file_core.h) that native LLVM calls too. An
+// unknown operation has no symbol, so its fact is missing.
+func CompilerRuntimeCallAbiRegionRowInput(operation: String) -> CompilerRuntimeCallAbiRowInput {
+    var symbol: String = ""; if operation == "create" { symbol = "pgy_region_create_export"; }
+    if operation == "string-concat" { symbol = "pgy_region_string_concat_export"; } else if operation == "destroy" { symbol = "pgy_region_destroy_export"; }
+    return CompilerRuntimeCallAbiRowInput("region", operation, symbol, CompilerRuntimeCallAbiMaterialTargetLibrary());
 }
 
 func CompilerRuntimeCallAbiRowKeyPrefix(domain: String, operation: String) -> String {
