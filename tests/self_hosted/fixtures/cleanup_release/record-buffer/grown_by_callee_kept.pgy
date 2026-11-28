@@ -1,0 +1,30 @@
+// A by-value callee that pushes takes the buffer (the call moves it): the
+// caller releases nothing it handed on, so no buffer is freed twice.
+struct Row {
+    left: Int;
+    right: Int;
+}
+
+func Build(seed: Int) -> Array<Row> {
+    var values: Array<Row> = [];
+    ArrayPush(values, Row(seed, seed + 1));
+    return values;
+}
+
+func Extend(rows: Array<Row>) -> Int {
+    var more: Array<Row> = rows;
+    ArrayPush(more, Row(7, 8));
+    return ArrayLength(more);
+}
+
+func Main() -> Int {
+    var i: Int = 0;
+    var total: Int = 0;
+    while i < 3 {
+        let rows: Array<Row> = Build(i);
+        total = total + Extend(rows);
+        i = i + 1;
+    }
+    Log(total);
+    return 0;
+}

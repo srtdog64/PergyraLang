@@ -1,0 +1,20 @@
+// A set and a push on a local record buffer keep its descriptor; an element
+// read into a local record copies it, so the buffer is still released once.
+struct Cell {
+    row: Int;
+    value: Int;
+}
+
+func Main() -> Int {
+    var cells: Array<Cell> = [];
+    var i: Int = 0;
+    while i < 20 {
+        ArrayPush(cells, Cell(i, i * 3));
+        i = i + 1;
+    }
+    ArraySet(cells, 4, Cell(40, 400));
+    let picked: Cell = cells[4];
+    Log(picked.row + picked.value);
+    Log(ArrayLength(cells));
+    return 0;
+}

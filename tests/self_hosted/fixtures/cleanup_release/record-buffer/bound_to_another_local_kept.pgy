@@ -1,0 +1,19 @@
+// A push-built buffer bound whole to another local: the binding takes the
+// storage, so the first local releases nothing the second still reads.
+struct Row {
+    left: Int;
+    right: Int;
+}
+
+func Main() -> Int {
+    var rows: Array<Row> = [];
+    var j: Int = 0;
+    while j < 6 {
+        ArrayPush(rows, Row(j, j + 10));
+        j = j + 1;
+    }
+    let other: Array<Row> = rows;
+    Log(ArrayLength(other));
+    Log(other[5].right);
+    return 0;
+}

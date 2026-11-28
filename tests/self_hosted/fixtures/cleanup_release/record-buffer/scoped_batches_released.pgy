@@ -1,0 +1,36 @@
+// An Array of storage-free records built by push is returned fresh and
+// released by the routine that keeps it.
+struct Row {
+    left: Int;
+    right: Int;
+}
+
+func Build(seed: Int) -> Array<Row> {
+    var values: Array<Row> = [];
+    var j: Int = 0;
+    while j < 300 {
+        ArrayPush(values, Row(seed + j, j + 1));
+        j = j + 1;
+    }
+    return values;
+}
+
+func Score(ref batch: Array<Row>) -> Int {
+    return batch[0].left + batch[299].right;
+}
+
+func ScoreBatch(seed: Int) -> Int {
+    let batch: Array<Row> = Build(seed);
+    return Score(batch);
+}
+
+func Main() -> Int {
+    var i: Int = 0;
+    var total: Int = 0;
+    while i < 8 {
+        total = total + ScoreBatch(i);
+        i = i + 1;
+    }
+    Log(total);
+    return 0;
+}

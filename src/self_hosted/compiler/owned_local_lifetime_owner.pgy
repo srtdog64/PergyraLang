@@ -105,9 +105,13 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
             let left: Int = plan.operation_left_locals[operation];
             let right: Int = plan.operation_right_locals[operation];
             if left >= 0 && left < ArrayLength(blocked) {
-                if !DirectMirScalarProgramLocalArrayMutationKind(kind) ||
+                // A push or set of a storage-free record copies the value into
+                // the local's own buffer (release mode 9) and keeps the descriptor.
+                let record_buffer: Bool = DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) &&
+                    DirectMirOwnedLocalStorageMode(plan, plan.local_types[left], 0) == 9;
+                if !record_buffer && (!DirectMirScalarProgramLocalArrayMutationKind(kind) ||
                     !DirectMirScalarProgramArrayMutationTargetTypeReady(
-                        kind, plan.local_types[left]) { blocked[left] = true; }
+                        kind, plan.local_types[left])) { blocked[left] = true; }
             }
             if right >= 0 && right < ArrayLength(blocked) &&
                 !DirectMirScalarProgramArrayMutationParameterTargetKind(kind) {
