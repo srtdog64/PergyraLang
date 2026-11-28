@@ -9,7 +9,7 @@ run 'bash tests/self_hosted/parity/ownership/collection_call_protocol_owner_smok
 run 'bash tests/self_hosted/parity/domain/domain_topology_graph_plan_consumer_owner.sh'
 run 'bash tests/self_hosted/parity/driver/driver_rung2_canonical_identity_epoch_owner.sh'
 run 'bash tests/self_hosted/parity/intent/intent_capability_fact_owner.sh'
-run 'bash tests/self_hosted/parity/mir/mir_receiver_carriage_admission_owner.sh'
+run 'make self-host-mir-receiver-carriage-admission-test-smoke'
 run 'bash tests/self_hosted/parity/one_mir/one_mir_string_array_index_return_projection.sh'
 run 'bash tests/self_hosted/parity/one_mir/one_mir_string_case_math_projection.sh'
 run 'bash tests/self_hosted/parity/one_mir/one_mir_string_trim_projection.sh'

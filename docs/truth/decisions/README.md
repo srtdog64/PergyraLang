@@ -67,3 +67,5 @@ the one it replaces. OPEN files wait for the user.
 | 2026-11-20 | [An element release ends the String loans of its array](2026-11-20_element_release_ends_string_loans.md) | in force |
 | 2026-11-28 | [What closes `semantic.loop_flow_summary` and `semantic.resource_flow_universe`?](2026-11-28_open_flow_state_rows_closure_scope.md) | answered 2026-11-29 |
 | 2026-11-29 | [`semantic.loop_flow_summary` and `semantic.resource_flow_universe` close by scope](2026-11-29_flow_state_rows_close_by_scope.md) | in force |
+| 2026-11-29 | [`semantic.callable_receiver_carriage` closes by scope](2026-11-29_receiver_carriage_closes_by_scope.md) | in force |
+| 2026-11-29 | [`air.evidence_graph` closes by scope](2026-11-29_air_evidence_graph_closes_by_scope.md) | in force |

@@ -127,7 +127,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     # cleaned CI build directory; before it, this build was thrown away by the clean.
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" release-primary-debug-section-hygiene-test-smoke'
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" hir-function-param-flow-summary-test-smoke air-function-param-flow-summary-test-smoke'
-    run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" dir-resource-flow-identity-test-smoke rir-resource-flow-identity-test-smoke'
+    run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" dir-resource-flow-identity-test-smoke rir-resource-flow-identity-test-smoke air-mir-binding-test-smoke'
 fi
 
 if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
@@ -143,7 +143,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
     run 'make self-host-preparation-contract-test-smoke'
     run 'make self-host-mir-function-param-flow-summary-test-smoke'
     # Same MIR lowering tool build as the step above; the flow rows' identity gates.
-    run 'make self-host-mir-resource-flow-identity-test-smoke self-host-mir-loop-flow-summary-test-smoke'
+    run 'make self-host-mir-resource-flow-identity-test-smoke self-host-mir-loop-flow-summary-test-smoke self-host-mir-receiver-carriage-admission-test-smoke'
 fi
 
 # Installed-pair gates that build nothing native, split from the core and
@@ -165,6 +165,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST_GATES" == "1" ]]; then
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_option_coalesce_owner.sh'
     run 'bash tests/self_hosted/parity/mir/mir_loop_flow_carriage_owner.sh'
     run 'bash tests/self_hosted/parity/semantic/slot_release_flow_owner.sh'
+    run 'bash tests/self_hosted/parity/domain/role_override_mir_replacement.sh'
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_scalar_safe_literal_divisor_owner.sh'
     run 'bash tests/backend/c_array_literal_element_store_smoke.sh'
     run 'bash tests/self_hosted/parity/ownership/selfhost_cleanup_release_owner.sh replaced-call-result'

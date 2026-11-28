@@ -5,6 +5,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/mir_lower_tool_build_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 fail() {
@@ -28,23 +29,17 @@ if [[ -z "$PYTHON_BIN" ]]; then
     fi
 fi
 
-MIR_LOWER_SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 VALUE_FIXTURE="$ROOT_DIR/tests/cases/backend_compare/class_method_self_chain/main.pgy"
 IDENTITY_FIXTURE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 INTENT_FIXTURE="$ROOT_DIR/tests/cases/backend_compare/boilerplate_reduction/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/mir_receiver_carriage_admission}"
-MIR_LOWER="$BUILD_DIR/mir_lower.exe"
 DRIVER_BIN="${PGY_SELFHOST_PREBUILT_DRIVER:-${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}}"
 
 mkdir -p "$BUILD_DIR"
 
-if ! (cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER_SOURCE")" \
-    --backend=c -o "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER")" \
-    >"$BUILD_DIR/mir_lower.compile.log" 2>&1); then
-    cat "$BUILD_DIR/mir_lower.compile.log" >&2
-    fail "mir_lower build failed"
-fi
+# The job's shared MIR lowering tool build; make builds it first.
+MIR_LOWER="$(pgy_mir_lower_tool_binary "$ROOT_DIR" "$PGY")" ||
+    fail "shared MIR lowering tool is unavailable; run the gate through make"
 
 DRIVER_BIN="$(pgy_select_optional_exe_binary "$DRIVER_BIN")"
 pgy_require_runnable_binary_here \

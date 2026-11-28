@@ -2946,6 +2946,10 @@ self-host-mir-loop-flow-summary-test-smoke:
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
 	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh
 
+self-host-mir-receiver-carriage-admission-test-smoke:
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
+	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir/mir_receiver_carriage_admission_owner.sh
+
 # The MIR lowering tool is the job's shared build, and the DRV-2 driver is the
 # installed one, as in the other DRV-2 owners above: compiling the DRV-2 entry
 # from source again exceeds a 16 GB runner
