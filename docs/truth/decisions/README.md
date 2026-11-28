@@ -65,3 +65,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-11-20 | [A call whose inout formal frees a String element retires the loans of its actual](2026-11-20_inout_call_freeing_an_element_retires_loans.md) | in force |
 | 2026-11-20 | [A String of unknown source stored past a List or a promoted Array is copied](2026-11-20_unknown_string_store_copied_past_list_or_promoted_array.md) | in force |
 | 2026-11-20 | [An element release ends the String loans of its array](2026-11-20_element_release_ends_string_loans.md) | in force |
+| 2026-11-28 | [What closes `semantic.loop_flow_summary` and `semantic.resource_flow_universe`?](2026-11-28_open_flow_state_rows_closure_scope.md) | OPEN |
