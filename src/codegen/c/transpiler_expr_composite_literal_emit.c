@@ -177,7 +177,18 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(buf, "({ PgyArray_%s _pgy_arr_%d = pgy_array_new_%s(%zu); ",
         arr_suffix, tmp_id, arr_suffix, count);
     /* Constants have no evaluation or ownership transfer effects. Preserve
-     * the allocator and publish the initialized length only after the copy. */
+     * the allocator and publish the initialized length only after the copy.
+     *
+     * Other elements are stored in order into the pre-sized backing, then the
+     * length is published once. Every PgyArray_T comes from PGY_ARRAY_IMPLEMENT
+     * (built-ins through PGY_ARRAY_DEFINE, nominal and nested element types
+     * through the specialization registry): pgy_array_new_T(n) gives capacity
+     * n and panics instead of returning NULL data, and pgy_array_push_T only
+     * grows at length == capacity, stores the value unchanged and increments
+     * the length. No element type's push copies, retains or records anything,
+     * so n stores plus one length store reach the same state with no grow
+     * check. Each store is a full expression, so elements still evaluate left
+     * to right, and nothing names the temporary before it is the result. */
     if (constant_int)
         codebuf_write(buf, "static const int32_t _pgy_init_%d[] = {", tmp_id);
     for (size_t i = 0; i < count; i++) {
@@ -194,8 +205,8 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
         if (constant_int)
             codebuf_write(buf, "%s%s", i != 0 ? ", " : "", elem);
         else
-            codebuf_write(buf, "pgy_array_push_%s(&_pgy_arr_%d, %s); ",
-                arr_suffix, tmp_id, elem);
+            codebuf_write(buf, "_pgy_arr_%d.data[%zu] = %s; ",
+                tmp_id, i, elem);
         free(elem);
     }
     if (constant_int)
@@ -203,6 +214,8 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
             "}; memcpy(_pgy_arr_%d.data, _pgy_init_%d, sizeof(_pgy_init_%d)); "
             "_pgy_arr_%d.length = %zu; ",
             tmp_id, tmp_id, tmp_id, tmp_id, count);
+    else if (count > 0)
+        codebuf_write(buf, "_pgy_arr_%d.length = %zu; ", tmp_id, count);
     codebuf_write(buf, "_pgy_arr_%d; })", tmp_id);
     char *result = pergyra_strdup(buf->data);
     codebuf_destroy(buf);
