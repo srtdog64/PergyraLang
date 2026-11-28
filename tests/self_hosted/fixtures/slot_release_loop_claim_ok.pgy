@@ -1,0 +1,17 @@
+// A slot claimed and released in each loop iteration.
+func ClaimEachIteration() -> Int {
+    var total: Int = 0;
+    var i: Int = 0;
+    while i < 3 {
+        let fresh: Slot<Int> = ClaimSlot();
+        Write(fresh, i);
+        total = total + Read(fresh);
+        Release(fresh);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(ClaimEachIteration());
+}

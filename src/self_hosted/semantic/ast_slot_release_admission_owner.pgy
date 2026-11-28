@@ -1,0 +1,472 @@
+// Release and move state of anchored resource handles (Slot, SecureSlot,
+// DeviceSlot) through structured source flow, as the native checker keeps
+// slot_info.state and is_consumed (type_checker_builtins_slotops.c,
+// type_checker_builtins_device_slot.c, type_checker_builtins_stdlib_body.c,
+// type_checker_ownership_call.c, type_checker_expr.c).
+// A local Slot or SecureSlot is released by Release or by a move into an own
+// parameter; only that local may Release it. A DeviceSlot local is released
+// by ReleaseDeviceSlot and moved by an own parameter; a handle parameter is
+// moved by an own parameter. A path join keeps either state from any path
+// (native merge_resource_states), so a handle released on one path is
+// released after the join. A loop runs its body again while its backedge adds
+// state, except a literal range of one iteration. Both operands of a short
+// circuit are checked, and a deferred block is checked where it stands
+// without changing the state. The binding rows are the Future lifecycle's
+// lexical rows.
+import "ast_future_lifecycle_admission_owner.pgy";
+import "ast_body_flow_calculus_owner.pgy";
+import "ast_single_owner_handle_verdict_owner.pgy";
+
+// State flags: 1 released, 2 moved. A branch owns its state storage.
+struct SemanticSlotFlow {
+    verdict: SemanticAstBodyVerdict;
+    continuing: Bool;
+    states: Array<Int>;
+    has_break: Bool;
+    break_states: Array<Int>;
+    has_continue: Bool;
+    continue_states: Array<Int>;
+}
+
+func SemanticSlotFlowFrom(ref states: Array<Int>, continuing: Bool) -> SemanticSlotFlow {
+    var copied: Array<Int> = [];
+    var index: Int = 0;
+    while index < ArrayLength(states) {
+        ArrayPush(copied, states[index]); index = index + 1;
+    }
+    let breaks: Array<Int> = []; let continues: Array<Int> = [];
+    return SemanticSlotFlow(SemanticAstBodyVerdictOk(), continuing,
+        copied, false, breaks, false, continues);
+}
+
+func SemanticSlotReject(inout flow: SemanticSlotFlow, node_id: Int, code: String, name: String) -> Void {
+    if flow.verdict.ok {
+        flow.verdict = SemanticAstBodyVerdictError(code, SemanticError1(code, "binding", name), node_id);
+    }
+}
+
+func SemanticSlotMergeStates(ref target: Array<Int>, ref source: Array<Int>) -> Array<Int> {
+    var merged: Array<Int> = [];
+    var index: Int = 0;
+    while index < ArrayLength(source) {
+        var released: Bool = source[index] % 2 == 1;
+        var moved: Bool = source[index] >= 2;
+        if index < ArrayLength(target) {
+            released = released || target[index] % 2 == 1;
+            moved = moved || target[index] >= 2;
+        }
+        var state: Int = 0;
+        if released { state = 1; }
+        if moved { state = state + 2; }
+        ArrayPush(merged, state);
+        index = index + 1;
+    }
+    return merged;
+}
+
+func SemanticSlotReleased(ref flow: SemanticSlotFlow, handle: Int) -> Bool { return flow.states[handle] % 2 == 1; }
+func SemanticSlotMoved(ref flow: SemanticSlotFlow, handle: Int) -> Bool { return flow.states[handle] >= 2; }
+
+func SemanticSlotMark(inout flow: SemanticSlotFlow, handle: Int, flag: Int) -> Void {
+    if flag == 1 && !SemanticSlotReleased(flow, handle) { ArraySet(flow.states, handle, flow.states[handle] + 1); }
+    if flag == 2 && !SemanticSlotMoved(flow, handle) { ArraySet(flow.states, handle, flow.states[handle] + 2); }
+}
+
+// A local Slot or SecureSlot: native SYMBOL_SLOT, whose moves release it.
+func SemanticSlotOwningLocal(ref facts: SemanticFutureBindings, handle: Int) -> Bool {
+    return facts.parameter_modes[handle] < 0 && !StartsWith(facts.types[handle], "DeviceSlot<");
+}
+
+// A value use of the handle: a released owning local is a released borrow,
+// any other moved handle is a use after its move.
+func SemanticSlotValueUse(ref facts: SemanticFutureBindings, inout flow: SemanticSlotFlow,
+    syntax_id: Int, handle: Int) -> Void {
+    if SemanticSlotOwningLocal(facts, handle) {
+        if SemanticSlotReleased(flow, handle) { SemanticSlotReject(flow, syntax_id, "slot_borrow_released", facts.names[handle]); }
+    } else if SemanticSlotMoved(flow, handle) {
+        SemanticSlotReject(flow, syntax_id, "slot_move_from_released", facts.names[handle]);
+    }
+}
+
+func SemanticSlotSameStates(ref left: Array<Int>, ref right: Array<Int>) -> Bool {
+    if ArrayLength(left) != ArrayLength(right) { return false; }
+    var index: Int = 0;
+    while index < ArrayLength(left) {
+        if left[index] != right[index] { return false; }
+        index = index + 1;
+    }
+    return true;
+}
+
+func SemanticSlotJoin(inout target: SemanticSlotFlow, ref branch: SemanticSlotFlow) -> Void {
+    if !branch.verdict.ok && target.verdict.ok {
+        target.verdict = SemanticAstBodyVerdictError(branch.verdict.diagnostic_code,
+            branch.verdict.diagnostic_message, branch.verdict.first_node_id);
+    }
+    if branch.continuing {
+        if target.continuing { target.states = SemanticSlotMergeStates(target.states, branch.states); }
+        else {
+            var index: Int = 0;
+            while index < ArrayLength(branch.states) {
+                ArraySet(target.states, index, branch.states[index]); index = index + 1;
+            }
+        }
+        target.continuing = true;
+    }
+    if branch.has_break {
+        target.break_states = SemanticSlotMergeStates(target.break_states, branch.break_states);
+        target.has_break = true;
+    }
+    if branch.has_continue {
+        target.continue_states = SemanticSlotMergeStates(target.continue_states, branch.continue_states);
+        target.has_continue = true;
+    }
+}
+
+// The binding row of an anchored handle named by this leaf, or -1.
+func SemanticSlotHandleAt(ref facts: SemanticFutureBindings, syntax_id: Int, expression_id: Int) -> Int {
+    if facts.surfaces.expression_graph.arena.topology.node_kinds[expression_id] != AstExpressionNodeLeaf() {
+        return -1;
+    }
+    let binding: Option<Int> = SemanticFutureBindingAt(facts, syntax_id,
+        facts.surfaces.expression_graph.arena.node_texts[expression_id]);
+    if !IsSome(binding) || !SemanticAnchoredHandleTypeName(facts.types[UnwrapOption(binding)]) { return -1; }
+    return UnwrapOption(binding);
+}
+
+// The first argument of a slot builtin, checked against its state. Returns
+// false for a call that is not a slot builtin.
+func SemanticSlotBuiltinUse(ref facts: SemanticFutureBindings, inout flow: SemanticSlotFlow,
+    syntax_id: Int, builtin: String, handle: Int) -> Bool {
+    let name: String = facts.names[handle];
+    let owning: Bool = SemanticSlotOwningLocal(facts, handle);
+    var code: String = "";
+    if builtin == "Release" {
+        if !owning && !StartsWith(facts.types[handle], "DeviceSlot<") {
+            SemanticSlotReject(flow, syntax_id, "slot_release_not_owner", name);
+        } else if owning && SemanticSlotReleased(flow, handle) {
+            SemanticSlotReject(flow, syntax_id, "slot_double_release", name);
+        }
+        SemanticSlotMark(flow, handle, 1);
+        return true;
+    }
+    if builtin == "Read" { code = "slot_read_after_release"; }
+    if builtin == "Write" { code = "slot_write_after_release"; }
+    if builtin == "ReleaseDeviceSlot" { code = "device_slot_double_release"; }
+    if builtin == "DeviceRead" || builtin == "DeviceWrite" { code = "device_slot_use_after_release"; }
+    if code == "" { return false; }
+    if SemanticSlotMoved(flow, handle) {
+        SemanticSlotReject(flow, syntax_id, "slot_move_from_released", name);
+    } else if SemanticSlotReleased(flow, handle) { SemanticSlotReject(flow, syntax_id, code, name); }
+    if builtin == "ReleaseDeviceSlot" { SemanticSlotMark(flow, handle, 1); }
+    return true;
+}
+
+func SemanticSlotCall(ref facts: SemanticFutureBindings, inout flow: SemanticSlotFlow,
+    syntax_id: Int, expression_id: Int) -> Void {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(facts.surfaces.expression_graph, expression_id);
+    if !call.ok { SemanticSlotReject(flow, syntax_id, "ast_artifact_invalid", "slot release call spine"); return; }
+    SemanticSlotExpression(facts, flow, syntax_id, call.callee_node);
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(facts.signatures,
+        facts.surfaces.expression_graph.arena.identities.call_target_syntax_ids[call.call_node]);
+    var builtin: String = "";
+    if !IsSome(signature) &&
+        facts.surfaces.expression_graph.arena.topology.node_kinds[call.callee_node] == AstExpressionNodeLeaf() {
+        builtin = facts.surfaces.expression_graph.arena.node_texts[call.callee_node];
+    }
+    // Own-parameter moves take effect after every argument is checked.
+    var moved_after: Array<Int> = [];
+    var argument: Int = 0;
+    while argument < ArrayLength(call.argument_nodes) && flow.verdict.ok {
+        let argument_id: Int = call.argument_nodes[argument];
+        let handle: Int = SemanticSlotHandleAt(facts, syntax_id, argument_id);
+        var checked: Bool = false;
+        if handle >= 0 && argument == 0 && builtin != "" {
+            checked = SemanticSlotBuiltinUse(facts, flow, syntax_id, builtin, handle);
+        }
+        if handle >= 0 && IsSome(signature) {
+            let row: Int = UnwrapOption(signature);
+            let offset: Int = facts.signatures.receiver_source_param_offsets[row];
+            var mode: Int = 0;
+            if argument + offset < facts.signatures.param_counts[row] {
+                mode = facts.signatures.param_modes[facts.signatures.param_starts[row] + offset + argument];
+            }
+            checked = true;
+            if mode == 2 && SemanticSlotOwningLocal(facts, handle) && SemanticSlotReleased(flow, handle) {
+                SemanticSlotReject(flow, syntax_id, "slot_move_from_released", facts.names[handle]);
+            } else { SemanticSlotValueUse(facts, flow, syntax_id, handle); }
+            if mode == 2 { ArrayPush(moved_after, handle); }
+        }
+        if !checked { SemanticSlotExpression(facts, flow, syntax_id, argument_id); }
+        argument = argument + 1;
+    }
+    var index: Int = 0;
+    while index < ArrayLength(moved_after) && flow.verdict.ok {
+        // A moved owning local is released (native SYMBOL_SLOT).
+        if SemanticSlotOwningLocal(facts, moved_after[index]) { SemanticSlotMark(flow, moved_after[index], 1); }
+        else { SemanticSlotMark(flow, moved_after[index], 2); }
+        index = index + 1;
+    }
+}
+
+func SemanticSlotExpression(ref facts: SemanticFutureBindings, inout flow: SemanticSlotFlow,
+    syntax_id: Int, expression_id: Int) -> Void {
+    if !flow.verdict.ok { return; }
+    let graph_count: Int = SemanticExpressionGraphArenaNodeCount(facts.surfaces.expression_graph.arena);
+    if expression_id < 0 || expression_id >= graph_count {
+        SemanticSlotReject(flow, syntax_id, "ast_artifact_invalid", "slot release expression identity"); return;
+    }
+    let kind: Int = facts.surfaces.expression_graph.arena.topology.node_kinds[expression_id];
+    if kind == AstExpressionNodeLeaf() {
+        let handle: Int = SemanticSlotHandleAt(facts, syntax_id, expression_id);
+        if handle >= 0 { SemanticSlotValueUse(facts, flow, syntax_id, handle); }
+        return;
+    }
+    if kind == AstExpressionNodeCall() || kind == AstExpressionNodeCallArgument() {
+        SemanticSlotCall(facts, flow, syntax_id, expression_id); return;
+    }
+    let arity: Int = AstExpressionNodeArity(kind);
+    if arity == 0 { return; }
+    SemanticSlotExpression(facts, flow, syntax_id,
+        facts.surfaces.expression_graph.arena.topology.left_children[expression_id]);
+    // A member selector is not a lexical value use.
+    if arity < 2 || kind == AstExpressionNodeMemberAccess() { return; }
+    SemanticSlotExpression(facts, flow, syntax_id,
+        facts.surfaces.expression_graph.arena.topology.right_children[expression_id]);
+}
+
+func SemanticSlotStatementExpressions(ref facts: SemanticFutureBindings,
+    inout flow: SemanticSlotFlow, node_id: Int) -> Void {
+    let row: Int = facts.surface_rows[node_id];
+    if row < 0 { return; }
+    var lane: Int = 0;
+    while lane < 3 && flow.verdict.ok {
+        let root_index: Int = row * 3 + lane;
+        if facts.surfaces.expression_graph.has_roots[root_index] {
+            SemanticSlotExpression(facts, flow, node_id, facts.surfaces.expression_graph.roots[root_index]);
+        }
+        lane = lane + 1;
+    }
+    // A handle binding holds a fresh claim once its initializer has run, also
+    // when a loop declares it again.
+    var index: Int = 0;
+    while index < ArrayLength(facts.node_ids) && flow.verdict.ok {
+        if facts.node_ids[index] == node_id && facts.parameter_modes[index] < 0 &&
+            SemanticAnchoredHandleTypeName(facts.types[index]) {
+            ArraySet(flow.states, index, 0);
+        }
+        index = index + 1;
+    }
+}
+
+func SemanticSlotChildren(ref facts: SemanticFutureBindings, inout flow: SemanticSlotFlow,
+    node_id: Int, loop_id: Int) -> Void {
+    var child: Int = 0;
+    while child < facts.artifact.arena.child_counts[node_id] && flow.verdict.ok && flow.continuing {
+        let child_id: Int = facts.artifact.arena.children[facts.artifact.arena.first_children[node_id] + child];
+        SemanticSlotNode(facts, flow, child_id, loop_id);
+        child = child + 1;
+    }
+}
+
+// 0 when the body never runs, 1 for a literal range of one iteration, else 2.
+func SemanticSlotLoopRuns(ref facts: SemanticFutureBindings, node_id: Int, is_while: Bool) -> Int {
+    if is_while {
+        let condition: Option<Bool> = SemanticFutureCondition(facts, node_id);
+        if IsSome(condition) && !UnwrapOption(condition) { return 0; }
+        return 2;
+    }
+    let lower: String = SemanticAstBodyFlowLiteralText(facts.surfaces, node_id,
+        AstExpressionLaneValue(), AstExpressionNodeIntegerLiteral());
+    let upper: String = SemanticAstBodyFlowLiteralText(facts.surfaces, node_id,
+        AstExpressionLaneAuxiliary(), AstExpressionNodeIntegerLiteral());
+    if lower == "" || upper == "" { return 2; }
+    let count: Int = ToInt(upper) - ToInt(lower);
+    if count <= 0 { return 0; }
+    if count == 1 { return 1; }
+    return 2;
+}
+
+func SemanticSlotLoop(ref facts: SemanticFutureBindings, inout flow: SemanticSlotFlow,
+    node_id: Int, is_while: Bool) -> Void {
+    SemanticSlotStatementExpressions(facts, flow, node_id);
+    let runs: Int = SemanticSlotLoopRuns(facts, node_id, is_while);
+    if !flow.verdict.ok || runs == 0 { return; }
+    var head: Array<Int> = SemanticSlotMergeStates(flow.states, flow.states);
+    var body: SemanticSlotFlow = SemanticSlotFlowFrom(head, true);
+    var rounds: Int = 0;
+    var stable: Bool = false;
+    while !stable {
+        body = SemanticSlotFlowFrom(head, true);
+        SemanticSlotChildren(facts, body, node_id, node_id);
+        if !body.verdict.ok { flow.verdict = body.verdict; return; }
+        var back: Array<Int> = SemanticSlotMergeStates(head, head);
+        if body.continuing { back = SemanticSlotMergeStates(back, body.states); }
+        if body.has_continue { back = SemanticSlotMergeStates(back, body.continue_states); }
+        stable = runs == 1 || SemanticSlotSameStates(back, head);
+        if !stable {
+            head = back;
+            // The condition is evaluated again before the next iteration.
+            var again: SemanticSlotFlow = SemanticSlotFlowFrom(head, true);
+            SemanticSlotStatementExpressions(facts, again, node_id);
+            if !again.verdict.ok { flow.verdict = again.verdict; return; }
+            rounds = rounds + 1;
+            if rounds > 2 * ArrayLength(head) + 2 {
+                SemanticSlotReject(flow, node_id, "ast_artifact_invalid", "slot release loop state"); return;
+            }
+        }
+    }
+    var exit_path: SemanticSlotFlow = SemanticSlotFlowFrom(head, true);
+    if runs == 1 {
+        exit_path.continuing = body.continuing || body.has_continue;
+        if body.continuing { exit_path.states = SemanticSlotMergeStates(body.states, body.states); }
+        if body.has_continue {
+            if body.continuing { exit_path.states = SemanticSlotMergeStates(exit_path.states, body.continue_states); }
+            else { exit_path.states = SemanticSlotMergeStates(body.continue_states, body.continue_states); }
+        }
+    } else if is_while {
+        let condition: Option<Bool> = SemanticFutureCondition(facts, node_id);
+        exit_path.continuing = !IsSome(condition) || !UnwrapOption(condition);
+    }
+    flow.continuing = false;
+    SemanticSlotJoin(flow, exit_path);
+    if body.has_break {
+        let break_path: SemanticSlotFlow = SemanticSlotFlowFrom(body.break_states, true);
+        SemanticSlotJoin(flow, break_path);
+    }
+}
+
+func SemanticSlotNode(ref facts: SemanticFutureBindings, inout flow: SemanticSlotFlow,
+    node_id: Int, loop_id: Int) -> Void {
+    if !flow.continuing || !flow.verdict.ok { return; }
+    let kind: Int = facts.artifact.arena.kinds[node_id];
+    if TypedAstKindIsCallableDecl(kind) { return; }
+    if kind == TypedAstKindWhileStmtTag() || kind == TypedAstKindForStmtTag() {
+        SemanticSlotLoop(facts, flow, node_id, kind == TypedAstKindWhileStmtTag()); return;
+    }
+    SemanticSlotStatementExpressions(facts, flow, node_id);
+    if !flow.verdict.ok { return; }
+    if kind == TypedAstKindBareReturnStmtTag() || kind == TypedAstKindValueReturnStmtTag() ||
+        kind == TypedAstKindExitStmtTag() {
+        flow.continuing = false; return;
+    }
+    if kind == TypedAstKindBreakStmtTag() || kind == TypedAstKindContinueStmtTag() {
+        if loop_id < 0 { SemanticSlotReject(flow, node_id, "ast_artifact_invalid", "slot release loop exit"); return; }
+        if kind == TypedAstKindBreakStmtTag() {
+            flow.break_states = SemanticSlotMergeStates(flow.break_states, flow.states); flow.has_break = true;
+        } else {
+            flow.continue_states = SemanticSlotMergeStates(flow.continue_states, flow.states); flow.has_continue = true;
+        }
+        flow.continuing = false; return;
+    }
+    if kind == TypedAstKindIfStmtTag() || kind == TypedAstKindMatchStmtTag() {
+        let entry: SemanticSlotFlow = SemanticSlotFlowFrom(flow.states, true);
+        var condition: Option<Bool> = None;
+        if kind == TypedAstKindIfStmtTag() { condition = SemanticFutureCondition(facts, node_id); }
+        var has_fallback: Bool = facts.exhaustive_match_rows[node_id];
+        flow.continuing = false;
+        var child: Int = 0;
+        while child < facts.artifact.arena.child_counts[node_id] && flow.verdict.ok {
+            let child_id: Int = facts.artifact.arena.children[facts.artifact.arena.first_children[node_id] + child];
+            let child_kind: Int = facts.artifact.arena.kinds[child_id];
+            let fallback: Bool = child_kind == TypedAstKindElseStmtTag() || child_kind == TypedAstKindMatchDefaultStmtTag();
+            if fallback { has_fallback = true; }
+            if !IsSome(condition) || UnwrapOption(condition) != fallback {
+                var branch: SemanticSlotFlow = SemanticSlotFlowFrom(entry.states, true);
+                SemanticSlotNode(facts, branch, child_id, loop_id);
+                SemanticSlotJoin(flow, branch);
+            }
+            child = child + 1;
+        }
+        if !has_fallback && (!IsSome(condition) || !UnwrapOption(condition)) { SemanticSlotJoin(flow, entry); }
+        return;
+    }
+    if kind == TypedAstKindDeferStmtTag() {
+        var deferred: SemanticSlotFlow = SemanticSlotFlowFrom(flow.states, true);
+        SemanticSlotChildren(facts, deferred, node_id, loop_id);
+        if !deferred.verdict.ok { flow.verdict = deferred.verdict; }
+        return;
+    }
+    SemanticSlotChildren(facts, flow, node_id, loop_id);
+}
+
+func SemanticAstSlotReleaseAdmissionFromFacts(artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts, locals: SemanticAstLocalBindingFacts,
+    initializers: SemanticAstInitializerTypeFacts, surfaces: SemanticAstExpressionSurfaceFacts,
+    exhaustive_match_nodes: Array<Int>
+) -> SemanticAstBodyVerdict {
+    var needed: Bool = false; var index: Int = 0;
+    while index < ArrayLength(initializers.inferred_type_names) {
+        if SemanticAnchoredHandleTypeName(initializers.inferred_type_names[index]) { needed = true; }
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(signatures.param_types) {
+        if SemanticAnchoredHandleTypeName(signatures.param_types[index]) { needed = true; }
+        index = index + 1;
+    }
+    if !needed { return SemanticAstBodyVerdictOk(); }
+    if !SemanticAstSignatureRowsAdmittedReady(artifact, signatures) ||
+        !SemanticAstInitializerTypeFactsReadyProjection(artifact, locals, initializers) ||
+        !surfaces.ok || surfaces.artifact_node_count != artifact.count {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid", "slot release flow requires admitted body facts", -1);
+    }
+    var surface_rows: Array<Int> = []; var exhaustive_match_rows: Array<Bool> = []; index = 0;
+    while index < artifact.count {
+        ArrayPush(surface_rows, -1); ArrayPush(exhaustive_match_rows, false); index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(exhaustive_match_nodes) {
+        let match_node: Int = exhaustive_match_nodes[index];
+        if match_node < 0 || match_node >= artifact.count ||
+            artifact.arena.kinds[match_node] != TypedAstKindMatchStmtTag() {
+            return SemanticAstBodyVerdictError("ast_artifact_invalid", "slot release match coverage identity is crossed", match_node);
+        }
+        ArraySet(exhaustive_match_rows, match_node, true); index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(surfaces.node_ids) {
+        let node_id: Int = surfaces.node_ids[index];
+        if node_id < 0 || node_id >= artifact.count || surface_rows[node_id] >= 0 {
+            return SemanticAstBodyVerdictError("ast_artifact_invalid", "slot release expression source identity is crossed", node_id);
+        }
+        ArraySet(surface_rows, node_id, index); index = index + 1;
+    }
+    var signature: Int = 0;
+    while signature < ArrayLength(signatures.function_node_ids) {
+        let function_id: Int = signatures.function_node_ids[signature];
+        var body_id: Int = -1; var child: Int = 0;
+        while child < artifact.arena.child_counts[function_id] {
+            let child_id: Int = artifact.arena.children[artifact.arena.first_children[function_id] + child];
+            if artifact.arena.kinds[child_id] == TypedAstKindBodyTag() { body_id = child_id; }
+            child = child + 1;
+        }
+        if body_id >= 0 {
+            var nodes: Array<Int> = []; var scopes: Array<Int> = [];
+            var names: Array<String> = []; var types: Array<String> = [];
+            var modes: Array<Int> = []; var states: Array<Int> = [];
+            var parameter: Int = signatures.param_starts[signature];
+            while parameter < signatures.param_starts[signature] + signatures.param_counts[signature] {
+                ArrayPush(nodes, signatures.param_node_ids[parameter]); ArrayPush(scopes, function_id);
+                ArrayPush(names, signatures.param_names[parameter]); ArrayPush(types, signatures.param_types[parameter]);
+                ArrayPush(modes, signatures.param_modes[parameter]);
+                ArrayPush(states, 0); parameter = parameter + 1;
+            }
+            let range: SemanticAstLocalBindingFunctionRange = SemanticAstLocalBindingRangeForFunction(locals, function_id);
+            if !range.ok { return SemanticAstBodyVerdictError("ast_artifact_invalid", "slot release local range is missing", function_id); }
+            index = range.start;
+            while index < range.end {
+                ArrayPush(nodes, locals.node_ids[index]); ArrayPush(scopes, locals.scope_node_ids[index]);
+                ArrayPush(names, locals.names[index]); ArrayPush(types, initializers.inferred_type_names[index]);
+                ArrayPush(modes, -1); ArrayPush(states, 0); index = index + 1;
+            }
+            let facts: SemanticFutureBindings = SemanticFutureBindings(artifact, signatures, surfaces,
+                surface_rows, exhaustive_match_rows, nodes, scopes, names, types, modes);
+            var flow: SemanticSlotFlow = SemanticSlotFlowFrom(states, true);
+            SemanticSlotNode(facts, flow, body_id, -1);
+            if !flow.verdict.ok { return flow.verdict; }
+        }
+        signature = signature + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

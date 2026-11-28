@@ -33,7 +33,7 @@ import "ast_intent_retry_admission_owner.pgy";
 import "ast_intent_step_clause_admission_owner.pgy";
 import "ast_intent_boundary_predicate_admission_owner.pgy";
 import "ast_action_contract_admission_owner.pgy";
-import "ast_future_lifecycle_admission_owner.pgy";
+import "ast_slot_release_admission_owner.pgy";
 import "ast_cancel_admission_owner.pgy";
 import "ast_unsafe_block_admission_owner.pgy";
 import "ast_enum_payload_variant_provenance_verdict_owner.pgy";
@@ -308,11 +308,12 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             artifact, analysis.statements);
     }
     if verdict.ok {
-        verdict = SemanticAstFutureLifecycleAdmissionFromFacts(
-            artifact, analysis.signatures, analysis.constructors,
-            analysis.local_bindings, initializer_types,
-            analysis.expression_surfaces, analysis.enums,
-            exhaustive_match_nodes);
+        verdict = SemanticAstFutureLifecycleAdmissionFromFacts(artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types, analysis.expression_surfaces, analysis.enums, exhaustive_match_nodes);
+    }
+    if verdict.ok {
+        verdict = SemanticAstSlotReleaseAdmissionFromFacts(artifact, analysis.signatures, analysis.local_bindings,
+            initializer_types, analysis.expression_surfaces, exhaustive_match_nodes);
     }
     if verdict.ok && require_source_body_flow {
         verdict = SemanticAstBorrowedNewBindingVerdict(analysis, initializer_types);

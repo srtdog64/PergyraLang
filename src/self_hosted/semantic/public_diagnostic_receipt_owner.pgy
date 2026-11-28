@@ -80,8 +80,28 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
     if code == "single_owner_handle_copy" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:movable_handle:copy_attempt", "use-move-or-retain-binding");
     }
-    if code == "single_owner_handle_owner_required" {
+    if code == "single_owner_handle_owner_required" || code == "slot_release_not_owner" ||
+        code == "device_slot_double_release" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:builtin:signature_mismatch", "match-builtin-signature");
+    }
+    // Native slot lifecycle hints (type_checker_builtins_slotops.c and its peers).
+    if code == "slot_double_release" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:release:double", "remove-redundant-release");
+    }
+    if code == "slot_read_after_release" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:slot_lifecycle:read_after_release", "reclaim-before-use");
+    }
+    if code == "slot_write_after_release" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:slot_lifecycle:write_after_release", "reclaim-before-use");
+    }
+    if code == "device_slot_use_after_release" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:device_slot:use_after_release", "reclaim-before-use");
+    }
+    if code == "slot_borrow_released" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:slot:borrow_released", "reclaim-source-or-trace-earlier-release");
+    }
+    if code == "slot_move_from_released" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:move:from_released", "reclaim-or-trace-earlier-move");
     }
     if code == "single_owner_handle_released" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:move:from_released", "reclaim-or-trace-earlier-move");

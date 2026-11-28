@@ -53,6 +53,14 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "single_owner_handle_not_consumed",
         "single_owner_handle_boundary",
         "anchored_handle_copy",
+        "slot_release_not_owner",
+        "slot_double_release",
+        "device_slot_double_release",
+        "slot_read_after_release",
+        "slot_write_after_release",
+        "device_slot_use_after_release",
+        "slot_borrow_released",
+        "slot_move_from_released",
         "builtin_arg_type_mismatch",
         "option_concrete_type_required",
         "value_param_collection_mutation",
@@ -118,6 +126,14 @@ func SemanticDiagnosticCodeCount() -> Int {
     return ArrayLength(SemanticDiagnosticCodes());
 }
 
+// Release-order and release-authority refusals of anchored resource handles.
+func SemanticDiagnosticSlotReleaseCode(code: String) -> Bool {
+    return code == "slot_release_not_owner" || code == "slot_double_release" ||
+        code == "device_slot_double_release" || code == "slot_read_after_release" ||
+        code == "slot_write_after_release" || code == "device_slot_use_after_release" ||
+        code == "slot_borrow_released" || code == "slot_move_from_released";
+}
+
 func SemanticDiagnosticPublicLayer(code: String) -> String {
     if code == "borrow_boundary_escape" || code == "move_from_released" ||
         code == "bound_party_escape" ||
@@ -126,7 +142,8 @@ func SemanticDiagnosticPublicLayer(code: String) -> String {
         code == "zone_value_copy_requires_transfer" ||
         code == "zone_value_reassignment_requires_transfer" ||
         code == "zone_value_parameter_requires_transfer" ||
-        code == "zone_spawn_transport_unavailable" { return "resource"; }
+        code == "zone_spawn_transport_unavailable" ||
+        SemanticDiagnosticSlotReleaseCode(code) { return "resource"; }
     if !SemanticDiagnosticCodeKnown(code) { return ""; }
     return "type";
 }
@@ -149,6 +166,11 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "subject_value_copy" || code == "subject_value_return" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
     if code == "single_owner_handle_copy" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
     if code == "anchored_handle_copy" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
+    if code == "slot_release_not_owner" || code == "device_slot_double_release" { return "PGY_SEM_BUILTIN_ARGS_INVALID"; }
+    if code == "slot_double_release" { return "PGY_SEM_SLOT_DOUBLE_RELEASE"; }
+    if code == "slot_read_after_release" || code == "slot_write_after_release" ||
+        code == "device_slot_use_after_release" || code == "slot_borrow_released" { return "PGY_SEM_SLOT_RELEASED"; }
+    if code == "slot_move_from_released" { return "PGY_SEM_MOVE_FROM_RELEASED"; }
     if code == "single_owner_handle_owner_required" { return "PGY_SEM_BUILTIN_ARGS_INVALID"; }
     if code == "single_owner_handle_released" { return "PGY_SEM_MOVE_FROM_RELEASED"; }
     if code == "move_from_released" { return "PGY_SEM_MOVE_FROM_RELEASED"; }

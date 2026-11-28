@@ -1,0 +1,87 @@
+// Release paths native admits: every use precedes a release on its own path.
+// A slot claimed in a loop body is in slot_release_loop_claim_ok.pgy: native
+// RIR enrichment refuses it next to another slot function.
+func BothBranches(flag: Bool) -> Int {
+    let both: Slot<Int> = ClaimSlot();
+    Write(both, 1);
+    if flag {
+        let v: Int = Read(both);
+        Release(both);
+        return v;
+    } else {
+        Release(both);
+    }
+    return 2;
+}
+
+func ReturnedPath(flag: Bool) -> Int {
+    let returned: Slot<Int> = ClaimSlot();
+    Write(returned, 3);
+    if flag {
+        Release(returned);
+        return 0;
+    }
+    let v: Int = Read(returned);
+    Release(returned);
+    return v;
+}
+
+func SingleIteration() -> Int {
+    let once: Slot<Int> = ClaimSlot();
+    Write(once, 4);
+    let v: Int = Read(once);
+    for i in 0..1 {
+        Release(once);
+    }
+    return v;
+}
+
+func NeverRuns() -> Int {
+    let never: Slot<Int> = ClaimSlot();
+    while false {
+        Release(never);
+    }
+    Write(never, 5);
+    let v: Int = Read(never);
+    Release(never);
+    return v;
+}
+
+func ContinueThenReturn() -> Int {
+    let later: Slot<Int> = ClaimSlot();
+    Write(later, 6);
+    var i: Int = 0;
+    while i < 3 {
+        i = i + 1;
+        if i == 1 {
+            continue;
+        }
+        let v: Int = Read(later);
+        Release(later);
+        return v + i;
+    }
+    return 0;
+}
+
+func ConsumeDeviceValue(own dev: DeviceSlot<Int>) -> Int {
+    let value: Int = DeviceRead(dev);
+    ReleaseDeviceSlot(dev);
+    return value;
+}
+
+func DeviceMove() -> Int {
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(dev, 17);
+    return ConsumeDeviceValue(dev);
+}
+
+func Main() -> Void {
+    Log(BothBranches(true));
+    Log(BothBranches(false));
+    Log(ReturnedPath(true));
+    Log(ReturnedPath(false));
+    Log(SingleIteration());
+    Log(NeverRuns());
+    Log(ContinueThenReturn());
+    Log(DeviceMove());
+}

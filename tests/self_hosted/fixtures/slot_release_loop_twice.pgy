@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let s: Slot<Int> = ClaimSlot();
+    var i: Int = 0;
+    while i < 2 {
+        Release(s);
+        i = i + 1;
+    }
+}

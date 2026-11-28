@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(dev, 1);
+    var i: Int = 0;
+    while i < 2 {
+        ReleaseDeviceSlot(dev);
+        i = i + 1;
+    }
+}
