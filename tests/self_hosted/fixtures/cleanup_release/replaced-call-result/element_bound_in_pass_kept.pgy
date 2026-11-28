@@ -1,0 +1,23 @@
+// A pass binds an element of its batch to a local: the binding is a loan
+// that outlives its statement, so no later pass may free that batch's text.
+func Build(seed: Int) -> Array<String> {
+    var values: Array<String> = [];
+    ArrayPushOwnedString(values, "head");
+    if seed % 2 == 1 {
+        ArrayPushOwnedString(values, "odd");
+    }
+    return values;
+}
+
+func Main() -> Int {
+    var i: Int = 0;
+    var total: Int = 0;
+    while i < 5 {
+        let batch: Array<String> = Build(i);
+        let first: String = batch[0];
+        total = total + StringLength(first) + ArrayLength(batch);
+        i = i + 1;
+    }
+    Log(total);
+    return 0;
+}

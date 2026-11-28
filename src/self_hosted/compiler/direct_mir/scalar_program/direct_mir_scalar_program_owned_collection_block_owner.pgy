@@ -94,6 +94,16 @@ func DirectMirOwnedCollectionRowForLocal(
     return found;
 }
 
+// A definition of a fresh owner (a map-key snapshot, a clone or a call
+// result) whose every reach holds the zero descriptor or the live generation,
+// with no retired or prior generation, releases that generation when it
+// publishes: the flow issues that replacement and the emitters print it. Any
+// other reach keeps the live one as a prior generation nothing releases.
+func DirectMirOwnedCollectionDefinitionReleasesPrior(producer: Int, state: Int) -> Bool {
+    return (producer == 1 || producer == 2 || producer == 5) &&
+        (state / 4) % 2 == 0 && state < 8;
+}
+
 func DirectMirOwnedCollectionStateJoin(left: Int, right: Int) -> Int {
     var joined: Int = 0;
     if left % 2 == 1 || right % 2 == 1 { joined = joined + 1; }
@@ -175,7 +185,7 @@ func DirectMirOwnedCollectionBlockOutput(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref receipt_effects: Array<Int>, operation_offset: Int,
     block: Int, target: Int, row: Int, input: Int,
-    local_start: Int, local_end: Int
+    local_start: Int, local_end: Int, stop_operation: Int
 ) -> Int {
     if block < 0 || block >= ArrayLength(storage.blocks.operation_starts) ||
         block >= ArrayLength(storage.blocks.operation_counts) { return 0; }
@@ -187,6 +197,8 @@ func DirectMirOwnedCollectionBlockOutput(
         end > ArrayLength(storage.operations.result_values) ||
         end > ArrayLength(storage.operations.expression_rows) { return 0; }
     while operation < end {
+        // The state an operation of this block is reached with.
+        if operation == stop_operation { return state; }
         let result: Int = storage.operations.result_values[operation];
         var result_local: Int = -1;
         if result >= 0 && result < ArrayLength(storage.values.value_local_rows) {
@@ -204,7 +216,8 @@ func DirectMirOwnedCollectionBlockOutput(
             if state >= 8 { prior = 8; }
             if definition.producer == 3 {
                 if state != 1 && state != 4 && state != 5 { return 0; }
-            } else if (state / 2) % 2 == 1 { prior = 8; }
+            } else if (state / 2) % 2 == 1 &&
+                !DirectMirOwnedCollectionDefinitionReleasesPrior(definition.producer, state) { prior = 8; }
             state = 2 + prior;
         } else if definition.ok && definition.producer == 3 && definition.source == target {
             let destination: Int = DirectMirOwnedCollectionRowForLocal(

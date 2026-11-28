@@ -1,0 +1,17 @@
+// Each pass takes an independent Clone of a kept Array<String>; the next
+// pass releases the previous copy and the routine exit releases the last.
+func Main() -> Int {
+    var names: Array<String> = [];
+    ArrayPushOwnedString(names, "alpha");
+    ArrayPushOwnedString(names, "beta");
+    var i: Int = 0;
+    var total: Int = 0;
+    while i < 4 {
+        let copy: Array<String> = Clone(names);
+        total = total + ArrayLength(copy) + StringLength(copy[1]);
+        i = i + 1;
+    }
+    Log(total);
+    Log(names[0]);
+    return 0;
+}

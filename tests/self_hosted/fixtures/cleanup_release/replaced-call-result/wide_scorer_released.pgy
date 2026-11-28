@@ -1,0 +1,31 @@
+// The caller builds an owned Array<String> each pass and lends it to a
+// read-only scorer; each new pass releases the previous batch.
+func Build(seed: Int) -> Array<String> {
+    var values: Array<String> = [];
+    var j: Int = 0;
+    while j < 64 {
+        if (j + seed) % 2 == 0 {
+            ArrayPushOwnedString(values, "aaaaaaaaaaaaaaaaaaaaaaaa");
+        } else {
+            ArrayPushOwnedString(values, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        }
+        j = j + 1;
+    }
+    return values;
+}
+
+func Score(ref batch: Array<String>) -> Int {
+    return StringLength(batch[0]) + StringLength(batch[63]) + ArrayLength(batch);
+}
+
+func Main() -> Int {
+    var i: Int = 0;
+    var total: Int = 0;
+    while i < 16 {
+        let batch: Array<String> = Build(i);
+        total = total + Score(batch);
+        i = i + 1;
+    }
+    Log(total);
+    return 0;
+}

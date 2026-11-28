@@ -1,0 +1,26 @@
+// An element of one pass's batch is read after later passes replaced that
+// batch: whatever keeps the text alive, the read must not touch released
+// storage.
+func Build(seed: Int) -> Array<String> {
+    var values: Array<String> = [];
+    if seed == 0 {
+        ArrayPushOwnedString(values, "kept-from-first-pass");
+    } else {
+        ArrayPushOwnedString(values, "later");
+    }
+    return values;
+}
+
+func Main() -> Int {
+    var keep: String = "";
+    var i: Int = 0;
+    while i < 3 {
+        let batch: Array<String> = Build(i);
+        if i == 0 {
+            keep = batch[0];
+        }
+        i = i + 1;
+    }
+    Log(StringLength(keep));
+    return 0;
+}

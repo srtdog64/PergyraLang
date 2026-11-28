@@ -203,12 +203,13 @@ func DirectMirScalarProgramArrayStringReplacementDropSymbol(
     }
     let graph: Int = plan.program.operation_expression_rows[operation];
     let root: Int = plan.program.expressions.graph_roots[graph];
-    if plan.program.expressions.node_kinds[root] !=
-            DirectMirScalarProgramExprArrayStringLiteral() {
-        return "";
-    }
+    let literal: Bool = plan.program.expressions.node_kinds[root] ==
+        DirectMirScalarProgramExprArrayStringLiteral();
     let transition: Int = DirectMirScalarProgramCollectionOwnershipTransitionRow(
         plan.program.collection_ownership, routine, local_row);
+    // Any other definition is released only by the replacement its row's
+    // owned flow issued; with no row it keeps nothing to release.
+    if transition < 0 && !literal { return ""; }
     if transition < 0 {
         Die("direct MIR Array<String> replacement requires its admitted ownership row");
     }

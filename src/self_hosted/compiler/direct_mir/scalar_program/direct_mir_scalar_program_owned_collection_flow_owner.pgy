@@ -3,7 +3,9 @@ import "direct_mir_scalar_program_owned_collection_block_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_flow_owner.pgy";
 import "../scalar_cfg/direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
 
-struct DirectMirOwnedCollectionFlow { ok: Bool; terminal: Int; }
+// `replacement`: the one definition releases the live generation it replaces
+// (DirectMirOwnedCollectionDefinitionReleasesPrior at its fixed-point reach).
+struct DirectMirOwnedCollectionFlow { ok: Bool; terminal: Int; replacement: Bool; }
 
 func DirectMirOwnedCollectionFlowFrom(
     ref index: MirRoutineFactIndex, ref storage: DirectMirScalarCfgProgramGraphStorage,
@@ -14,7 +16,7 @@ func DirectMirOwnedCollectionFlowFrom(
     ref receipt_effects: Array<Int>, operation_offset: Int,
     routine: Int, target: Int, row: Int
 ) -> DirectMirOwnedCollectionFlow {
-    let invalid: DirectMirOwnedCollectionFlow = DirectMirOwnedCollectionFlow(false, 0);
+    let invalid: DirectMirOwnedCollectionFlow = DirectMirOwnedCollectionFlow(false, 0, false);
     let count: Int = ArrayLength(index.block_starts);
     let start: Int = DirectMirScalarProgramRoutinePartitionStart(storage.routines.block_counts, routine);
     let local_start: Int = DirectMirScalarProgramRoutinePartitionStart(
@@ -50,6 +52,9 @@ func DirectMirOwnedCollectionFlowFrom(
     var inputs: Array<Int> = [];
     var outputs: Array<Int> = [];
     var definitions: Int = 0;
+    var definition_block: Int = -1;
+    var definition_operation: Int = -1;
+    var definition_producer: Int = 0;
     var block: Int = 0;
     while block < count {
         ArrayPush(inputs, 0); ArrayPush(outputs, 0);
@@ -71,6 +76,8 @@ func DirectMirOwnedCollectionFlowFrom(
                     return invalid;
                 }
                 definitions = definitions + 1;
+                definition_block = block; definition_operation = operation;
+                definition_producer = definition.producer;
             }
             operation = operation + 1;
         }
@@ -100,7 +107,7 @@ func DirectMirOwnedCollectionFlowFrom(
                         index, storage, expressions, callables, signature,
                         logical_record, receipt_effects,
                         operation_offset, start + block, target, row, joined,
-                        local_start, local_end);
+                        local_start, local_end, -1);
                     if output == 0 { return invalid; }
                     if start + block == return_transfer_block {
                         // Only this typed return edge ends the live generation.
@@ -142,5 +149,18 @@ func DirectMirOwnedCollectionFlowFrom(
             "unknown" {
         terminal = DirectMirCollectionOwnershipStateUnknown();
     }
-    return DirectMirOwnedCollectionFlow(true, terminal);
+    // The fixed-point state the definition is reached with: a live generation
+    // it replaces is released only when the transfer above dropped no prior.
+    var replacement: Bool = false;
+    if definition_block >= 0 && index.block_reachable[definition_block] && inputs[definition_block] != 0 {
+        let reach: Int = DirectMirOwnedCollectionBlockOutput(
+            index, storage, expressions, callables, signature,
+            logical_record, receipt_effects, operation_offset,
+            start + definition_block, target, row, inputs[definition_block],
+            local_start, local_end, definition_operation);
+        if reach == 0 { return invalid; }
+        replacement = (reach / 2) % 2 == 1 &&
+            DirectMirOwnedCollectionDefinitionReleasesPrior(definition_producer, reach);
+    }
+    return DirectMirOwnedCollectionFlow(true, terminal, replacement);
 }

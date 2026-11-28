@@ -1,0 +1,29 @@
+// Each pass hands its batch to a by-value callee that grows it: the call
+// moves the batch and neither side releases it (decision 2026-11-15), so a
+// later pass must not release it either.
+func Build(seed: Int) -> Array<String> {
+    var values: Array<String> = [];
+    ArrayPushOwnedString(values, "seed");
+    if seed % 2 == 0 {
+        ArrayPushOwnedString(values, "even");
+    }
+    return values;
+}
+
+func Grow(values: Array<String>) -> Int {
+    var more: Array<String> = values;
+    ArrayPush(more, "grown");
+    return ArrayLength(more);
+}
+
+func Main() -> Int {
+    var i: Int = 0;
+    var total: Int = 0;
+    while i < 6 {
+        let batch: Array<String> = Build(i);
+        total = total + Grow(batch);
+        i = i + 1;
+    }
+    Log(total);
+    return 0;
+}

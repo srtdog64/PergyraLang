@@ -183,11 +183,8 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
         ArrayLength(index.collection_ownership_facts.binding_syntax_ids) != ArrayLength(index.collection_ownership_facts.element_ownerships) {
         return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
     }
-    let receipt_plan: DirectMirCollectionOwnershipRoutineReceiptPlan =
-        DirectMirCollectionOwnershipRoutineReceiptPlanFromJson(
-            json, json_extent, index, element_blocks,
-            storage.routines.operation_counts[routine]
-        );
+    let receipt_plan: DirectMirCollectionOwnershipRoutineReceiptPlan = DirectMirCollectionOwnershipRoutineReceiptPlanFromJson(
+        json, json_extent, index, element_blocks, storage.routines.operation_counts[routine]);
     if !receipt_plan.valid {
         return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
     }
@@ -200,6 +197,8 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     var receipt_operations: Array<Int> = fact.operation_ordinals;
     var receipt_effects: Array<Int> = fact.operation_effect_kinds;
     var cfg_rows: Array<Int> = [];
+    // 1 where the row's owned flow issued the replacement of its definition.
+    var flow_releases: Array<Int> = [];
     var aggregate_return_transfer_rows: Array<Int> = [];
     var ownership_row: Int = 0;
     while ownership_row < ArrayLength(
@@ -248,7 +247,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                      (retired && origin != "empty-literal")) {
                     return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
                 }
-                ArrayPush(routines, routine);
+                ArrayPush(routines, routine); ArrayPush(flow_releases, 0);
                 ArrayPush(locals, matched_local);
                 ArrayPush(bindings, binding);
                 var initial_state: Int =
@@ -277,6 +276,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     }
                     initial_state = flow.terminal;
                     ArrayPush(cfg_rows, ArrayLength(routines) - 1);
+                    if flow.replacement { ArraySet(flow_releases, ArrayLength(flow_releases) - 1, 1); }
                 } else if ArrayLength(index.block_starts) != 1 {
                     initial_state = DirectMirCollectionOwnershipCfgTerminalState(
                         index, storage, expressions, receipt_plan.effect_kinds,
@@ -322,10 +322,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 operation, local_offset, local_offset + storage.routines.local_counts[routine]);
             if local_row >= 0 { expected_effect = 6; }
         }
-        let tracked: Int =
-            DirectMirCollectionOwnershipTrackedRowForLocal(
-                routines, locals, routine, local_row
-            );
+        let tracked: Int = DirectMirCollectionOwnershipTrackedRowForLocal(routines, locals, routine, local_row);
         var cfg_derived_effect: Int = 0;
         if tracked >= 0 {
             var next: Int = 0;
@@ -493,7 +490,8 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
             ArrayPush(replacements, 0);
         } else {
             ArrayPush(replacements, DirectMirArrayStringReplacementModeFromOwners(
-                storage, expressions, callables, routine, locals[replacement_row], states[replacement_row]));
+                storage, expressions, callables, routine, locals[replacement_row], states[replacement_row],
+                flow_releases[replacement_row - ArrayLength(fact.routine_ordinals)] == 1));
         }
         replacement_row = replacement_row + 1;
     }

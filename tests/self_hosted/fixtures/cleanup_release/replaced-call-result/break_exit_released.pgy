@@ -1,0 +1,32 @@
+// A pass that leaves the loop by `break` keeps its batch; the routine exit
+// releases it, and every earlier pass's batch is released by the next pass.
+func Build(seed: Int) -> Array<String> {
+    var values: Array<String> = [];
+    ArrayPushOwnedString(values, "first");
+    var j: Int = 0;
+    while j < seed {
+        ArrayPushOwnedString(values, "more");
+        j = j + 1;
+    }
+    return values;
+}
+
+func Count(ref batch: Array<String>) -> Int {
+    return ArrayLength(batch);
+}
+
+func Main() -> Int {
+    var i: Int = 0;
+    var last: Int = 0;
+    while i < 10 {
+        let batch: Array<String> = Build(i);
+        last = Count(batch) + StringLength(batch[0]);
+        if last > 9 {
+            break;
+        }
+        i = i + 1;
+    }
+    Log(last);
+    Log(i);
+    return 0;
+}

@@ -4,12 +4,110 @@ import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy
 import "../scalar_cfg/direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
+import "direct_mir_scalar_program_owned_collection_definition_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_transform_owner.pgy";
+import "../scalar_cfg/direct_mir_scalar_cfg_op_code_owner.pgy";
 
+// Whether `node` reads an element of the local (through in-place transforms,
+// which return the same descriptor).
+func DirectMirArrayStringLocalElementRead(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int, local_row: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(expressions.node_kinds) ||
+        expressions.node_kinds[node] != DirectMirScalarProgramExprArrayStringIndex() { return false; }
+    var source: Int = expressions.node_lefts[node];
+    while source >= 0 && source < ArrayLength(expressions.node_kinds) &&
+            DirectMirScalarProgramArrayTransformNodeReady(expressions, source) {
+        source = expressions.node_lefts[source];
+    }
+    return source >= 0 && source < ArrayLength(expressions.node_kinds) &&
+        expressions.node_kinds[source] == DirectMirScalarProgramExprLocal() &&
+        expressions.node_local_rows[source] == local_row;
+}
+
+// An element read is a loan of the local's text. Inside one expression it
+// may only be observed or copied (a length, a comparison, a search, a fresh
+// String built from it, an owned push that copies it) or written by a Log.
+// Any other consumer (a binding, a store, a plain push, a call, a return) can
+// keep the loan past the statement, where a replacement would free its text.
+func DirectMirArrayStringElementLoanLeavesStatement(
+    ref expressions: DirectMirScalarProgramExpressionSet, graph: Int, local_row: Int, observed_root: Bool
+) -> Bool {
+    if graph < 0 || graph >= ArrayLength(expressions.graph_roots) { return false; }
+    let start: Int = expressions.graph_starts[graph];
+    let end: Int = start + expressions.graph_counts[graph];
+    let root: Int = expressions.graph_roots[graph];
+    if !observed_root && DirectMirArrayStringLocalElementRead(expressions, root, local_row) { return true; }
+    var node: Int = start;
+    while node < end {
+        let kind: Int = expressions.node_kinds[node];
+        let observer: Bool = kind == DirectMirScalarProgramExprStringLength() ||
+            kind == DirectMirScalarProgramExprStringContains() ||
+            kind == DirectMirScalarProgramExprStringIndexOf() ||
+            kind == DirectMirScalarProgramExprEqualString() ||
+            kind == DirectMirScalarProgramExprNotEqualString() ||
+            DirectMirScalarProgramFreshStringExpressionKind(kind);
+        let arguments: DirectMirScalarProgramArgumentView =
+            DirectMirScalarProgramArgumentViewFromNode(expressions, node);
+        if !arguments.valid { return true; }
+        var ordinal: Int = 0;
+        while arguments.nary && ordinal < arguments.count {
+            if !observer && DirectMirArrayStringLocalElementRead(expressions,
+                    DirectMirScalarProgramArgumentViewAt(expressions, arguments, ordinal), local_row) { return true; }
+            ordinal = ordinal + 1;
+        }
+        let copied_right: Bool = kind == DirectMirScalarProgramExprArrayStringPushOwned();
+        if !observer && DirectMirArrayStringLocalElementRead(expressions, expressions.node_lefts[node], local_row) {
+            return true;
+        }
+        if !observer && !copied_right &&
+            DirectMirArrayStringLocalElementRead(expressions, expressions.node_rights[node], local_row) { return true; }
+        node = node + 1;
+    }
+    return false;
+}
+
+func DirectMirArrayStringElementLoanLeavesRoutine(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    routine: Int, local_row: Int
+) -> Bool {
+    var operation: Int = 0; var block: Int = 0; var prior: Int = 0;
+    while prior < routine {
+        operation = operation + storage.routines.operation_counts[prior];
+        block = block + storage.routines.block_counts[prior];
+        prior = prior + 1;
+    }
+    let operation_end: Int = operation + storage.routines.operation_counts[routine];
+    while operation < operation_end {
+        let kind: Int = storage.operations.kinds[operation];
+        let logged: Bool = kind == DirectMirScalarCfgOpExpressionLog() || kind == DirectMirScalarCfgOpExpressionStatement();
+        if DirectMirArrayStringElementLoanLeavesStatement(expressions,
+                storage.operations.expression_rows[operation], local_row, logged) ||
+            DirectMirArrayStringElementLoanLeavesStatement(expressions,
+                storage.operations.secondary_expression_rows[operation], local_row, false) { return true; }
+        operation = operation + 1;
+    }
+    let block_end: Int = block + storage.routines.block_counts[routine];
+    while block < block_end {
+        if DirectMirArrayStringElementLoanLeavesStatement(expressions,
+                storage.blocks.condition_expression_rows[block], local_row, true) ||
+            DirectMirArrayStringElementLoanLeavesStatement(expressions,
+                storage.blocks.return_expression_rows[block], local_row, false) { return true; }
+        block = block + 1;
+    }
+    return false;
+}
+
+// `flow_release`: the owned-collection flow proved that the local's one
+// fresh definition (a map-key snapshot, a clone or a call result) is reached
+// only with the zero descriptor or the live generation it replaces.
 func DirectMirArrayStringReplacementModeFromOwners(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
-    routine: Int, local_row: Int, state: Int
+    routine: Int, local_row: Int, state: Int, flow_release: Bool
 ) -> Int {
     var mode: Int = 0;
     if state == DirectMirCollectionOwnershipStateOwned() { mode = 2; }
@@ -17,6 +115,10 @@ func DirectMirArrayStringReplacementModeFromOwners(
         state == DirectMirCollectionOwnershipStateEmpty() ||
         state == DirectMirCollectionOwnershipStateUnknown() { mode = 1; }
     if mode == 0 { return 0; }
+    // A loan of the previous generation's owned text may still be read after
+    // the definition replaces it: that generation is not private, so it is
+    // kept. A storage-only release (mode 1) frees no element text.
+    if mode == 2 && DirectMirArrayStringElementLoanLeavesRoutine(storage, expressions, routine, local_row) { return 0; }
     var start: Int = 0;
     var prior: Int = 0;
     while prior < routine {
@@ -34,7 +136,13 @@ func DirectMirArrayStringReplacementModeFromOwners(
             let graph: Int = storage.operations.expression_rows[operation];
             let root: Int = expressions.graph_roots[graph];
             if expressions.node_kinds[root] != DirectMirScalarProgramExprArrayStringLiteral() {
-                return 0;
+                let producer: Int = DirectMirOwnedCollectionDefinitionFrom(storage, expressions, operation).producer;
+                if !flow_release || mode != 2 || (producer != 1 && producer != 2 && producer != 5) {
+                    return 0;
+                }
+                definitions = definitions + 1;
+                operation = operation + 1;
+                continue;
             }
             let operands: Array<Int> = DirectMirScalarProgramArrayStringLiteralOperandRows(expressions, root);
             var owns: Bool = ArrayLength(operands) > 0;
