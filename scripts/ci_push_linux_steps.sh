@@ -162,6 +162,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST_GATES" == "1" ]]; then
     run 'bash tests/self_hosted/parity/direct_mir/direct_mir_option_coalesce_owner.sh'
     run 'bash tests/self_hosted/parity/mir/mir_loop_flow_carriage_owner.sh'
     run 'bash tests/self_hosted/parity/semantic/slot_release_flow_owner.sh'
+    run 'bash tests/self_hosted/parity/direct_mir/direct_mir_scalar_safe_literal_divisor_owner.sh'
     run 'make self-host-domain-runtime-zone-sync-test-smoke'
     run 'make self-host-zone-spawn-transport-admission-test-smoke'
     run 'bash tests/self_hosted/parity/driver/selfhost_compile_memory_owner.sh'

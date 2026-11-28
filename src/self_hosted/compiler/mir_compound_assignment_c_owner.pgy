@@ -39,7 +39,9 @@ func MirCompoundAssignmentC(ref plan: DirectMirScalarCfgGraphPlan,
     }
     output = output + "    ${scalar_type} ${stem}_old = ${old};\n    ${scalar_type} ${stem}_rhs = ${rhs};\n";
     let next: String = MirCompoundArithmeticC(type_name,
-        MirCompoundAssignmentPlanOperation(plan.operation_kinds[operation]), "${stem}_old", "${stem}_rhs");
+        MirCompoundAssignmentPlanOperation(plan.operation_kinds[operation]), "${stem}_old", "${stem}_rhs",
+        DirectMirScalarProgramSafeLiteralDivisor(plan.program.expressions, type_name,
+            plan.program.expressions.graph_roots[value_row]));
     output = output + "    ${scalar_type} ${stem}_next = ${next};\n";
     if indexed {
         // Revalidate after the RHS: it may have grown or replaced the backing

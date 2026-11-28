@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "direct_mir_scalar_program_checked_int_owner.pgy";
 import "../../runtime_call_abi_structured_fact_owner.pgy";
 import "../../../codegen/runtime_abi/math_runtime_owner.pgy";
 import "../../../codegen/runtime_abi/checked_arithmetic_runtime_owner.pgy";
@@ -97,7 +98,7 @@ func DirectMirScalarProgramCaseMathRuntimeRequirement(
     let long_modulo_required: Bool =
         DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprModuloLong()) ||
-        DirectMirScalarProgramExpressionContainsKind(
+        DirectMirScalarProgramCheckedCallReached(
             expressions, DirectMirScalarProgramExprModuloInt());
     let long_division_required: Bool =
         DirectMirScalarProgramExpressionContainsKind(
@@ -148,8 +149,7 @@ func DirectMirScalarProgramCaseMathRuntimeRequirement(
     }
     var replace_id: Int = 0; var abs_id: Int = 0;
     var min_id: Int = 0; var max_id: Int = 0;
-    var long_modulo_id: Int = 0;
-    var long_division_id: Int = 0;
+    var long_modulo_id: Int = 0; var long_division_id: Int = 0;
     var random_id: Int = 0; var seed_random_id: Int = 0;
     if random_required { random_id = random.runtime_call_abi_id; }
     if seed_random_required { seed_random_id = seed_random.runtime_call_abi_id; }

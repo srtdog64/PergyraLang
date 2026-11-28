@@ -1,7 +1,7 @@
-func Quarter(value: Int) -> Int {
-    return value / 4;
+func Quarter(value: Int, divisor: Int) -> Int {
+    return value / divisor;
 }
 
 func Main() -> Void {
-    Log(Quarter(12));
+    Log(Quarter(12, 4));
 }

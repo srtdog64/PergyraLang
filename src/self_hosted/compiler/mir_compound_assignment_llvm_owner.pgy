@@ -60,7 +60,9 @@ func MirCompoundAssignmentLlvm(ref plan: DirectMirScalarCfgGraphPlan,
         address = next_address;
     }
     output = output + rhs.instructions + MirCompoundArithmeticLlvm(type_name,
-        MirCompoundAssignmentPlanOperation(plan.operation_kinds[operation]), "%${stem}.next", old.value, rhs.value);
+        MirCompoundAssignmentPlanOperation(plan.operation_kinds[operation]), "%${stem}.next", old.value, rhs.value,
+        DirectMirScalarProgramSafeLiteralDivisor(plan.program.expressions, type_name,
+            plan.program.expressions.graph_roots[value_row]));
     if indexed {
         let index_node: Int = plan.program.expressions.node_rights[root];
         let index_value: String = DirectMirScalarProgramLlvmExpressionNodeValue(plan, target_row, index_node, routine);

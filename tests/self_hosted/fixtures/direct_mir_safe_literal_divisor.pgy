@@ -1,0 +1,59 @@
+func DivFour(x: Int) -> Int {
+    return x / 4;
+}
+
+func ModSeventeen(x: Int) -> Int {
+    return x % 17;
+}
+
+func DivMinusSeven(x: Int) -> Int {
+    return x / -7;
+}
+
+func ModMinusSeven(x: Int) -> Int {
+    return x % -7;
+}
+
+func DivMax(x: Int) -> Int {
+    return x / 2147483647;
+}
+
+func ModMax(x: Int) -> Int {
+    return x % 2147483647;
+}
+
+func UpdateDivFour(x: Int) -> Int {
+    var value: Int = x;
+    value /= 4;
+    return value;
+}
+
+func UpdateModSeventeen(x: Int) -> Int {
+    var value: Int = x;
+    value %= 17;
+    return value;
+}
+
+func Show(x: Int) -> Void {
+    Log(DivFour(x));
+    Log(ModSeventeen(x));
+    Log(DivMinusSeven(x));
+    Log(ModMinusSeven(x));
+    Log(DivMax(x));
+    Log(ModMax(x));
+    Log(UpdateDivFour(x));
+    Log(UpdateModSeventeen(x));
+}
+
+func Main() -> Int {
+    Show(-2147483647 - 1);
+    Show(-2147483647);
+    Show(-100);
+    Show(-17);
+    Show(-1);
+    Show(0);
+    Show(3);
+    Show(100);
+    Show(2147483647);
+    return 0;
+}

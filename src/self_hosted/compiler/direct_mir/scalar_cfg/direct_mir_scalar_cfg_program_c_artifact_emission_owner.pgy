@@ -66,7 +66,7 @@ func DirectMirScalarCfgEmitProgramC(
             plan.routines.return_types);
     let runtime_value_header: Bool = CompilerRuntimeValueTypesPresent(plan.local_types, plan.routines.parameter_types);
     let hashmap_runtime_header: Bool = DirectMirScalarProgramCHashMapReached(plan);
-    let checked_division_header: Bool = DirectMirScalarProgramExpressionContainsKind(
+    let checked_division_header: Bool = DirectMirScalarProgramCheckedCallReached(
         plan.program.expressions, DirectMirScalarProgramExprDivideInt()) ||
         MirCompoundAssignmentHasOperation(plan, 4) || MirCompoundAssignmentHasOperation(plan, 5);
     let compiler_artifact_header: Bool =

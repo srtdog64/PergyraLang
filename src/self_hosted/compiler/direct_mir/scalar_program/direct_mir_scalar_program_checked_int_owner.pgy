@@ -26,6 +26,66 @@ func DirectMirScalarProgramCheckedIntRuntimeFact(kind: Int) -> CompilerRuntimeCa
     return fact;
 }
 
+// Native's safe literal divisor rule (src/codegen/codegen_scalar_arithmetic_policy.c):
+// an Int `/` or `%` whose divisor is an Int literal other than 0 and -1, inside
+// i32, is a plain operation. Long, a negated literal (`-7` is negate(7) in MIR,
+// as in the native AST) and every other divisor keep the checked helper. The
+// divisor is the MIR integer_literal operand fact the expression set carries.
+func DirectMirScalarProgramSafeLiteralDivisor(
+    ref facts: DirectMirScalarProgramExpressionSet, type_name: String, divisor: Int
+) -> Bool {
+    if type_name != CompilerAbiLayoutIntTypeName() || divisor < 0 ||
+        divisor >= ArrayLength(facts.node_kinds) ||
+        facts.node_kinds[divisor] != DirectMirScalarProgramExprIntLiteral() ||
+        facts.node_types[divisor] != CompilerAbiLayoutIntTypeName() ||
+        !DirectMirScalarCfgCanonicalInt(facts.node_literals[divisor]) { return false; }
+    let value: Int = ToInt(facts.node_literals[divisor]);
+    return value != 0 && value != -1;
+}
+
+func DirectMirScalarProgramSafeLiteralDivisionNode(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    let kind: Int = facts.node_kinds[node];
+    return (kind == DirectMirScalarProgramExprDivideInt() ||
+            kind == DirectMirScalarProgramExprModuloInt()) &&
+        DirectMirScalarProgramSafeLiteralDivisor(facts, facts.node_types[node], facts.node_rights[node]);
+}
+
+// A checked call of `kind` stays reached while one of its nodes is not a safe
+// literal division; helper declarations and headers follow this, not the kind.
+func DirectMirScalarProgramCheckedCallReached(
+    ref facts: DirectMirScalarProgramExpressionSet, kind: Int
+) -> Bool {
+    var node: Int = 0;
+    while node < ArrayLength(facts.node_kinds) {
+        if facts.node_kinds[node] == kind &&
+            !DirectMirScalarProgramSafeLiteralDivisionNode(facts, node) { return true; }
+        node = node + 1;
+    }
+    return false;
+}
+
+// The checked helpers' own operand widths: Int division on i32, Int remainder
+// on the i64 lane (pgy_checked_mod_i64_export), so the values are unchanged.
+func DirectMirScalarProgramCSafeLiteralDivision(divide: Bool, left: String, right: String) -> String {
+    if divide {
+        let narrow: String = CompilerAbiLayoutIntCValueType();
+        return "((${narrow})(${left}) / (${narrow})(${right}))";
+    }
+    let wide: String = CompilerAbiLayoutLongCValueType();
+    return "((${wide})(${left}) % (${wide})(${right}))";
+}
+
+func DirectMirScalarProgramLlvmSafeLiteralDivision(
+    divide: Bool, result: String, left: String, right: String
+) -> String {
+    if divide {
+        return "  ${result}.lhs = trunc i64 ${left} to i32\n  ${result}.rhs = trunc i64 ${right} to i32\n  ${result}.i32 = sdiv i32 ${result}.lhs, ${result}.rhs\n  ${result} = sext i32 ${result}.i32 to i64\n";
+    }
+    return "  ${result} = srem i64 ${left}, ${right}\n";
+}
+
 func DirectMirScalarProgramCheckedIntNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Bool {

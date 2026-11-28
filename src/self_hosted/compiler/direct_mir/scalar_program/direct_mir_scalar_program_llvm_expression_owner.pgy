@@ -188,6 +188,8 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             value = left;
         } else if kind == DirectMirScalarProgramExprNegateLong() {
             value = result; node_instructions = "  " + result + " = sub i64 0, " + left + "\n";
+        } else if DirectMirScalarProgramSafeLiteralDivisionNode(expressions, node) { value = result;
+            node_instructions = DirectMirScalarProgramLlvmSafeLiteralDivision(kind == DirectMirScalarProgramExprDivideInt(), result, left, right);
         } else if cast.matched { if !cast.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); } value = cast.value; node_instructions = Concat(node_instructions, cast.instructions);
         } else if kind == DirectMirScalarProgramExprLocal() {
             var type_name: String = ""; var alignment: String = "";

@@ -118,7 +118,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     var reached_index: Int = 0;
     while reached_index < ArrayLength(reached) {
         let kind: Int = reached[reached_index];
-        if DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, kind) ||
+        if DirectMirScalarProgramCheckedCallReached(plan.program.expressions, kind) ||
             (kind == DirectMirScalarProgramExprDivideInt() && MirCompoundAssignmentHasOperation(plan, 4)) {
             var abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(kind);
             var signature: String = "i32"; var arguments: String = "(i32, i32)\n";

@@ -17,7 +17,13 @@ func MirCompoundArithmeticRuntime(type_name: String, operation: Int) -> Compiler
         "checked-arithmetic", op, symbol, CompilerRuntimeCallAbiMaterialTargetLibrary()));
 }
 
-func MirCompoundArithmeticC(type_name: String, operation: Int, left: String, right: String) -> String {
+// `safe_divisor` is DirectMirScalarProgramSafeLiteralDivisor on the update's
+// right operand: `x /= 4` and `x %= 17` take the plain operation as natively.
+func MirCompoundArithmeticC(type_name: String, operation: Int, left: String, right: String,
+    safe_divisor: Bool) -> String {
+    if safe_divisor && (operation == 4 || operation == 5) {
+        return DirectMirScalarProgramCSafeLiteralDivision(operation == 4, left, right);
+    }
     if type_name != "Float" && operation >= 4 {
         let abi: CompilerRuntimeCallAbiFact = MirCompoundArithmeticRuntime(type_name, operation);
         if !abi.ok { Die("compound arithmetic runtime ABI is missing"); }
@@ -38,7 +44,10 @@ func MirCompoundArithmeticC(type_name: String, operation: Int, left: String, rig
 }
 
 func MirCompoundArithmeticLlvm(type_name: String, operation: Int,
-    result: String, left: String, right: String) -> String {
+    result: String, left: String, right: String, safe_divisor: Bool) -> String {
+    if safe_divisor && (operation == 4 || operation == 5) {
+        return DirectMirScalarProgramLlvmSafeLiteralDivision(operation == 4, result, left, right);
+    }
     if type_name != "Float" && operation >= 4 {
         let abi: CompilerRuntimeCallAbiFact = MirCompoundArithmeticRuntime(type_name, operation);
         if !abi.ok { Die("compound arithmetic runtime ABI is missing"); }

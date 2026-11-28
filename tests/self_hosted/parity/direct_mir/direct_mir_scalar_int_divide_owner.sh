@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Int division uses the canonical checked i32 boundary on both target backends.
+# Int division by a dynamic divisor uses the canonical checked i32 boundary on
+# both target backends (a safe literal divisor is plain: see
+# direct_mir_scalar_safe_literal_divisor_owner.sh).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
@@ -30,7 +32,7 @@ command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
     "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "MIR production failed"
-grep -Fq '"kind":"divide","text":"value / 4"' "$MIR" ||
+grep -Fq '"kind":"divide","text":"value / divisor"' "$MIR" ||
     fail "producer omitted the divide identity"
 printf '3\n' >"$WORK_DIR/expected.run"
 

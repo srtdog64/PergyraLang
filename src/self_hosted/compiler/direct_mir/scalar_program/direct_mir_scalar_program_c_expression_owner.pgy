@@ -131,6 +131,7 @@ func DirectMirScalarProgramCExpressionValues(
         } else if kind == DirectMirScalarProgramExprGreaterEqualInt() { value = Concat("(", Concat(left, Concat(" >= ", Concat(right, ")"))));
         } else if kind == DirectMirScalarProgramExprGreaterInt() || kind == DirectMirScalarProgramExprGreaterLong() { value = Concat("(", Concat(left, Concat(" > ", Concat(right, ")"))));
         } else if kind == DirectMirScalarProgramExprLessEqualInt() { value = Concat("(", Concat(left, Concat(" <= ", Concat(right, ")"))));
+        } else if DirectMirScalarProgramSafeLiteralDivisionNode(expressions, node) { value = DirectMirScalarProgramCSafeLiteralDivision(kind == DirectMirScalarProgramExprDivideInt(), left, right);
         } else {
             let match_value: Option<String> =
                 DirectMirScalarProgramCMatchExpressionAt(
