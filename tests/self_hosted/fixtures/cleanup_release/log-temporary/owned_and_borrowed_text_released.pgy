@@ -1,0 +1,18 @@
+// A Log of a local, a parameter, a literal or an element borrows the text:
+// it releases nothing, and the owners release their text once.
+func Echo(text: String) -> Int {
+    Log(text);
+    return StringLength(text);
+}
+
+func Main() -> Int {
+    let built: String = Concat("built", "-text");
+    Log(built);
+    Log(built);
+    Log("literal");
+    let words: Array<String> = ["one", "two"];
+    Log(words[1]);
+    Log(Echo("passed-in"));
+    Log(Concat(built, ToString(StringLength(built))));
+    return 0;
+}

@@ -40,15 +40,14 @@ func DirectMirScalarCfgProgramCOperation(ref plan: DirectMirScalarCfgGraphPlan, 
             Die("direct MIR scalar C process-exit ABI is invalid");
         }
         let value: String = DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.program.referenced_enum,
-            plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
+            plan.program.logical_record, plan.program.referenced_enum, plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
         return Concat("    ", Concat(process_exit.symbol, Concat("((int)(", Concat(value, "));\n"))));
     }
     if kind == DirectMirScalarCfgOpExpressionStatement() {
-        return Concat("    ", Concat(DirectMirScalarProgramCExpressionAt(
-            plan, plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.program.referenced_enum,
-            plan.routines, routine, target, plan.program.array_string_abi, array_string_projection), ";\n"));
+        let discarded: String = DirectMirScalarProgramCExpressionAt(plan, plan.program.expressions, expression_row, runtime,
+            plan.program.logical_record, plan.program.referenced_enum, plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
+        if !DirectMirOwnedStatementRetiresFreshRoot(plan.program.expressions, kind, expression_row) { return "    " + discarded + ";\n"; }
+        return "    free((void *)(" + discarded + "));\n";
     }
     if kind == DirectMirScalarCfgOpArrayStringValueResultPush() {
         return DirectMirScalarProgramCArrayStringValueResultPush(plan, routine,

@@ -6,6 +6,7 @@
 import "direct_mir_scalar_cfg_program_llvm_log_operation_owner.pgy";
 import "../direct_mir_llvm_log_line_owner.pgy";
 import "../scalar_program/direct_mir_scalar_program_llvm_string_literal_owner.pgy";
+import "../../owned_expression_temporary_owner.pgy";
 
 func DirectMirScalarCfgProgramLlvmLogStringRoot(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
@@ -63,5 +64,9 @@ func DirectMirScalarCfgProgramLlvmLogLineOperation(
     if plan.program.expressions.node_kinds[root] == DirectMirScalarProgramExprStringLiteral() {
         value = Concat("@pgy.log.literal.", ToString(root));
     }
-    return Concat(instructions, DirectMirLlvmLogLineCall(value));
+    let written: String = Concat(instructions, DirectMirLlvmLogLineCall(value));
+    if DirectMirOwnedStatementRetiresFreshRoot(plan.program.expressions, plan.operation_kinds[operation], expression_row) {
+        return written + "  call void @free(ptr " + value + ")\n";
+    }
+    return written;
 }

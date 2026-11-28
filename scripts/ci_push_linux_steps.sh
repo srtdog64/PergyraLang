@@ -166,6 +166,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST_GATES" == "1" ]]; then
     run 'bash tests/backend/c_array_literal_element_store_smoke.sh'
     run 'bash tests/self_hosted/parity/ownership/selfhost_cleanup_release_owner.sh replaced-call-result'
     run 'bash tests/self_hosted/parity/ownership/selfhost_cleanup_release_owner.sh record-buffer'
+    run 'bash tests/self_hosted/parity/ownership/selfhost_cleanup_release_owner.sh log-temporary'
     run 'make self-host-domain-runtime-zone-sync-test-smoke'
     run 'make self-host-zone-spawn-transport-admission-test-smoke'
     run 'bash tests/self_hosted/parity/driver/selfhost_compile_memory_owner.sh'

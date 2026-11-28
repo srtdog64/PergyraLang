@@ -1,24 +1,30 @@
 // Retirement of fresh String operands after a nonretaining expression use.
 // Local/parameter storage and calls with unknown retention grant no permission.
 import "direct_mir/scalar_program/direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_op_code_owner.pgy";
+
+// A Log, or an expression statement that discards its value, is the one use
+// of its graph root: it writes or drops the text and keeps nothing, so a
+// fresh String root is released right after the statement.
+func DirectMirOwnedStatementRetiresFreshRoot(ref expressions: DirectMirScalarProgramExpressionSet, operation_kind: Int, graph: Int) -> Bool {
+    if (operation_kind != DirectMirScalarCfgOpExpressionLog() && operation_kind != DirectMirScalarCfgOpExpressionStatement()) ||
+        graph < 0 || graph >= ArrayLength(expressions.graph_roots) { return false; }
+    let root: Int = expressions.graph_roots[graph];
+    return expressions.node_types[root] == "String" && DirectMirScalarProgramFreshStringExpressionKind(expressions.node_kinds[root]);
+}
 
 func DirectMirOwnedStringObserverResultType(kind: Int) -> String {
     // This prelude emits a two-operand observer wrapper.  N-ary and host-I/O
     // fresh String producers own their result, but are not this wrapper shape.
-    if DirectMirScalarProgramConcatBackedFreshStringExpressionKind(kind) ||
-        kind == DirectMirScalarProgramExprRegionConcatString() {
-        return "String";
-    }
+    if DirectMirScalarProgramConcatBackedFreshStringExpressionKind(kind) || kind == DirectMirScalarProgramExprRegionConcatString() { return "String"; }
     if kind == DirectMirScalarProgramExprStringLength() ||
         kind == DirectMirScalarProgramExprStringIndexOf() { return "Int"; }
-    if kind == DirectMirScalarProgramExprStringContains() ||
-        kind == DirectMirScalarProgramExprEqualString() ||
+    if kind == DirectMirScalarProgramExprStringContains() || kind == DirectMirScalarProgramExprEqualString() ||
         kind == DirectMirScalarProgramExprNotEqualString() { return "Bool"; }
     return "";
 }
 
-func DirectMirOwnedExpressionRetiringEdges(ref expressions: DirectMirScalarProgramExpressionSet,
-    graph: Int) -> Array<Int> {
+func DirectMirOwnedExpressionRetiringEdges(ref expressions: DirectMirScalarProgramExpressionSet, graph: Int) -> Array<Int> {
     let start: Int = expressions.graph_starts[graph];
     let end: Int = start + expressions.graph_counts[graph];
     var users: Array<Int> = [];
@@ -41,19 +47,15 @@ func DirectMirOwnedExpressionRetiringEdges(ref expressions: DirectMirScalarProgr
     node = start;
     while node < end {
         if DirectMirOwnedStringObserverResultType(expressions.node_kinds[node]) != "" ||
-            expressions.node_kinds[node] ==
-                DirectMirScalarProgramExprArrayStringPushOwned() {
+            expressions.node_kinds[node] == DirectMirScalarProgramExprArrayStringPushOwned() {
             var edge: Int = 0;
             while edge < 2 {
                 var child: Int = expressions.node_lefts[node];
                 var bit: Int = 1;
                 if edge == 1 { child = expressions.node_rights[node]; bit = 2; }
-                if (expressions.node_kinds[node] !=
-                        DirectMirScalarProgramExprArrayStringPushOwned() || edge == 1) &&
+                if (expressions.node_kinds[node] != DirectMirScalarProgramExprArrayStringPushOwned() || edge == 1) &&
                     child >= start && child < node && users[child - start] == 1 &&
-                    DirectMirScalarProgramFreshStringExpressionKind(
-                        expressions.node_kinds[child]) &&
-                    expressions.node_types[child] == "String" {
+                    DirectMirScalarProgramFreshStringExpressionKind(expressions.node_kinds[child]) && expressions.node_types[child] == "String" {
                     retire[node - start] = retire[node - start] + bit;
                 }
                 edge = edge + 1;

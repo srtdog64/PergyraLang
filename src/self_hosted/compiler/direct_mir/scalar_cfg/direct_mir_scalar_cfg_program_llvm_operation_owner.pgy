@@ -53,16 +53,12 @@ func DirectMirScalarCfgProgramLlvmOperation(
     }
     if DirectMirScalarProgramArraySetKind(kind) {
         let index: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
-                plan, plan.program.expressions,
-                plan.program.operation_secondary_expression_rows[operation], runtime,
-                plan.program.logical_record, plan.program.payload_free_enum,
-                plan.program.referenced_enum, plan.routines, routine,
-                plan.program.array_string_abi, array_string_projection, plan.program.array_int_value_result, array_int_projection,
-                target);
+                plan, plan.program.expressions, plan.program.operation_secondary_expression_rows[operation], runtime,
+                plan.program.logical_record, plan.program.payload_free_enum, plan.program.referenced_enum, plan.routines, routine,
+                plan.program.array_string_abi, array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
         let value: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
                 plan, plan.program.expressions, expression_row, runtime, plan.program.logical_record,
-                plan.program.payload_free_enum, plan.program.referenced_enum,
-                plan.routines, routine, plan.program.array_string_abi,
+                plan.program.payload_free_enum, plan.program.referenced_enum, plan.routines, routine, plan.program.array_string_abi,
                 array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
         var expected: String = CompilerAbiLayoutStringTypeName();
         if kind == DirectMirScalarCfgOpLocalArrayIntSet() || kind == DirectMirScalarCfgOpLocalSliceIntSet() ||
@@ -121,7 +117,10 @@ func DirectMirScalarCfgProgramLlvmOperation(
             process_exit.symbol, Concat("(i32 ", Concat(code, ")\n")))));
         return output;
     }
-    if kind == DirectMirScalarCfgOpExpressionStatement() { return output; }
+    if kind == DirectMirScalarCfgOpExpressionStatement() {
+        if !DirectMirOwnedStatementRetiresFreshRoot(plan.program.expressions, kind, expression_row) { return output; }
+        return output + "  call void @free(ptr " + expression.value + ")\n";
+    }
     if kind == DirectMirScalarCfgOpArrayStringValueResultPush() {
         return Concat(output, DirectMirScalarProgramLlvmArrayStringValueResultPush(
             plan, routine, operation, plan.operation_right_locals[operation],

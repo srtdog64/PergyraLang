@@ -1,0 +1,14 @@
+// A Log that writes a fresh String is its only use: the text is released
+// right after it is written, on every pass.
+func Main() -> Int {
+    var i: Int = 0;
+    while i < 4 {
+        Log(ToString(i * 7));
+        Log(Concat("item-", ToString(i)));
+        Log(Substring("abcdefgh", i, 3));
+        Log(StringTrim("  padded  "));
+        Log(ToString(i % 2 == 0));
+        i = i + 1;
+    }
+    return 0;
+}

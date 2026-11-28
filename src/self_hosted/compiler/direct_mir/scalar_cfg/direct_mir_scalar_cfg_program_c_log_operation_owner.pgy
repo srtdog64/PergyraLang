@@ -2,6 +2,7 @@
 import "../scalar_program/direct_mir_scalar_program_c_expression_owner.pgy";
 import "../../../mir/runtime_call_abi_fact_owner.pgy";
 import "../../../codegen/runtime_abi/string_runtime_symbol_owner.pgy";
+import "../../owned_expression_temporary_owner.pgy";
 
 func DirectMirScalarCfgProgramCLogOperation(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
@@ -21,9 +22,6 @@ func DirectMirScalarCfgProgramCLogOperation(
     if plan.program.expressions.node_types[root] == CompilerAbiLayoutFloatTypeName() {
         line_format = StringRuntimeCFloatLineFormat();
     }
-    var output: String = Concat("    ", formatted_print.symbol);
-    output = Concat(output, Concat("(\"", line_format));
-    output = Concat(output, "\", ");
     var log_value: String = DirectMirScalarProgramCExpressionAt(
         plan, plan.program.expressions, expression_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
@@ -40,6 +38,10 @@ func DirectMirScalarCfgProgramCLogOperation(
     if plan.program.expressions.node_types[root] == CompilerAbiLayoutLongTypeName() {
         log_value = "(" + StringRuntimeCLongPrintArgumentType() + ")(" + log_value + ")";
     }
-    output = Concat(output, log_value);
-    return Concat(output, ");\n");
+    let call_head: String = "    " + formatted_print.symbol + "(\"" + line_format + "\", ";
+    if !DirectMirOwnedStatementRetiresFreshRoot(plan.program.expressions, plan.operation_kinds[operation], expression_row) {
+        return call_head + log_value + ");\n";
+    }
+    let text: String = "pgy_log_text_" + ToString(operation);
+    return "    { const char *" + text + " = " + log_value + ";\n" + call_head + text + ");\n    free((void *)" + text + "); }\n";
 }
