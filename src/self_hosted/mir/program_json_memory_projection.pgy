@@ -125,6 +125,7 @@ func SelfMirJsonRoutineWriteMemory(
     JsonOwnedFragmentAppend(fragments, JsonEmitFieldString(
         "return", rows.return_types[routine_index]
     ));
+    JsonProjectionAppend(fragments, ",\"flow_state_carried\":false");
     JsonProjectionAppend(fragments, ",\"resource_flow_symbol_count\":0");
     JsonProjectionAppend(fragments, ",\"resource_flow_symbols\":[]");
 

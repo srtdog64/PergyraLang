@@ -1,0 +1,27 @@
+// Loops that never fall through. Their loop rows carry RETURN without
+// FALLTHROUGH (8). The general direct-MIR route does not admit either routine
+// yet (a while-true exit block without a return; a range loop whose body
+// always returns), so only their MIR rows are checked.
+
+// while true without a break leaves only by returning: 8.
+func Countdown(n: Int) -> Int {
+    var k: Int = n;
+    while true {
+        if k <= 0 {
+            return 100;
+        }
+        k = k - 1;
+    }
+}
+
+// A literal range whose body always returns never falls through: 8.
+func FirstOfThree() -> Int {
+    for i in 0..3 {
+        return i + 7;
+    }
+}
+
+func Main() -> Void {
+    Log(Countdown(4));
+    Log(FirstOfThree());
+}

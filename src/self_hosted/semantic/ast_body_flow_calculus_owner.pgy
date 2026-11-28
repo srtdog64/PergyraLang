@@ -90,14 +90,17 @@ struct SemanticAstBodyFlowFact {
     continues: Bool;
     returns: Bool;
     first_return_node: Int;
+    // Native FLOW_RETURN: some reachable path leaves the routine (return,
+    // Exit or a non-returning call), also through a loop that falls through.
+    may_return: Bool;
 }
 
 func SemanticAstBodyFlowCompletes(first_return_node: Int) -> SemanticAstBodyFlowFact {
-    return SemanticAstBodyFlowFact(true, true, false, false, false, first_return_node);
+    return SemanticAstBodyFlowFact(true, true, false, false, false, first_return_node, false);
 }
 
 func SemanticAstBodyFlowInvalid() -> SemanticAstBodyFlowFact {
-    return SemanticAstBodyFlowFact(false, false, false, false, false, -1);
+    return SemanticAstBodyFlowFact(false, false, false, false, false, -1, false);
 }
 
 func SemanticAstBodyFlowFirstReturn(earlier: Int, later: Int) -> Int {
@@ -153,7 +156,8 @@ func SemanticAstBodyFlowOfBlockObserved(
         flow = SemanticAstBodyFlowFact(true, step.falls_through,
             flow.breaks || step.breaks, flow.continues || step.continues,
             flow.returns || step.returns,
-            SemanticAstBodyFlowFirstReturn(flow.first_return_node, step.first_return_node));
+            SemanticAstBodyFlowFirstReturn(flow.first_return_node, step.first_return_node),
+            flow.may_return || step.may_return);
         index = index + 1;
         child = TypedAstArenaChildAt(artifact.arena, block, index);
     }
@@ -183,11 +187,11 @@ func SemanticAstBodyFlowJoinArm(
     let first: Int = SemanticAstBodyFlowFirstReturn(flow.first_return_node, arm.first_return_node);
     if !reachable {
         return SemanticAstBodyFlowFact(true, flow.falls_through, flow.breaks,
-            flow.continues, flow.returns, first);
+            flow.continues, flow.returns, first, flow.may_return);
     }
     return SemanticAstBodyFlowFact(true, flow.falls_through || arm.falls_through,
         flow.breaks || arm.breaks, flow.continues || arm.continues,
-        flow.returns || arm.returns, first);
+        flow.returns || arm.returns, first, flow.may_return || arm.may_return);
 }
 
 func SemanticAstBodyFlowBareCallTerminates(
@@ -235,10 +239,10 @@ func SemanticAstBodyFlowOfStatementObserved(
     }
     let kind: Int = UnwrapOption(kind_opt);
     if kind == TypedAstKindBareReturnStmtTag() || kind == TypedAstKindValueReturnStmtTag() {
-        return SemanticAstBodyFlowFact(true, false, false, false, true, node);
+        return SemanticAstBodyFlowFact(true, false, false, false, true, node, true);
     }
     if kind == TypedAstKindExitStmtTag() {
-        return SemanticAstBodyFlowFact(true, false, false, false, true, -1);
+        return SemanticAstBodyFlowFact(true, false, false, false, true, -1, true);
     }
     if kind == TypedAstKindBareCallStmtTag() {
         let row: Option<Int> = SemanticAstStatementTypeIndexForNode(types, node);
@@ -246,15 +250,15 @@ func SemanticAstBodyFlowOfStatementObserved(
         if SemanticAstBodyFlowBareCallTerminates(
                 artifact, types, surfaces,
                 termination, node) {
-            return SemanticAstBodyFlowFact(true, false, false, false, true, -1);
+            return SemanticAstBodyFlowFact(true, false, false, false, true, -1, true);
         }
         return SemanticAstBodyFlowCompletes(-1);
     }
     if kind == TypedAstKindBreakStmtTag() {
-        return SemanticAstBodyFlowFact(true, false, true, false, false, -1);
+        return SemanticAstBodyFlowFact(true, false, true, false, false, -1, false);
     }
     if kind == TypedAstKindContinueStmtTag() {
-        return SemanticAstBodyFlowFact(true, false, false, true, false, -1);
+        return SemanticAstBodyFlowFact(true, false, false, true, false, -1, false);
     }
     if kind == TypedAstKindBlockTag() {
         return SemanticAstBodyFlowOfBlockObserved(
@@ -329,7 +333,7 @@ func SemanticAstBodyFlowOfIfObserved(
             then_reachable);
     if !then_flow.valid { return then_flow; }
     let flow: SemanticAstBodyFlowFact = SemanticAstBodyFlowJoinArm(
-        SemanticAstBodyFlowFact(true, false, false, false, false, -1),
+        SemanticAstBodyFlowFact(true, false, false, false, false, -1, false),
         then_flow, condition != "false");
     let else_node: Option<Int> = TypedAstArenaChildAt(artifact.arena, node, 1);
     if !IsSome(else_node) {
@@ -440,7 +444,7 @@ func SemanticAstBodyFlowOfMatchObserved(
         AstExpressionLaneAtom(), AstExpressionNodeIntegerLiteral());
     let subject_bool: String = SemanticAstBodyFlowLiteralText(surfaces, node,
         AstExpressionLaneAtom(), AstExpressionNodeBoolLiteral());
-    var flow: SemanticAstBodyFlowFact = SemanticAstBodyFlowFact(true, false, false, false, false, -1);
+    var flow: SemanticAstBodyFlowFact = SemanticAstBodyFlowFact(true, false, false, false, false, -1, false);
     var prior_static_match: Bool = false;
     var default_node: Int = -1;
     var index: Int = 0;
@@ -556,14 +560,12 @@ func SemanticAstBodyFlowOfLoopObserved(
             reachable_statements, UnwrapOption(body), path_reachable);
     if !inner.valid { return inner; }
     let must_return: Bool = !inner.falls_through && !inner.continues && inner.returns;
-    if !static_bound || inner.breaks {
-        return SemanticAstBodyFlowCompletes(inner.first_return_node);
+    if (!static_bound || inner.breaks) || (!is_while && !must_return) {
+        return SemanticAstBodyFlowFact(true, true, false, false, false,
+            inner.first_return_node, inner.may_return);
     }
-    if is_while || must_return {
-        return SemanticAstBodyFlowFact(true, false, false, false, must_return,
-            inner.first_return_node);
-    }
-    return SemanticAstBodyFlowCompletes(inner.first_return_node);
+    return SemanticAstBodyFlowFact(true, false, false, false, must_return,
+        inner.first_return_node, inner.may_return);
 }
 
 func SemanticAstBodyFlowOfLoop(

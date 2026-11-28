@@ -275,6 +275,13 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
                     "body_termination_facts"), -1);
         }
     }
+    // Without termination facts the rows are not ready; an earlier error stays the verdict.
+    let loop_flow_flags: SemanticAstLoopFlowFlagFacts = SemanticAstLoopFlowFlagFactsFromFacts(artifact,
+        analysis.statements, statement_types, analysis.expression_surfaces, exhaustive_match_nodes, body_termination);
+    if verdict.ok && !SemanticAstLoopFlowFlagFactsReady(artifact, loop_flow_flags) {
+        verdict = SemanticAstBodyVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "loop_flow_flags"), -1);
+    }
     var collection_ownership: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnershipVerdictOk();
     var collection_focus_recovery: SemanticAstCollectionFocusRecoveryFacts = SemanticAstCollectionFocusRecoveryFactsEmpty();
     SemanticAstBodyTypeStage(observe_pressure, "collection-ownership:start");
@@ -327,5 +334,6 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         initializer_types, iteration_types, assignment_types, statement_types, match_materializations,
         collection_formal_effects,
         collection_ownership, collection_focus_recovery,
-        zone_carriage, generic_specializations, capabilities, numeric_string_allocations, owned_string_result_domains);
+        zone_carriage, generic_specializations, capabilities, numeric_string_allocations, owned_string_result_domains,
+        loop_flow_flags);
 }

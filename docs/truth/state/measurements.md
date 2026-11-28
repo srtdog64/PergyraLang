@@ -1,7 +1,7 @@
 # Measurements
 
 Owner: Claude lane (GPT root lane's work since 2026-11-19). Checked
-2026-11-24. Heavy measurements ran serially in WSL; the tree and driver
+2026-11-28. Heavy measurements ran serially in WSL; the tree and driver
 hashes are in each linked record.
 
 ## Self-host generality (V1 goal 2)
@@ -21,9 +21,9 @@ neither the C route nor programs without a `var` ([record](../evidence/2026-11-2
 
 | Revision | C equal / self refuses / other output / runs a native refusal | LLVM, same columns |
 |---|---|---|
-| bare field reads in class methods ([record](../evidence/2026-11-26_value_receiver_field_reads.md)) | 1,418 / 602 / 8 / 85 | 937 / 1,091 / 0 / 25 |
 | `match` over `Option<record>` ([record](../evidence/2026-11-26_option_record_match.md)) | 1,418 / 602 / 8 / 85 | 952 / 1,076 / 0 / 25 |
 | `None()` and `??` ([record](../evidence/2026-11-26_none_call_and_coalesce.md)) | 1,418 / 602 / 8 / 85 | 982 / 1,046 / 0 / 25 |
+| `695a28193`, then the loop flag change on it ([record](../evidence/2026-11-28_selfhost_loop_flow_carriage.md)): every row equal | 1,419 / 601 / 8 / 85 | 983 / 1,045 / 0 / 25 |
 
 Full DRV-2 MIR: first refusal at transition ordinal 1438 (last measured on
 v11, [blocker](blocker.md)).

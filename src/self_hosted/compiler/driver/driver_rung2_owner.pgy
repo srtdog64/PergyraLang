@@ -128,6 +128,7 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
         verified.body_types.assignment_types, verified.body_types.match_materializations,
         verified.body_types.statement_types, verified.body_types.collection_ownership,
         verified.body_types.generic_specializations,
+        verified.body_types.loop_flow_flags,
         machine_declaration, observe_pressure
     );
     // MIR rows have consumed these carriers. Retire only their backing arrays;

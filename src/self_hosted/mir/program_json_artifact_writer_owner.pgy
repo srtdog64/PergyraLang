@@ -126,6 +126,7 @@ func SelfMirJsonRoutineWriteFile(
     JsonOwnedFragmentWriteFile(output, JsonEmitFieldString(
         "return", rows.return_types[routine_index]
     ));
+    CompilerArtifactWrite(output, ",\"flow_state_carried\":false");
     CompilerArtifactWrite(output, ",\"resource_flow_symbol_count\":0");
     CompilerArtifactWrite(output, ",\"resource_flow_symbols\":[]");
 

@@ -25,7 +25,8 @@ import "clone_site_projection_owner.pgy";
 func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtifactAnalysis,
     ref input: SelfMirRoutineInput, signature_index: Int, build: SelfMirRoutineBuild,
     initializer_types: SemanticAstInitializerTypeFacts,
-    collection_ownership: SemanticAstCollectionOwnershipVerdict
+    collection_ownership: SemanticAstCollectionOwnershipVerdict,
+    ref loop_flow_flags: SemanticAstLoopFlowFlagFacts
 ) -> SelfMirProgramFacts {
     let function_node_id: Int = analysis.signatures.function_node_ids[signature_index];
     if !SelfMirDestructureTypeFactsReadyForRoutine(analysis, initializer_types, function_node_id
@@ -44,7 +45,8 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
             initializer_types, function_node_id
         );
     facts.routines.loop_flows = SelfMirLoopFlowRowsAppendRoutine(
-        facts.routines.loop_flows, analysis.statements, function_node_id
+        facts.routines.loop_flows, analysis.statements, function_node_id,
+        loop_flow_flags
     );
     ArrayPush(
         facts.routines.node_ids,
@@ -286,12 +288,17 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
     statement_types: SemanticAstStatementTypeFacts,
     collection_ownership: SemanticAstCollectionOwnershipVerdict,
     generic_specializations: SemanticAstGenericSpecializationFacts,
+    loop_flow_flags: SemanticAstLoopFlowFlagFacts,
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
 ) -> SelfMirProgramFacts {
     // The routine appends only carry the semantic graph; it joins the facts
     // once they stop growing, so no append shares the analysis' storage.
     var facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
+    if !SemanticAstLoopFlowFlagFactsReady(artifact, loop_flow_flags) {
+        return SelfMirProgramFactsError(facts, "mir_loop_flow_flags_missing",
+            "MIR producer requires the semantic loop flow flag rows of this artifact");
+    }
     SelfMirArtifactPressureStage(observe_pressure, "iteration-validation:start");
     var iteration_i: Int = 0;
     while iteration_i < SemanticAstIterationTypeCount(iteration_types) {
@@ -402,7 +409,7 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
         );
         facts = SelfMirAppendRoutine(
             facts, analysis, input, i, build,
-            initializer_types, collection_ownership
+            initializer_types, collection_ownership, loop_flow_flags
         );
         SelfMirRoutineBuildStorageRetireAfterLastConsumer(build);
         if !facts.ok {
@@ -496,13 +503,14 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
     statement_types: SemanticAstStatementTypeFacts,
     collection_ownership: SemanticAstCollectionOwnershipVerdict,
     generic_specializations: SemanticAstGenericSpecializationFacts,
+    loop_flow_flags: SemanticAstLoopFlowFlagFacts,
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
 ) -> SelfMirProgramFacts {
     var facts: SelfMirProgramFacts = SelfMirProgramFactsBeforeCanonicalIdsObserved(
         artifact, analysis, initializer_types, iteration_types,
         assignment_types, match_materializations, statement_types,
-        collection_ownership, generic_specializations,
+        collection_ownership, generic_specializations, loop_flow_flags,
         machine_declaration, observe_pressure
     );
     SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:start");
@@ -520,12 +528,13 @@ func SelfMirProgramFactsFromReadyArtifact(
     statement_types: SemanticAstStatementTypeFacts,
     collection_ownership: SemanticAstCollectionOwnershipVerdict,
     generic_specializations: SemanticAstGenericSpecializationFacts,
+    loop_flow_flags: SemanticAstLoopFlowFlagFacts,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirProgramFacts {
     return SelfMirProgramFactsFromReadyArtifactObserved(
         artifact, analysis, initializer_types, iteration_types,
         assignment_types, match_materializations, statement_types,
-        collection_ownership, generic_specializations,
+        collection_ownership, generic_specializations, loop_flow_flags,
         machine_declaration, false
     );
 }
@@ -539,6 +548,7 @@ func SelfMirProgramFactsFromArtifact(
     statement_types: SemanticAstStatementTypeFacts,
     collection_ownership: SemanticAstCollectionOwnershipVerdict,
     generic_specializations: SemanticAstGenericSpecializationFacts,
+    loop_flow_flags: SemanticAstLoopFlowFlagFacts,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirProgramFacts {
     let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
@@ -586,7 +596,7 @@ func SelfMirProgramFactsFromArtifact(
     return SelfMirProgramFactsFromReadyArtifact(
         artifact, analysis, initializer_types, iteration_types,
         assignment_types, match_materializations, statement_types,
-        collection_ownership, generic_specializations,
+        collection_ownership, generic_specializations, loop_flow_flags,
         machine_declaration
     );
 }

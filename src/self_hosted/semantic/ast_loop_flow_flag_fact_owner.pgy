@@ -1,0 +1,117 @@
+// Loop result flags, one row per loop statement, as native
+// loop_flow_summary_record states them: FALLTHROUGH (1) unless the loop
+// cannot leave normally, plus RETURN (8) when its body may leave the routine.
+// The rows come from the body flow calculus over the fixed termination facts.
+// Effect masks and resource states are not computed here; the MIR producer
+// marks those as not carried.
+
+import "ast_body_flow_calculus_owner.pgy";
+
+struct SemanticAstLoopFlowFlagFacts {
+    ok: Bool;
+    artifact_identity_digest: Int;
+    loop_node_ids: Array<Int>;
+    flags: Array<Int>;
+}
+
+func SemanticAstLoopFlowFlagFactsEmpty() -> SemanticAstLoopFlowFlagFacts {
+    let ints: Array<Int> = [];
+    return SemanticAstLoopFlowFlagFacts(false, 0, ints, ints);
+}
+
+func SemanticAstLoopFlowFlagFactsReady(
+    ref artifact: AstTreeArtifact, ref facts: SemanticAstLoopFlowFlagFacts
+) -> Bool {
+    return facts.ok && artifact.identity_digest > 0 &&
+        facts.artifact_identity_digest == artifact.identity_digest &&
+        ArrayLength(facts.loop_node_ids) == ArrayLength(facts.flags);
+}
+
+// -1 when the loop has no flow fact.  A `while false` loop and a for loop over
+// an empty literal range never run their body: native returns FALLTHROUGH.
+func SemanticAstLoopFlowFlagsOf(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>, ref termination: SemanticAstBodyTerminationFacts,
+    node: Int, is_while: Bool
+) -> Int {
+    let body: Option<Int> = SemanticAstBodyFlowBlockChild(artifact, node);
+    if !IsSome(body) { return -1; }
+    var static_bound: Bool = false;
+    if is_while {
+        let condition: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+            AstExpressionLaneAtom(), AstExpressionNodeBoolLiteral());
+        if condition == "false" { return 1; }
+        static_bound = condition == "true";
+    } else {
+        let lower: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+            AstExpressionLaneValue(), AstExpressionNodeIntegerLiteral());
+        let upper: String = SemanticAstBodyFlowLiteralText(surfaces, node,
+            AstExpressionLaneAuxiliary(), AstExpressionNodeIntegerLiteral());
+        static_bound = lower != "" && upper != "";
+        if static_bound && ToInt(upper) <= ToInt(lower) { return 1; }
+    }
+    var unobserved: Array<Bool> = [];
+    let inner: SemanticAstBodyFlowFact = SemanticAstBodyFlowOfBlockObserved(
+        artifact, statements, types, surfaces, exhaustive_match_nodes,
+        termination, unobserved, UnwrapOption(body), false);
+    if !inner.valid { return -1; }
+    // while true ends only through a break; a bounded for loop also needs a
+    // body that never reaches its next iteration.
+    var flags: Int = 1;
+    if static_bound && !inner.breaks &&
+        (is_while || (!inner.falls_through && !inner.continues)) {
+        flags = 0;
+    }
+    if inner.may_return { flags = flags + 8; }
+    return flags;
+}
+
+func SemanticAstLoopFlowFlagFactsFromFacts(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref exhaustive_match_nodes: Array<Int>, ref termination: SemanticAstBodyTerminationFacts
+) -> SemanticAstLoopFlowFlagFacts {
+    var loop_node_ids: Array<Int> = [];
+    var flags: Array<Int> = [];
+    if !statements.ok || !termination.ok ||
+        termination.artifact_identity_digest != artifact.identity_digest {
+        return SemanticAstLoopFlowFlagFacts(false, artifact.identity_digest, loop_node_ids, flags);
+    }
+    var row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        let kind: Int = statements.kind_tags[row];
+        if kind == TypedAstKindWhileStmtTag() || kind == TypedAstKindForStmtTag() {
+            let node: Int = statements.node_ids[row];
+            let count: Int = ArrayLength(loop_node_ids);
+            let value: Int = SemanticAstLoopFlowFlagsOf(artifact, statements, types, surfaces,
+                exhaustive_match_nodes, termination, node, kind == TypedAstKindWhileStmtTag());
+            // Lookup is a binary search: rows must ascend by node.
+            if value < 0 || (count > 0 && loop_node_ids[count - 1] >= node) {
+                return SemanticAstLoopFlowFlagFacts(false, artifact.identity_digest, loop_node_ids, flags);
+            }
+            ArrayPush(loop_node_ids, node);
+            ArrayPush(flags, value);
+        }
+        row = row + 1;
+    }
+    return SemanticAstLoopFlowFlagFacts(true, artifact.identity_digest, loop_node_ids, flags);
+}
+
+// The row's flags, or -1 when the node has no row.
+func SemanticAstLoopFlowFlagsAt(ref facts: SemanticAstLoopFlowFlagFacts, node: Int) -> Int {
+    var low: Int = 0;
+    var high: Int = ArrayLength(facts.loop_node_ids);
+    while low < high {
+        let middle: Int = (low + high) / 2;
+        if facts.loop_node_ids[middle] < node {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if low < ArrayLength(facts.loop_node_ids) && facts.loop_node_ids[low] == node {
+        return facts.flags[low];
+    }
+    return -1;
+}

@@ -1,11 +1,13 @@
 // Routine-owned loop transfer rows for the bounded self-host MIR producer.
 //
-// The typed semantic statement owner supplies loop identity and kind.  This
-// producer does not yet carry ResourceFlow state, so every admitted summary
-// has an explicit empty entry/exit state range rather than recovering state
-// from CFG text in the MIR consumer.
+// The typed semantic statement owner supplies loop identity and kind, and the
+// semantic loop flow flag owner the native result flags.  This producer does
+// not compute effect masks or ResourceFlow state: each routine is written
+// with "flow_state_carried":false, and its effect and state fields are zero
+// placeholders, not a claim that the loop has none.
 
 import "../semantic/ast_statement_fact_owner.pgy";
+import "../semantic/ast_loop_flow_flag_fact_owner.pgy";
 
 struct SelfMirLoopFlowSummaryRows {
     loop_node_ids: Array<Int>;
@@ -69,7 +71,8 @@ func SelfMirLoopFlowRowsWithoutLoops(
 func SelfMirLoopFlowRowsAppendRoutine(
     rows: SelfMirLoopFlowRows,
     statements: SemanticAstStatementFacts,
-    function_node_id: Int
+    function_node_id: Int,
+    ref loop_flags: SemanticAstLoopFlowFlagFacts
 ) -> SelfMirLoopFlowRows {
     var routine_starts: Array<Int> = rows.routine_starts;
     var routine_counts: Array<Int> = rows.routine_counts;
@@ -103,7 +106,8 @@ func SelfMirLoopFlowRowsAppendRoutine(
             }
             ArrayPush(effect_bases, 0);
             ArrayPush(effect_deltas, 0);
-            ArrayPush(flags, 1);
+            // A loop without a semantic row gets -1, which the row check refuses.
+            ArrayPush(flags, SemanticAstLoopFlowFlagsAt(loop_flags, statements.node_ids[i]));
             ArrayPush(entry_state_starts, state_count);
             ArrayPush(entry_state_counts, 0);
             ArrayPush(exit_state_starts, state_count);

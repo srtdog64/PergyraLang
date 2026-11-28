@@ -69,7 +69,8 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
         if matched_flow < 0 || type_row < 0 ||
             index.loop_flow_summary_effect_bases[matched_flow] != 0 ||
             index.loop_flow_summary_effect_deltas[matched_flow] != 0 ||
-            index.loop_flow_summary_flags[matched_flow] != 1 ||
+            (index.loop_flow_summary_flags[matched_flow] != 0 && index.loop_flow_summary_flags[matched_flow] != 1 &&
+                index.loop_flow_summary_flags[matched_flow] != 8 && index.loop_flow_summary_flags[matched_flow] != 9) ||
             index.loop_flow_summary_entry_counts[matched_flow] != 0 ||
             index.loop_flow_summary_exit_counts[matched_flow] != 0 ||
             index.iteration_type_facts.function_syntax_ids[type_row] !=

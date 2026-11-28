@@ -572,6 +572,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
         body_types.statement_types,
         body_types.collection_ownership,
         body_types.generic_specializations,
+        body_types.loop_flow_flags,
         SelfHostMachineLayerDeclarationEmpty()
     );
     if !SelfMirProgramFactsReady(facts) {
@@ -892,6 +893,7 @@ func Main() -> Void with caps env {
         body_types.statement_types,
         body_types.collection_ownership,
         body_types.generic_specializations,
+        body_types.loop_flow_flags,
         SelfHostMachineLayerDeclarationEmpty()
     );
     if !SelfMirProgramFactsReady(facts) {

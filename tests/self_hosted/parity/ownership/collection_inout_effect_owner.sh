@@ -608,7 +608,7 @@ for backend in c llvm; do
                 printf 'body_ok=false\nbody_diagnostic=inout_argument_not_variable\n' >"$WORK/expected" ;;
             member_composed_views_alias_negative.pgy|member_scalar_shallow_accumulator_negative.pgy|member_indexed_read_root_copy_negative.pgy|member_indexed_read_root_own_negative.pgy|member_indexed_read_root_inout_negative.pgy|member_indexed_read_deferred_negative.pgy|member_indexed_read_forwarded_alias_negative.pgy|member_indexed_read_forwarded_move_negative.pgy|member_indexed_read_nested_alias_negative.pgy|member_indexed_read_value_formal_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
-            inout_borrowed_loop_sibling_negative.pgy|inout_borrowed_push_sibling_indexed_negative.pgy|inout_terminal_owned_mutation_sibling_negative.pgy|own_generation_double_transfer_negative.pgy|own_generation_nonterminal_cleanup_negative.pgy|own_generation_return_use_negative.pgy)
+            inout_borrowed_push_sibling_indexed_negative.pgy|inout_terminal_owned_mutation_sibling_negative.pgy|own_generation_double_transfer_negative.pgy|own_generation_nonterminal_cleanup_negative.pgy|own_generation_return_use_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             own_storage_repeated_negative.pgy|inout_owned_loop_retired_read_negative.pgy|own_generation_terminal_hides_consumption_negative.pgy|inout_event_transferred_child_drop_negative.pgy|inout_branch_own_then_copy_negative.pgy|inout_own_formal_retired_copy_negative.pgy|inout_index_branch_own_negative.pgy|inout_index_own_formal_drop_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
@@ -674,15 +674,14 @@ for backend in c llvm; do
                 # not copy-only; the self-host source pass refuses it the same
                 # way (boundary new_binding) since 2026-11-16.
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
-            descriptor_text_escape_read_positive.pgy|descriptor_text_escape_loop_positive.pgy|descriptor_text_escape_forward_positive.pgy|own_formal_shallow_forward_positive.pgy|exclusive_thread_inout_positive.pgy|exclusive_inout_repeat_alias_positive.pgy|exclusive_alias_inout_then_read_positive.pgy)
+            descriptor_text_escape_read_positive.pgy|descriptor_text_escape_loop_positive.pgy|descriptor_text_escape_forward_positive.pgy|own_formal_shallow_forward_positive.pgy|exclusive_thread_inout_positive.pgy|exclusive_inout_repeat_alias_positive.pgy|exclusive_alias_inout_then_read_positive.pgy|exclusive_scalar_set_holder_positive.pgy)
                 # Self-host generality gaps: native admits these and runs them
                 # clean under ASan; the self-host still refuses them
                 # (docs/truth/state/blocker.md). Admitting one fails here so
-                # that it moves back to the positives.
+                # that it moves back to the positives. The scalar-set holder
+                # copies its column at the definition since 695a28193 and is
+                # now refused at the String element pushed from that copy.
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
-            exclusive_scalar_set_holder_positive.pgy)
-                # Same generality gap, refused at the member use after the move.
-                printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             *_positive.pgy|member_formal_identity_input.pgy|field_ctor_identity_input.pgy|main.pgy|intent_zone_authority_transition.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;

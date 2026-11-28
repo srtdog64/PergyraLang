@@ -8,7 +8,10 @@ mir_json_emit_resource_flow_symbols(FILE *out, const MIRRoutine *routine)
     size_t count = routine != NULL
         ? routine->resource_flow_symbol_count : 0;
 
-    fprintf(out, ",\"resource_flow_symbol_count\":%zu"
+    /* The semantic flow walk computed this routine's resource-flow
+     * symbols, loop effect masks and loop states. */
+    fprintf(out, ",\"flow_state_carried\":true"
+                 ",\"resource_flow_symbol_count\":%zu"
                  ",\"resource_flow_symbols\":[", count);
     for (size_t i = 0; i < count; i++) {
         const MIRResourceFlowSymbol *symbol =

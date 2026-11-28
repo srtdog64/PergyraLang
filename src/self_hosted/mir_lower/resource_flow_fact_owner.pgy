@@ -1,12 +1,16 @@
 // Routine-owned ResourceFlowUniverse MIR JSON projection parser.
 //
 // The native HIR adapter is the only producer of these rows. This owner only
-// decodes explicit identity fields and never reopens source text.
+// decodes explicit identity fields and never reopens source text.  Native MIR
+// marks each routine "flow_state_carried":true.  A routine without that mark
+// (the self-host producer writes false; older MIR has none) carries no flow
+// state: its empty list is not an empty universe, and a row in it is refused.
 
 import "json_fact_read.pgy";
 
 struct MirResourceFlowFacts {
     let valid: Bool;
+    let flow_state_carried: Bool;
     let stable_indices: Array<Int>;
     let declaration_syntax_ids: Array<Int>;
     let symbol_kinds: Array<Int>;
@@ -27,6 +31,8 @@ func BuildMirResourceFlowFacts(
     var names: Array<String> = [];
     let declared: String = MirObjectNumberFactAtBounds(
         json, json_extent, routine_start, routine_end, "resource_flow_symbol_count");
+    let carried: Bool = JsonObjectBoolFieldEqualsWithin(
+        json, json_extent, routine_start, routine_end, "flow_state_carried", true);
     var valid: Bool = true;
     var bounds: Array<Int> = [0, 0];
     if StringLength(declared) == 0 ||
@@ -73,10 +79,11 @@ func BuildMirResourceFlowFacts(
         }
     }
     if StringLength(declared) == 0 ||
-        ToInt(declared) != ArrayLength(stable_indices) {
+        ToInt(declared) != ArrayLength(stable_indices) ||
+        (!carried && ArrayLength(stable_indices) != 0) {
         valid = false;
     }
     return MirResourceFlowFacts(
-        valid, stable_indices, declaration_syntax_ids, symbol_kinds,
+        valid, carried, stable_indices, declaration_syntax_ids, symbol_kinds,
         parameter_flags, parameter_indices, names);
 }

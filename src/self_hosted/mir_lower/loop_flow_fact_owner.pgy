@@ -2,7 +2,9 @@
 //
 // This owner keeps loop transfer transport out of the CFG span index. The
 // native producer is the sole authority for these rows; malformed rows remain
-// invalid instead of being reconstructed from control-flow text.
+// invalid instead of being reconstructed from control-flow text.  Without
+// carried flow state a routine's effect and state fields are zero
+// placeholders and it has no state rows; any other value is refused.
 
 import "json_fact_read.pgy";
 
@@ -30,7 +32,8 @@ struct MirLoopFlowFacts {
 func BuildMirLoopFlowFacts(
     json: String, json_extent: Int,
     routine_start: Int,
-    routine_end: Int
+    routine_end: Int,
+    flow_state_carried: Bool
 ) -> MirLoopFlowFacts {
     let summary_declared_count: String = MirObjectNumberFactAtBounds(
         json, json_extent, routine_start, routine_end, "loop_flow_summary_count");
@@ -170,8 +173,17 @@ func BuildMirLoopFlowFacts(
         }
     }
     if StringLength(state_declared_count) == 0 ||
-        ToInt(state_declared_count) != ArrayLength(state_stable_indices) {
+        ToInt(state_declared_count) != ArrayLength(state_stable_indices) ||
+        (!flow_state_carried && ArrayLength(state_stable_indices) != 0) {
         valid = false;
+    }
+    var placeholder: Int = 0;
+    while !flow_state_carried && placeholder < ArrayLength(summary_loop_ids) {
+        if summary_effect_bases[placeholder] != 0 || summary_effect_deltas[placeholder] != 0 ||
+            summary_entry_counts[placeholder] != 0 || summary_exit_counts[placeholder] != 0 {
+            valid = false;
+        }
+        placeholder = placeholder + 1;
     }
 
     return MirLoopFlowFacts(

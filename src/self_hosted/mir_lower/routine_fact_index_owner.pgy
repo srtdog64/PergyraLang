@@ -80,8 +80,8 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         valid = false;
         validation_stage = "resource_flow";
     }
-    let loop_facts: MirLoopFlowFacts = BuildMirLoopFlowFacts(
-        routines.source_json, routines.source_json_extent, routine_start, routine_end);
+    let loop_facts: MirLoopFlowFacts = BuildMirLoopFlowFacts(routines.source_json,
+        routines.source_json_extent, routine_start, routine_end, resource_facts.flow_state_carried);
     let loop_flow_summary_declared_count: String =
         loop_facts.summary_declared_count;
     let loop_flow_summary_loop_ids: Array<Int> = loop_facts.summary_loop_ids;
