@@ -2939,12 +2939,12 @@ self-host-mir-function-param-flow-summary-test-smoke:
 	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_function_param_flow_summary_smoke.sh
 
 self-host-mir-resource-flow-identity-test-smoke:
-	"$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
-	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" "$(BASH)" tests/self_hosted/mir_resource_flow_identity_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
+	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_resource_flow_identity_smoke.sh
 
 self-host-mir-loop-flow-summary-test-smoke:
-	"$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
-	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" "$(BASH)" tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_tool_build.sh "$(MIR_LOWER_TOOL_DIR)"
+	PGY_MIR_LOWER_TOOL_DIR="$(MIR_LOWER_TOOL_DIR)" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh
 
 # The MIR lowering tool is the job's shared build, and the DRV-2 driver is the
 # installed one, as in the other DRV-2 owners above: compiling the DRV-2 entry

@@ -127,6 +127,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     # cleaned CI build directory; before it, this build was thrown away by the clean.
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" release-primary-debug-section-hygiene-test-smoke'
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" hir-function-param-flow-summary-test-smoke air-function-param-flow-summary-test-smoke'
+    run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" dir-resource-flow-identity-test-smoke rir-resource-flow-identity-test-smoke'
 fi
 
 if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
@@ -141,6 +142,8 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
     run 'make effect-admission-test-smoke'
     run 'make self-host-preparation-contract-test-smoke'
     run 'make self-host-mir-function-param-flow-summary-test-smoke'
+    # Same MIR lowering tool build as the step above; the flow rows' identity gates.
+    run 'make self-host-mir-resource-flow-identity-test-smoke self-host-mir-loop-flow-summary-test-smoke'
 fi
 
 # Installed-pair gates that build nothing native, split from the core and
