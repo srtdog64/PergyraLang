@@ -1,0 +1,31 @@
+// Callees that grow, return or store a by-value Array<Int> take it (the call
+// moves it): the caller must not release what it handed on.
+struct Holder {
+    values: Array<Int>;
+}
+
+func Grow(xs: Array<Int>) -> Int {
+    var more: Array<Int> = xs;
+    ArrayPush(more, 99);
+    return ArrayLength(more);
+}
+
+func Same(xs: Array<Int>) -> Array<Int> {
+    return xs;
+}
+
+func Keep(xs: Array<Int>) -> Holder {
+    return Holder(xs);
+}
+
+func Main() -> Int {
+    let grown: Array<Int> = [1, 2];
+    Log(Grow(grown));
+    let passed: Array<Int> = [3, 4, 5];
+    let back: Array<Int> = Same(passed);
+    Log(back[2]);
+    let stored: Array<Int> = [6];
+    let holder: Holder = Keep(stored);
+    Log(holder.values[0]);
+    return 0;
+}

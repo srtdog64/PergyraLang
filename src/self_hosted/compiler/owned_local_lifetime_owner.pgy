@@ -13,6 +13,7 @@ import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_parameter_po
 import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
 import "owned_payload_enum_parameter_lifetime_owner.pgy";
 import "owned_local_call_carriage_owner.pgy";
+import "direct_mir/direct_mir_array_storage_call_preservation_owner.pgy";
 
 struct DirectMirOwnedLocalLifetimeFact {
     let valid: Bool;
@@ -140,6 +141,7 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
     }
     // A single DAG pass records every use. Member reads carry the same loan
     // only while their result can retain storage; scalar observations end it.
+    var preserving: HashMap<String, Int> = DirectMirArrayStoragePreservingParameters(plan, false, true);
     var origins: Array<Int> = [];
     graph = 0;
     while graph < ArrayLength(plan.program.expressions.graph_roots) {
@@ -185,7 +187,7 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
                             plan, node, child,
                             DirectMirScalarCfgRoutinePartitionLocalOwner(
                                 plan.routines, origins[child]),
-                            plan.program.expressions.graph_starts[graph]);
+                            plan.program.expressions.graph_starts[graph], preserving);
                     if return_carrier &&
                         (aggregate_carrier || (alias_carrier && arg == result_alias)) {
                         transferred[origins[child]] = true;
@@ -210,7 +212,7 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
                             plan, node, child,
                             DirectMirScalarCfgRoutinePartitionLocalOwner(
                                 plan.routines, origins[child]),
-                            plan.program.expressions.graph_starts[graph]);
+                            plan.program.expressions.graph_starts[graph], preserving);
                     if (kind == DirectMirScalarProgramExprLogicalRecordMember() ||
                         kind == DirectMirScalarProgramExprArrayStringIndex()) && edge == 0 {
                         if DirectMirOwnedLocalStorageMode(plan, plan.program.expressions.node_types[node], 0) > 0 {
@@ -410,7 +412,8 @@ func DirectMirOwnedLocalLifetimeFromPlan(ref plan: DirectMirScalarCfgGraphPlan
         }
         local_row = local_row + 1;
     }
-    if DirectMirOwnedLocalLentReleaseLeaves(plan, graph_definitions, graph_returns, transferred, fresh_returns, modes) {
+    if DirectMirOwnedLocalLentReleaseLeaves(plan, graph_definitions, graph_returns, transferred, fresh_returns, modes,
+            preserving) {
         Die("owned local lent to a ref formal is released while the call result that may hold its storage leaves the routine");
     }
     if DirectMirOwnedLocalLentBesideInout(plan, local_recipes, release) {

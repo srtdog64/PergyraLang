@@ -158,7 +158,7 @@ func DirectMirScalarProgramArrayStringLocalShared(
         plan, routine, target_local, preserving, false);
     if unproved != 2 { return unproved == 1; }
     // Only a call argument needs the whole-program proof; build it once here.
-    preserving = DirectMirArrayStoragePreservingParameters(plan, true);
+    preserving = DirectMirArrayStoragePreservingParameters(plan, true, false);
     return DirectMirScalarProgramArrayStringRoutineShares(
         plan, routine, target_local, preserving, true) == 1;
 }

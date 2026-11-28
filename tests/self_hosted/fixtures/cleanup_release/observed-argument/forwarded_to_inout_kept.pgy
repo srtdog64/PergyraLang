@@ -1,0 +1,22 @@
+// A by-value formal forwarded to an inout callee that grows it: the call
+// moves the caller's Array (the copy-back renews only the forwarding
+// routine's descriptor), so the caller must not release what may have been
+// reallocated.
+func Grow(inout rows: Array<Int>) -> Int {
+    ArrayPush(rows, 9);
+    ArrayPush(rows, 10);
+    ArrayPush(rows, 11);
+    ArrayPush(rows, 12);
+    return 0;
+}
+
+func Pass(rows: Array<Int>) -> Int {
+    let k: Int = Grow(rows);
+    return ArrayLength(rows) + k;
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [1];
+    Log(Pass(rows));
+    return 0;
+}

@@ -1,0 +1,37 @@
+// A returned Array<Int> handed by value to callees that only read it stays
+// the caller's: the caller releases it once, after its last use.
+func SumAll(xs: Array<Int>) -> Int {
+    var total: Int = 0;
+    var i: Int = 0;
+    while i < ArrayLength(xs) {
+        total = total + xs[i];
+        i = i + 1;
+    }
+    return total;
+}
+
+func Middle(xs: Array<Int>) -> Int {
+    return xs[ArrayLength(xs) / 2];
+}
+
+func Spread(xs: Array<Int>) -> Int {
+    return Middle(xs) + SumAll(xs);
+}
+
+func Build(n: Int) -> Array<Int> {
+    var r: Array<Int> = [];
+    var i: Int = 0;
+    while i < n {
+        ArrayPush(r, i * 2);
+        i = i + 1;
+    }
+    return r;
+}
+
+func Main() -> Int {
+    let xs: Array<Int> = Build(4);
+    Log(SumAll(xs));
+    Log(ArrayLength(xs));
+    Log(Spread(xs));
+    return 0;
+}

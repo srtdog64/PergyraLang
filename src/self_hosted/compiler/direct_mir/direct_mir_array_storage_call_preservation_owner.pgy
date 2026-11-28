@@ -24,8 +24,11 @@ func DirectMirArrayStorageReceiverObserves(kind: Int, string_elements: Bool) -> 
             kind == DirectMirScalarProgramExprSliceCopy()));
 }
 
+// With value_result_changes a by-value formal handed to a value-result formal
+// is not proved: that callee may grow it in place, and its copy-back renews
+// only the forwarding routine's descriptor, not the one its caller holds.
 func DirectMirArrayStoragePreservingParameters(ref plan: DirectMirScalarCfgGraphPlan,
-    string_elements: Bool) -> HashMap<String, Int> {
+    string_elements: Bool, value_result_changes: Bool) -> HashMap<String, Int> {
     var proved: HashMap<String, Int> = MapNew();
     var owners: Array<Int> = [];
     var owner_graph: Int = 0;
@@ -105,7 +108,10 @@ func DirectMirArrayStoragePreservingParameters(ref plan: DirectMirScalarCfgGraph
                         target >= ArrayLength(plan.routines.parameter_counts) || arg >= plan.routines.parameter_counts[target] {
                         blocked[source] = true;
                     } else {
-                        ArrayPush(sources, source); ArrayPush(targets, plan.routines.parameter_starts[target] + arg);
+                        let target_row: Int = plan.routines.parameter_starts[target] + arg;
+                        if value_result_changes && plan.routines.parameter_carriages[target_row] == "value-result" &&
+                            plan.routines.parameter_carriages[source] == "value" { blocked[source] = true; }
+                        ArrayPush(sources, source); ArrayPush(targets, target_row);
                     }
                 }
                 arg = arg + 1;

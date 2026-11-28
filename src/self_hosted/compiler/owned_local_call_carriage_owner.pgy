@@ -7,9 +7,13 @@ import "direct_mir/scalar_program/direct_mir_scalar_program_hashmap_parameter_po
 import "direct_mir/scalar_cfg/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
 import "owned_storage_release_plan_owner.pgy";
 
+// `preserving`: the by-value Array formals of plain elements that the MIR
+// descriptor preservation proof shows the callee only observes
+// (DirectMirArrayStoragePreservingParameters). The call borrows such an
+// argument: it neither moves nor keeps it, so the caller still owns it.
 func DirectMirOwnedLocalDirectCallCarriage(
     ref plan: DirectMirScalarCfgGraphPlan, node: Int, child: Int,
-    routine: Int, graph_start: Int
+    routine: Int, graph_start: Int, ref preserving: HashMap<String, Int>
 ) -> String {
     if plan.program.expressions.node_kinds[node] !=
             DirectMirScalarProgramExprDirectCall() { return ""; }
@@ -50,6 +54,7 @@ func DirectMirOwnedLocalDirectCallCarriage(
             plan.routines.parameter_types[parameter_row], carriage) {
         return carriage;
     }
+    if carriage == "value" && MapHas(preserving, ToString(parameter_row)) { return "value-observed"; }
     return "";
 }
 
@@ -60,7 +65,8 @@ func DirectMirOwnedLocalDirectCallCarriage(
 // the caller refuses the program instead of emitting that release.
 func DirectMirOwnedLocalLentReleaseLeaves(
     ref plan: DirectMirScalarCfgGraphPlan, ref graph_definitions: Array<Int>, ref graph_returns: Array<Bool>,
-    ref transferred: Array<Bool>, ref fresh_returns: Array<Bool>, ref modes: Array<Int>
+    ref transferred: Array<Bool>, ref fresh_returns: Array<Bool>, ref modes: Array<Int>,
+    ref preserving: HashMap<String, Int>
 ) -> Bool {
     var graph: Int = 0;
     while graph < ArrayLength(plan.program.expressions.graph_roots) {
@@ -82,7 +88,7 @@ func DirectMirOwnedLocalLentReleaseLeaves(
                     if lent_local >= 0 && lent_local < ArrayLength(modes) && modes[lent_local] > 0 &&
                         DirectMirOwnedLocalDirectCallCarriage(plan, root, child,
                             DirectMirScalarCfgRoutinePartitionLocalOwner(plan.routines, lent_local),
-                            plan.program.expressions.graph_starts[graph]) == "readonly-ref" {
+                            plan.program.expressions.graph_starts[graph], preserving) == "readonly-ref" {
                         return true;
                     }
                 }

@@ -1,0 +1,29 @@
+// Each pass replaces a literal Array<Int> it hands by value to a reader, and
+// a record buffer goes by value to a reader too: every allocation is the
+// caller's and is released once.
+struct Point {
+    x: Int;
+    y: Int;
+}
+
+func Total(values: Array<Int>) -> Int {
+    return values[0] + values[1] + values[2];
+}
+
+func Far(points: Array<Point>) -> Int {
+    return points[1].x * points[1].y;
+}
+
+func Main() -> Int {
+    var i: Int = 0;
+    var sum: Int = 0;
+    while i < 5 {
+        let values: Array<Int> = [i, i + 1, i + 2];
+        sum = sum + Total(values);
+        i = i + 1;
+    }
+    Log(sum);
+    let points: Array<Point> = [Point(1, 2), Point(3, 4)];
+    Log(Far(points));
+    return 0;
+}
